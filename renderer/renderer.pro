@@ -13,5 +13,5 @@ HEADERS += \
     ../include/renderer/context.h
 
 LIBS += \
+	-lEGL \
 	-lGLESv2
-	-lEGL

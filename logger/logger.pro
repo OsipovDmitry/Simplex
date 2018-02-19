@@ -12,3 +12,6 @@ HEADERS += \
 	../include/logger/logger.h \
 	../include/logger/logger_global.h \
     ../include/logger/abstractlog.h
+
+LIBS += \
+	-llogger

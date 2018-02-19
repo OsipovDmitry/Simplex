@@ -1,7 +1,20 @@
-#include <logger/logger.h>
+#include <QApplication>
+#include <QWidget>
 
-int main()
+#include <logger/logger.h>
+#include <renderer/context.h>
+
+#include <iostream>
+
+int main(int argc, char **argv)
 {
+	QApplication app(argc, argv);
+	QWidget w;
+
 	LOG_INFO("Hello, world!");
-	return 0;
+	auto c = renderer::Context::createContext(w.winId());
+
+	w.show();
+
+	return app.exec();
 }
