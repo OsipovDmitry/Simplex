@@ -42,13 +42,17 @@ public:
 class ContextPrivate {
 public:
 	WindowSurfacePtr windowSurface;
+	ContextPtr sharedContext;
+	static std::weak_ptr<Context> currentContext;
 	EGLContext context;
 
-	ContextPrivate(WindowSurfacePtr ws) :
+	ContextPrivate(WindowSurfacePtr ws, ContextPtr sc) :
 		windowSurface(ws),
+		sharedContext(sc),
 		context(nullptr)
 	{}
 };
+std::weak_ptr<Context> ContextPrivate::currentContext;
 
 Display::Display() :
 	m(new DisplayPrivate)
@@ -104,10 +108,8 @@ DisplayPixelFormatsList Display::pixelFormatsList() const
 	EGLint numConfigs;
 	if (eglGetConfigs(m->display, nullptr, 0, &numConfigs) == EGL_FALSE) {
 		auto error = eglGetError();
-		if (error == EGL_BAD_DISPLAY)
-			LOG_ERROR("Can not get list of pixel formats: Invalid display");
-		else if (error == EGL_NOT_INITIALIZED)
-			LOG_ERROR("Can not get list of pixel formats: Display can not be initialized");
+		// ...
+		LOG_ERROR("Can not get list of pixel formats");
 		return pixelFormatsList;
 	}
 
@@ -140,10 +142,8 @@ DisplayPixelFormatPtr Display::choosePixelFormat(int32_t r, int32_t g, int32_t b
 	EGLint numConfigs;
 	if (eglChooseConfig(m->display, attribs, &config, 1, &numConfigs) == EGL_FALSE) {
 		auto error = eglGetError();
-		if (error == EGL_BAD_DISPLAY)
-			LOG_ERROR("Can not get pixel format: Invalid display");
-		else if (error == EGL_NOT_INITIALIZED)
-			LOG_ERROR("Can not get pixel format: Display can not be initialized");
+		// ...
+		LOG_ERROR("Can not get pixel format");
 		return nullptr;
 	}
 
@@ -175,42 +175,42 @@ const Display* DisplayPixelFormat::display() const
 int32_t DisplayPixelFormat::redSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(m->pDisplay->m->display, m->config, EGL_RED_SIZE, &value);
+	eglGetConfigAttrib(display()->m->display, m->config, EGL_RED_SIZE, &value);
 	return value;
 }
 
 int32_t DisplayPixelFormat::greenSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(m->pDisplay->m->display, m->config, EGL_GREEN_SIZE, &value);
+	eglGetConfigAttrib(display()->m->display, m->config, EGL_GREEN_SIZE, &value);
 	return value;
 }
 
 int32_t DisplayPixelFormat::blueSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(m->pDisplay->m->display, m->config, EGL_BLUE_SIZE, &value);
+	eglGetConfigAttrib(display()->m->display, m->config, EGL_BLUE_SIZE, &value);
 	return value;
 }
 
 int32_t DisplayPixelFormat::alphaSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(m->pDisplay->m->display, m->config, EGL_ALPHA_SIZE, &value);
+	eglGetConfigAttrib(display()->m->display, m->config, EGL_ALPHA_SIZE, &value);
 	return value;
 }
 
 int32_t DisplayPixelFormat::depthSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(m->pDisplay->m->display, m->config, EGL_DEPTH_SIZE, &value);
+	eglGetConfigAttrib(display()->m->display, m->config, EGL_DEPTH_SIZE, &value);
 	return value;
 }
 
 int32_t DisplayPixelFormat::stencilSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(m->pDisplay->m->display, m->config, EGL_STENCIL_SIZE, &value);
+	eglGetConfigAttrib(display()->m->display, m->config, EGL_STENCIL_SIZE, &value);
 	return value;
 }
 
@@ -222,12 +222,8 @@ WindowSurface::~WindowSurface()
 
 	if (eglDestroySurface(pf->m->pDisplay->m->display, surface) == EGL_FALSE) {
 		auto error = eglGetError();
-		if (error == EGL_BAD_DISPLAY)
-			LOG_ERROR("Can not destory window surface: display is not an EGL display connection");
-		else if (error == EGL_NOT_INITIALIZED)
-			LOG_ERROR("Can not destory window surface: display has not been initialized");
-		else if (error == EGL_BAD_SURFACE)
-			LOG_ERROR("Can not destory window surface: surface is not an EGL surface");
+		// ...
+		LOG_ERROR("Can not destory window surface");
 		return;
 	}
 }
@@ -246,20 +242,8 @@ WindowSurfacePtr WindowSurface::createWindowSurface(DisplayPixelFormatPtr pixelF
 	auto surface = eglCreateWindowSurface(pixelFormat->m->pDisplay->m->display, pixelFormat->m->config, (EGLNativeWindowType)windowID, attribs);
 	if (surface == EGL_NO_SURFACE) {
 		auto error = eglGetError();
-		if (error == EGL_BAD_DISPLAY)
-			LOG_ERROR("Can not create window surface: display is not an EGL display connection");
-		else if (error == EGL_NOT_INITIALIZED)
-			LOG_ERROR("Can not create window surface: display has not been initialized");
-		else if (error == EGL_BAD_CONFIG)
-			LOG_ERROR("Can not create window surface: config is not an EGL frame buffer configuration");
-		else if (error == EGL_BAD_NATIVE_WINDOW)
-			LOG_ERROR("Can not create window surface: native_window is not a valid native window");
-		else if (error == EGL_BAD_ATTRIBUTE)
-			LOG_ERROR("Can not create window surface: attrib_list contains an invalid window attribute or if an attribute value is not recognized or is out of range");
-		else if (error == EGL_BAD_ALLOC)
-			LOG_ERROR("Can not create window surface: there are not enough resources to allocate the new surface");
-		else if (error == EGL_BAD_MATCH)
-			LOG_ERROR("Can not create window surface: attributes of native_window do not correspond to config or config does not support rendering to windows");
+		// ...
+		LOG_ERROR("Can not create window surface");
 		return nullptr;
 	}
 
@@ -274,9 +258,27 @@ WindowSurface::WindowSurface(DisplayPixelFormatPtr pixelFormat) :
 {
 }
 
-Context::Context(WindowSurfacePtr windowSurface) :
-	m(new ContextPrivate(windowSurface))
+Context::Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext) :
+	m(new ContextPrivate(windowSurface, sharedContext))
 {
+}
+
+void Context::makeContextCurrent(ContextPtr context)
+{
+	if (ContextPrivate::currentContext.lock() == context)
+		return;
+
+	if (eglMakeCurrent(context->windowSurface()->pixelFormat()->display()->m->display,
+					   context->windowSurface()->m->surface,
+					   context->windowSurface()->m->surface,
+					   context->m->context) == EGL_FALSE) {
+		auto error = eglGetError();
+		// ...
+		LOG_ERROR("Can not make context current");
+		return;
+	}
+
+	ContextPrivate::currentContext = context;
 }
 
 Context::~Context()
@@ -287,12 +289,8 @@ Context::~Context()
 
 	if (eglDestroyContext(surface->pixelFormat()->display()->m->display, context)) {
 		auto error = eglGetError();
-		if (error == EGL_BAD_DISPLAY)
-			LOG_ERROR("Can not destroy context: display is not an EGL display connection");
-		else if (error == EGL_NOT_INITIALIZED)
-			LOG_ERROR("Can not destroy context: display has not been initialized");
-		else if (error == EGL_BAD_CONTEXT)
-			LOG_ERROR("Can not destroy context: share_context is not an EGL rendering context");
+		// ...
+		LOG_ERROR("Can not destroy context");
 		return;
 	}
 }
@@ -300,6 +298,22 @@ Context::~Context()
 WindowSurfacePtr Context::windowSurface() const
 {
 	return m->windowSurface;
+}
+
+ContextPtr Context::sharedContext() const
+{
+	return m->sharedContext;
+}
+
+void Context::swapBuffers()
+{
+	if (eglSwapBuffers(windowSurface()->pixelFormat()->display()->m->display,
+					   windowSurface()->m->surface) == EGL_FALSE) {
+		auto error = eglGetError();
+		// ...
+		LOG_ERROR("Can not swap color buffers");
+		return;
+	}
 }
 
 ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext)
@@ -315,25 +329,15 @@ ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sha
 									attribs);
 	if (context == EGL_NO_CONTEXT) {
 		auto error = eglGetError();
-		if (error == EGL_BAD_MATCH)
-			LOG_ERROR("Can not create context: current rendering API is EGL_NONE");
-		else if (error == EGL_BAD_DISPLAY)
-			LOG_ERROR("Can not create context: display is not an EGL display connection");
-		else if (error == EGL_NOT_INITIALIZED)
-			LOG_ERROR("Can not create context: display has not been initialized");
-		else if (error == EGL_BAD_CONFIG)
-			LOG_ERROR("Can not create context: config is not an EGL frame buffer configuration");
-		else if (error == EGL_BAD_CONTEXT)
-			LOG_ERROR("Can not create context: share_context is not an EGL rendering context");
-		else if (error == EGL_BAD_ATTRIBUTE)
-			LOG_ERROR("Can not create context: attrib_list contains an invalid context attribute");
-		else if (error == EGL_BAD_ALLOC)
-			LOG_ERROR("Can not create context: there are not enough resources to allocate the new context");
+		// ...
+		LOG_ERROR("Can not create context");
 		return nullptr;
 	}
 
-	ContextPtr renderingContext(new Context(windowSurface));
+	ContextPtr renderingContext(new Context(windowSurface, sharedContext));
 	renderingContext->m->context = context;
+
+	makeContextCurrent(renderingContext);
 
 	return renderingContext;
 }

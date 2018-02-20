@@ -3,8 +3,14 @@ TEMPLATE = app
 QT += core gui widgets
 
 SOURCES += \
-	src/main.cpp
+	src/main.cpp \
+    src/gleswidget.cpp
 
 LIBS += \
 	-llogger \
-	-lrenderer
+	-lrenderer \
+	-lEGL \
+	-lGLESv2
+
+HEADERS += \
+    src/gleswidget.h

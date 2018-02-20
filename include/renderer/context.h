@@ -1,6 +1,7 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
+#include <memory>
 #include <vector>
 
 #include "../utils/singletoon.h"
@@ -88,15 +89,21 @@ public:
 	~Context();
 
 	WindowSurfacePtr windowSurface() const;
+	ContextPtr sharedContext() const;
+
+	void swapBuffers();
 
 	static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
 	static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 0, int32_t d = 24, int32_t s = 8, ContextPtr sharedContext = nullptr);
 
 private:
-	Context(WindowSurfacePtr windowSurface);
+	Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
 
+	static void makeContextCurrent(ContextPtr context);
 
 	ContextPrivate *m;
+
+	friend class Shader;
 };
 
 }
