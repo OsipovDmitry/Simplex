@@ -11,26 +11,36 @@ namespace renderer {
 class Context;
 using ContextPtr = std::shared_ptr<Context>;
 
+enum class ShaderType : int32_t {
+	Vertex = 0,
+	Fragment,
+	Count
+};
+
+template <typename T> constexpr ShaderType castToShaderType(T value) { return static_cast<ShaderType>(value); }
+template <typename T> constexpr T castFromShaderType(ShaderType value) { return static_cast<T>(value); }
+
 class ShaderPrivate;
 class RENDERERSHARED_EXPORT Shader {
 public:
-	enum class Type {
-		Vertex,
-		Fragment,
-		Count
-	};
-
 	~Shader();
+
+	ContextPtr context() const;
 
 	void setSourceCode(const std::string& value);
 	std::string sourceCode() const;
 
 	bool compile(std::string *pLog = nullptr);
 
+	ShaderType type() const;
+
 private:
-	Shader(ContextPtr context, Type type);
+	Shader(ContextPtr context, ShaderType type);
 
 	ShaderPrivate *m;
+
+	friend class Context;
+	friend class Program;
 };
 
 }

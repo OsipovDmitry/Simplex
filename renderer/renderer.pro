@@ -7,13 +7,16 @@ DEFINES += \
 
 SOURCES += \
     src/context.cpp \
-    src/shader.cpp
+    src/shader.cpp \
+    src/program.cpp
 
 HEADERS += \
 	../include/renderer/renderer_global.h \
     ../include/renderer/context.h \
+    src/checkglerror.h \
+    src/shaderprivate.h \
     ../include/renderer/shader.h \
-    src/checkglerror.h
+    ../include/renderer/program.h
 
 LIBS += \
 	-llogger \

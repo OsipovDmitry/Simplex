@@ -1,7 +1,8 @@
-//#include <GLES3/gl3.h>
 #include <EGL/egl.h>
 
 #include <renderer/context.h>
+#include <renderer/shader.h>
+#include <renderer/program.h>
 #include <logger/logger.h>
 
 namespace renderer {
@@ -263,9 +264,10 @@ Context::Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext) :
 {
 }
 
-void Context::makeContextCurrent(ContextPtr context)
+void Context::makeContextCurrent(const ContextPtr& context)
 {
-	if (ContextPrivate::currentContext.lock() == context)
+	auto cur = ContextPrivate::currentContext.lock();
+	if (cur == context)
 		return;
 
 	if (eglMakeCurrent(context->windowSurface()->pixelFormat()->display()->m->display,
@@ -287,7 +289,7 @@ Context::~Context()
 	auto surface = m->windowSurface;
 	delete m;
 
-	if (eglDestroyContext(surface->pixelFormat()->display()->m->display, context)) {
+	if (eglDestroyContext(surface->pixelFormat()->display()->m->display, context) == EGL_FALSE) {
 		auto error = eglGetError();
 		// ...
 		LOG_ERROR("Can not destroy context");
@@ -316,6 +318,16 @@ void Context::swapBuffers()
 	}
 }
 
+ShaderPtr Context::createShader(ShaderType type)
+{
+	return ShaderPtr(new Shader(shared_from_this(), type));
+}
+
+ProgramPtr Context::createProgram()
+{
+	return ProgramPtr(new Program(shared_from_this()));
+}
+
 ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext)
 {
 	EGLint attribs[] = {
@@ -337,6 +349,7 @@ ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sha
 	ContextPtr renderingContext(new Context(windowSurface, sharedContext));
 	renderingContext->m->context = context;
 
+	// DELETE IT!!!
 	makeContextCurrent(renderingContext);
 
 	return renderingContext;

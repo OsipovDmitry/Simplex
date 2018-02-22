@@ -1,37 +1,37 @@
-#include <array>
+#include <algorithm>
 
 #include <GLES3/gl3.h>
 
 #include <renderer/shader.h>
 #include <renderer/context.h>
 
+#include "shaderprivate.h"
 #include "checkglerror.h"
 
 namespace renderer {
 
-class ShaderPrivate {
-public:
-	ContextPtr context;
-	GLuint id;
+namespace {
 
-	ShaderPrivate(ContextPtr c) :
-		context(c),
-		id(0)
-	{}
+static GLenum shaderGLType(ShaderType val) {
+	static const std::array<GLenum, castFromShaderType<size_t>(ShaderType::Count)> table{GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
+	return table[castFromShaderType<size_t>(val)];
+}
 
-	static GLenum glType(Shader::Type val) {
-		static const std::array<GLenum, static_cast<size_t>(Shader::Type::Count)> table{GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
-		return table[static_cast<size_t>(val)];
-	}
-};
+}
 
 Shader::~Shader()
 {
 	auto id = m->id;
+	auto context = m->context;
 	delete m;
 
-	Context::makeContextCurrent(m->context);
+	Context::makeContextCurrent(context);
 	CHECK_GL_ERROR(glDeleteShader(id), "Can not delete shader");
+}
+
+ContextPtr Shader::context() const
+{
+	return m->context;
 }
 
 void Shader::setSourceCode(const std::string& value)
@@ -69,11 +69,22 @@ bool Shader::compile(std::string* pLog)
 	return res != GL_FALSE;
 }
 
-Shader::Shader(ContextPtr context, Shader::Type type) :
+ShaderType Shader::type() const
+{
+	static const std::array<GLenum, castFromShaderType<size_t>(ShaderType::Count)> table{GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
+
+	Context::makeContextCurrent(m->context);
+	GLint res;
+	CHECK_GL_ERROR(glGetShaderiv(m->id, GL_SHADER_TYPE, &res), "Can not get shader type", ShaderType::Count);
+
+	return castToShaderType(std::find(table.cbegin(), table.cend(), (GLenum)res) - table.cbegin());
+}
+
+Shader::Shader(ContextPtr context, ShaderType type) :
 	m(new ShaderPrivate(context))
 {
 	Context::makeContextCurrent(m->context);
-	CHECK_GL_ERROR(auto id = glCreateShader(ShaderPrivate::glType(type)), "Can not create shader");
+	CHECK_GL_ERROR(auto id = glCreateShader(shaderGLType(type)), "Can not create shader");
 
 	m->id = id;
 }

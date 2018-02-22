@@ -3,7 +3,8 @@
 
 #include <QWidget>
 #include <renderer/context.h>
-#include <GLES3/gl3.h>
+#include <renderer/program.h>
+#include <renderer/shader.h>
 
 class GLESWidget : public QWidget
 {
@@ -11,16 +12,15 @@ class GLESWidget : public QWidget
 public:
 	explicit GLESWidget(QWidget *parent = nullptr);
 
-	void init();
 	void setContext(renderer::ContextPtr context) {m_context = context;}
+	void setProgram(renderer::ProgramPtr program) {m_program = program;}
 
 protected:
 	void paintEvent(QPaintEvent*);
 
 private:
 	renderer::ContextPtr m_context;
-
-	GLuint m_programId;
+	renderer::ProgramPtr m_program;
 };
 
 #endif // GLESWIDGET_H

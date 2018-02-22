@@ -19,6 +19,14 @@ using WindowSurfacePtr = std::shared_ptr<WindowSurface>;
 class Context;
 using ContextPtr = std::shared_ptr<Context>;
 
+class Shader;
+using ShaderPtr = std::shared_ptr<Shader>;
+enum class ShaderType : int32_t;
+
+class Program;
+using ProgramPtr = std::shared_ptr<Program>;
+
+
 class DisplayPrivate;
 class RENDERERSHARED_EXPORT Display {
 	SINGLETON(Display)
@@ -84,7 +92,7 @@ private:
 };
 
 class ContextPrivate;
-class RENDERERSHARED_EXPORT Context {
+class RENDERERSHARED_EXPORT Context : public std::enable_shared_from_this<Context> {
 public:
 	~Context();
 
@@ -93,17 +101,21 @@ public:
 
 	void swapBuffers();
 
+	ShaderPtr createShader(ShaderType type);
+	ProgramPtr createProgram();
+
 	static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
 	static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 0, int32_t d = 24, int32_t s = 8, ContextPtr sharedContext = nullptr);
-
+static void makeContextCurrent(const ContextPtr& context);
 private:
 	Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
 
-	static void makeContextCurrent(ContextPtr context);
+	//static void makeContextCurrent(const ContextPtr& context);
 
 	ContextPrivate *m;
 
 	friend class Shader;
+	friend class Program;
 };
 
 }
