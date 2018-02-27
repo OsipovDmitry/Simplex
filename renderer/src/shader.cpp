@@ -12,9 +12,14 @@ namespace renderer {
 
 namespace {
 
-static GLenum shaderGLType(ShaderType val) {
-	static const std::array<GLenum, castFromShaderType<size_t>(ShaderType::Count)> table{GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
-	return table[castFromShaderType<size_t>(val)];
+static const std::array<GLenum, castFromShaderType<size_t>(ShaderType::Count)> shaderTypeTable{GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
+
+GLenum toShaderGLType(ShaderType val) {
+	return shaderTypeTable[castFromShaderType<size_t>(val)];
+}
+
+ShaderType fromShaderGLType(GLenum val) {
+	return castToShaderType(std::find(shaderTypeTable.cbegin(), shaderTypeTable.cend(), (GLenum)val) - shaderTypeTable.cbegin());
 }
 
 }
@@ -71,20 +76,19 @@ bool Shader::compile(std::string* pLog)
 
 ShaderType Shader::type() const
 {
-	static const std::array<GLenum, castFromShaderType<size_t>(ShaderType::Count)> table{GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
 
 	Context::makeContextCurrent(m->context);
 	GLint res;
 	CHECK_GL_ERROR(glGetShaderiv(m->id, GL_SHADER_TYPE, &res), "Can not get shader type", ShaderType::Count);
 
-	return castToShaderType(std::find(table.cbegin(), table.cend(), (GLenum)res) - table.cbegin());
+	return fromShaderGLType(res);
 }
 
 Shader::Shader(ContextPtr context, ShaderType type) :
 	m(new ShaderPrivate(context))
 {
 	Context::makeContextCurrent(m->context);
-	CHECK_GL_ERROR(auto id = glCreateShader(shaderGLType(type)), "Can not create shader");
+	CHECK_GL_ERROR(auto id = glCreateShader(toShaderGLType(type)), "Can not create shader");
 
 	m->id = id;
 }

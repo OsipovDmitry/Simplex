@@ -23,6 +23,33 @@ enum class ShaderType : int32_t;
 class Program;
 using ProgramPtr = std::shared_ptr<Program>;
 
+enum class ProgramUniformType : int32_t {
+	Float = 0, Float2, Float3, Float4,
+	Int, Int2, Int3, Int4,
+	Uint, Uint2, Uint3, Uint4,
+	Boolean, Bool2, Bool3, Bool4,
+	Mat2, Mat3, Mat4, Mat2x3, Mat2x4, Mat3x2, Mat3x4, Mat4x2, Mat4x3,
+	Sampler2D, Sampler3D, SamplerCube, Sampler2DArray,
+	Sampler2DShadow, SamplerCubeShadow, Sampler2DArrayShadow,
+	IntSampler2D, IntSampler3D, IntSamplerCube, IntSampler2DArray,
+	UintSampler2D, UintSampler3D, UintSamplerCube, UintSampler2DArray,
+	Count
+};
+
+template <typename T> constexpr ProgramUniformType castToProgramUniformType(T value) { return static_cast<ProgramUniformType>(value); }
+template <typename T> constexpr T castFromProgramUniformType(ProgramUniformType value) { return static_cast<T>(value); }
+
+struct ProgramUniformInfo {
+	std::string name;
+	int32_t size;
+	int32_t blockIndex;
+	int32_t blockOffset;
+	int32_t blockArrayStride;
+	int32_t blockMatrixStride;
+	bool isRowMajor;
+	ProgramUniformType type;
+};
+
 class ProgramPrivate;
 class RENDERERSHARED_EXPORT Program : public std::enable_shared_from_this<Program> {
 public:
@@ -36,6 +63,9 @@ public:
 	bool link(std::string *pLog = nullptr);
 
 	int32_t uniformLocation(const std::string& uniformName) const;
+
+	int32_t activeUniformsCount() const;
+	ProgramUniformInfo activeUniformInfo(int32_t index) const;
 
 	void setUniform(const int32_t location, const float value);
 	void setUniform(const int32_t location, const int32_t value);

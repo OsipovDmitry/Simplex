@@ -54,6 +54,9 @@ int main(int argc, char **argv)
 
 	program->setUniform(program->uniformLocation("color"), glm::vec4(0.5f, 0.5f, 1.0f, 1.0f));
 
+	for (int i = 0; i < program->activeUniformsCount(); ++i)
+		program->activeUniformInfo(i);
+
 	w1.setContext(c1);
 	w1.setProgram(program);
 	w1.show();
