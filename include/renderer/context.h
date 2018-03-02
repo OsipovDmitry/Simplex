@@ -26,6 +26,12 @@ enum class ShaderType : int32_t;
 class Program;
 using ProgramPtr = std::shared_ptr<Program>;
 
+class Buffer;
+using BufferPtr = std::shared_ptr<Buffer>;
+enum class BufferUsage : int32_t;
+
+class VertexArray;
+using VertexArrayPtr = std::shared_ptr<VertexArray>;
 
 class DisplayPrivate;
 class RENDERERSHARED_EXPORT Display {
@@ -46,6 +52,7 @@ private:
 
 	friend class DisplayPixelFormat;
 	friend class WindowSurface;
+	friend class ContextPrivate;
 	friend class Context;
 };
 
@@ -80,6 +87,7 @@ public:
 	~WindowSurface();
 
 	DisplayPixelFormatPtr pixelFormat() const;
+	void swapBuffers();
 
 	static WindowSurfacePtr createWindowSurface(DisplayPixelFormatPtr pixelFormat, intptr_t windowID);
 
@@ -88,6 +96,7 @@ private:
 
 	WindowSurfacePrivate *m;
 
+	friend class ContextPrivate;
 	friend class Context;
 };
 
@@ -99,23 +108,26 @@ public:
 	WindowSurfacePtr windowSurface() const;
 	ContextPtr sharedContext() const;
 
-	void swapBuffers();
-
 	ShaderPtr createShader(ShaderType type);
 	ProgramPtr createProgram();
+	BufferPtr createBuffer(BufferUsage usage, uint64_t size = 0, const void *pData = nullptr);
+	VertexArrayPtr createVertexArray();
 
 	static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
 	static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 0, int32_t d = 24, int32_t s = 8, ContextPtr sharedContext = nullptr);
-static void makeContextCurrent(const ContextPtr& context);
+
+	// DELETE IT!!!
+	void make();
+
 private:
 	Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
-
-	//static void makeContextCurrent(const ContextPtr& context);
 
 	ContextPrivate *m;
 
 	friend class Shader;
 	friend class Program;
+	friend class Buffer;
+	friend class VertexArray;
 };
 
 }

@@ -5,6 +5,7 @@
 #include <renderer/context.h>
 #include <renderer/program.h>
 #include <renderer/shader.h>
+#include <renderer/buffer.h>
 
 class GLESWidget : public QWidget
 {

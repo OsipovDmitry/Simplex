@@ -3,57 +3,13 @@
 #include <renderer/context.h>
 #include <renderer/shader.h>
 #include <renderer/program.h>
+#include <renderer/buffer.h>
+#include <renderer/vertexarray.h>
 #include <logger/logger.h>
 
+#include "contextprivate.h"
+
 namespace renderer {
-
-class DisplayPrivate {
-public:
-	EGLDisplay display;
-	EGLint majorVersion, minorVersion;
-	DisplayPrivate() :
-		display(nullptr),
-		majorVersion(0),
-		minorVersion(0)
-	{}
-};
-
-class DisplayPixelFormatPrivate {
-public:
-	const Display *pDisplay;
-	EGLConfig config;
-
-	DisplayPixelFormatPrivate(const Display *pD) :
-		pDisplay(pD),
-		config(nullptr)
-	{}
-};
-
-class WindowSurfacePrivate {
-public:
-	DisplayPixelFormatPtr pixelFormat;
-	EGLSurface surface;
-
-	WindowSurfacePrivate(DisplayPixelFormatPtr pf) :
-		pixelFormat(pf),
-		surface(nullptr)
-	{}
-};
-
-class ContextPrivate {
-public:
-	WindowSurfacePtr windowSurface;
-	ContextPtr sharedContext;
-	static std::weak_ptr<Context> currentContext;
-	EGLContext context;
-
-	ContextPrivate(WindowSurfacePtr ws, ContextPtr sc) :
-		windowSurface(ws),
-		sharedContext(sc),
-		context(nullptr)
-	{}
-};
-std::weak_ptr<Context> ContextPrivate::currentContext;
 
 Display::Display() :
 	m(new DisplayPrivate)
@@ -234,6 +190,17 @@ DisplayPixelFormatPtr WindowSurface::pixelFormat() const
 	return m->pixelFormat;
 }
 
+void WindowSurface::swapBuffers()
+{
+	if (eglSwapBuffers(pixelFormat()->display()->m->display,
+					   m->surface) == EGL_FALSE) {
+		auto error = eglGetError();
+		// ...
+		LOG_ERROR("Can not swap color buffers");
+		return;
+	}
+}
+
 WindowSurfacePtr WindowSurface::createWindowSurface(DisplayPixelFormatPtr pixelFormat, intptr_t windowID)
 {
 	EGLint attribs[] = {
@@ -260,27 +227,8 @@ WindowSurface::WindowSurface(DisplayPixelFormatPtr pixelFormat) :
 }
 
 Context::Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext) :
-	m(new ContextPrivate(windowSurface, sharedContext))
+	m(new ContextPrivate(this, windowSurface, sharedContext))
 {
-}
-
-void Context::makeContextCurrent(const ContextPtr& context)
-{
-	auto cur = ContextPrivate::currentContext.lock();
-	if (cur == context)
-		return;
-
-	if (eglMakeCurrent(context->windowSurface()->pixelFormat()->display()->m->display,
-					   context->windowSurface()->m->surface,
-					   context->windowSurface()->m->surface,
-					   context->m->context) == EGL_FALSE) {
-		auto error = eglGetError();
-		// ...
-		LOG_ERROR("Can not make context current");
-		return;
-	}
-
-	ContextPrivate::currentContext = context;
 }
 
 Context::~Context()
@@ -307,17 +255,6 @@ ContextPtr Context::sharedContext() const
 	return m->sharedContext;
 }
 
-void Context::swapBuffers()
-{
-	if (eglSwapBuffers(windowSurface()->pixelFormat()->display()->m->display,
-					   windowSurface()->m->surface) == EGL_FALSE) {
-		auto error = eglGetError();
-		// ...
-		LOG_ERROR("Can not swap color buffers");
-		return;
-	}
-}
-
 ShaderPtr Context::createShader(ShaderType type)
 {
 	return ShaderPtr(new Shader(shared_from_this(), type));
@@ -326,6 +263,18 @@ ShaderPtr Context::createShader(ShaderType type)
 ProgramPtr Context::createProgram()
 {
 	return ProgramPtr(new Program(shared_from_this()));
+}
+
+BufferPtr Context::createBuffer(BufferUsage usage, uint64_t size, const void* pData)
+{
+	auto pBuffer = BufferPtr(new Buffer(shared_from_this()));
+	pBuffer->init(usage, size, pData);
+	return pBuffer;
+}
+
+VertexArrayPtr Context::createVertexArray()
+{
+	return VertexArrayPtr(new VertexArray(shared_from_this()));
 }
 
 ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext)
@@ -350,7 +299,7 @@ ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sha
 	renderingContext->m->context = context;
 
 	// DELETE IT!!!
-	makeContextCurrent(renderingContext);
+	renderingContext->m->bindThisContext();
 
 	return renderingContext;
 }
@@ -370,6 +319,11 @@ ContextPtr Context::createContext(intptr_t windowId, int32_t r, int32_t g, int32
 		return nullptr;
 
 	return createContext(surface, sharedContext);
+}
+
+void Context::make()
+{
+	m->bindThisContext();
 }
 
 

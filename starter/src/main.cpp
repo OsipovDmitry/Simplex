@@ -8,19 +8,22 @@
 
 char vShaderStr[] =
    "#version 300 es                          \n"
-   "layout(location = 0) in vec4 vPosition;  \n"
+   "layout(location = 0) in vec2 vPosition;  \n"
+   "layout(location = 1) in vec3 vColor;     \n"
+   "out vec3 color;                          \n"
    "void main()                              \n"
    "{                                        \n"
-   "   gl_Position = vPosition;              \n"
+   "   gl_Position = vec4(vPosition, 0, 1);  \n"
+   "   color = vColor;                       \n"
    "}                                        \n";
 char fShaderStr[] =
    "#version 300 es                              \n"
    "precision mediump float;                     \n"
-   "uniform vec4 color;                          \n"
+   "in vec3 color;                               \n"
    "out vec4 fragColor;                          \n"
    "void main()                                  \n"
    "{                                            \n"
-   "   fragColor = color;  \n"
+   "   fragColor = vec4(color, 1);               \n"
    "}                                            \n";
 
 
@@ -35,27 +38,24 @@ int main(int argc, char **argv)
 	std::string sLog;
 	auto vertexShader = c1->createShader(renderer::ShaderType::Vertex);
 	vertexShader->setSourceCode(std::string(vShaderStr));
-	vertexShader->compile(&sLog);
+	auto b = vertexShader->compile(&sLog);
 	if (!sLog.empty())
 		LOG_DEBUG(sLog);
 
 	auto fragShader = c1->createShader(renderer::ShaderType::Fragment);
 	fragShader->setSourceCode(std::string(fShaderStr));
-	fragShader->compile(&sLog);
+	b = fragShader->compile(&sLog);
 	if (!sLog.empty())
 		LOG_DEBUG(sLog);
 
 	auto program = c1->createProgram();
 	program->attachShader(vertexShader);
 	program->attachShader(fragShader);
-	program->link(&sLog);
+	b = program->link(&sLog);
 	if (!sLog.empty())
 		LOG_DEBUG(sLog);
 
-	program->setUniform(program->uniformLocation("color"), glm::vec4(0.5f, 0.5f, 1.0f, 1.0f));
-
-	for (int i = 0; i < program->activeUniformsCount(); ++i)
-		program->activeUniformInfo(i);
+	program->setUniform(program->uniformLocationByName("color"), glm::vec4(0.5f, 0.5f, 1.0f, 1.0f));
 
 	w1.setContext(c1);
 	w1.setProgram(program);

@@ -5,6 +5,7 @@
 #include <renderer/shader.h>
 #include <renderer/context.h>
 
+#include "contextprivate.h"
 #include "shaderprivate.h"
 #include "checkglerror.h"
 
@@ -12,7 +13,7 @@ namespace renderer {
 
 namespace {
 
-static const std::array<GLenum, castFromShaderType<size_t>(ShaderType::Count)> shaderTypeTable{GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
+const std::array<GLenum, castFromShaderType<size_t>(ShaderType::Count)> shaderTypeTable{GL_VERTEX_SHADER, GL_FRAGMENT_SHADER};
 
 GLenum toShaderGLType(ShaderType val) {
 	return shaderTypeTable[castFromShaderType<size_t>(val)];
@@ -30,7 +31,7 @@ Shader::~Shader()
 	auto context = m->context;
 	delete m;
 
-	Context::makeContextCurrent(context);
+	context->m->bindThisContext();
 	CHECK_GL_ERROR(glDeleteShader(id), "Can not delete shader");
 }
 
@@ -41,14 +42,14 @@ ContextPtr Shader::context() const
 
 void Shader::setSourceCode(const std::string& value)
 {
-	Context::makeContextCurrent(m->context);
+	m->context->m->bindThisContext();
 	auto data = value.c_str();
 	CHECK_GL_ERROR(glShaderSource(m->id, 1, &data, nullptr), "Can not set shader's source code");
 }
 
 std::string Shader::sourceCode() const
 {
-	Context::makeContextCurrent(m->context);
+	m->context->m->bindThisContext();
 	GLint len;
 	CHECK_GL_ERROR(glGetShaderiv(m->id, GL_SHADER_SOURCE_LENGTH, &len), "Can not get shader's source code", std::string());
 	std::string ret(len, 0);
@@ -58,7 +59,7 @@ std::string Shader::sourceCode() const
 
 bool Shader::compile(std::string* pLog)
 {
-	Context::makeContextCurrent(m->context);
+	m->context->m->bindThisContext();
 	CHECK_GL_ERROR(glCompileShader(m->id), "Can not compile shader", false);
 
 	GLint res;
@@ -77,7 +78,7 @@ bool Shader::compile(std::string* pLog)
 ShaderType Shader::type() const
 {
 
-	Context::makeContextCurrent(m->context);
+	m->context->m->bindThisContext();
 	GLint res;
 	CHECK_GL_ERROR(glGetShaderiv(m->id, GL_SHADER_TYPE, &res), "Can not get shader type", ShaderType::Count);
 
@@ -87,7 +88,7 @@ ShaderType Shader::type() const
 Shader::Shader(ContextPtr context, ShaderType type) :
 	m(new ShaderPrivate(context))
 {
-	Context::makeContextCurrent(m->context);
+	m->context->m->bindThisContext();
 	CHECK_GL_ERROR(auto id = glCreateShader(toShaderGLType(type)), "Can not create shader");
 
 	m->id = id;

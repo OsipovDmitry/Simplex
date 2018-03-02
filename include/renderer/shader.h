@@ -11,6 +11,9 @@ namespace renderer {
 class Context;
 using ContextPtr = std::shared_ptr<Context>;
 
+class Shader;
+using ShaderPtr = std::shared_ptr<Shader>;
+
 enum class ShaderType : int32_t {
 	Vertex = 0,
 	Fragment,
