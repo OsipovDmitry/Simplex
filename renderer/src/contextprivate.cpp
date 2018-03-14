@@ -6,7 +6,7 @@
 #include <renderer/buffer.h>
 #include <renderer/vertexarray.h>
 
-#include "checkglerror.h"
+#include "glutils.h"
 #include "contextprivate.h"
 #include "programprivate.h"
 #include "bufferprivate.h"
@@ -71,18 +71,30 @@ void ContextPrivate::bindProgram(ProgramConstPtr program)
 	if (currentProgram.lock() == program)
 		return;
 
-	CHECK_GL_ERROR(glUseProgram(program ? program->m->id : 0), "Can not use program");
+	CHECK_GL_ERROR(glUseProgram(program ? *program->m->id : 0), "Can not use program");
 	currentProgram = program;
 }
 
-void ContextPrivate::bindBuffer(BufferTarget target, BufferConstPtr buffer)
+void ContextPrivate::bindBuffer(BufferConstPtr buffer, BufferTarget target, uint32_t bindingPoint, int64_t size, uint64_t offset)
 {
-	auto GLtarget = castFromBufferTarget<size_t>(target);
-	if (currentBuffers[GLtarget].lock() == buffer)
+	auto cacheIndex = castFromBufferTarget<size_t>(target) + bindingPoint;
+	if (currentBuffers[cacheIndex].lock() == buffer)
 		return;
 
-	CHECK_GL_ERROR(glBindBuffer(toBufferGLTarget(target), buffer ? buffer->m->id : 0), "Can not bind buffer");
-	currentBuffers[GLtarget] = buffer;
+	switch (target) {
+		case BufferTarget::Uniform: {
+			if (size == -1)
+				size = buffer->size() - offset;
+			CHECK_GL_ERROR(glBindBufferRange(toBufferGLTarget(target), bindingPoint, buffer ? *buffer->m->id : 0, offset, size), "Can not bind buffer");
+			break;
+		}
+		default: {
+			CHECK_GL_ERROR(glBindBuffer(toBufferGLTarget(target), buffer ? *buffer->m->id : 0), "Can not bind buffer");
+			break;
+		}
+	}
+
+	currentBuffers[cacheIndex] = buffer;
 }
 
 void ContextPrivate::bindVertexArray(VertexArrayConstPtr vArray)
@@ -90,7 +102,7 @@ void ContextPrivate::bindVertexArray(VertexArrayConstPtr vArray)
 	if (currentVertexArray.lock() == vArray)
 		return;
 
-	CHECK_GL_ERROR(glBindVertexArray(vArray ? vArray->m->id : 0), "Can not bind VAO");
+	CHECK_GL_ERROR(glBindVertexArray(vArray ? *vArray->m->id : 0), "Can not bind VAO");
 	currentVertexArray = vArray;
 }
 

@@ -10,6 +10,9 @@ namespace renderer {
 class Context;
 using ContextPtr = std::shared_ptr<Context>;
 
+class Buffer;
+using BufferPtr = std::shared_ptr<Buffer>;
+
 enum class BufferUsage : int32_t {
 	StaticDraw = 0, StaticRead, StaticCopy,
 	DynamicDraw, DynamicRead, DynamicCopy,
@@ -35,11 +38,12 @@ public:
 	BufferUsage usage() const;
 	int64_t size() const;
 
-	void *map(BufferAccess access, int64_t offset = 0, int64_t length = -1);
+	void *map(BufferAccess access, uint64_t offset = 0, int64_t length = -1);
 	bool unmap();
 
 private:
 	Buffer(ContextPtr context);
+	Buffer(ContextPtr context, BufferPtr sharedBuffer);
 	void init(BufferUsage usage, uint64_t size, const void* pData);
 
 	BufferPrivate *m;

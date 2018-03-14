@@ -1,8 +1,7 @@
 #ifndef SHADERPRIVATE_H
 #define SHADERPRIVATE_H
 
-#include <memory>
-#include <GLES3/gl3.h>
+#include "glutils.h"
 
 namespace renderer {
 
@@ -12,11 +11,11 @@ using ContextPtr = std::shared_ptr<Context>;
 class ShaderPrivate {
 public:
 	ContextPtr context;
-	GLuint id;
+	GLuintPtr id;
 
-	ShaderPrivate(ContextPtr c) :
-		context(c),
-		id(0)
+	ShaderPrivate(ContextPtr context_, GLuintPtr id_) :
+		context(context_),
+		id(id_)
 	{}
 };
 

@@ -1,9 +1,7 @@
 #ifndef BUFFERPRIVATE_H
 #define BUFFERPRIVATE_H
 
-#include <memory>
-
-#include <GLES3/gl3.h>
+#include "glutils.h"
 
 namespace renderer {
 
@@ -13,11 +11,11 @@ using ContextPtr = std::shared_ptr<Context>;
 class BufferPrivate {
 public:
 	ContextPtr context;
-	GLuint id;
+	GLuintPtr id;
 
-	BufferPrivate(ContextPtr c) :
-		context(c),
-		id(0)
+	BufferPrivate(ContextPtr context_, GLuintPtr id_) :
+		context(context_),
+		id(id_)
 	{}
 };
 

@@ -39,6 +39,7 @@ public:
 
 private:
 	Shader(ContextPtr context, ShaderType type);
+	Shader(ContextPtr context, ShaderPtr sharedShader);
 
 	ShaderPrivate *m;
 

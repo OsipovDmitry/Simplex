@@ -33,6 +33,9 @@ enum class BufferUsage : int32_t;
 class VertexArray;
 using VertexArrayPtr = std::shared_ptr<VertexArray>;
 
+class Texture;
+using TexturePtr = std::shared_ptr<Texture>;
+
 class DisplayPrivate;
 class RENDERERSHARED_EXPORT Display {
 	SINGLETON(Display)
@@ -109,15 +112,29 @@ public:
 	ContextPtr sharedContext() const;
 
 	ShaderPtr createShader(ShaderType type);
+	ShaderPtr createSharedShader(ShaderPtr shader);
+
 	ProgramPtr createProgram();
+	ProgramPtr createSharedProgram(ProgramPtr program);
+
 	BufferPtr createBuffer(BufferUsage usage, uint64_t size = 0, const void *pData = nullptr);
+	BufferPtr createSharedBuffer(BufferPtr buffer);
+
 	VertexArrayPtr createVertexArray();
+	VertexArrayPtr createSharedVertexArray(VertexArrayPtr vertexArray);
+
+	TexturePtr createTexture();
+	TexturePtr createSharedTexture(TexturePtr texture);
+
+	void bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size = -1, uint64_t offset = 0);
 
 	static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
 	static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 0, int32_t d = 24, int32_t s = 8, ContextPtr sharedContext = nullptr);
 
 	// DELETE IT!!!
 	void make();
+	void bindProgram(ProgramPtr program);
+	void bindVAO(VertexArrayPtr vao);
 
 private:
 	Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
@@ -128,6 +145,7 @@ private:
 	friend class Program;
 	friend class Buffer;
 	friend class VertexArray;
+	friend class Texture;
 };
 
 }

@@ -79,15 +79,13 @@ class RENDERERSHARED_EXPORT Program : public std::enable_shared_from_this<Progra
 public:
 	~Program();
 
-	int id() const;
-
 	void detachShader(ShaderType type);
 	void attachShader(ShaderPtr shader);
 
 	bool link(std::string *pLog = nullptr);
 
 	int32_t uniformLocationByName(const std::string& uniformName) const;
-	int32_t uniformBlockIndexByName(const std::string& uniformBlockName) const;
+	uint32_t uniformBlockIndexByName(const std::string& uniformBlockName) const;
 	int32_t attributeLocationByName(const std::string& attributeName) const;
 
 	ProgramUniformsInfo uniformsInfo() const; // быстрее, чем по очереди каждую
@@ -121,9 +119,11 @@ public:
 	void setUniform(const int32_t location, const glm::mat3x4& value, const bool transpose = false);
 	void setUniform(const int32_t location, const glm::mat4x2& value, const bool transpose = false);
 	void setUniform(const int32_t location, const glm::mat4x3& value, const bool transpose = false);
+	void setUnifromBlockBindingPoint(const uint32_t uniformBlockIndex, uint32_t bindingPoint);
 
 private:
 	Program(ContextPtr context);
+	Program(ContextPtr context, ProgramPtr sharedProgram);
 
 	ProgramPrivate *m;
 

@@ -5,6 +5,7 @@
 #include <renderer/program.h>
 #include <renderer/buffer.h>
 #include <renderer/vertexarray.h>
+#include <renderer/texture.h>
 #include <logger/logger.h>
 
 #include "contextprivate.h"
@@ -260,9 +261,19 @@ ShaderPtr Context::createShader(ShaderType type)
 	return ShaderPtr(new Shader(shared_from_this(), type));
 }
 
+ShaderPtr Context::createSharedShader(ShaderPtr shader)
+{
+	return ShaderPtr(new Shader(shared_from_this(), shader));
+}
+
 ProgramPtr Context::createProgram()
 {
 	return ProgramPtr(new Program(shared_from_this()));
+}
+
+ProgramPtr Context::createSharedProgram(ProgramPtr program)
+{
+	return ProgramPtr(new Program(shared_from_this(), program));
 }
 
 BufferPtr Context::createBuffer(BufferUsage usage, uint64_t size, const void* pData)
@@ -272,9 +283,37 @@ BufferPtr Context::createBuffer(BufferUsage usage, uint64_t size, const void* pD
 	return pBuffer;
 }
 
+BufferPtr Context::createSharedBuffer(BufferPtr buffer)
+{
+	return BufferPtr(new Buffer(shared_from_this(), buffer));
+}
+
 VertexArrayPtr Context::createVertexArray()
 {
 	return VertexArrayPtr(new VertexArray(shared_from_this()));
+}
+
+VertexArrayPtr Context::createSharedVertexArray(VertexArrayPtr vertexArray)
+{
+	auto pVertexArray = VertexArrayPtr(new VertexArray(shared_from_this())); // конструируем абсолютно новый VAO, так как OpenGL не умеет расшаривать VAO
+	pVertexArray->initShared(vertexArray);
+	return pVertexArray;
+}
+
+TexturePtr Context::createTexture()
+{
+	return TexturePtr(new Texture(shared_from_this()));
+}
+
+TexturePtr Context::createSharedTexture(TexturePtr texture)
+{
+	return TexturePtr(new Texture(shared_from_this(), texture));
+}
+
+void Context::bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size, uint64_t offset)
+{
+	m->bindThisContext();
+	m->bindBuffer(buffer, BufferTarget::Uniform, bindingPoint, size, offset);
 }
 
 ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext)
@@ -297,9 +336,6 @@ ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sha
 
 	ContextPtr renderingContext(new Context(windowSurface, sharedContext));
 	renderingContext->m->context = context;
-
-	// DELETE IT!!!
-	renderingContext->m->bindThisContext();
 
 	return renderingContext;
 }
@@ -324,6 +360,16 @@ ContextPtr Context::createContext(intptr_t windowId, int32_t r, int32_t g, int32
 void Context::make()
 {
 	m->bindThisContext();
+}
+
+void Context::bindProgram(ProgramPtr program)
+{
+	m->bindProgram(program);
+}
+
+void Context::bindVAO(VertexArrayPtr vao)
+{
+	m->bindVertexArray(vao);
 }
 
 

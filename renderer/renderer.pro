@@ -11,12 +11,12 @@ SOURCES += \
     src/program.cpp \
     src/buffer.cpp \
     src/contextprivate.cpp \
-    src/vertexarray.cpp
+    src/vertexarray.cpp \
+    src/texture.cpp
 
 HEADERS += \
 	../include/renderer/renderer_global.h \
     ../include/renderer/context.h \
-    src/checkglerror.h \
     src/shaderprivate.h \
     ../include/renderer/shader.h \
     ../include/renderer/program.h \
@@ -25,7 +25,10 @@ HEADERS += \
     src/programprivate.h \
     src/bufferprivate.h \
     ../include/renderer/vertexarray.h \
-    src/vertexarrayprivate.h
+    src/vertexarrayprivate.h \
+    src/glutils.h \
+    ../include/renderer/texture.h \
+    src/textureprivate.h
 
 LIBS += \
 	-llogger \

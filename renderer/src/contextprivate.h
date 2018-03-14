@@ -64,15 +64,15 @@ public:
 };
 
 enum class BufferTarget : int32_t {
-	Array,
+	Array = 0,
 	Element,
 	CopyRead,
 	CopyWrite,
 	PixelPack,
 	PixelUnpack,
 	TransformFeedback,
-	Uniform,
-	Count
+	Uniform, // 32 slots for binding points
+	Count = Uniform+32
 };
 template <typename T> constexpr BufferTarget castToBufferTarget(T value) { return static_cast<BufferTarget>(value); }
 template <typename T> constexpr T castFromBufferTarget(BufferTarget value) { return static_cast<T>(value); }
@@ -91,7 +91,7 @@ public:
 
 	void bindThisContext() const;
 	void bindProgram(ProgramConstPtr program);
-	void bindBuffer(BufferTarget target, BufferConstPtr buffer);
+	void bindBuffer(BufferConstPtr buffer, BufferTarget target, uint32_t bindingPoint = 0, int64_t size = -1, uint64_t offset = 0);
 	void bindVertexArray(VertexArrayConstPtr vArray);
 
 	ContextPrivate(Context *pc, WindowSurfacePtr ws, ContextPtr sc);

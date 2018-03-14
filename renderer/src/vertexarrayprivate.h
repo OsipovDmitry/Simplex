@@ -1,23 +1,30 @@
 #ifndef VERTEXARRAYPRIVATE_H
 #define VERTEXARRAYPRIVATE_H
 
-#include <memory>
+#include <map>
 
-#include <GLES3/gl3.h>
+#include "glutils.h"
 
 namespace renderer {
 
 class Context;
 using ContextPtr = std::shared_ptr<Context>;
 
+class Buffer;
+using BufferPtr = std::shared_ptr<Buffer>;
+
 class VertexArrayPrivate {
 public:
 	ContextPtr context;
-	GLuint id;
+	BufferPtr indexBuffer;
+	std::map<int32_t, BufferPtr> vertexBuffers;
+	GLuintPtr id;
 
-	VertexArrayPrivate(ContextPtr c) :
-		context(c),
-		id(0)
+	VertexArrayPrivate(ContextPtr context_, GLuintPtr id_) :
+		context(context_),
+		indexBuffer(),
+		vertexBuffers(),
+		id(id_)
 	{}
 };
 

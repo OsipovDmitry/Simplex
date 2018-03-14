@@ -3,28 +3,23 @@
 
 #include <renderer/shader.h>
 
-#include <memory>
-#include <GLES3/gl3.h>
+#include "glutils.h"
 
 namespace renderer {
 
 class Context;
 using ContextPtr = std::shared_ptr<Context>;
 
-class Program;
-using ProgramPtr = std::shared_ptr<Program>;
-
 class ProgramPrivate {
 public:
 	ContextPtr context;
 	std::array<ShaderPtr, castFromShaderType<size_t>(ShaderType::Count)> shaders;
-	static std::weak_ptr<Program> currentProgram;
-	GLuint id;
+	GLuintPtr id;
 
-	ProgramPrivate(ContextPtr c) :
-		context(c),
+	ProgramPrivate(ContextPtr context_, GLuintPtr id_) :
+		context(context_),
 		shaders(),
-		id(0)
+		id(id_)
 	{}
 };
 

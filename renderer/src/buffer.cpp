@@ -1,14 +1,11 @@
 #include <array>
 #include <algorithm>
 
-#include <GLES3/gl3.h>
-
 #include <renderer/buffer.h>
 #include <renderer/context.h>
 
 #include "contextprivate.h"
 #include "bufferprivate.h"
-#include "checkglerror.h"
 
 namespace renderer {
 
@@ -32,12 +29,8 @@ BufferUsage fromBufferGLUsage(GLenum val) {
 
 Buffer::~Buffer()
 {
-	auto context = m->context;
-	auto id = m->id;
+	m->context->m->bindThisContext();
 	delete m;
-
-	context->m->bindThisContext();
-	CHECK_GL_ERROR(glDeleteBuffers(1, &id), "Can not delete buffer");
 }
 
 ContextPtr Buffer::context() const
@@ -48,7 +41,7 @@ ContextPtr Buffer::context() const
 BufferUsage Buffer::usage() const
 {
 	m->context->m->bindThisContext();
-	m->context->m->bindBuffer(BufferTarget::Array, shared_from_this());
+	m->context->m->bindBuffer(shared_from_this(), BufferTarget::Array);
 
 	BufferUsage usage = BufferUsage::StaticDraw;
 	GLint value;
@@ -60,20 +53,20 @@ BufferUsage Buffer::usage() const
 int64_t Buffer::size() const
 {
 	m->context->m->bindThisContext();
-	m->context->m->bindBuffer(BufferTarget::Array, shared_from_this());
+	m->context->m->bindBuffer(shared_from_this(), BufferTarget::Array);
 
 	GLint64 value;
 	CHECK_GL_ERROR(glGetBufferParameteri64v(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &value), "Can not get buffer's size", 0);
 	return value;
 }
 
-void *Buffer::map(BufferAccess access, int64_t offset, int64_t length)
+void *Buffer::map(BufferAccess access, uint64_t offset, int64_t length)
 {
+	m->context->m->bindThisContext();
+	m->context->m->bindBuffer(shared_from_this(), BufferTarget::Array);
+
 	if (length < 0)
 		length = size() - offset;
-
-	m->context->m->bindThisContext();
-	m->context->m->bindBuffer(BufferTarget::Array, shared_from_this());
 
 	GLbitfield GLaccess = GL_MAP_READ_BIT;
 	switch (access) {
@@ -89,26 +82,35 @@ void *Buffer::map(BufferAccess access, int64_t offset, int64_t length)
 bool Buffer::unmap()
 {
 	m->context->m->bindThisContext();
-	m->context->m->bindBuffer(BufferTarget::Array, shared_from_this());
+	m->context->m->bindBuffer(shared_from_this(), BufferTarget::Array);
 
 	CHECK_GL_ERROR(auto result = glUnmapBuffer(GL_ARRAY_BUFFER), "Can not unmap buffer", false);
 	return result != GL_FALSE;
 }
 
 Buffer::Buffer(ContextPtr context) :
-	m(new BufferPrivate(context))
+	m(new BufferPrivate(context, nullptr))
 {
 	m->context->m->bindThisContext();
 
-	GLuint id;
-	CHECK_GL_ERROR(glGenBuffers(1, &id), "Can not create buffer");
+	auto id = new GLuint(0);
+	CHECK_GL_ERROR(glGenBuffers(1, id), "Can not create buffer");
 
-	m->id = id;
+	m->id = GLuintPtr(id, [](GLuint *p) {
+		// context bind in destructor of class
+		CHECK_GL_ERROR(glDeleteBuffers(1, p), "Can not delete buffer");
+		delete p;
+	});
+}
+
+Buffer::Buffer(ContextPtr context, BufferPtr sharedBuffer) :
+	m(new BufferPrivate(context, sharedBuffer->m->id))
+{
 }
 
 void Buffer::init(BufferUsage usage, uint64_t size, const void* pData)
 {
-	m->context->m->bindBuffer(BufferTarget::Array, shared_from_this());
+	m->context->m->bindBuffer(shared_from_this(), BufferTarget::Array);
 	CHECK_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, size, pData, toBufferGLUsage(usage)), "Can not init buffer");
 }
 
