@@ -9,6 +9,7 @@
 #include <logger/logger.h>
 
 #include "contextprivate.h"
+#include "glutils.h"
 
 namespace renderer {
 
@@ -232,6 +233,12 @@ Context::Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext) :
 {
 }
 
+void Context::init()
+{
+	m->bindThisContext();
+	CHECK_GL_ERROR(glPixelStorei(GL_UNPACK_ALIGNMENT, 1), "Can not initialize context");
+}
+
 Context::~Context()
 {
 	auto context = m->context;
@@ -300,9 +307,11 @@ VertexArrayPtr Context::createSharedVertexArray(VertexArrayPtr vertexArray)
 	return pVertexArray;
 }
 
-TexturePtr Context::createTexture()
+TexturePtr Context::createTexture(TextureType type, TextureInternalFormat internalFormat, const TextureSize& size, int32_t numLevels)
 {
-	return TexturePtr(new Texture(shared_from_this()));
+	auto pTexture = TexturePtr(new Texture(shared_from_this()));
+	pTexture->init(type, numLevels, internalFormat, size);
+	return pTexture;
 }
 
 TexturePtr Context::createSharedTexture(TexturePtr texture)
@@ -314,6 +323,12 @@ void Context::bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t
 {
 	m->bindThisContext();
 	m->bindBuffer(buffer, BufferTarget::Uniform, bindingPoint, size, offset);
+}
+
+void Context::bindTexture(TexturePtr texture, int32_t slot)
+{
+	m->bindThisContext();
+	m->bindTexture(texture, slot);
 }
 
 ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext)
@@ -336,6 +351,8 @@ ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sha
 
 	ContextPtr renderingContext(new Context(windowSurface, sharedContext));
 	renderingContext->m->context = context;
+
+	renderingContext->init();
 
 	return renderingContext;
 }

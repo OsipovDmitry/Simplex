@@ -15,13 +15,10 @@ namespace renderer {
 namespace {
 
 const std::array<GLenum, castFromVertexArrayAttributePointerType<size_t>(VertexArrayAttributePointerType::Count)> vertexArrayAttributePointerTypeTable{
-	GL_BYTE, GL_UNSIGNED_BYTE,
-	GL_SHORT, GL_UNSIGNED_SHORT,
-	GL_INT, GL_UNSIGNED_INT,
-	GL_INT_2_10_10_10_REV, GL_UNSIGNED_INT_2_10_10_10_REV,
-	GL_HALF_FLOAT,
-	GL_FLOAT,
-	GL_FIXED
+	GL_UNSIGNED_BYTE, GL_BYTE,
+	GL_UNSIGNED_SHORT, GL_SHORT,
+	GL_UNSIGNED_INT, GL_INT,
+	GL_HALF_FLOAT, GL_FLOAT
 };
 
 GLenum toVertexArrayAttributePointerGLType(VertexArrayAttributePointerType val) {
@@ -160,6 +157,7 @@ void VertexArray::initShared(VertexArrayPtr sharedVertexArray)
 	if (sharedVertexArray->m->indexBuffer)
 		bindIndexBuffer(m->context->createSharedBuffer(sharedVertexArray->m->indexBuffer));
 
+	// TO DO: переписать без смены контекстов в каждой итерации цикла!!!!!!!!!!!!!1
 	for (auto iter = sharedVertexArray->m->vertexBuffers.cbegin(); iter != sharedVertexArray->m->vertexBuffers.cend(); ++iter) {
 		GLint dataNumComponents, dataType, dataNormalized, dataStride, isDataInteger;
 		GLvoid *dataPointer;

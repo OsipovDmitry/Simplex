@@ -12,7 +12,8 @@ SOURCES += \
     src/buffer.cpp \
     src/contextprivate.cpp \
     src/vertexarray.cpp \
-    src/texture.cpp
+    src/texture.cpp \
+    src/textureprivate.cpp
 
 HEADERS += \
 	../include/renderer/renderer_global.h \

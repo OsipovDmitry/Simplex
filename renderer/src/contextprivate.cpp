@@ -5,12 +5,14 @@
 #include <renderer/program.h>
 #include <renderer/buffer.h>
 #include <renderer/vertexarray.h>
+#include <renderer/texture.h>
 
 #include "glutils.h"
 #include "contextprivate.h"
 #include "programprivate.h"
 #include "bufferprivate.h"
 #include "vertexarrayprivate.h"
+#include "textureprivate.h"
 
 namespace renderer {
 
@@ -104,6 +106,30 @@ void ContextPrivate::bindVertexArray(VertexArrayConstPtr vArray)
 
 	CHECK_GL_ERROR(glBindVertexArray(vArray ? *vArray->m->id : 0), "Can not bind VAO");
 	currentVertexArray = vArray;
+}
+
+int32_t ContextPrivate::bindTexture(TexturePtr texture, int32_t slot)
+{
+	if (slot == -1) {
+		auto iter = std::find_if(currentTextures.cbegin(), currentTextures.cend(), [](auto p) {
+			return p.lock() == nullptr;
+		});
+		if (iter == currentTextures.cend())
+			slot = 0;
+		else
+			slot = iter - currentTextures.cbegin();
+	}
+
+	if (currentTextures[slot].lock() == texture)
+		return slot;
+
+	auto GLtarget = texture ? toTextureGLType(texture->type()) : GL_TEXTURE_2D;
+	auto GLid = texture ? *texture->m->id : 0;
+
+	CHECK_GL_ERROR(glBindTexture(GLtarget, GLid), "Can not bind texture", slot);
+	currentTextures[slot] = texture;
+
+	return slot;
 }
 
 }

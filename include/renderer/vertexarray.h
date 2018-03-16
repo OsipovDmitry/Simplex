@@ -19,17 +19,14 @@ class VertexArray;
 using VertexArrayPtr = std::shared_ptr<VertexArray>;
 
 enum class VertexArrayAttributePointerType : int32_t {
-	Int8,
-	Uint8,
-	Int16,
-	Uint16,
-	Int32,
-	Uint32,
-	Int_2_10_10_10_Rev,
-	Uint_2_10_10_10_Rev,
-	HalfFloat,
-	Float,
-	Fixed,
+	Type_8ui,
+	Type_8i,
+	Type_16ui,
+	Type_16i,
+	Type_32ui,
+	Type_32i,
+	Type_16f,
+	Type_32f,
 	Count
 };
 

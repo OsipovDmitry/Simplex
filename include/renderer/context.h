@@ -35,6 +35,9 @@ using VertexArrayPtr = std::shared_ptr<VertexArray>;
 
 class Texture;
 using TexturePtr = std::shared_ptr<Texture>;
+enum class TextureType : int32_t;
+enum class TextureInternalFormat : int32_t;
+struct TextureSize;
 
 class DisplayPrivate;
 class RENDERERSHARED_EXPORT Display {
@@ -123,10 +126,11 @@ public:
 	VertexArrayPtr createVertexArray();
 	VertexArrayPtr createSharedVertexArray(VertexArrayPtr vertexArray);
 
-	TexturePtr createTexture();
+	TexturePtr createTexture(TextureType type, TextureInternalFormat internalFormat, const TextureSize& size, int32_t numLevels = -1); // если numLevels == -1, то автоматически рассчитывается trunc(log2(size)) + 1
 	TexturePtr createSharedTexture(TexturePtr texture);
 
 	void bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size = -1, uint64_t offset = 0);
+	void bindTexture(TexturePtr texture, int32_t slot);
 
 	static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
 	static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 0, int32_t d = 24, int32_t s = 8, ContextPtr sharedContext = nullptr);
@@ -138,6 +142,7 @@ public:
 
 private:
 	Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
+	void init();
 
 	ContextPrivate *m;
 

@@ -110,6 +110,7 @@ Buffer::Buffer(ContextPtr context, BufferPtr sharedBuffer) :
 
 void Buffer::init(BufferUsage usage, uint64_t size, const void* pData)
 {
+	m->context->m->bindThisContext();
 	m->context->m->bindBuffer(shared_from_this(), BufferTarget::Array);
 	CHECK_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, size, pData, toBufferGLUsage(usage)), "Can not init buffer");
 }

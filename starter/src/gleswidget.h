@@ -7,6 +7,7 @@
 #include <renderer/shader.h>
 #include <renderer/vertexarray.h>
 #include <renderer/buffer.h>
+#include <renderer/texture.h>
 
 class GLESWidget : public QWidget
 {
