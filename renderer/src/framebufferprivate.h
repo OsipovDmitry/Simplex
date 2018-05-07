@@ -20,6 +20,9 @@ PrimitiveType fromPrimitiveGLType(GLenum val);
 GLenum toGeometryIndexGLType(GeometryIndexType val);
 GeometryIndexType fromGeometryIndexGLType(GLenum val);
 
+GLenum toDepthTestGLFunc(DepthTestFunc val);
+DepthTestFunc fromDepthTestGLFunc(GLenum val);
+
 class Context;
 using ContextPtr = std::shared_ptr<Context>;
 
@@ -32,6 +35,8 @@ using RenderbufferPtr = std::shared_ptr<Renderbuffer>;
 class FramebufferPrivate {
 public:
 	glm::uvec4 viewport;
+	DepthTestFunc depthTestFunc;
+	bool depthTestState;
 	ContextPtr context;
 	GLuintPtr id;
 	std::array<RenderbufferPtr, castFromFramebufferAttachment<size_t>(FramebufferAttachment::Count)> renderbuffers;
@@ -39,6 +44,8 @@ public:
 
 	FramebufferPrivate(ContextPtr context_, GLuintPtr id_) :
 		viewport(),
+		depthTestFunc(DepthTestFunc::Less),
+		depthTestState(false),
 		context(context_),
 		id(id_),
 		renderbuffers(),

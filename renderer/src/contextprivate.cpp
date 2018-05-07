@@ -133,6 +133,13 @@ void ContextPrivate::bindFramebuffer(FramebufferConstPtr frambuffer)
 	if (frambuffer) {
 		CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, *frambuffer->m->id), "Can not bind frambuffer");
 		CHECK_GL_ERROR(glViewport(frambuffer->m->viewport.x, frambuffer->m->viewport.y, frambuffer->m->viewport.z, frambuffer->m->viewport.w), "Can not bind frambuffer");
+		if (frambuffer->m->depthTestState) {
+			CHECK_GL_ERROR(glEnable(GL_DEPTH_TEST), "Can not bind frambuffer");
+			CHECK_GL_ERROR(glDepthFunc(toDepthTestGLFunc(frambuffer->m->depthTestFunc)), "Can not bind frambuffer");
+		}
+		else {
+			CHECK_GL_ERROR(glDisable(GL_DEPTH_TEST), "Can not bind frambuffer");
+		}
 	}
 	else {
 		CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, 0), "Can not bind frambuffer");
