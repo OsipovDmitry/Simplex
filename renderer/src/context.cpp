@@ -6,6 +6,8 @@
 #include <renderer/buffer.h>
 #include <renderer/vertexarray.h>
 #include <renderer/texture.h>
+#include <renderer/renderbuffer.h>
+#include <renderer/framebuffer.h>
 #include <logger/logger.h>
 
 #include "contextprivate.h"
@@ -77,7 +79,7 @@ DisplayPixelFormatsList Display::pixelFormatsList() const
 	for (auto config: configs) {
 		if (!config)
 			continue;
-		DisplayPixelFormatPtr pixelFormatPtr(new DisplayPixelFormat(this));
+		DisplayPixelFormatPtr pixelFormatPtr(new DisplayPixelFormat());
 		pixelFormatPtr->m->config = config;
 		pixelFormatsList.push_back(pixelFormatPtr);
 	}
@@ -111,13 +113,13 @@ DisplayPixelFormatPtr Display::choosePixelFormat(int32_t r, int32_t g, int32_t b
 		return nullptr;
 	}
 
-	DisplayPixelFormatPtr pixelFormatPtr(new DisplayPixelFormat(this));
+	DisplayPixelFormatPtr pixelFormatPtr(new DisplayPixelFormat());
 	pixelFormatPtr->m->config = config;
 	return pixelFormatPtr;
 }
 
-DisplayPixelFormat::DisplayPixelFormat(const Display* pDisplay) :
-	m(new DisplayPixelFormatPrivate(pDisplay))
+DisplayPixelFormat::DisplayPixelFormat() :
+	m(new DisplayPixelFormatPrivate())
 {
 }
 
@@ -126,50 +128,45 @@ DisplayPixelFormat::~DisplayPixelFormat()
 	delete m;
 }
 
-const Display* DisplayPixelFormat::display() const
-{
-	return m->pDisplay;
-}
-
 int32_t DisplayPixelFormat::redSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(display()->m->display, m->config, EGL_RED_SIZE, &value);
+	eglGetConfigAttrib(Display::instance()->m->display, m->config, EGL_RED_SIZE, &value);
 	return value;
 }
 
 int32_t DisplayPixelFormat::greenSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(display()->m->display, m->config, EGL_GREEN_SIZE, &value);
+	eglGetConfigAttrib(Display::instance()->m->display, m->config, EGL_GREEN_SIZE, &value);
 	return value;
 }
 
 int32_t DisplayPixelFormat::blueSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(display()->m->display, m->config, EGL_BLUE_SIZE, &value);
+	eglGetConfigAttrib(Display::instance()->m->display, m->config, EGL_BLUE_SIZE, &value);
 	return value;
 }
 
 int32_t DisplayPixelFormat::alphaSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(display()->m->display, m->config, EGL_ALPHA_SIZE, &value);
+	eglGetConfigAttrib(Display::instance()->m->display, m->config, EGL_ALPHA_SIZE, &value);
 	return value;
 }
 
 int32_t DisplayPixelFormat::depthSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(display()->m->display, m->config, EGL_DEPTH_SIZE, &value);
+	eglGetConfigAttrib(Display::instance()->m->display, m->config, EGL_DEPTH_SIZE, &value);
 	return value;
 }
 
 int32_t DisplayPixelFormat::stencilSize() const
 {
 	EGLint value = -1;
-	eglGetConfigAttrib(display()->m->display, m->config, EGL_STENCIL_SIZE, &value);
+	eglGetConfigAttrib(Display::instance()->m->display, m->config, EGL_STENCIL_SIZE, &value);
 	return value;
 }
 
@@ -179,7 +176,7 @@ WindowSurface::~WindowSurface()
 	auto pf = m->pixelFormat;
 	delete m;
 
-	if (eglDestroySurface(pf->m->pDisplay->m->display, surface) == EGL_FALSE) {
+	if (eglDestroySurface(Display::instance()->m->display, surface) == EGL_FALSE) {
 		auto error = eglGetError();
 		// ...
 		LOG_ERROR("Can not destory window surface");
@@ -194,7 +191,7 @@ DisplayPixelFormatPtr WindowSurface::pixelFormat() const
 
 void WindowSurface::swapBuffers()
 {
-	if (eglSwapBuffers(pixelFormat()->display()->m->display,
+	if (eglSwapBuffers(Display::instance()->m->display,
 					   m->surface) == EGL_FALSE) {
 		auto error = eglGetError();
 		// ...
@@ -209,7 +206,7 @@ WindowSurfacePtr WindowSurface::createWindowSurface(DisplayPixelFormatPtr pixelF
 		EGL_NONE
 	};
 
-	auto surface = eglCreateWindowSurface(pixelFormat->m->pDisplay->m->display, pixelFormat->m->config, (EGLNativeWindowType)windowID, attribs);
+	auto surface = eglCreateWindowSurface(Display::instance()->m->display, pixelFormat->m->config, (EGLNativeWindowType)windowID, attribs);
 	if (surface == EGL_NO_SURFACE) {
 		auto error = eglGetError();
 		// ...
@@ -245,7 +242,7 @@ Context::~Context()
 	auto surface = m->windowSurface;
 	delete m;
 
-	if (eglDestroyContext(surface->pixelFormat()->display()->m->display, context) == EGL_FALSE) {
+	if (eglDestroyContext(Display::instance()->m->display, context) == EGL_FALSE) {
 		auto error = eglGetError();
 		// ...
 		LOG_ERROR("Can not destroy context");
@@ -319,6 +316,23 @@ TexturePtr Context::createSharedTexture(TexturePtr texture)
 	return TexturePtr(new Texture(shared_from_this(), texture));
 }
 
+RenderbufferPtr Context::createRenderbuffer(TextureInternalFormat internalFormat, uint32_t width, uint32_t height)
+{
+	auto pRenderbuffer = RenderbufferPtr(new Renderbuffer(shared_from_this()));
+	pRenderbuffer->init(internalFormat, width, height);
+	return pRenderbuffer;
+}
+
+FramebufferPtr Context::createFramebuffer()
+{
+	return FramebufferPtr(new Framebuffer(shared_from_this(), std::false_type()));
+}
+
+FramebufferPtr Context::mainFramebuffer()
+{
+	return FramebufferPtr(new Framebuffer(shared_from_this(), std::true_type()));
+}
+
 void Context::bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size, uint64_t offset)
 {
 	m->bindThisContext();
@@ -333,13 +347,13 @@ void Context::bindTexture(TexturePtr texture, int32_t slot)
 
 ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext)
 {
-	EGLint attribs[] = {
+	static const EGLint attribs[] = {
 		EGL_CONTEXT_CLIENT_VERSION, 3,
 		EGL_NONE
 	};
 
-	auto context = eglCreateContext(windowSurface->pixelFormat()->display()->m->display,
-									windowSurface->pixelFormat()->m->config,
+	auto context = eglCreateContext(Display::instance()->m->display,
+									windowSurface ? windowSurface->pixelFormat()->m->config : nullptr,
 									sharedContext ? sharedContext->m->context : EGL_NO_CONTEXT,
 									attribs);
 	if (context == EGL_NO_CONTEXT) {
@@ -373,21 +387,5 @@ ContextPtr Context::createContext(intptr_t windowId, int32_t r, int32_t g, int32
 
 	return createContext(surface, sharedContext);
 }
-
-void Context::make()
-{
-	m->bindThisContext();
-}
-
-void Context::bindProgram(ProgramPtr program)
-{
-	m->bindProgram(program);
-}
-
-void Context::bindVAO(VertexArrayPtr vao)
-{
-	m->bindVertexArray(vao);
-}
-
 
 }

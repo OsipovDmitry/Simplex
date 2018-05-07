@@ -3,8 +3,6 @@
 
 #include <memory>
 
-#include <glm/vec4.hpp>
-
 #include "renderer_global.h"
 
 namespace renderer {
@@ -37,6 +35,8 @@ class VertexArrayPrivate;
 class RENDERERSHARED_EXPORT VertexArray : public std::enable_shared_from_this<VertexArray> {
 public:
 	~VertexArray();
+
+	ContextPtr context() const;
 
 	void bindIndexBuffer(BufferPtr buffer);
 	void unbindIndexBuffer();

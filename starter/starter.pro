@@ -14,3 +14,6 @@ LIBS += \
 
 HEADERS += \
     src/gleswidget.h
+
+RESOURCES += \
+    starter.qrc

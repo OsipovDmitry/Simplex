@@ -37,6 +37,11 @@ VertexArray::~VertexArray()
 	delete m;
 }
 
+ContextPtr VertexArray::context() const
+{
+	return m->context;
+}
+
 void VertexArray::bindIndexBuffer(BufferPtr buffer)
 {
 	if (m->context != buffer->context()) {

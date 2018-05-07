@@ -39,6 +39,12 @@ enum class TextureType : int32_t;
 enum class TextureInternalFormat : int32_t;
 struct TextureSize;
 
+class Renderbuffer;
+using RenderbufferPtr = std::shared_ptr<Renderbuffer>;
+
+class Framebuffer;
+using FramebufferPtr = std::shared_ptr<Framebuffer>;
+
 class DisplayPrivate;
 class RENDERERSHARED_EXPORT Display {
 	SINGLETON(Display)
@@ -49,7 +55,7 @@ public:
 	int32_t eglMajorVersion() const;
 
 	DisplayPixelFormatsList pixelFormatsList() const;
-	DisplayPixelFormatPtr choosePixelFormat(int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 0, int32_t d = 24, int32_t s = 8) const;
+	DisplayPixelFormatPtr choosePixelFormat(int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 8, int32_t d = 24, int32_t s = 8) const;
 
 private:
 	Display();
@@ -67,8 +73,6 @@ class RENDERERSHARED_EXPORT DisplayPixelFormat {
 public:
 	~DisplayPixelFormat();
 
-	const Display *display() const;
-
 	int32_t redSize() const;
 	int32_t greenSize() const;
 	int32_t blueSize() const;
@@ -77,7 +81,7 @@ public:
 	int32_t stencilSize() const;
 
 private:
-	DisplayPixelFormat(const Display *pDisplay);
+	DisplayPixelFormat();
 
 	DisplayPixelFormatPrivate *m;
 
@@ -129,16 +133,16 @@ public:
 	TexturePtr createTexture(TextureType type, TextureInternalFormat internalFormat, const TextureSize& size, int32_t numLevels = -1); // если numLevels == -1, то автоматически рассчитывается trunc(log2(size)) + 1
 	TexturePtr createSharedTexture(TexturePtr texture);
 
+	RenderbufferPtr createRenderbuffer(TextureInternalFormat internalFormat, uint32_t width, uint32_t height);
+	FramebufferPtr createFramebuffer();
+	FramebufferPtr mainFramebuffer();
+
 	void bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size = -1, uint64_t offset = 0);
 	void bindTexture(TexturePtr texture, int32_t slot);
 
-	static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
-	static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 0, int32_t d = 24, int32_t s = 8, ContextPtr sharedContext = nullptr);
+	static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr); // Can also create context without surface(windowSurface == nullptr)
+	static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 8, int32_t d = 24, int32_t s = 8, ContextPtr sharedContext = nullptr);
 
-	// DELETE IT!!!
-	void make();
-	void bindProgram(ProgramPtr program);
-	void bindVAO(VertexArrayPtr vao);
 
 private:
 	Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
@@ -151,6 +155,8 @@ private:
 	friend class Buffer;
 	friend class VertexArray;
 	friend class Texture;
+	friend class Renderbuffer;
+	friend class Framebuffer;
 };
 
 }

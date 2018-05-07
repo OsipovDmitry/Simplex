@@ -6,43 +6,23 @@
 #include <renderer/buffer.h>
 #include <renderer/vertexarray.h>
 #include <renderer/texture.h>
+#include <renderer/renderbuffer.h>
+#include <renderer/framebuffer.h>
 
 #include "glutils.h"
 #include "contextprivate.h"
 #include "programprivate.h"
-#include "bufferprivate.h"
 #include "vertexarrayprivate.h"
 #include "textureprivate.h"
+#include "renderbufferprivate.h"
+#include "framebufferprivate.h"
 
 namespace renderer {
-
-namespace {
-
-const std::array<GLenum, castFromBufferTarget<size_t>(BufferTarget::Count)> bufferTargetTable {
-	GL_ARRAY_BUFFER,
-	GL_ELEMENT_ARRAY_BUFFER,
-	GL_COPY_READ_BUFFER,
-	GL_COPY_WRITE_BUFFER,
-	GL_PIXEL_PACK_BUFFER,
-	GL_PIXEL_UNPACK_BUFFER,
-	GL_TRANSFORM_FEEDBACK_BUFFER,
-	GL_UNIFORM_BUFFER
-};
-
-GLenum toBufferGLTarget(BufferTarget val) {
-	return bufferTargetTable[castFromBufferTarget<size_t>(val)];
-}
-
-BufferTarget fromBufferGLTarget(GLenum val) {
-	return castToBufferTarget(std::find(bufferTargetTable.cbegin(), bufferTargetTable.cend(), val) - bufferTargetTable.cbegin());
-}
-
-}
 
 std::weak_ptr<const Context> ContextPrivate::currentContext;
 
 ContextPrivate::ContextPrivate(Context* pc, WindowSurfacePtr ws, ContextPtr sc) :
-	pParentContext(pc),
+	pPublicContext(pc),
 	windowSurface(ws),
 	sharedContext(sc),
 	context(nullptr),
@@ -52,12 +32,14 @@ ContextPrivate::ContextPrivate(Context* pc, WindowSurfacePtr ws, ContextPtr sc) 
 
 void ContextPrivate::bindThisContext() const
 {
-	if (currentContext.lock().get() == pParentContext)
+	if (currentContext.lock().get() == pPublicContext)
 		return;
 
-	if (eglMakeCurrent(windowSurface->pixelFormat()->display()->m->display,
-					   windowSurface->m->surface,
-					   windowSurface->m->surface,
+	EGLSurface surface = windowSurface ? windowSurface->m->surface : nullptr;
+
+	if (eglMakeCurrent(Display::instance()->m->display,
+					   surface,
+					   surface,
 					   context) == EGL_FALSE) {
 		auto error = eglGetError();
 		// ...
@@ -65,7 +47,7 @@ void ContextPrivate::bindThisContext() const
 		return;
 	}
 
-	currentContext = pParentContext->shared_from_this();
+	currentContext = pPublicContext->shared_from_this();
 }
 
 void ContextPrivate::bindProgram(ProgramConstPtr program)
@@ -108,7 +90,7 @@ void ContextPrivate::bindVertexArray(VertexArrayConstPtr vArray)
 	currentVertexArray = vArray;
 }
 
-int32_t ContextPrivate::bindTexture(TexturePtr texture, int32_t slot)
+int32_t ContextPrivate::bindTexture(TextureConstPtr texture, int32_t slot)
 {
 	if (slot == -1) {
 		auto iter = std::find_if(currentTextures.cbegin(), currentTextures.cend(), [](auto p) {
@@ -126,10 +108,36 @@ int32_t ContextPrivate::bindTexture(TexturePtr texture, int32_t slot)
 	auto GLtarget = texture ? toTextureGLType(texture->type()) : GL_TEXTURE_2D;
 	auto GLid = texture ? *texture->m->id : 0;
 
+	CHECK_GL_ERROR(glActiveTexture(GL_TEXTURE0 + slot), "Can not bind texture", slot);
 	CHECK_GL_ERROR(glBindTexture(GLtarget, GLid), "Can not bind texture", slot);
 	currentTextures[slot] = texture;
 
 	return slot;
+}
+
+void ContextPrivate::bindRenderbuffer(RenderbufferConstPtr renderbuffer)
+{
+	if (currentRenderbuffer.lock() == renderbuffer)
+		return;
+
+	CHECK_GL_ERROR(glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer ? *renderbuffer->m->id : 0), "Can not bind renderbuffer");
+	currentRenderbuffer = renderbuffer;
+}
+
+void ContextPrivate::bindFramebuffer(FramebufferConstPtr frambuffer)
+{
+	if (currentFramebuffer.lock() == frambuffer)
+		return;
+
+
+	if (frambuffer) {
+		CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, *frambuffer->m->id), "Can not bind frambuffer");
+		CHECK_GL_ERROR(glViewport(frambuffer->m->viewport.x, frambuffer->m->viewport.y, frambuffer->m->viewport.z, frambuffer->m->viewport.w), "Can not bind frambuffer");
+	}
+	else {
+		CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, 0), "Can not bind frambuffer");
+	}
+	currentFramebuffer = frambuffer;
 }
 
 }

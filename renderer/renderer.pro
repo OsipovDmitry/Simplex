@@ -13,23 +13,31 @@ SOURCES += \
     src/contextprivate.cpp \
     src/vertexarray.cpp \
     src/texture.cpp \
-    src/textureprivate.cpp
+    src/textureprivate.cpp \
+    src/renderbuffer.cpp \
+    src/framebuffer.cpp \
+    src/framebufferprivate.cpp \
+    src/bufferprivate.cpp
 
 HEADERS += \
 	../include/renderer/renderer_global.h \
     ../include/renderer/context.h \
-    src/shaderprivate.h \
     ../include/renderer/shader.h \
     ../include/renderer/program.h \
     ../include/renderer/buffer.h \
-    src/contextprivate.h \
-    src/programprivate.h \
-    src/bufferprivate.h \
-    ../include/renderer/vertexarray.h \
-    src/vertexarrayprivate.h \
-    src/glutils.h \
+	../include/renderer/vertexarray.h \
     ../include/renderer/texture.h \
-    src/textureprivate.h
+	../include/renderer/renderbuffer.h \
+	src/shaderprivate.h \
+	src/contextprivate.h \
+	src/programprivate.h \
+	src/bufferprivate.h \
+	src/vertexarrayprivate.h \
+	src/glutils.h \
+	src/textureprivate.h \
+    src/renderbufferprivate.h \
+    ../include/renderer/framebuffer.h \
+    src/framebufferprivate.h
 
 LIBS += \
 	-llogger \

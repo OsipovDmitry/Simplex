@@ -61,6 +61,56 @@ const std::array<GLenum, castFromTextureCubemapSide<size_t>(TextureCubemapSide::
 GLenum toTextureCubemapGLSide(TextureCubemapSide val);
 TextureCubemapSide fromTextureCubemapGLSide(GLenum val);
 
+const std::array<GLenum, castFromTextureMinificationFilter<size_t>(TextureMinificationFilter::Count)> textureMinificationFilterTable {
+	GL_NEAREST,
+	GL_LINEAR,
+	GL_NEAREST_MIPMAP_NEAREST,
+	GL_NEAREST_MIPMAP_LINEAR,
+	GL_LINEAR_MIPMAP_NEAREST,
+	GL_LINEAR_MIPMAP_LINEAR
+};
+GLenum toTextureMinificationGLFilter(TextureMinificationFilter val);
+TextureMinificationFilter fromTextureMinificationGLFilter(GLenum val);
+
+const std::array<GLenum, castFromTextureMagnificationFilter<size_t>(TextureMagnificationFilter::Count)> textureMagnificationFilterTable {
+	GL_NEAREST,
+	GL_LINEAR
+};
+GLenum toTextureMagnificationGLFilter(TextureMagnificationFilter val);
+TextureMagnificationFilter fromTextureMagnificationGLFilter(GLenum val);
+
+const std::array<GLenum, castFromTextureWrapMode<size_t>(TextureWrapMode::Count)> textureWrapModeTable {
+	GL_CLAMP_TO_EDGE,
+	GL_REPEAT,
+	GL_MIRRORED_REPEAT
+};
+GLenum toTextureWrapGLMode(TextureWrapMode val);
+TextureWrapMode fromTextureWrapGLMode(GLenum val);
+
+const std::array<GLenum, castFromTextureSwizzle<size_t>(TextureSwizzle::Count)> textureSwizzleTable {
+	GL_RED,
+	GL_GREEN,
+	GL_BLUE,
+	GL_ALPHA,
+	GL_ZERO,
+	GL_ONE
+};
+GLenum toTextureGLSwizzle(TextureSwizzle val);
+TextureSwizzle fromTextureGLSwizzle(GLenum val);
+
+const std::array<GLenum, castFromTextureCompareFunc<size_t>(TextureCompareFunc::Count)> textureCompareFuncTable {
+	GL_LEQUAL,
+	GL_GEQUAL,
+	GL_LESS,
+	GL_GREATER,
+	GL_EQUAL,
+	GL_NOTEQUAL,
+	GL_ALWAYS,
+	GL_NEVER
+};
+GLenum toTextureCompareGLFunc(TextureCompareFunc val);
+TextureCompareFunc fromTextureCompareGLFunc(GLenum val);
+
 class TexturePrivate {
 public:
 	TextureSize size;

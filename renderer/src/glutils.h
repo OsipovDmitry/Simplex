@@ -15,6 +15,10 @@
 		return retValue; \
 	}
 
+namespace renderer {
+
 using GLuintPtr = std::shared_ptr<GLuint>;
+
+}
 
 #endif // CHECKERROR_H

@@ -6,6 +6,8 @@
 
 #include <EGL/egl.h>
 
+#include "bufferprivate.h"
+
 namespace renderer {
 
 class DisplayPixelFormat;
@@ -35,6 +37,14 @@ class Texture;
 using TexturePtr = std::shared_ptr<Texture>;
 using TextureConstPtr = std::shared_ptr<const Texture>;
 
+class Renderbuffer;
+using RenderbufferPtr = std::shared_ptr<Renderbuffer>;
+using RenderbufferConstPtr = std::shared_ptr<const Renderbuffer>;
+
+class Framebuffer;
+using FramebufferPtr = std::shared_ptr<Framebuffer>;
+using FramebufferConstPtr = std::shared_ptr<const Framebuffer>;
+
 class DisplayPrivate {
 public:
 	EGLDisplay display;
@@ -48,11 +58,9 @@ public:
 
 class DisplayPixelFormatPrivate {
 public:
-	const Display *pDisplay;
 	EGLConfig config;
 
-	DisplayPixelFormatPrivate(const Display *pD) :
-		pDisplay(pD),
+	DisplayPixelFormatPrivate() :
 		config(nullptr)
 	{}
 };
@@ -68,23 +76,9 @@ public:
 	{}
 };
 
-enum class BufferTarget : int32_t {
-	Array = 0,
-	Element,
-	CopyRead,
-	CopyWrite,
-	PixelPack,
-	PixelUnpack,
-	TransformFeedback,
-	Uniform, // 32 slots for binding points
-	Count = Uniform+32
-};
-template <typename T> constexpr BufferTarget castToBufferTarget(T value) { return static_cast<BufferTarget>(value); }
-template <typename T> constexpr T castFromBufferTarget(BufferTarget value) { return static_cast<T>(value); }
-
 class ContextPrivate {
 public:
-	Context *pParentContext;
+	Context *pPublicContext;
 	WindowSurfacePtr windowSurface;
 	ContextPtr sharedContext;
 	EGLContext context;
@@ -94,12 +88,16 @@ public:
 	std::array<std::weak_ptr<const Buffer>, castFromBufferTarget<size_t>(BufferTarget::Count)> currentBuffers;
 	std::weak_ptr<const VertexArray> currentVertexArray;
 	std::array<std::weak_ptr<const Texture>, 32> currentTextures;
+	std::weak_ptr<const Renderbuffer> currentRenderbuffer;
+	std::weak_ptr<const Framebuffer> currentFramebuffer;
 
 	void bindThisContext() const;
 	void bindProgram(ProgramConstPtr program);
 	void bindBuffer(BufferConstPtr buffer, BufferTarget target, uint32_t bindingPoint = 0, int64_t size = -1, uint64_t offset = 0);
 	void bindVertexArray(VertexArrayConstPtr vArray);
-	int32_t bindTexture(TexturePtr texture, int32_t slot = -1); // если slot == -1, то пытаемся забиндить текстуру в любой свободный слот. Если свободного слота нет, то в 0.
+	int32_t bindTexture(TextureConstPtr texture, int32_t slot = -1); // если slot == -1, то пытаемся забиндить текстуру в любой свободный слот. Если свободного слота нет, то в 0.
+	void bindRenderbuffer(RenderbufferConstPtr renderbuffer);
+	void bindFramebuffer(FramebufferConstPtr frambuffer);
 
 	ContextPrivate(Context *pc, WindowSurfacePtr ws, ContextPtr sc);
 };
