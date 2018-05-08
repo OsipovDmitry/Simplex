@@ -128,36 +128,6 @@ glm::uvec4 Framebuffer::viewport() const
 	return m->viewport;
 }
 
-void Framebuffer::enableDepthTest(DepthTestFunc func)
-{
-	m->depthTestState = true;
-	m->depthTestFunc = func;
-
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
-	CHECK_GL_ERROR(glEnable(GL_DEPTH_TEST), "Can not enable depth test");
-	CHECK_GL_ERROR(glDepthFunc(toDepthTestGLFunc(m->depthTestFunc)), "Can not enable depth test");
-}
-
-void Framebuffer::disableDepthTest()
-{
-	m->depthTestState = true;
-
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
-	CHECK_GL_ERROR(glDisable(GL_DEPTH_TEST), "Can not enable depth test");
-}
-
-bool Framebuffer::depthTestState() const
-{
-	return m->depthTestState;
-}
-
-DepthTestFunc Framebuffer::depthTestFunc() const
-{
-	return m->depthTestFunc;
-}
-
 void Framebuffer::clearColorBuffer(uint32_t index, const glm::vec4& value)
 {
 	m->context->m->bindThisContext();

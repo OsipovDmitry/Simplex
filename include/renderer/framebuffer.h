@@ -67,20 +67,6 @@ enum class GeometryIndexType : int32_t {
 template <typename T> constexpr GeometryIndexType castToGeometryIndexType(T value) { return static_cast<GeometryIndexType>(value); }
 template <typename T> constexpr T castFromGeometryIndexType(GeometryIndexType value) { return static_cast<T>(value); }
 
-enum class DepthTestFunc : int32_t {
-	LessEqual,
-	GreaterEqual,
-	Less,
-	Greater,
-	Equal,
-	NotEqual,
-	Newer,
-	Always_,
-	Count
-};
-template <typename T> constexpr DepthTestFunc castToDepthTestFunc(T value) { return static_cast<DepthTestFunc>(value); }
-template <typename T> constexpr T castFromDepthTestFunc(DepthTestFunc value) { return static_cast<T>(value); }
-
 class FramebufferPrivate;
 class RENDERERSHARED_EXPORT Framebuffer : public std::enable_shared_from_this<Framebuffer> {
 public:
@@ -95,11 +81,6 @@ public:
 
 	void setViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height);
 	glm::uvec4 viewport() const;
-
-	void enableDepthTest(DepthTestFunc func = DepthTestFunc::Less);
-	void disableDepthTest();
-	bool depthTestState() const;
-	DepthTestFunc depthTestFunc() const;
 
 	void clearColorBuffer(uint32_t index, const glm::vec4& value);
 	void clearColorBuffer(uint32_t index, const glm::uvec4& value);

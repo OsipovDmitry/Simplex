@@ -64,26 +64,4 @@ GeometryIndexType fromGeometryIndexGLType(GLenum val)
 	return castToGeometryIndexType(std::find(geometryIndexTypeTable.cbegin(), geometryIndexTypeTable.cend(), val) - geometryIndexTypeTable.cbegin());
 }
 
-const std::array<GLenum, castFromDepthTestFunc<size_t>(DepthTestFunc::Count)> depthTestFuncTable {
-	GL_LEQUAL,
-	GL_GEQUAL,
-	GL_LESS,
-	GL_GREATER,
-	GL_EQUAL,
-	GL_NOTEQUAL,
-	GL_ALWAYS,
-	GL_NEVER
-};
-
-GLenum toDepthTestGLFunc(DepthTestFunc val)
-{
-	return depthTestFuncTable[castFromDepthTestFunc<size_t>(val)];
-}
-
-DepthTestFunc fromDepthTestGLFunc(GLenum val)
-{
-	return castToDepthTestFunc(std::find(depthTestFuncTable.cbegin(), depthTestFuncTable.cend(), val) - depthTestFuncTable.cbegin());
-}
-
-
 }

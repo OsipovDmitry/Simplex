@@ -9,8 +9,7 @@ SOURCES += \
 LIBS += \
 	-llogger \
 	-lrenderer \
-	-lEGL \
-	-lGLESv2
+	-lassimp
 
 HEADERS += \
     src/gleswidget.h

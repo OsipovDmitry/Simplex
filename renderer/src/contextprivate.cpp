@@ -129,22 +129,35 @@ void ContextPrivate::bindFramebuffer(FramebufferConstPtr frambuffer)
 	if (currentFramebuffer.lock() == frambuffer)
 		return;
 
-
 	if (frambuffer) {
 		CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, *frambuffer->m->id), "Can not bind frambuffer");
 		CHECK_GL_ERROR(glViewport(frambuffer->m->viewport.x, frambuffer->m->viewport.y, frambuffer->m->viewport.z, frambuffer->m->viewport.w), "Can not bind frambuffer");
-		if (frambuffer->m->depthTestState) {
-			CHECK_GL_ERROR(glEnable(GL_DEPTH_TEST), "Can not bind frambuffer");
-			CHECK_GL_ERROR(glDepthFunc(toDepthTestGLFunc(frambuffer->m->depthTestFunc)), "Can not bind frambuffer");
-		}
-		else {
-			CHECK_GL_ERROR(glDisable(GL_DEPTH_TEST), "Can not bind frambuffer");
-		}
 	}
 	else {
 		CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, 0), "Can not bind frambuffer");
 	}
 	currentFramebuffer = frambuffer;
+}
+
+const std::array<GLenum, castFromDepthTestFunc<size_t>(DepthTestFunc::Count)> depthTestFuncTable {
+	GL_LEQUAL,
+	GL_GEQUAL,
+	GL_LESS,
+	GL_GREATER,
+	GL_EQUAL,
+	GL_NOTEQUAL,
+	GL_ALWAYS,
+	GL_NEVER
+};
+
+GLenum toDepthTestGLFunc(DepthTestFunc val)
+{
+	return depthTestFuncTable[castFromDepthTestFunc<size_t>(val)];
+}
+
+DepthTestFunc fromDepthTestGLFunc(GLenum val)
+{
+	return castToDepthTestFunc(std::find(depthTestFuncTable.cbegin(), depthTestFuncTable.cend(), val) - depthTestFuncTable.cbegin());
 }
 
 }

@@ -45,6 +45,8 @@ class Framebuffer;
 using FramebufferPtr = std::shared_ptr<Framebuffer>;
 using FramebufferConstPtr = std::shared_ptr<const Framebuffer>;
 
+enum class DepthTestFunc : int32_t;
+
 class DisplayPrivate {
 public:
 	EGLDisplay display;
@@ -75,6 +77,9 @@ public:
 		surface(nullptr)
 	{}
 };
+
+GLenum toDepthTestGLFunc(DepthTestFunc val);
+DepthTestFunc fromDepthTestGLFunc(GLenum val);
 
 class ContextPrivate {
 public:

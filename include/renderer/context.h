@@ -110,6 +110,20 @@ private:
 	friend class Context;
 };
 
+enum class DepthTestFunc : int32_t {
+	LessEqual,
+	GreaterEqual,
+	Less,
+	Greater,
+	Equal,
+	NotEqual,
+	Newer,
+	Always_,
+	Count
+};
+template <typename T> constexpr DepthTestFunc castToDepthTestFunc(T value) { return static_cast<DepthTestFunc>(value); }
+template <typename T> constexpr T castFromDepthTestFunc(DepthTestFunc value) { return static_cast<T>(value); }
+
 class ContextPrivate;
 class RENDERERSHARED_EXPORT Context : public std::enable_shared_from_this<Context> {
 public:
@@ -140,9 +154,18 @@ public:
 	void bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size = -1, uint64_t offset = 0);
 	void bindTexture(TexturePtr texture, int32_t slot);
 
+	void enableDepthTest(DepthTestFunc func = DepthTestFunc::Less);
+	void disableDepthTest();
+	bool depthTestState() const;
+	DepthTestFunc depthTestFunc() const;
+	void setDepthWriteMask(bool state);
+	bool depthWriteMask() const;
+
+	void setColorWriteMask(bool r, bool g, bool b, bool a);
+	void colorWriteMask(bool& r, bool& g, bool& b, bool& a) const;
+
 	static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr); // Can also create context without surface(windowSurface == nullptr)
 	static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 8, int32_t d = 24, int32_t s = 8, ContextPtr sharedContext = nullptr);
-
 
 private:
 	Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);

@@ -1,9 +1,11 @@
 #include <QDebug>
 #include <QPaintEvent>
 
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <GLES3/gl3.h>
 #include "gleswidget.h"
 
 #include <logger/logger.h>
@@ -21,14 +23,14 @@ namespace {
 
 char vShaderStr[] =
 		"#version 300 es                          \n"
-		"layout(location = 0) in vec2 vPosition;  \n"
+		"layout(location = 0) in vec3 vPosition;  \n"
 		"layout(location = 1) in vec3 vColor;     \n"
 		"layout(location = 2) in vec2 vTexCoord;  \n"
 		"out vec3 color;                          \n"
 		"out vec2 texCoord;                       \n"
 		"void main()                              \n"
 		"{                                        \n"
-		"   gl_Position = vec4(vPosition, 0, 1);  \n"
+		"   gl_Position = vec4(vPosition, 1);  \n"
 		"   color = vColor;                       \n"
 		"   texCoord = vTexCoord;                 \n"
 		"}                                        \n";
@@ -48,17 +50,49 @@ char fShaderStr[] =
 		"   fragColor = texture(tex, texCoord);       \n"
 		"}                                            \n";
 
-const float vertices[] = { -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
-						   -0.5f, -0.5f,  0.0f, 1.0f, 0.0f,  0.0f, 1.0f,
-							0.5f, -0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
-							0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 0.0f,
-					  };
-const uint32_t indices[] = {0, 1, 2, 2, 3, 0};
+//const float vertices[] = { -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
+//						   -0.5f, -0.5f,  0.0f, 1.0f, 0.0f,  0.0f, 1.0f,
+//							0.5f, -0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
+//							0.5f,  0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 0.0f,
+//					  };
+//const uint32_t indices[] = {0, 1, 2, 2, 3, 0};
+unsigned int numIndices;
 
 }
 
 GLESWidget::GLESWidget(QWidget *parent, renderer::ContextPtr sharedContext) : QWidget(parent)
 {
+	QFile modelFile(":/res/monkey.fbx");
+	modelFile.open(QFile::ReadOnly);
+	auto modelData = modelFile.readAll();
+
+	Assimp::Importer Importer;
+	auto pScene = Importer.ReadFileFromMemory(modelData.data(), modelData.size(), aiProcess_Triangulate);
+	auto pMesh = pScene->mMeshes[0];
+
+	float *vertices = new float[pMesh->mNumVertices * 8];
+	unsigned int numVertices = pMesh->mNumVertices;
+	for (int32_t i = 0; i < pMesh->mNumVertices; ++i) {
+		vertices[8*i + 0] = pMesh->mVertices[i].x;
+		vertices[8*i + 1] = pMesh->mVertices[i].y;
+		vertices[8*i + 2] = pMesh->mVertices[i].z;
+		vertices[8*i + 3] = pMesh->mNormals[i].x;
+		vertices[8*i + 4] = pMesh->mNormals[i].y;
+		vertices[8*i + 5] = pMesh->mNormals[i].z;
+//		vertices[8*i + 6] = pMesh->mTextureCoords[0][i].x;
+//		vertices[8*i + 7] = pMesh->mTextureCoords[0][i].y;
+	}
+
+	unsigned int *indices = new unsigned int[pMesh->mNumFaces * 3];
+	numIndices = pMesh->mNumFaces * 3;
+	for (int32_t i = 0 ; i < pMesh->mNumFaces ; i++) {
+		const aiFace& Face = pMesh->mFaces[i];
+		assert(Face.mNumIndices == 3);
+		indices[3*i + 0] = Face.mIndices[0];
+		indices[3*i + 1] = Face.mIndices[1];
+		indices[3*i + 2] = Face.mIndices[2];
+	}
+
 	setAttribute(Qt::WA_PaintOnScreen);
 	setAttribute(Qt::WA_NoSystemBackground);
 	setAutoFillBackground(true);
@@ -92,15 +126,15 @@ GLESWidget::GLESWidget(QWidget *parent, renderer::ContextPtr sharedContext) : QW
 	m_uniformBuffer = m_context->createBuffer(renderer::BufferUsage::StaticDraw, sizeof(glm::vec3), glm::value_ptr(globalColor));
 	m_vertexArray = m_context->createVertexArray();
 	m_vertexArray->bindVertexBuffer(0,
-									m_context->createBuffer(renderer::BufferUsage::StaticDraw, sizeof(vertices), vertices),
-									2, renderer::VertexArrayAttributePointerType::Type_32f, false, 7*sizeof(float), 0*sizeof(float));
+									m_context->createBuffer(renderer::BufferUsage::StaticDraw, numVertices*8*sizeof(float), vertices),
+									2, renderer::VertexArrayAttributePointerType::Type_32f, false, 8*sizeof(float), 0*sizeof(float));
 	m_vertexArray->bindVertexBuffer(1,
 									m_vertexArray->vertexBuffer(0),
-									3, renderer::VertexArrayAttributePointerType::Type_32f, false, 7*sizeof(float), 2*sizeof(float));
+									3, renderer::VertexArrayAttributePointerType::Type_32f, false, 8*sizeof(float), 3*sizeof(float));
 	m_vertexArray->bindVertexBuffer(2,
 									m_vertexArray->vertexBuffer(0),
-									2, renderer::VertexArrayAttributePointerType::Type_32f, false, 7*sizeof(float), 5*sizeof(float));
-	m_vertexArray->bindIndexBuffer(m_context->createBuffer(renderer::BufferUsage::StaticDraw, sizeof(indices), indices));
+									2, renderer::VertexArrayAttributePointerType::Type_32f, false, 8*sizeof(float), 6*sizeof(float));
+	m_vertexArray->bindIndexBuffer(m_context->createBuffer(renderer::BufferUsage::StaticDraw, numIndices*sizeof(unsigned int), indices));
 
 	auto img = QImage(":/res/side1.png").convertToFormat(QImage::Format_RGB888);
 	m_texture = m_context->createTexture(renderer::TextureType::Type_2D, renderer::TextureInternalFormat::RGB8uiNorm, renderer::TextureSize(img.width(), img.height()));
@@ -119,7 +153,7 @@ GLESWidget::GLESWidget(QWidget *parent, renderer::ContextPtr sharedContext) : QW
 void GLESWidget::paintEvent(QPaintEvent *pEvent)
 {
 	m_framebuffer->clearColorBuffer(0, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
-	m_framebuffer->renderIndexedGeometry(m_program, m_vertexArray, renderer::PrimitiveType::Triangles, sizeof(indices)/sizeof(indices[0]), renderer::GeometryIndexType::Type_32ui);
+	m_framebuffer->renderIndexedGeometry(m_program, m_vertexArray, renderer::PrimitiveType::Triangles, numIndices, renderer::GeometryIndexType::Type_32ui);
 
 	auto pMainFramebuffer = m_context->mainFramebuffer();
 	pMainFramebuffer->setViewport(0, 0, width(), height());

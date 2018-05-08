@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>res/side1.png</file>
+        <file>res/monkey.fbx</file>
     </qresource>
 </RCC>

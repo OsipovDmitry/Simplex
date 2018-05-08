@@ -333,6 +333,66 @@ FramebufferPtr Context::mainFramebuffer()
 	return FramebufferPtr(new Framebuffer(shared_from_this(), std::true_type()));
 }
 
+void Context::enableDepthTest(DepthTestFunc func)
+{
+	m->bindThisContext();
+	CHECK_GL_ERROR(glEnable(GL_DEPTH_TEST), "Can not enable depth test");
+	CHECK_GL_ERROR(glDepthFunc(toDepthTestGLFunc(func)), "Can not enable depth test");
+}
+
+void Context::disableDepthTest()
+{
+	m->bindThisContext();
+	CHECK_GL_ERROR(glDisable(GL_DEPTH_TEST), "Can not disable depth test");
+}
+
+bool Context::depthTestState() const
+{
+	m->bindThisContext();
+	GLboolean value;
+	CHECK_GL_ERROR(glGetBooleanv(GL_DEPTH_TEST, &value), "Can not get depth test state", false);
+	return value != GL_FALSE;
+}
+
+DepthTestFunc Context::depthTestFunc() const
+{
+	m->bindThisContext();
+	GLint value;
+	CHECK_GL_ERROR(glGetIntegerv(GL_DEPTH_FUNC, &value), "Can not get depth test func", DepthTestFunc::Count);
+	return fromDepthTestGLFunc(value);
+}
+
+void Context::setDepthWriteMask(bool state)
+{
+	m->bindThisContext();
+	CHECK_GL_ERROR(glDepthMask((GLboolean)state), "Can not set depth write mask");
+}
+
+bool Context::depthWriteMask() const
+{
+	m->bindThisContext();
+	GLboolean value;
+	CHECK_GL_ERROR(glGetBooleanv(GL_DEPTH_WRITEMASK, &value), "Can not get depth write mask", false);
+	return value != GL_FALSE;
+}
+
+void Context::setColorWriteMask(bool r, bool g, bool b, bool a)
+{
+	m->bindThisContext();
+	CHECK_GL_ERROR(glColorMask((GLboolean)r, (GLboolean)g, (GLboolean)b, (GLboolean)a), "Can not set color write mask");
+}
+
+void Context::colorWriteMask(bool& r, bool& g, bool& b, bool& a) const
+{
+	m->bindThisContext();
+	GLboolean value[4];
+	CHECK_GL_ERROR(glGetBooleanv(GL_COLOR_WRITEMASK, value), "Can not get color write mask");
+	r = value[0] != GL_FALSE;
+	g = value[1] != GL_FALSE;
+	b = value[2] != GL_FALSE;
+	a = value[3] != GL_FALSE;
+}
+
 void Context::bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size, uint64_t offset)
 {
 	m->bindThisContext();
