@@ -47,7 +47,7 @@ char fShaderStr[] =
 		"};                                           \n"
 		"void main()                                  \n"
 		"{                                            \n"
-        "   fragColor = vec4(globalColor, 1.0);       \n"
+		"   fragColor = texture(tex, texCoord);       \n"
 		"}                                            \n";
 
 //const float vertices[] = { -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
@@ -119,7 +119,7 @@ GLESWidget::GLESWidget(QWidget *parent, renderer::ContextPtr sharedContext) : QW
 	if (!sLog.empty())
 		LOG_DEBUG(sLog);
 
-    m_program->setUnifromBlockBindingPoint(m_program->uniformBlockIndexByName("UniformBlock"), 0);
+	m_program->setUnifromBlockBindingPoint(m_program->uniformBlockIndexByName("UniformBlock"), 1);
 	m_program->setUniform(m_program->uniformLocationByName("tex"), (int32_t)0);
 
 	glm::vec3 globalColor(0.6,0.5,0.3);
@@ -140,7 +140,7 @@ GLESWidget::GLESWidget(QWidget *parent, renderer::ContextPtr sharedContext) : QW
 	m_texture = m_context->createTexture(renderer::TextureType::Type_2D, renderer::TextureInternalFormat::RGB8uiNorm, renderer::TextureSize(img.width(), img.height()));
 	m_texture->setSubImage(types::ImageFormat::RGB, types::ImageType::Typy_8ui, img.bits());
 
-    m_context->bindUniformBuffer(m_uniformBuffer, 0);
+	m_context->bindUniformBuffer(m_uniformBuffer, 1);
 	m_context->bindTexture(m_texture, 0);
 
 	m_framebufferTexture = m_context->createTexture(renderer::TextureType::Type_2D, renderer::TextureInternalFormat::RGBA8uiNorm, renderer::TextureSize(512, 512), 1);
