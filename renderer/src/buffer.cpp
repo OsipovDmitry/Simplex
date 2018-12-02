@@ -4,7 +4,7 @@
 #include <renderer/buffer.h>
 #include <renderer/context.h>
 
-#include "contextprivate.h"
+#include "context_p.h"
 #include "bufferprivate.h"
 
 namespace renderer {
@@ -29,7 +29,7 @@ BufferUsage fromBufferGLUsage(GLenum val) {
 
 Buffer::~Buffer()
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	delete m;
 }
 
@@ -40,8 +40,8 @@ ContextPtr Buffer::context() const
 
 BufferUsage Buffer::usage() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindBuffer(shared_from_this(), BufferTarget::Array);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindBuffer(shared_from_this(), BufferTarget::Array);
 
 	BufferUsage usage = BufferUsage::StaticDraw;
 	GLint value;
@@ -52,8 +52,8 @@ BufferUsage Buffer::usage() const
 
 int64_t Buffer::size() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindBuffer(shared_from_this(), BufferTarget::Array);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindBuffer(shared_from_this(), BufferTarget::Array);
 
 	GLint64 value;
 	CHECK_GL_ERROR(glGetBufferParameteri64v(GL_ARRAY_BUFFER, GL_BUFFER_SIZE, &value), "Can not get buffer's size", 0);
@@ -62,8 +62,8 @@ int64_t Buffer::size() const
 
 void *Buffer::map(BufferAccess access, uint64_t offset, int64_t length)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindBuffer(shared_from_this(), BufferTarget::Array);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindBuffer(shared_from_this(), BufferTarget::Array);
 
 	if (length < 0)
 		length = size() - offset;
@@ -81,8 +81,8 @@ void *Buffer::map(BufferAccess access, uint64_t offset, int64_t length)
 
 bool Buffer::unmap()
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindBuffer(shared_from_this(), BufferTarget::Array);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindBuffer(shared_from_this(), BufferTarget::Array);
 
 	CHECK_GL_ERROR(auto result = glUnmapBuffer(GL_ARRAY_BUFFER), "Can not unmap buffer", false);
 	return result != GL_FALSE;
@@ -91,7 +91,7 @@ bool Buffer::unmap()
 Buffer::Buffer(ContextPtr context) :
 	m(new BufferPrivate(context, nullptr))
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 
 	auto id = new GLuint(0);
 	CHECK_GL_ERROR(glGenBuffers(1, id), "Can not create buffer");
@@ -110,8 +110,8 @@ Buffer::Buffer(ContextPtr context, BufferPtr sharedBuffer) :
 
 void Buffer::init(BufferUsage usage, uint64_t size, const void* pData)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindBuffer(shared_from_this(), BufferTarget::Array);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindBuffer(shared_from_this(), BufferTarget::Array);
 	CHECK_GL_ERROR(glBufferData(GL_ARRAY_BUFFER, size, pData, toBufferGLUsage(usage)), "Can not init buffer");
 }
 

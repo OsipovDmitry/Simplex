@@ -10,36 +10,40 @@ SOURCES += \
     src/shader.cpp \
     src/program.cpp \
     src/buffer.cpp \
-    src/contextprivate.cpp \
     src/vertexarray.cpp \
     src/texture.cpp \
     src/textureprivate.cpp \
     src/renderbuffer.cpp \
     src/framebuffer.cpp \
     src/framebufferprivate.cpp \
-    src/bufferprivate.cpp
+    src/bufferprivate.cpp \
+    src/display.cpp \
+    src/context_p.cpp
 
 HEADERS += \
-	../include/renderer/renderer_global.h \
+    ../include/renderer/renderer_global.h \
+    ../include/renderer/forwarddecl.h \
+    ../include/renderer/display.h \
     ../include/renderer/context.h \
     ../include/renderer/shader.h \
     ../include/renderer/program.h \
     ../include/renderer/buffer.h \
 	../include/renderer/vertexarray.h \
     ../include/renderer/texture.h \
-	../include/renderer/renderbuffer.h \
-	src/shaderprivate.h \
-	src/contextprivate.h \
-	src/programprivate.h \
-	src/bufferprivate.h \
-	src/vertexarrayprivate.h \
-	src/glutils.h \
-	src/textureprivate.h \
-    src/renderbufferprivate.h \
+    ../include/renderer/renderbuffer.h \
     ../include/renderer/framebuffer.h \
-    src/framebufferprivate.h
+    src/shaderprivate.h \
+    src/programprivate.h \
+    src/bufferprivate.h \
+    src/vertexarrayprivate.h \
+    src/glutils.h \
+    src/textureprivate.h \
+    src/renderbufferprivate.h \
+    src/framebufferprivate.h \
+    src/display_p.h \
+    src/context_p.h
 
 LIBS += \
-	-llogger \
-	-lEGL \
-	-lGLESv2
+    -llogger \
+    -lEGL \
+    -lGLESv2

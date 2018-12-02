@@ -7,7 +7,7 @@
 #include <renderer/shader.h>
 #include <renderer/context.h>
 
-#include "contextprivate.h"
+#include "context_p.h"
 #include "shaderprivate.h"
 #include "programprivate.h"
 
@@ -54,13 +54,13 @@ ProgramAttributeType fromAttributeGLType(GLenum val) {
 
 Program::~Program()
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	delete m;
 }
 
 void Program::detachShader(ShaderType type)
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	auto& p = m->shaders[castFromShaderType<size_t>(type)];
 	if (p) {
 		CHECK_GL_ERROR(glDetachShader(*m->id, *p->m->id), "Can not detach shader");
@@ -75,7 +75,7 @@ void Program::attachShader(ShaderPtr shader)
 		return;
 	}
 
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	auto type = shader->type();
 	detachShader(type);
 	CHECK_GL_ERROR(glAttachShader(*m->id, *shader->m->id), "Can not attach shader");
@@ -84,7 +84,7 @@ void Program::attachShader(ShaderPtr shader)
 
 bool Program::link(std::string* pLog)
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	CHECK_GL_ERROR(glLinkProgram(*m->id), "Can not link program", false);
 
 	GLint res;
@@ -102,28 +102,28 @@ bool Program::link(std::string* pLog)
 
 int32_t Program::uniformLocationByName(const std::string& uniformName) const
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	CHECK_GL_ERROR(auto loc = glGetUniformLocation(*m->id, (const GLchar*)uniformName.c_str()), "Can not get uniform location", -1);
 	return static_cast<int32_t>(loc);
 }
 
 uint32_t Program::uniformBlockIndexByName(const std::string& uniformBlockName) const
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	CHECK_GL_ERROR(auto idx = glGetUniformBlockIndex(*m->id, (const GLchar*)uniformBlockName.c_str()), "Can not get uniform block index", -1);
 	return static_cast<uint32_t>(idx);
 }
 
 int32_t Program::attributeLocationByName(const std::string& attributeName) const
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	CHECK_GL_ERROR(auto loc = glGetAttribLocation(*m->id, (const GLchar*)attributeName.c_str()), "Can not get attribute location", -1);
 	return static_cast<int32_t>(loc);
 }
 
 ProgramUniformsInfo Program::uniformsInfo() const
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 
 	ProgramUniformsInfo info;
 	auto numUniforms = uniformsCount();
@@ -177,7 +177,7 @@ ProgramUniformsInfo Program::uniformsInfo() const
 
 int32_t Program::uniformsCount() const
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 
 	GLint numUniforms;
 	CHECK_GL_ERROR(glGetProgramiv(*m->id, GL_ACTIVE_UNIFORMS, &numUniforms), "Can not get active uniforms count", -1);
@@ -186,7 +186,7 @@ int32_t Program::uniformsCount() const
 
 ProgramUniformInfo Program::uniformInfoByIndex(int32_t index) const
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	ProgramUniformInfo info;
 
 	GLuint GLindex = index;
@@ -224,7 +224,7 @@ ProgramUniformInfo Program::uniformInfoByIndex(int32_t index) const
 
 int32_t Program::uniformBlocksCount() const
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 
 	GLint numUniforms;
 	CHECK_GL_ERROR(glGetProgramiv(*m->id, GL_ACTIVE_UNIFORM_BLOCKS, &numUniforms), "Can not get active uniform blocks count", -1);
@@ -233,7 +233,7 @@ int32_t Program::uniformBlocksCount() const
 
 ProgramUniformBlockInfo Program::uniformBlockInfoByIndex(int32_t index) const
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 
 	ProgramUniformBlockInfo info;
 	GLint val;
@@ -255,7 +255,7 @@ ProgramUniformBlockInfo Program::uniformBlockInfoByIndex(int32_t index) const
 
 int32_t Program::attributesCount() const
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 
 	GLint numAttributes;
 	CHECK_GL_ERROR(glGetProgramiv(*m->id, GL_ACTIVE_ATTRIBUTES, &numAttributes), "Can not get active attributes count", -1);
@@ -264,7 +264,7 @@ int32_t Program::attributesCount() const
 
 ProgramAttributeInfo Program::attributeInfoByIndex(int32_t index) const
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 
 	ProgramAttributeInfo info;
 	GLint nameLength, size;
@@ -283,161 +283,161 @@ ProgramAttributeInfo Program::attributeInfoByIndex(int32_t index) const
 
 void Program::setUniform(const int32_t location, const float value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform1f((GLint)location, value), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const int32_t value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform1i((GLint)location, value), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const uint32_t value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform1ui((GLint)location, value), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::vec2& value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform2fv((GLint)location, 1, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::ivec2& value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform2iv((GLint)location, 1, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::uvec2& value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform2uiv((GLint)location, 1, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::vec3& value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform3fv((GLint)location, 1, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::ivec3& value)
 {
-	m->context->m->bindThisContext();;
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();;
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform3iv((GLint)location, 1, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::uvec3& value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform3uiv((GLint)location, 1, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::vec4& value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform4fv((GLint)location, 1, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::ivec4& value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform4iv((GLint)location, 1, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::uvec4& value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniform4uiv((GLint)location, 1, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::mat2& value, const bool transpose)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniformMatrix2fv((GLint)location, 1, transpose, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::mat3& value, const bool transpose)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniformMatrix3fv((GLint)location, 1, transpose, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::mat4& value, const bool transpose)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniformMatrix4fv((GLint)location, 1, transpose, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::mat2x3& value, const bool transpose)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniformMatrix2x3fv((GLint)location, 1, transpose, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::mat2x4& value, const bool transpose)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniformMatrix2x4fv((GLint)location, 1, transpose, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::mat3x2& value, const bool transpose)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniformMatrix3x2fv((GLint)location, 1, transpose, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::mat3x4& value, const bool transpose)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniformMatrix3x4fv((GLint)location, 1, transpose, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::mat4x2& value, const bool transpose)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniformMatrix4x2fv((GLint)location, 1, transpose, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUniform(const int32_t location, const glm::mat4x3& value, const bool transpose)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindProgram(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindProgram(shared_from_this());
 	CHECK_GL_ERROR(glUniformMatrix4x3fv((GLint)location, 1, transpose, glm::value_ptr(value)), "Can not set uniform");
 }
 
 void Program::setUnifromBlockBindingPoint(const uint32_t uniformBlockIndex, uint32_t bindingPoint)
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	CHECK_GL_ERROR(glUniformBlockBinding(*m->id, uniformBlockIndex, bindingPoint), "Can not set uniform block binding point");
 }
 
 Program::Program(ContextPtr context) :
 	m(new ProgramPrivate(context, nullptr))
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	CHECK_GL_ERROR(auto id = new GLuint(glCreateProgram()), "Can not create program");
 
 	m->id = GLuintPtr(id, [](GLuint *p) {

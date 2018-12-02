@@ -7,14 +7,14 @@
 #include <renderer/texture.h>
 #include <types/image.h>
 
-#include "contextprivate.h"
+#include "context_p.h"
 #include "textureprivate.h"
 
 namespace renderer {
 
 Texture::~Texture()
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	delete m;
 }
 
@@ -49,8 +49,8 @@ void Texture::setSubImage(types::ImageFormat dataFormat, types::ImageType dataTy
 	if (size.height == 0) size.height = m->size.height;
 	if (size.depth == 0) size.depth = m->size.depth;
 
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 
 	switch (m->type) {
 		case TextureType::Type_2D: {
@@ -78,8 +78,8 @@ void Texture::setSubImage(TextureCubemapSide cubemapSide, types::ImageFormat dat
 	if (size.height == 0) size.height = m->size.height;
 	if (size.depth == 0) size.depth = m->size.depth;
 
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 
 	switch (m->type) {
 		case TextureType::Type_2D: {
@@ -104,23 +104,23 @@ void Texture::setSubImage(TextureCubemapSide cubemapSide, types::ImageFormat dat
 
 void Texture::generateMipmap()
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	CHECK_GL_ERROR(glGenerateMipmap(toTextureGLType(m->type));, "Can not generate mipmap");
 }
 
 void Texture::setFilter(TextureMinificationFilter minFilter, TextureMagnificationFilter magFilter)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	CHECK_GL_ERROR(glTexParameteri(toTextureGLType(m->type), GL_TEXTURE_MIN_FILTER, toTextureMinificationGLFilter(minFilter)), "Can not set filter");
 	CHECK_GL_ERROR(glTexParameteri(toTextureGLType(m->type), GL_TEXTURE_MAG_FILTER, toTextureMagnificationGLFilter(magFilter)), "Can not set filter");
 }
 
 TextureMinificationFilter Texture::minificationFilter() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	GLint res;
 	CHECK_GL_ERROR(glGetTexParameteriv(toTextureGLType(m->type), GL_TEXTURE_MIN_FILTER, &res), "Can not get min filter", TextureMinificationFilter::Nearest);
 	return fromTextureMinificationGLFilter(res);
@@ -128,8 +128,8 @@ TextureMinificationFilter Texture::minificationFilter() const
 
 TextureMagnificationFilter Texture::magnificationFilter() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	GLint res = GL_NEAREST;
 	CHECK_GL_ERROR(glGetTexParameteriv(toTextureGLType(m->type), GL_TEXTURE_MAG_FILTER, &res), "Can not get mag filter", TextureMagnificationFilter::Nearest);
 	return fromTextureMagnificationGLFilter(res);
@@ -137,8 +137,8 @@ TextureMagnificationFilter Texture::magnificationFilter() const
 
 void Texture::setWrapMode(TextureWrapMode sMode, TextureWrapMode tMode, TextureWrapMode rMode)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	CHECK_GL_ERROR(glTexParameteri(toTextureGLType(m->type), GL_TEXTURE_WRAP_S, toTextureWrapGLMode(sMode)), "Can not set wrap mode");
 	CHECK_GL_ERROR(glTexParameteri(toTextureGLType(m->type), GL_TEXTURE_WRAP_T, toTextureWrapGLMode(tMode)), "Can not set wrap mode");
 	CHECK_GL_ERROR(glTexParameteri(toTextureGLType(m->type), GL_TEXTURE_WRAP_R, toTextureWrapGLMode(rMode)), "Can not set wrap mode");
@@ -146,8 +146,8 @@ void Texture::setWrapMode(TextureWrapMode sMode, TextureWrapMode tMode, TextureW
 
 TextureWrapMode Texture::wrapModeS() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	GLint res;
 	CHECK_GL_ERROR(glGetTexParameteriv(toTextureGLType(m->type), GL_TEXTURE_WRAP_S, &res), "Can not get wrap mode", TextureWrapMode::Repeat);
 	return fromTextureWrapGLMode(res);
@@ -155,8 +155,8 @@ TextureWrapMode Texture::wrapModeS() const
 
 TextureWrapMode Texture::wrapModeT() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	GLint res;
 	CHECK_GL_ERROR(glGetTexParameteriv(toTextureGLType(m->type), GL_TEXTURE_WRAP_T, &res), "Can not get wrap mode", TextureWrapMode::Repeat);
 	return fromTextureWrapGLMode(res);
@@ -164,8 +164,8 @@ TextureWrapMode Texture::wrapModeT() const
 
 TextureWrapMode Texture::wrapModeR() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	GLint res;
 	CHECK_GL_ERROR(glGetTexParameteriv(toTextureGLType(m->type), GL_TEXTURE_WRAP_R, &res), "Can not get wrap mode", TextureWrapMode::Repeat);
 	return fromTextureWrapGLMode(res);
@@ -173,8 +173,8 @@ TextureWrapMode Texture::wrapModeR() const
 
 void Texture::setSwizzle(TextureSwizzle rSwizzle, TextureSwizzle gSwizzle, TextureSwizzle bSwizzle, TextureSwizzle aSwizzle)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	CHECK_GL_ERROR(glTexParameteri(toTextureGLType(m->type), GL_TEXTURE_SWIZZLE_R, toTextureGLSwizzle(rSwizzle)), "Can not set swizzle");
 	CHECK_GL_ERROR(glTexParameteri(toTextureGLType(m->type), GL_TEXTURE_SWIZZLE_G, toTextureGLSwizzle(gSwizzle)), "Can not set swizzle");
 	CHECK_GL_ERROR(glTexParameteri(toTextureGLType(m->type), GL_TEXTURE_SWIZZLE_B, toTextureGLSwizzle(bSwizzle)), "Can not set swizzle");
@@ -183,8 +183,8 @@ void Texture::setSwizzle(TextureSwizzle rSwizzle, TextureSwizzle gSwizzle, Textu
 
 TextureSwizzle Texture::swizzleRed() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	GLint res;
 	CHECK_GL_ERROR(glGetTexParameteriv(toTextureGLType(m->type), GL_TEXTURE_SWIZZLE_R, &res), "Can not get swizzle", TextureSwizzle::Zero);
 	return fromTextureGLSwizzle(res);
@@ -192,8 +192,8 @@ TextureSwizzle Texture::swizzleRed() const
 
 TextureSwizzle Texture::swizzleGreen() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	GLint res;
 	CHECK_GL_ERROR(glGetTexParameteriv(toTextureGLType(m->type), GL_TEXTURE_SWIZZLE_G, &res), "Can not get swizzle", TextureSwizzle::Zero);
 	return fromTextureGLSwizzle(res);
@@ -201,8 +201,8 @@ TextureSwizzle Texture::swizzleGreen() const
 
 TextureSwizzle Texture::swizzleBlue() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	GLint res;
 	CHECK_GL_ERROR(glGetTexParameteriv(toTextureGLType(m->type), GL_TEXTURE_SWIZZLE_B, &res), "Can not get swizzle", TextureSwizzle::Zero);
 	return fromTextureGLSwizzle(res);
@@ -210,8 +210,8 @@ TextureSwizzle Texture::swizzleBlue() const
 
 TextureSwizzle Texture::swizzleAlpha() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	GLint res;
 	CHECK_GL_ERROR(glGetTexParameteriv(toTextureGLType(m->type), GL_TEXTURE_SWIZZLE_A, &res), "Can not get swizzle", TextureSwizzle::Zero);
 	return fromTextureGLSwizzle(res);
@@ -219,23 +219,23 @@ TextureSwizzle Texture::swizzleAlpha() const
 
 void Texture::enableCompareMode(TextureCompareFunc func)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	CHECK_GL_ERROR(glTexParameteri(toTextureGLType(m->type), GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE), "Can not set compare mode");
 	CHECK_GL_ERROR(glTexParameteri(toTextureGLType(m->type), GL_TEXTURE_COMPARE_FUNC, toTextureCompareGLFunc(func)), "Can not set compare mode");
 }
 
 void Texture::disableCompareMode()
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	CHECK_GL_ERROR(glTexParameteri(toTextureGLType(m->type), GL_TEXTURE_COMPARE_MODE, GL_NONE), "Can not set compare mode");
 }
 
 bool Texture::compareMode() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	GLint res;
 	CHECK_GL_ERROR(glGetTexParameteriv(toTextureGLType(m->type), GL_TEXTURE_COMPARE_MODE, &res), "Can not get compare mode", false);
 	return res == GL_COMPARE_REF_TO_TEXTURE;
@@ -243,8 +243,8 @@ bool Texture::compareMode() const
 
 TextureCompareFunc Texture::compareFunc() const
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 	GLint res;
 	CHECK_GL_ERROR(glGetTexParameteriv(toTextureGLType(m->type), GL_TEXTURE_COMPARE_FUNC, &res), "Can not get swizzle", TextureCompareFunc::Newer);
 	return fromTextureCompareGLFunc(res);
@@ -253,7 +253,7 @@ TextureCompareFunc Texture::compareFunc() const
 Texture::Texture(ContextPtr context) :
 	m(new TexturePrivate(context))
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	auto id = new GLuint(0);
 	CHECK_GL_ERROR(glGenTextures(1, id), "Can not create texture");
 
@@ -284,8 +284,8 @@ void Texture::init(TextureType type, int32_t numLevels, TextureInternalFormat in
 	m->internalFormat = internalFormat;
 	m->numLevels = numLevels;
 
-	m->context->m->bindThisContext();
-	m->context->m->bindTexture(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindTexture(shared_from_this());
 
 	switch (type) {
 		case TextureType::Type_2D: {

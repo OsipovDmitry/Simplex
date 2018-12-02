@@ -5,7 +5,7 @@
 #include <renderer/renderbuffer.h>
 #include <renderer/texture.h>
 
-#include "contextprivate.h"
+#include "context_p.h"
 #include "renderbufferprivate.h"
 #include "framebufferprivate.h"
 #include "textureprivate.h"
@@ -14,7 +14,7 @@ namespace renderer {
 
 Framebuffer::~Framebuffer()
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	delete m;
 }
 
@@ -25,8 +25,8 @@ ContextPtr Framebuffer::context() const
 
 void Framebuffer::attachBuffer(FramebufferAttachment attachment, RenderbufferPtr renderbuffer)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
 	CHECK_GL_ERROR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, toFramebufferGLAttachment(attachment), GL_RENDERBUFFER, renderbuffer ? *renderbuffer->m->id : 0), "Can not attach renderbuffer");
 
 	m->renderbuffers[castFromFramebufferAttachment<size_t>(attachment)] = renderbuffer;
@@ -35,8 +35,8 @@ void Framebuffer::attachBuffer(FramebufferAttachment attachment, RenderbufferPtr
 
 void Framebuffer::attachBuffer(FramebufferAttachment attachment, TexturePtr texture, uint32_t level)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
 
 	switch (texture->m->type) {
 		case TextureType::Type_2D: {
@@ -63,8 +63,8 @@ void Framebuffer::attachBuffer(FramebufferAttachment attachment, TexturePtr text
 
 void Framebuffer::attachBuffer(FramebufferAttachment attachment, TexturePtr texture, TextureCubemapSide side, uint32_t level)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
 
 	switch (texture->m->type) {
 		case TextureType::Type_2D: {
@@ -91,8 +91,8 @@ void Framebuffer::attachBuffer(FramebufferAttachment attachment, TexturePtr text
 
 void Framebuffer::attachBuffer(FramebufferAttachment attachment, TexturePtr texture, uint32_t layer, uint32_t level)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
 
 	switch (texture->m->type) {
 		case TextureType::Type_2D: {
@@ -118,8 +118,8 @@ void Framebuffer::setViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t h
 {
 	m->viewport = glm::uvec4(x, y, width, height);
 
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
 	CHECK_GL_ERROR(glViewport(m->viewport.x, m->viewport.y, m->viewport.z, m->viewport.w), "Can not set viewport");
 }
 
@@ -130,43 +130,43 @@ glm::uvec4 Framebuffer::viewport() const
 
 void Framebuffer::clearColorBuffer(uint32_t index, const glm::vec4& value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
 	CHECK_GL_ERROR(glClearBufferfv(GL_COLOR, index, glm::value_ptr(value)), "Can not clear framebuffer");
 }
 
 void Framebuffer::clearColorBuffer(uint32_t index, const glm::uvec4& value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
 	CHECK_GL_ERROR(glClearBufferuiv(GL_COLOR, index, glm::value_ptr(value)), "Can not clear framebuffer");
 }
 
 void Framebuffer::clearColorBuffer(uint32_t index, const glm::ivec4& value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
 	CHECK_GL_ERROR(glClearBufferiv(GL_COLOR, index, glm::value_ptr(value)), "Can not clear framebuffer");
 }
 
 void Framebuffer::clearDepthBuffer(float value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
 	CHECK_GL_ERROR(glClearBufferfv(GL_DEPTH, 0, &value), "Can not clear framebuffer");
 }
 
 void Framebuffer::clearStencilBuffer(int32_t value)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
 	CHECK_GL_ERROR(glClearBufferiv(GL_STENCIL, 0, &value), "Can not clear framebuffer");
 }
 
 void Framebuffer::clearDepthStencilBuffer(float depth, int32_t stencil)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
 	CHECK_GL_ERROR(glClearBufferfi(GL_DEPTH_STENCIL, 0, depth, stencil), "Can not clear framebuffer");
 }
 
@@ -175,7 +175,7 @@ void Framebuffer::copyColorBuffer(const glm::uvec4& dstRect, const glm::uvec4& s
 	GLenum dstColorBuffer = (*m->id == 0) ? GL_BACK : GL_COLOR_ATTACHMENT0 + dstColorIndex;
 	GLenum srcColorBuffer = (*srcBuffer->m->id == 0) ? GL_BACK : GL_COLOR_ATTACHMENT0 + srcColorIndex;
 
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	CHECK_GL_ERROR(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, *m->id), "Can not copy framebuffer");
 	CHECK_GL_ERROR(glDrawBuffers(1, &dstColorBuffer), "Can not copy framebuffer");
 	CHECK_GL_ERROR(glBindFramebuffer(GL_READ_FRAMEBUFFER, *srcBuffer->m->id), "Can not copy framebuffer");
@@ -185,7 +185,7 @@ void Framebuffer::copyColorBuffer(const glm::uvec4& dstRect, const glm::uvec4& s
 
 void Framebuffer::copyDepthBuffer(const glm::uvec4& dstRect, const glm::uvec4& srcRect, FramebufferPtr srcBuffer)
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	CHECK_GL_ERROR(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, *m->id), "Can not copy framebuffer");
 	CHECK_GL_ERROR(glBindFramebuffer(GL_READ_FRAMEBUFFER, *srcBuffer->m->id), "Can not copy framebuffer");
 	CHECK_GL_ERROR(glBlitFramebuffer(srcRect.x, srcRect.y, srcRect.z, srcRect.w, dstRect.x, dstRect.y, dstRect.z, dstRect.w, GL_DEPTH_BUFFER_BIT, GL_NEAREST), "Can not copy framebuffer");
@@ -193,7 +193,7 @@ void Framebuffer::copyDepthBuffer(const glm::uvec4& dstRect, const glm::uvec4& s
 
 void Framebuffer::copyStencilBuffer(const glm::uvec4& dstRect, const glm::uvec4& srcRect, FramebufferPtr srcBuffer)
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	CHECK_GL_ERROR(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, *m->id), "Can not copy framebuffer");
 	CHECK_GL_ERROR(glBindFramebuffer(GL_READ_FRAMEBUFFER, *srcBuffer->m->id), "Can not copy framebuffer");
 	CHECK_GL_ERROR(glBlitFramebuffer(srcRect.x, srcRect.y, srcRect.z, srcRect.w, dstRect.x, dstRect.y, dstRect.z, dstRect.w, GL_STENCIL_BUFFER_BIT, GL_NEAREST), "Can not copy framebuffer");
@@ -201,20 +201,20 @@ void Framebuffer::copyStencilBuffer(const glm::uvec4& dstRect, const glm::uvec4&
 
 void Framebuffer::renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, PrimitiveType primitiveType, uint32_t numIndices, GeometryIndexType indicesType, const void* pIndices)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
-	m->context->m->bindProgram(program);
-	m->context->m->bindVertexArray(vertexArray);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
+    m->context->m()->bindProgram(program);
+    m->context->m()->bindVertexArray(vertexArray);
 
 	CHECK_GL_ERROR(glDrawElements(toPrimitiveGLType(primitiveType), numIndices, toGeometryIndexGLType(indicesType), pIndices), "Can not render indexed geometry");
 }
 
 void Framebuffer::renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, PrimitiveType primitiveType, uint32_t numIndices, GeometryIndexType indicesType, uint32_t bufferOffset)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindFramebuffer(shared_from_this());
-	m->context->m->bindProgram(program);
-	m->context->m->bindVertexArray(vertexArray);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindFramebuffer(shared_from_this());
+    m->context->m()->bindProgram(program);
+    m->context->m()->bindVertexArray(vertexArray);
 
 	CHECK_GL_ERROR(glDrawElements(toPrimitiveGLType(primitiveType), numIndices, toGeometryIndexGLType(indicesType), (const void*)bufferOffset), "Can not render indexed geometry");
 }
@@ -223,7 +223,7 @@ void Framebuffer::renderIndexedGeometry(ProgramPtr program, VertexArrayPtr verte
 Framebuffer::Framebuffer(ContextPtr context, std::false_type) :
 	m(new FramebufferPrivate(context, nullptr))
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	auto id = new GLuint(0);
 	CHECK_GL_ERROR(glGenFramebuffers(1, id), "Can not create framebuffer");
 

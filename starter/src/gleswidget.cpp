@@ -10,6 +10,7 @@
 
 #include <logger/logger.h>
 #include <types/image.h>
+#include <renderer/display.h>
 #include <renderer/context.h>
 #include <renderer/program.h>
 #include <renderer/shader.h>

@@ -3,7 +3,7 @@
 #include <renderer/shader.h>
 #include <renderer/context.h>
 
-#include "contextprivate.h"
+#include "context_p.h"
 #include "shaderprivate.h"
 
 namespace renderer {
@@ -24,25 +24,25 @@ ShaderType fromShaderGLType(GLenum val) {
 
 Shader::~Shader()
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	delete m;
 }
 
 ContextPtr Shader::context() const
 {
-	return m->context;
+    return m->context;
 }
 
 void Shader::setSourceCode(const std::string& value)
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	auto data = value.c_str();
 	CHECK_GL_ERROR(glShaderSource(*m->id, 1, &data, nullptr), "Can not set shader's source code");
 }
 
 std::string Shader::sourceCode() const
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	GLint len;
 	CHECK_GL_ERROR(glGetShaderiv(*m->id, GL_SHADER_SOURCE_LENGTH, &len), "Can not get shader's source code", std::string());
 	std::string ret(len, 0);
@@ -52,7 +52,7 @@ std::string Shader::sourceCode() const
 
 bool Shader::compile(std::string* pLog)
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	CHECK_GL_ERROR(glCompileShader(*m->id), "Can not compile shader", false);
 
 	GLint res;
@@ -71,7 +71,7 @@ bool Shader::compile(std::string* pLog)
 ShaderType Shader::type() const
 {
 
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	GLint res;
 	CHECK_GL_ERROR(glGetShaderiv(*m->id, GL_SHADER_TYPE, &res), "Can not get shader type", ShaderType::Count);
 
@@ -81,7 +81,7 @@ ShaderType Shader::type() const
 Shader::Shader(ContextPtr context, ShaderType type) :
 	m(new ShaderPrivate(context, nullptr))
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	CHECK_GL_ERROR(auto id = new GLuint(glCreateShader(toShaderGLType(type))), "Can not create shader");
 
 	m->id = GLuintPtr(id, [](GLuint *p) {

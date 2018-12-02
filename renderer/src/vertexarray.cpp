@@ -7,7 +7,7 @@
 #include <renderer/buffer.h>
 #include <renderer/vertexarray.h>
 
-#include "contextprivate.h"
+#include "context_p.h"
 #include "vertexarrayprivate.h"
 
 namespace renderer {
@@ -33,7 +33,7 @@ VertexArrayAttributePointerType fromVertexArrayAttributePointerGLType(GLenum val
 
 VertexArray::~VertexArray()
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 	delete m;
 }
 
@@ -49,20 +49,20 @@ void VertexArray::bindIndexBuffer(BufferPtr buffer)
 		return;
 	}
 
-	m->context->m->bindThisContext();
-	m->context->m->bindVertexArray(shared_from_this());
-	m->context->m->bindBuffer(buffer, BufferTarget::Element);
-	m->context->m->bindVertexArray(nullptr);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindVertexArray(shared_from_this());
+    m->context->m()->bindBuffer(buffer, BufferTarget::Element);
+    m->context->m()->bindVertexArray(nullptr);
 
 	m->indexBuffer = buffer;
 }
 
 void VertexArray::unbindIndexBuffer()
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindVertexArray(shared_from_this());
-	m->context->m->bindBuffer(nullptr, BufferTarget::Element);
-	m->context->m->bindVertexArray(nullptr);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindVertexArray(shared_from_this());
+    m->context->m()->bindBuffer(nullptr, BufferTarget::Element);
+    m->context->m()->bindVertexArray(nullptr);
 
 	m->indexBuffer = nullptr;
 }
@@ -74,12 +74,12 @@ void VertexArray::bindVertexBuffer(int32_t attribIndex, BufferPtr buffer, int32_
 		return;
 	}
 
-	m->context->m->bindThisContext();
-	m->context->m->bindVertexArray(shared_from_this());
-	m->context->m->bindBuffer(buffer, BufferTarget::Array);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindVertexArray(shared_from_this());
+    m->context->m()->bindBuffer(buffer, BufferTarget::Array);
 	CHECK_GL_ERROR(glVertexAttribPointer(attribIndex, numComponents, toVertexArrayAttributePointerGLType(dataType), normalize ? GL_TRUE : GL_FALSE, dataStride, (const void*)dataOffset), "Can not set vertex attribute pointer");
 	CHECK_GL_ERROR(glEnableVertexAttribArray(attribIndex), "Can not set vertex attribute pointer");
-	m->context->m->bindVertexArray(nullptr);
+    m->context->m()->bindVertexArray(nullptr);
 
 	m->vertexBuffers[attribIndex] = buffer;
 }
@@ -91,44 +91,44 @@ void VertexArray::bindVertexBufferInteger(int32_t attribIndex, BufferPtr buffer,
 		return;
 	}
 
-	m->context->m->bindThisContext();
-	m->context->m->bindVertexArray(shared_from_this());
-	m->context->m->bindBuffer(buffer, BufferTarget::Array);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindVertexArray(shared_from_this());
+    m->context->m()->bindBuffer(buffer, BufferTarget::Array);
 	CHECK_GL_ERROR(glVertexAttribIPointer(attribIndex, numComponents, toVertexArrayAttributePointerGLType(dataType), dataStride, (const void*)dataOffset), "Can not set vertex attribute integer pointer");
 	CHECK_GL_ERROR(glEnableVertexAttribArray(attribIndex), "Can not set vertex attribute integer pointer");
-	m->context->m->bindVertexArray(nullptr);
+    m->context->m()->bindVertexArray(nullptr);
 
 	m->vertexBuffers[attribIndex] = buffer;
 }
 
 void VertexArray::unbindVertexBuffer(int32_t attribIndex)
 {
-	m->context->m->bindThisContext();
-	m->context->m->bindVertexArray(shared_from_this());
-	m->context->m->bindBuffer(nullptr, BufferTarget::Array);
+    m->context->m()->bindThisContext();
+    m->context->m()->bindVertexArray(shared_from_this());
+    m->context->m()->bindBuffer(nullptr, BufferTarget::Array);
 	CHECK_GL_ERROR(glDisableVertexAttribArray(attribIndex), "Can not unbind vertex attribute pointer");
-	m->context->m->bindVertexArray(nullptr);
+    m->context->m()->bindVertexArray(nullptr);
 
 	m->vertexBuffers.erase(attribIndex);
 }
 
 //void VertexArray::bindVertexAttribute(int32_t attribIndex, const glm::vec4& value)
 //{
-//	m->context->m->bindThisContext();
-//	m->context->m->bindVertexArray(shared_from_this());
+//	m->context->m()->bindThisContext();
+//	m->context->m()->bindVertexArray(shared_from_this());
 //	CHECK_GL_ERROR(glVertexAttrib4fv(attribIndex, glm::value_ptr(value)), "Can not set vertex attribute");
 //	CHECK_GL_ERROR(glDisableVertexAttribArray(attribIndex), "Can not set vertex attribute");
-//	m->context->m->bindVertexArray(nullptr);
+//	m->context->m()->bindVertexArray(nullptr);
 //	m->vertexBuffers[attribIndex] = nullptr;
 //}
 
 //void VertexArray::bindVertexAttributeInteger(int32_t attribIndex, const glm::ivec4& value)
 //{
-//	m->context->m->bindThisContext();
-//	m->context->m->bindVertexArray(shared_from_this());
+//	m->context->m()->bindThisContext();
+//	m->context->m()->bindVertexArray(shared_from_this());
 //	CHECK_GL_ERROR(glVertexAttribI4iv(attribIndex, glm::value_ptr(value)), "Can not set vertex attribute integer");
 //	CHECK_GL_ERROR(glDisableVertexAttribArray(attribIndex), "Can not set vertex attribute integer");
-//	m->context->m->bindVertexArray(nullptr);
+//	m->context->m()->bindVertexArray(nullptr);
 //	m->vertexBuffers[attribIndex] = nullptr;
 //}
 
@@ -145,7 +145,7 @@ BufferPtr VertexArray::vertexBuffer(int32_t attribIndex) const
 VertexArray::VertexArray(ContextPtr context) :
 	m(new VertexArrayPrivate(context, nullptr))
 {
-	m->context->m->bindThisContext();
+    m->context->m()->bindThisContext();
 
 	auto id = new GLuint(0);
 	CHECK_GL_ERROR(glGenVertexArrays(1, id), "Can not create VAO");
@@ -167,8 +167,8 @@ void VertexArray::initShared(VertexArrayPtr sharedVertexArray)
 		GLint dataNumComponents, dataType, dataNormalized, dataStride, isDataInteger;
 		GLvoid *dataPointer;
 
-		sharedVertexArray->m->context->m->bindThisContext();
-		m->context->m->bindVertexArray(sharedVertexArray);
+        sharedVertexArray->m->context->m()->bindThisContext();
+        m->context->m()->bindVertexArray(sharedVertexArray);
 		CHECK_GL_ERROR(glGetVertexAttribiv(iter->first, GL_VERTEX_ATTRIB_ARRAY_SIZE, &dataNumComponents), "Can not create VAO");
 		CHECK_GL_ERROR(glGetVertexAttribiv(iter->first, GL_VERTEX_ATTRIB_ARRAY_TYPE, &dataType), "Can not create VAO");
 		CHECK_GL_ERROR(glGetVertexAttribiv(iter->first, GL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &dataNormalized), "Can not create VAO");

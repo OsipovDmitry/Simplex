@@ -1,6 +1,7 @@
 #include <algorithm>
 
 #include <logger/logger.h>
+#include <renderer/display.h>
 #include <renderer/context.h>
 #include <renderer/program.h>
 #include <renderer/buffer.h>
@@ -10,7 +11,8 @@
 #include <renderer/framebuffer.h>
 
 #include "glutils.h"
-#include "contextprivate.h"
+#include "context_p.h"
+#include "display_p.h"
 #include "programprivate.h"
 #include "vertexarrayprivate.h"
 #include "textureprivate.h"
@@ -35,9 +37,9 @@ void ContextPrivate::bindThisContext() const
 	if (currentContext.lock().get() == pPublicContext)
 		return;
 
-	EGLSurface surface = windowSurface ? windowSurface->m->surface : nullptr;
+    EGLSurface surface = windowSurface ? windowSurface->m()->surface : nullptr;
 
-	if (eglMakeCurrent(Display::instance()->m->display,
+    if (eglMakeCurrent(Display::instance().m()->display,
 					   surface,
 					   surface,
 					   context) == EGL_FALSE) {
@@ -139,7 +141,7 @@ void ContextPrivate::bindFramebuffer(FramebufferConstPtr frambuffer)
 	currentFramebuffer = frambuffer;
 }
 
-const std::array<GLenum, castFromDepthTestFunc<size_t>(DepthTestFunc::Count)> depthTestFuncTable {
+const std::array<GLenum, castFromDepthTestFunc(DepthTestFunc::Count)> depthTestFuncTable {
 	GL_LEQUAL,
 	GL_GEQUAL,
 	GL_LESS,
@@ -152,7 +154,7 @@ const std::array<GLenum, castFromDepthTestFunc<size_t>(DepthTestFunc::Count)> de
 
 GLenum toDepthTestGLFunc(DepthTestFunc val)
 {
-	return depthTestFuncTable[castFromDepthTestFunc<size_t>(val)];
+    return depthTestFuncTable[castFromDepthTestFunc(val)];
 }
 
 DepthTestFunc fromDepthTestGLFunc(GLenum val)

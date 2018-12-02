@@ -6,11 +6,11 @@
 #include "abstractlog.h"
 #include "logger_global.h"
 
-#define LOG_DEBUG(str) logger::Logger::instance()->sendMessage(logger::LogMessageType::Debug, str)
-#define LOG_INFO(str) logger::Logger::instance()->sendMessage(logger::LogMessageType::Info, str)
-#define LOG_WARNING(str) logger::Logger::instance()->sendMessage(logger::LogMessageType::Warning, str)
-#define LOG_ERROR(str) logger::Logger::instance()->sendMessage(logger::LogMessageType::Error, str)
-#define LOG_CRITICAL(str) logger::Logger::instance()->sendMessage(logger::LogMessageType::Critical, str)
+#define LOG_DEBUG(str) logger::Logger::instance().sendMessage(logger::LogMessageType::Debug, str)
+#define LOG_INFO(str) logger::Logger::instance().sendMessage(logger::LogMessageType::Info, str)
+#define LOG_WARNING(str) logger::Logger::instance().sendMessage(logger::LogMessageType::Warning, str)
+#define LOG_ERROR(str) logger::Logger::instance().sendMessage(logger::LogMessageType::Error, str)
+#define LOG_CRITICAL(str) logger::Logger::instance().sendMessage(logger::LogMessageType::Critical, str)
 
 namespace logger {
 
