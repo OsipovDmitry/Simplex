@@ -7,6 +7,11 @@
 
 namespace renderer {
 
+bool Display::isValid() const
+{
+    return m_->display != nullptr;
+}
+
 int32_t Display::eglMinorVersion() const
 {
     return m_->minorVersion;
@@ -105,6 +110,9 @@ DisplayPixelFormatsList DisplayPixelFormat::pixelFormatsList()
 {
     DisplayPixelFormatsList pixelFormatsList;
 
+    if (Display::instance().isValid() == false)
+        return pixelFormatsList;
+
     EGLint numConfigs;
     if (eglGetConfigs(Display::instance().m()->display, nullptr, 0, &numConfigs) == EGL_FALSE) {
         auto error = eglGetError();
@@ -128,6 +136,9 @@ DisplayPixelFormatsList DisplayPixelFormat::pixelFormatsList()
 
 DisplayPixelFormatPtr DisplayPixelFormat::choosePixelFormat(int32_t r, int32_t g, int32_t b, int32_t a, int32_t d, int32_t s)
 {
+    if (Display::instance().isValid() == false)
+        return nullptr;
+
     EGLint attribs[] = {
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
         EGL_RED_SIZE, r,
@@ -194,6 +205,9 @@ void WindowSurface::swapBuffers()
 
 WindowSurfacePtr WindowSurface::createWindowSurface(DisplayPixelFormatPtr pixelFormat, intptr_t windowID)
 {
+    if (Display::instance().isValid() == false)
+        return nullptr;
+
     EGLint attribs[] = {
         EGL_NONE
     };

@@ -4,7 +4,7 @@
 #define SINGLETON(Class, params...) \
     public: \
     static Class& instance() { \
-        static Class p = Class(params); \
+        static Class p{params}; \
         return p; \
     }
 

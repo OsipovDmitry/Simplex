@@ -3,6 +3,7 @@
 
 #include "../utils/singletoon.h"
 #include "../utils/pimpl.h"
+#include "../utils/noncopyble.h"
 #include "renderer_global.h"
 #include "forwarddecl.h"
 
@@ -12,8 +13,11 @@ class DisplayPrivate;
 class RENDERERSHARED_EXPORT Display {
     SINGLETON(Display)
     PIMPL(Display)
+    NONCOPYBLE(Display)
 
 public:
+    bool isValid() const;
+
     int32_t eglMinorVersion() const;
     int32_t eglMajorVersion() const;
 
@@ -27,6 +31,7 @@ private:
 class DisplayPixelFormatPrivate;
 class RENDERERSHARED_EXPORT DisplayPixelFormat {
     PIMPL(DisplayPixelFormat)
+    NONCOPYBLE(DisplayPixelFormat)
 
 public:
     ~DisplayPixelFormat();
@@ -48,9 +53,9 @@ private:
 };
 
 class WindowSurfacePrivate;
-class RENDERERSHARED_EXPORT WindowSurface
-{
+class RENDERERSHARED_EXPORT WindowSurface {
     PIMPL(WindowSurface)
+    NONCOPYBLE(WindowSurface)
 
 public:
     ~WindowSurface();
