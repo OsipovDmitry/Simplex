@@ -2,6 +2,7 @@
 
 #include <renderer/display.h>
 #include <renderer/context.h>
+#include <renderer/contextgroup.h>
 #include <renderer/shader.h>
 #include <renderer/program.h>
 #include <renderer/buffer.h>
@@ -11,14 +12,15 @@
 #include <renderer/framebuffer.h>
 #include <logger/logger.h>
 
-#include "context_p.h"
 #include "display_p.h"
+#include "context_p.h"
+#include "contextgroup_p.h"
 #include "glutils.h"
 
 namespace renderer {
 
-Context::Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext) :
-    m_(new ContextPrivate(this, windowSurface, sharedContext))
+Context::Context(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup) :
+    m_(new ContextPrivate(this, windowSurface, shareGroup))
 {
 }
 
@@ -47,9 +49,9 @@ WindowSurfacePtr Context::windowSurface() const
     return m_->windowSurface;
 }
 
-ContextPtr Context::sharedContext() const
+ContextGroupPtr Context::shareGroup() const
 {
-    return m_->sharedContext;
+    return m_->shareGroup;
 }
 
 ShaderPtr Context::createShader(ShaderType type)
@@ -197,7 +199,7 @@ void Context::bindTexture(TexturePtr texture, int32_t slot)
     m_->bindTexture(texture, slot);
 }
 
-ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext)
+ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup)
 {
 	static const EGLint attribs[] = {
 		EGL_CONTEXT_CLIENT_VERSION, 3,
@@ -206,7 +208,7 @@ ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sha
 
     auto context = eglCreateContext(Display::instance().m()->display,
                                     windowSurface ? windowSurface->pixelFormat()->m()->config : nullptr,
-                                    sharedContext ? sharedContext->m_->context : EGL_NO_CONTEXT,
+                                    shareGroup ? shareGroup->contexts().back().lock()->m_->context : EGL_NO_CONTEXT,
 									attribs);
 	if (context == EGL_NO_CONTEXT) {
 		auto error = eglGetError();
@@ -215,15 +217,16 @@ ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextPtr sha
 		return nullptr;
 	}
 
-	ContextPtr renderingContext(new Context(windowSurface, sharedContext));
+    ContextPtr renderingContext(new Context(windowSurface, shareGroup ? shareGroup : ContextGroupPtr(new ContextGroup())));
     renderingContext->m_->context = context;
+    renderingContext->m_->shareGroup->m()->add(renderingContext);
 
 	renderingContext->init();
 
 	return renderingContext;
 }
 
-ContextPtr Context::createContext(intptr_t windowId, int32_t r, int32_t g, int32_t b, int32_t a, int32_t d, int32_t s, ContextPtr sharedContext)
+ContextPtr Context::createContext(intptr_t windowId, int32_t r, int32_t g, int32_t b, int32_t a, int32_t d, int32_t s, ContextGroupPtr shareGroup)
 {
     auto pixelFormat = DisplayPixelFormat::choosePixelFormat(r, g, b, a, d, s);
 	if (!pixelFormat)
@@ -233,7 +236,7 @@ ContextPtr Context::createContext(intptr_t windowId, int32_t r, int32_t g, int32
 	if (!surface)
 		return nullptr;
 
-	return createContext(surface, sharedContext);
+    return createContext(surface, shareGroup);
 }
 
 }

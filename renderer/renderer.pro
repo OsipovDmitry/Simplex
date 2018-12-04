@@ -18,13 +18,16 @@ SOURCES += \
     src/framebufferprivate.cpp \
     src/bufferprivate.cpp \
     src/display.cpp \
-    src/context_p.cpp
+    src/context_p.cpp \
+    src/contextgroup_p.cpp \
+    src/contextgroup.cpp
 
 HEADERS += \
     ../include/renderer/renderer_global.h \
     ../include/renderer/forwarddecl.h \
     ../include/renderer/display.h \
     ../include/renderer/context.h \
+    ../include/renderer/contextgroup.h \
     ../include/renderer/shader.h \
     ../include/renderer/program.h \
     ../include/renderer/buffer.h \
@@ -41,7 +44,8 @@ HEADERS += \
     src/renderbufferprivate.h \
     src/framebufferprivate.h \
     src/display_p.h \
-    src/context_p.h
+    src/context_p.h \
+    src/contextgroup_p.h
 
 LIBS += \
     -llogger \

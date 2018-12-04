@@ -3,34 +3,26 @@
 
 #include <memory>
 
+#include "../utils/pimpl.h"
+#include "../utils/noncopyble.h"
+#include "../utils/enumclass.h"
 #include "renderer_global.h"
+#include "forwarddecl.h"
 
 namespace renderer {
 
-class Context;
-using ContextPtr = std::shared_ptr<Context>;
+ENUMCLASS(BufferUsage, int32_t,
+          StaticDraw, StaticRead, StaticCopy,
+          DynamicDraw, DynamicRead, DynamicCopy,
+          StreamDraw, StreamRead, StreamCopy)
 
-class Buffer;
-using BufferPtr = std::shared_ptr<Buffer>;
-
-enum class BufferUsage : int32_t {
-	StaticDraw = 0, StaticRead, StaticCopy,
-	DynamicDraw, DynamicRead, DynamicCopy,
-	StreamDraw, StreamRead, StreamCopy,
-	Count
-};
-template <typename T> constexpr BufferUsage castToBufferUsage(T value) { return static_cast<BufferUsage>(value); }
-template <typename T> constexpr T castFromBufferUsage(BufferUsage value) { return static_cast<T>(value); }
-
-enum class BufferAccess : int32_t {
-	ReadOnly = 0, WriteOnly, ReadWrite,
-	Count
-};
-template <typename T> constexpr BufferAccess castToBufferAccess(T value) { return static_cast<BufferAccess>(value); }
-template <typename T> constexpr T castFromBufferAccess(BufferAccess value) { return static_cast<T>(value); }
+ENUMCLASS(BufferAccess, int32_t,
+          ReadOnly, WriteOnly, ReadWrite)
 
 class BufferPrivate;
 class RENDERERSHARED_EXPORT Buffer : public std::enable_shared_from_this<Buffer> {
+    PIMPL(Buffer)
+
 public:
 	~Buffer();
 
@@ -46,7 +38,7 @@ private:
 	Buffer(ContextPtr context, BufferPtr sharedBuffer);
 	void init(BufferUsage usage, uint64_t size, const void* pData);
 
-	BufferPrivate *m;
+    BufferPrivate *m_;
 
 	friend class Context;
 	friend class ContextPrivate;

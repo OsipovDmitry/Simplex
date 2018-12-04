@@ -10,6 +10,9 @@ namespace renderer {
 class Context;
 using ContextPtr = std::shared_ptr<Context>;
 
+class ContextGroup;
+using ContextGroupPtr = std::shared_ptr<ContextGroup>;
+
 class Buffer;
 using BufferPtr = std::shared_ptr<Buffer>;
 
@@ -31,9 +34,11 @@ class GLESWidget : public QWidget
 {
 	Q_OBJECT
 public:
-	explicit GLESWidget(QWidget *parent = nullptr, renderer::ContextPtr sharedContext = nullptr);
+    explicit GLESWidget(QWidget *parent = nullptr, renderer::ContextGroupPtr shareGroup = nullptr);
 
-	renderer::ContextPtr rendererContext() const { return m_context; }
+    renderer::ContextPtr context() const;
+    void setContext(renderer::ContextPtr context);
+    void setProgram(renderer::ProgramPtr program);
 
 protected:
 	void paintEvent(QPaintEvent*);

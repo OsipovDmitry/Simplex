@@ -15,6 +15,10 @@ using WindowSurfacePtr = std::shared_ptr<WindowSurface>;
 
 class Context;
 using ContextPtr = std::shared_ptr<Context>;
+using ContextWPtr = std::weak_ptr<Context>;
+
+class ContextGroup;
+using ContextGroupPtr = std::shared_ptr<ContextGroup>;
 
 class Shader;
 using ShaderPtr = std::shared_ptr<Shader>;

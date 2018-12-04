@@ -2,7 +2,6 @@
 #define CONTEXTPRIVATE_H
 
 #include <memory>
-#include <vector>
 
 #include <EGL/egl.h>
 
@@ -20,7 +19,7 @@ class ContextPrivate {
 public:
 	Context *pPublicContext;
 	WindowSurfacePtr windowSurface;
-	ContextPtr sharedContext;
+    ContextGroupPtr shareGroup;
 	EGLContext context;
 
 	static std::weak_ptr<const Context> currentContext;
@@ -39,7 +38,7 @@ public:
 	void bindRenderbuffer(RenderbufferConstPtr renderbuffer);
 	void bindFramebuffer(FramebufferConstPtr frambuffer);
 
-	ContextPrivate(Context *pc, WindowSurfacePtr ws, ContextPtr sc);
+    ContextPrivate(Context *pc, WindowSurfacePtr ws, ContextGroupPtr sg);
 };
 
 }

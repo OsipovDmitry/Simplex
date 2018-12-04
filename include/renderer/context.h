@@ -26,7 +26,7 @@ public:
 	~Context();
 
 	WindowSurfacePtr windowSurface() const;
-	ContextPtr sharedContext() const;
+    ContextGroupPtr shareGroup() const;
 
 	ShaderPtr createShader(ShaderType type);
 	ShaderPtr createSharedShader(ShaderPtr shader);
@@ -60,11 +60,11 @@ public:
 	void setColorWriteMask(bool r, bool g, bool b, bool a);
 	void colorWriteMask(bool& r, bool& g, bool& b, bool& a) const;
 
-	static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr); // Can also create context without surface(windowSurface == nullptr)
-	static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 8, int32_t d = 24, int32_t s = 8, ContextPtr sharedContext = nullptr);
+    static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup = nullptr); // Can also create context without surface(windowSurface == nullptr)
+    static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 8, int32_t d = 24, int32_t s = 8, ContextGroupPtr shareGroup = nullptr);
 
 private:
-	Context(WindowSurfacePtr windowSurface, ContextPtr sharedContext = nullptr);
+    Context(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup = nullptr);
 	void init();
 
     ContextPrivate *m_;

@@ -22,35 +22,6 @@
 
 namespace {
 
-char vShaderStr[] =
-		"#version 300 es                          \n"
-		"layout(location = 0) in vec3 vPosition;  \n"
-		"layout(location = 1) in vec3 vColor;     \n"
-		"layout(location = 2) in vec2 vTexCoord;  \n"
-		"out vec3 color;                          \n"
-		"out vec2 texCoord;                       \n"
-		"void main()                              \n"
-		"{                                        \n"
-		"   gl_Position = vec4(vPosition, 1);  \n"
-		"   color = vColor;                       \n"
-		"   texCoord = vTexCoord;                 \n"
-		"}                                        \n";
-
-char fShaderStr[] =
-		"#version 300 es                              \n"
-		"precision mediump float;                     \n"
-		"uniform sampler2D tex;                       \n"
-		"in vec3 color;                               \n"
-		"in vec2 texCoord;                            \n"
-		"out vec4 fragColor;                          \n"
-		"layout(shared) uniform UniformBlock {        \n"
-		"	vec3 globalColor;                         \n"
-		"};                                           \n"
-		"void main()                                  \n"
-		"{                                            \n"
-        "   fragColor = vec4(globalColor, 1.0);       \n"
-		"}                                            \n";
-
 //const float vertices[] = { -0.5f,  0.5f,  1.0f, 0.0f, 0.0f,  0.0f, 0.0f,
 //						   -0.5f, -0.5f,  0.0f, 1.0f, 0.0f,  0.0f, 1.0f,
 //							0.5f, -0.5f,  0.0f, 0.0f, 1.0f,  1.0f, 1.0f,
@@ -61,7 +32,7 @@ unsigned int numIndices;
 
 }
 
-GLESWidget::GLESWidget(QWidget *parent, renderer::ContextPtr sharedContext) : QWidget(parent)
+GLESWidget::GLESWidget(QWidget *parent, renderer::ContextGroupPtr shareGroup) : QWidget(parent)
 {
 	QFile modelFile(":/res/monkey.fbx");
 	modelFile.open(QFile::ReadOnly);
@@ -98,30 +69,7 @@ GLESWidget::GLESWidget(QWidget *parent, renderer::ContextPtr sharedContext) : QW
 	setAttribute(Qt::WA_NoSystemBackground);
 	setAutoFillBackground(true);
 
-	m_context = renderer::Context::createContext(winId(), 8, 8, 8, 8, 24, 8, sharedContext);
-
-	std::string sLog;
-	auto vertexShader = m_context->createShader(renderer::ShaderType::Vertex);
-	vertexShader->setSourceCode(std::string(vShaderStr));
-	auto b = vertexShader->compile(&sLog);
-	if (!sLog.empty())
-		LOG_DEBUG(sLog);
-
-	auto fragShader = m_context->createShader(renderer::ShaderType::Fragment);
-	fragShader->setSourceCode(std::string(fShaderStr));
-	b = fragShader->compile(&sLog);
-	if (!sLog.empty())
-		LOG_DEBUG(sLog);
-
-	m_program = m_context->createProgram();
-	m_program->attachShader(vertexShader);
-	m_program->attachShader(fragShader);
-	b = m_program->link(&sLog);
-	if (!sLog.empty())
-		LOG_DEBUG(sLog);
-
-    m_program->setUnifromBlockBindingPoint(m_program->uniformBlockIndexByName("UniformBlock"), 0);
-	m_program->setUniform(m_program->uniformLocationByName("tex"), (int32_t)0);
+    m_context = renderer::Context::createContext(winId(), 8, 8, 8, 8, 24, 8, shareGroup);
 
 	glm::vec3 globalColor(0.6,0.5,0.3);
 	m_uniformBuffer = m_context->createBuffer(renderer::BufferUsage::StaticDraw, sizeof(glm::vec3), glm::value_ptr(globalColor));
@@ -148,7 +96,22 @@ GLESWidget::GLESWidget(QWidget *parent, renderer::ContextPtr sharedContext) : QW
 
 	m_framebuffer = m_context->createFramebuffer();
 	m_framebuffer->setViewport(0, 0, 512, 512);
-	m_framebuffer->attachBuffer(renderer::FramebufferAttachment::Color0, m_framebufferTexture);
+    m_framebuffer->attachBuffer(renderer::FramebufferAttachment::Color0, m_framebufferTexture);
+}
+
+renderer::ContextPtr GLESWidget::context() const
+{
+    return m_context;
+}
+
+void GLESWidget::setContext(renderer::ContextPtr context)
+{
+    m_context = context;
+}
+
+void GLESWidget::setProgram(renderer::ProgramPtr program)
+{
+    m_program = program;
 }
 
 void GLESWidget::paintEvent(QPaintEvent *pEvent)

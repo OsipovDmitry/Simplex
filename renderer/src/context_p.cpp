@@ -23,10 +23,10 @@ namespace renderer {
 
 std::weak_ptr<const Context> ContextPrivate::currentContext;
 
-ContextPrivate::ContextPrivate(Context* pc, WindowSurfacePtr ws, ContextPtr sc) :
+ContextPrivate::ContextPrivate(Context* pc, WindowSurfacePtr ws, ContextGroupPtr sg) :
 	pPublicContext(pc),
 	windowSurface(ws),
-	sharedContext(sc),
+    shareGroup(sg),
 	context(nullptr),
 	currentProgram(),
 	currentBuffers()
@@ -71,11 +71,11 @@ void ContextPrivate::bindBuffer(BufferConstPtr buffer, BufferTarget target, uint
 		case BufferTarget::Uniform: {
 			if (size == -1)
 				size = buffer->size() - offset;
-			CHECK_GL_ERROR(glBindBufferRange(toBufferGLTarget(target), bindingPoint, buffer ? *buffer->m->id : 0, offset, size), "Can not bind buffer");
+            CHECK_GL_ERROR(glBindBufferRange(toBufferGLTarget(target), bindingPoint, buffer ? *buffer->m()->id : 0, offset, size), "Can not bind buffer");
 			break;
 		}
 		default: {
-			CHECK_GL_ERROR(glBindBuffer(toBufferGLTarget(target), buffer ? *buffer->m->id : 0), "Can not bind buffer");
+            CHECK_GL_ERROR(glBindBuffer(toBufferGLTarget(target), buffer ? *buffer->m()->id : 0), "Can not bind buffer");
 			break;
 		}
 	}
