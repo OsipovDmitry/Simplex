@@ -1,21 +1,20 @@
 #ifndef RENDERBUFFERPRIVATE_H
 #define RENDERBUFFERPRIVATE_H
 
-#include "glutils.h"
+#include <GLES3/gl3.h>
+
+#include <renderer/forwarddecl.h>
 
 namespace renderer {
-
-class Context;
-using ContextPtr = std::shared_ptr<Context>;
 
 class RenderbufferPrivate {
 public:
 	ContextPtr context;
-	GLuintPtr id;
+    GLuint id;
 
-	RenderbufferPrivate(ContextPtr context_, GLuintPtr id_) :
+    RenderbufferPrivate(ContextPtr context_) :
 		context(context_),
-		id(id_)
+        id(0)
 	{}
 };
 

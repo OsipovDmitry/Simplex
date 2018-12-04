@@ -65,16 +65,9 @@ VertexArrayPtr Context::createSharedVertexArray(VertexArrayPtr vertexArray)
 	return pVertexArray;
 }
 
-RenderbufferPtr Context::createRenderbuffer(TextureInternalFormat internalFormat, uint32_t width, uint32_t height)
-{
-	auto pRenderbuffer = RenderbufferPtr(new Renderbuffer(shared_from_this()));
-	pRenderbuffer->init(internalFormat, width, height);
-	return pRenderbuffer;
-}
-
 FramebufferPtr Context::createFramebuffer()
 {
-	return FramebufferPtr(new Framebuffer(shared_from_this(), std::false_type()));
+    return FramebufferPtr(new Framebuffer(shared_from_this(), std::false_type()));
 }
 
 FramebufferPtr Context::mainFramebuffer()

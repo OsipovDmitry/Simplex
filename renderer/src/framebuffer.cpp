@@ -6,7 +6,7 @@
 #include <renderer/texture.h>
 
 #include "context_p.h"
-#include "renderbufferprivate.h"
+#include "renderbuffer_p.h"
 #include "framebufferprivate.h"
 #include "texture_p.h"
 
@@ -27,7 +27,7 @@ void Framebuffer::attachBuffer(FramebufferAttachment attachment, RenderbufferPtr
 {
     m->context->m()->bindThisContext();
     m->context->m()->bindFramebuffer(shared_from_this());
-	CHECK_GL_ERROR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, toFramebufferGLAttachment(attachment), GL_RENDERBUFFER, renderbuffer ? *renderbuffer->m->id : 0), "Can not attach renderbuffer");
+    CHECK_GL_ERROR(glFramebufferRenderbuffer(GL_FRAMEBUFFER, toFramebufferGLAttachment(attachment), GL_RENDERBUFFER, renderbuffer ? renderbuffer->m()->id : 0), "Can not attach renderbuffer");
 
 	m->renderbuffers[castFromFramebufferAttachment<size_t>(attachment)] = renderbuffer;
 	m->textures[castFromFramebufferAttachment<size_t>(attachment)].reset();

@@ -5,36 +5,32 @@
 #include <string>
 
 #include "renderer_global.h"
+#include "forwarddecl.h"
+#include "../utils/pimpl.h"
+#include "../utils/noncopyble.h"
+#include "../utils/customdeleter.h"
 
 namespace renderer {
 
-class Context;
-using ContextPtr = std::shared_ptr<Context>;
-
-class Renderbuffer;
-using RenderbufferPtr = std::shared_ptr<Renderbuffer>;
-
-enum class TextureInternalFormat : int32_t;
-
 class RenderbufferPrivate;
-class RENDERERSHARED_EXPORT Renderbuffer : public std::enable_shared_from_this<Renderbuffer> {
-public:
-	~Renderbuffer();
+class RENDERERSHARED_EXPORT Renderbuffer {
+    PIMPL(Renderbuffer)
+    NONCOPYBLE(Renderbuffer)
+    CUSTOMDELETER(Renderbuffer)
 
+public:
 	ContextPtr context() const;
 	TextureInternalFormat internalFormat() const;
 	uint32_t width();
 	uint32_t height();
 
+    static RenderbufferPtr create(ContextPtr context, TextureInternalFormat internalFormat, uint32_t width, uint32_t height);
+
 private:
-	Renderbuffer(ContextPtr context);
-	void init(TextureInternalFormat internalFormat, uint32_t width, uint32_t height);
+    Renderbuffer(ContextPtr context, TextureInternalFormat internalFormat, uint32_t width, uint32_t height);
+    ~Renderbuffer();
 
-	RenderbufferPrivate *m;
-
-	friend class Context;
-	friend class ContextPrivate;
-	friend class Framebuffer;
+    RenderbufferPrivate *m_;
 };
 
 }

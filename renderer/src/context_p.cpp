@@ -16,7 +16,7 @@
 #include "program_p.h"
 #include "vertexarrayprivate.h"
 #include "texture_p.h"
-#include "renderbufferprivate.h"
+#include "renderbuffer_p.h"
 #include "framebufferprivate.h"
 
 namespace renderer {
@@ -32,7 +32,7 @@ ContextPrivate::ContextPrivate(Context* pc, WindowSurfacePtr ws, ContextGroupPtr
     pCurrentBuffers(),
     currentVertexArray(),
     pCurrentTextures(),
-    currentRenderbuffer(),
+    pCurrentRenderbuffer(),
     currentFramebuffer()
 {}
 
@@ -127,13 +127,13 @@ void ContextPrivate::unbindTextureIfCurrent(const Texture *texture)
     }
 }
 
-void ContextPrivate::bindRenderbuffer(RenderbufferConstPtr renderbuffer)
+void ContextPrivate::bindRenderbuffer(const Renderbuffer *renderbuffer)
 {
-	if (currentRenderbuffer.lock() == renderbuffer)
+    if (pCurrentRenderbuffer == renderbuffer)
 		return;
 
-	CHECK_GL_ERROR(glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer ? *renderbuffer->m->id : 0), "Can not bind renderbuffer");
-	currentRenderbuffer = renderbuffer;
+    CHECK_GL_ERROR(glBindRenderbuffer(GL_RENDERBUFFER, renderbuffer ? renderbuffer->m()->id : 0), "Can not bind renderbuffer");
+    pCurrentRenderbuffer = renderbuffer;
 }
 
 void ContextPrivate::bindFramebuffer(FramebufferConstPtr frambuffer)

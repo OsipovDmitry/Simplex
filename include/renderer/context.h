@@ -33,7 +33,6 @@ public:
 	VertexArrayPtr createVertexArray();
 	VertexArrayPtr createSharedVertexArray(VertexArrayPtr vertexArray);
 
-	RenderbufferPtr createRenderbuffer(TextureInternalFormat internalFormat, uint32_t width, uint32_t height);
 	FramebufferPtr createFramebuffer();
 	FramebufferPtr mainFramebuffer();
 

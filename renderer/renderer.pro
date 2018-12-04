@@ -37,7 +37,6 @@ HEADERS += \
     ../include/renderer/framebuffer.h \
     src/vertexarrayprivate.h \
     src/glutils.h \
-    src/renderbufferprivate.h \
     src/framebufferprivate.h \
     src/display_p.h \
     src/context_p.h \
@@ -45,7 +44,8 @@ HEADERS += \
     src/buffer_p.h \
     src/shader_p.h \
     src/program_p.h \
-    src/texture_p.h
+    src/texture_p.h \
+    src/renderbuffer_p.h
 
 LIBS += \
     -llogger \
