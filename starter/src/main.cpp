@@ -49,19 +49,19 @@ int main(int argc, char **argv)
     w3.setWindowTitle("Window 3");
 
     std::string sLog;
-    auto vertexShader = w1.context()->createShader(renderer::ShaderType::Vertex);
+    auto vertexShader = renderer::Shader::create(w1.context(), renderer::ShaderType::Vertex);
     vertexShader->setSourceCode(std::string(vShaderStr));
     auto b = vertexShader->compile(&sLog);
     if (!sLog.empty())
         LOG_DEBUG(sLog);
 
-    auto fragShader = w1.context()->createShader(renderer::ShaderType::Fragment);
+    auto fragShader = renderer::Shader::create(w1.context(), renderer::ShaderType::Fragment);
     fragShader->setSourceCode(std::string(fShaderStr));
     b = fragShader->compile(&sLog);
     if (!sLog.empty())
         LOG_DEBUG(sLog);
 
-    auto program = w1.context()->createProgram();
+    auto program = renderer::Program::create(w1.context());
     program->attachShader(vertexShader);
     program->attachShader(fragShader);
     b = program->link(&sLog);

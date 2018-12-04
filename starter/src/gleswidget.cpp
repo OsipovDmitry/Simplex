@@ -72,10 +72,10 @@ GLESWidget::GLESWidget(QWidget *parent, renderer::ContextGroupPtr shareGroup) : 
     m_context = renderer::Context::createContext(winId(), 8, 8, 8, 8, 24, 8, shareGroup);
 
 	glm::vec3 globalColor(0.6,0.5,0.3);
-	m_uniformBuffer = m_context->createBuffer(renderer::BufferUsage::StaticDraw, sizeof(glm::vec3), glm::value_ptr(globalColor));
+    m_uniformBuffer = renderer::Buffer::create(m_context, renderer::BufferUsage::StaticDraw, sizeof(glm::vec3), glm::value_ptr(globalColor));
 	m_vertexArray = m_context->createVertexArray();
 	m_vertexArray->bindVertexBuffer(0,
-									m_context->createBuffer(renderer::BufferUsage::StaticDraw, numVertices*8*sizeof(float), vertices),
+                                    renderer::Buffer::create(m_context, renderer::BufferUsage::StaticDraw, numVertices*8*sizeof(float), vertices),
 									2, renderer::VertexArrayAttributePointerType::Type_32f, false, 8*sizeof(float), 0*sizeof(float));
 	m_vertexArray->bindVertexBuffer(1,
 									m_vertexArray->vertexBuffer(0),
@@ -83,7 +83,7 @@ GLESWidget::GLESWidget(QWidget *parent, renderer::ContextGroupPtr shareGroup) : 
 	m_vertexArray->bindVertexBuffer(2,
 									m_vertexArray->vertexBuffer(0),
 									2, renderer::VertexArrayAttributePointerType::Type_32f, false, 8*sizeof(float), 6*sizeof(float));
-	m_vertexArray->bindIndexBuffer(m_context->createBuffer(renderer::BufferUsage::StaticDraw, numIndices*sizeof(unsigned int), indices));
+    m_vertexArray->bindIndexBuffer(renderer::Buffer::create(m_context, renderer::BufferUsage::StaticDraw, numIndices*sizeof(unsigned int), indices));
 
 	auto img = QImage(":/res/side1.png").convertToFormat(QImage::Format_RGB888);
 	m_texture = m_context->createTexture(renderer::TextureType::Type_2D, renderer::TextureInternalFormat::RGB8uiNorm, renderer::TextureSize(img.width(), img.height()));

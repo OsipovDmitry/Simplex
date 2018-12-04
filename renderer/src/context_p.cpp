@@ -13,7 +13,7 @@
 #include "glutils.h"
 #include "context_p.h"
 #include "display_p.h"
-#include "programprivate.h"
+#include "program_p.h"
 #include "vertexarrayprivate.h"
 #include "textureprivate.h"
 #include "renderbufferprivate.h"
@@ -21,20 +21,20 @@
 
 namespace renderer {
 
-std::weak_ptr<const Context> ContextPrivate::currentContext;
+const Context *ContextPrivate::pCurrentContext;
 
 ContextPrivate::ContextPrivate(Context* pc, WindowSurfacePtr ws, ContextGroupPtr sg) :
 	pPublicContext(pc),
 	windowSurface(ws),
     shareGroup(sg),
 	context(nullptr),
-	currentProgram(),
-	currentBuffers()
+    pCurrentProgram(),
+    pCurrentBuffers()
 {}
 
 void ContextPrivate::bindThisContext() const
 {
-	if (currentContext.lock().get() == pPublicContext)
+    if (pCurrentContext == pPublicContext)
 		return;
 
     EGLSurface surface = windowSurface ? windowSurface->m()->surface : nullptr;
@@ -49,38 +49,38 @@ void ContextPrivate::bindThisContext() const
 		return;
 	}
 
-	currentContext = pPublicContext->shared_from_this();
+    pCurrentContext = pPublicContext;
 }
 
-void ContextPrivate::bindProgram(ProgramConstPtr program)
+void ContextPrivate::bindProgram(const Program *program)
 {
-	if (currentProgram.lock() == program)
+    if (pCurrentProgram == program)
 		return;
 
-	CHECK_GL_ERROR(glUseProgram(program ? *program->m->id : 0), "Can not use program");
-	currentProgram = program;
+    CHECK_GL_ERROR(glUseProgram(program ? program->m()->id : 0), "Can not use program");
+    pCurrentProgram = program;
 }
 
-void ContextPrivate::bindBuffer(BufferConstPtr buffer, BufferTarget target, uint32_t bindingPoint, int64_t size, uint64_t offset)
+void ContextPrivate::bindBuffer(const Buffer *buffer, BufferTarget target, uint32_t bindingPoint, int64_t size, uint64_t offset)
 {
-	auto cacheIndex = castFromBufferTarget<size_t>(target) + bindingPoint;
-	if (currentBuffers[cacheIndex].lock() == buffer)
+    auto cacheIndex = castFromBufferTarget(target) + bindingPoint;
+    if (pCurrentBuffers[cacheIndex] == buffer)
 		return;
 
 	switch (target) {
 		case BufferTarget::Uniform: {
 			if (size == -1)
 				size = buffer->size() - offset;
-            CHECK_GL_ERROR(glBindBufferRange(toBufferGLTarget(target), bindingPoint, buffer ? *buffer->m()->id : 0, offset, size), "Can not bind buffer");
+            CHECK_GL_ERROR(glBindBufferRange(toBufferGLTarget(target), bindingPoint, buffer ? buffer->m()->id : 0, offset, size), "Can not bind buffer");
 			break;
 		}
 		default: {
-            CHECK_GL_ERROR(glBindBuffer(toBufferGLTarget(target), buffer ? *buffer->m()->id : 0), "Can not bind buffer");
+            CHECK_GL_ERROR(glBindBuffer(toBufferGLTarget(target), buffer ? buffer->m()->id : 0), "Can not bind buffer");
 			break;
 		}
 	}
 
-	currentBuffers[cacheIndex] = buffer;
+    pCurrentBuffers[cacheIndex] = buffer;
 }
 
 void ContextPrivate::bindVertexArray(VertexArrayConstPtr vArray)

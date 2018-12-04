@@ -5,6 +5,7 @@
 
 #include "../utils/pimpl.h"
 #include "../utils/noncopyble.h"
+#include "../utils/customdeleter.h"
 #include "../utils/enumclass.h"
 #include "renderer_global.h"
 #include "forwarddecl.h"
@@ -20,12 +21,12 @@ ENUMCLASS(BufferAccess, int32_t,
           ReadOnly, WriteOnly, ReadWrite)
 
 class BufferPrivate;
-class RENDERERSHARED_EXPORT Buffer : public std::enable_shared_from_this<Buffer> {
+class RENDERERSHARED_EXPORT Buffer {
     PIMPL(Buffer)
+    NONCOPYBLE(Buffer)
+    CUSTOMDELETER(Buffer)
 
 public:
-	~Buffer();
-
 	ContextPtr context() const;
 	BufferUsage usage() const;
 	int64_t size() const;
@@ -33,15 +34,13 @@ public:
 	void *map(BufferAccess access, uint64_t offset = 0, int64_t length = -1);
 	bool unmap();
 
+    static BufferPtr create(ContextPtr context, BufferUsage usage, uint64_t size = 0, const void *pData = nullptr);
+
 private:
-	Buffer(ContextPtr context);
-	Buffer(ContextPtr context, BufferPtr sharedBuffer);
-	void init(BufferUsage usage, uint64_t size, const void* pData);
+    Buffer(ContextPtr context, BufferUsage usage, uint64_t size, const void* pData);
+    ~Buffer();
 
     BufferPrivate *m_;
-
-	friend class Context;
-	friend class ContextPrivate;
 };
 
 }

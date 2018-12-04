@@ -15,7 +15,6 @@ public:
     ~ContextGroupPrivate();
 
     void add(ContextPtr context);
-    void remove(ContextPtr context);
     bool find(ContextPtr context) const;
 
     std::list<ContextWPtr> contexts;

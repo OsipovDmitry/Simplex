@@ -1,10 +1,10 @@
 #include <algorithm>
 
-#include "bufferprivate.h"
+#include "buffer_p.h"
 
 namespace renderer {
 
-const std::array<GLenum, castFromBufferTarget<size_t>(BufferTarget::Count)> bufferTargetTable {
+const std::array<GLenum, castFromBufferTarget(BufferTarget::Count)> bufferTargetTable {
 	GL_ARRAY_BUFFER,
 	GL_ELEMENT_ARRAY_BUFFER,
 	GL_COPY_READ_BUFFER,
@@ -16,7 +16,7 @@ const std::array<GLenum, castFromBufferTarget<size_t>(BufferTarget::Count)> buff
 };
 
 GLenum toBufferGLTarget(BufferTarget val) {
-	return bufferTargetTable[castFromBufferTarget<size_t>(val)];
+    return bufferTargetTable[castFromBufferTarget(val)];
 }
 
 BufferTarget fromBufferGLTarget(GLenum val) {

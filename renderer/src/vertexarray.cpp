@@ -51,7 +51,7 @@ void VertexArray::bindIndexBuffer(BufferPtr buffer)
 
     m->context->m()->bindThisContext();
     m->context->m()->bindVertexArray(shared_from_this());
-    m->context->m()->bindBuffer(buffer, BufferTarget::Element);
+    m->context->m()->bindBuffer(buffer.get(), BufferTarget::Element);
     m->context->m()->bindVertexArray(nullptr);
 
 	m->indexBuffer = buffer;
@@ -76,7 +76,7 @@ void VertexArray::bindVertexBuffer(int32_t attribIndex, BufferPtr buffer, int32_
 
     m->context->m()->bindThisContext();
     m->context->m()->bindVertexArray(shared_from_this());
-    m->context->m()->bindBuffer(buffer, BufferTarget::Array);
+    m->context->m()->bindBuffer(buffer.get(), BufferTarget::Array);
 	CHECK_GL_ERROR(glVertexAttribPointer(attribIndex, numComponents, toVertexArrayAttributePointerGLType(dataType), normalize ? GL_TRUE : GL_FALSE, dataStride, (const void*)dataOffset), "Can not set vertex attribute pointer");
 	CHECK_GL_ERROR(glEnableVertexAttribArray(attribIndex), "Can not set vertex attribute pointer");
     m->context->m()->bindVertexArray(nullptr);
@@ -93,7 +93,7 @@ void VertexArray::bindVertexBufferInteger(int32_t attribIndex, BufferPtr buffer,
 
     m->context->m()->bindThisContext();
     m->context->m()->bindVertexArray(shared_from_this());
-    m->context->m()->bindBuffer(buffer, BufferTarget::Array);
+    m->context->m()->bindBuffer(buffer.get(), BufferTarget::Array);
 	CHECK_GL_ERROR(glVertexAttribIPointer(attribIndex, numComponents, toVertexArrayAttributePointerGLType(dataType), dataStride, (const void*)dataOffset), "Can not set vertex attribute integer pointer");
 	CHECK_GL_ERROR(glEnableVertexAttribArray(attribIndex), "Can not set vertex attribute integer pointer");
     m->context->m()->bindVertexArray(nullptr);
@@ -160,7 +160,7 @@ VertexArray::VertexArray(ContextPtr context) :
 void VertexArray::initShared(VertexArrayPtr sharedVertexArray)
 {
 	if (sharedVertexArray->m->indexBuffer)
-		bindIndexBuffer(m->context->createSharedBuffer(sharedVertexArray->m->indexBuffer));
+        bindIndexBuffer(sharedVertexArray->m->indexBuffer);
 
 	// TO DO: переписать без смены контекстов в каждой итерации цикла!!!!!!!!!!!!!1
 	for (auto iter = sharedVertexArray->m->vertexBuffers.cbegin(); iter != sharedVertexArray->m->vertexBuffers.cend(); ++iter) {
@@ -179,8 +179,8 @@ void VertexArray::initShared(VertexArrayPtr sharedVertexArray)
 		int32_t dataOffset = static_cast<int32_t>(reinterpret_cast<intptr_t>(dataPointer));
 
 		isDataInteger == GL_FALSE ?
-					bindVertexBuffer(iter->first, m->context->createSharedBuffer(iter->second), dataNumComponents, fromVertexArrayAttributePointerGLType(dataType), dataNormalized != GL_FALSE, dataStride, dataOffset) :
-					bindVertexBufferInteger(iter->first, m->context->createSharedBuffer(iter->second), dataNumComponents, fromVertexArrayAttributePointerGLType(dataType), dataStride, dataOffset);
+                    bindVertexBuffer(iter->first, iter->second, dataNumComponents, fromVertexArrayAttributePointerGLType(dataType), dataNormalized != GL_FALSE, dataStride, dataOffset) :
+                    bindVertexBufferInteger(iter->first, iter->second, dataNumComponents, fromVertexArrayAttributePointerGLType(dataType), dataStride, dataOffset);
 	}
 }
 

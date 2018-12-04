@@ -126,7 +126,7 @@ DisplayPixelFormatsList DisplayPixelFormat::pixelFormatsList()
     for (auto config: configs) {
         if (!config)
             continue;
-        DisplayPixelFormatPtr pixelFormatPtr(new DisplayPixelFormat());
+        DisplayPixelFormatPtr pixelFormatPtr(new DisplayPixelFormat(), DisplayPixelFormatDeleter());
         pixelFormatPtr->m_->config = config;
         pixelFormatsList.push_back(pixelFormatPtr);
     }
@@ -163,7 +163,7 @@ DisplayPixelFormatPtr DisplayPixelFormat::choosePixelFormat(int32_t r, int32_t g
         return nullptr;
     }
 
-    DisplayPixelFormatPtr pixelFormatPtr(new DisplayPixelFormat());
+    DisplayPixelFormatPtr pixelFormatPtr(new DisplayPixelFormat(), DisplayPixelFormatDeleter());
     pixelFormatPtr->m_->config = config;
     return pixelFormatPtr;
 }
@@ -220,7 +220,7 @@ WindowSurfacePtr WindowSurface::createWindowSurface(DisplayPixelFormatPtr pixelF
         return nullptr;
     }
 
-    WindowSurfacePtr windowSurface(new WindowSurface(pixelFormat));
+    WindowSurfacePtr windowSurface(new WindowSurface(pixelFormat), WindowSurfaceDeleter());
     windowSurface->m_->surface = surface;
 
     return windowSurface;

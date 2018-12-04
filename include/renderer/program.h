@@ -10,22 +10,17 @@
 #include <glm/mat3x3.hpp>
 #include <glm/mat4x4.hpp>
 
+#include "forwarddecl.h"
 #include "renderer_global.h"
+#include "../utils/enumclass.h"
+#include "../utils/pimpl.h"
+#include "../utils/noncopyble.h"
+#include "../utils/customdeleter.h"
 
 namespace renderer {
 
-class Context;
-using ContextPtr = std::shared_ptr<Context>;
-
-class Shader;
-using ShaderPtr = std::shared_ptr<Shader>;
-enum class ShaderType : int32_t;
-
-class Program;
-using ProgramPtr = std::shared_ptr<Program>;
-
-enum class ProgramUniformType : int32_t {
-	Float = 0, Float2, Float3, Float4,
+ENUMCLASS(ProgramUniformType, int32_t,
+    Float, Float2, Float3, Float4,
 	Int, Int2, Int3, Int4,
 	Uint, Uint2, Uint3, Uint4,
 	Boolean, Bool2, Bool3, Bool4,
@@ -33,22 +28,15 @@ enum class ProgramUniformType : int32_t {
 	Sampler2D, Sampler3D, SamplerCube, Sampler2DArray,
 	Sampler2DShadow, SamplerCubeShadow, Sampler2DArrayShadow,
 	IntSampler2D, IntSampler3D, IntSamplerCube, IntSampler2DArray,
-	UintSampler2D, UintSampler3D, UintSamplerCube, UintSampler2DArray,
-	Count
-};
-template <typename T> constexpr ProgramUniformType castToProgramUniformType(T value) { return static_cast<ProgramUniformType>(value); }
-template <typename T> constexpr T castFromProgramUniformType(ProgramUniformType value) { return static_cast<T>(value); }
+    UintSampler2D, UintSampler3D, UintSamplerCube, UintSampler2DArray
+)
 
-enum class ProgramAttributeType : int32_t {
+ENUMCLASS(ProgramAttributeType, int32_t,
 	Float = 0, Float2, Float3, Float4,
 	Int, Int2, Int3, Int4,
 	Uint, Uint2, Uint3, Uint4,
-	Mat2, Mat3, Mat4, Mat2x3, Mat2x4, Mat3x2, Mat3x4, Mat4x2, Mat4x3,
-	Count
-};
-template <typename T> constexpr ProgramAttributeType castToProgramAttributeType(T value) { return static_cast<ProgramAttributeType>(value); }
-template <typename T> constexpr T castFromProgramAttributeType(ProgramAttributeType value) { return static_cast<T>(value); }
-
+    Mat2, Mat3, Mat4, Mat2x3, Mat2x4, Mat3x2, Mat3x4, Mat4x2, Mat4x3
+)
 
 struct ProgramUniformInfo {
 	std::string name;
@@ -75,11 +63,13 @@ struct ProgramAttributeInfo {
 };
 
 class ProgramPrivate;
-class RENDERERSHARED_EXPORT Program : public std::enable_shared_from_this<Program> {
-public:
-	~Program();
+class RENDERERSHARED_EXPORT Program {
+    PIMPL(Program)
+    NONCOPYBLE(Program)
+    CUSTOMDELETER(Program)
 
-	void detachShader(ShaderType type);
+public:
+    void detachShader(ShaderType type);
 	void attachShader(ShaderPtr shader);
 
 	bool link(std::string *pLog = nullptr);
@@ -121,14 +111,13 @@ public:
 	void setUniform(const int32_t location, const glm::mat4x3& value, const bool transpose = false);
 	void setUnifromBlockBindingPoint(const uint32_t uniformBlockIndex, uint32_t bindingPoint);
 
+    static ProgramPtr create(ContextPtr context);
+
 private:
 	Program(ContextPtr context);
-	Program(ContextPtr context, ProgramPtr sharedProgram);
+    ~Program();
 
-	ProgramPrivate *m;
-
-	friend class Context;
-	friend class ContextPrivate;
+    ProgramPrivate *m_;
 };
 
 }

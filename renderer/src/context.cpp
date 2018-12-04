@@ -24,24 +24,23 @@ Context::Context(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup) :
 {
 }
 
+Context::~Context()
+{
+    auto context = m_->context;
+    delete m_;
+
+    if (eglDestroyContext(Display::instance().m()->display, context) == EGL_FALSE) {
+        auto error = eglGetError();
+        // ...
+        LOG_ERROR("Can not destroy context");
+        return;
+    }
+}
+
 void Context::init()
 {
     m_->bindThisContext();
 	CHECK_GL_ERROR(glPixelStorei(GL_UNPACK_ALIGNMENT, 1), "Can not initialize context");
-}
-
-Context::~Context()
-{
-    auto context = m_->context;
-    auto surface = m_->windowSurface;
-    delete m_;
-
-    if (eglDestroyContext(Display::instance().m()->display, context) == EGL_FALSE) {
-		auto error = eglGetError();
-		// ...
-		LOG_ERROR("Can not destroy context");
-		return;
-	}
 }
 
 WindowSurfacePtr Context::windowSurface() const
@@ -52,38 +51,6 @@ WindowSurfacePtr Context::windowSurface() const
 ContextGroupPtr Context::shareGroup() const
 {
     return m_->shareGroup;
-}
-
-ShaderPtr Context::createShader(ShaderType type)
-{
-	return ShaderPtr(new Shader(shared_from_this(), type));
-}
-
-ShaderPtr Context::createSharedShader(ShaderPtr shader)
-{
-	return ShaderPtr(new Shader(shared_from_this(), shader));
-}
-
-ProgramPtr Context::createProgram()
-{
-	return ProgramPtr(new Program(shared_from_this()));
-}
-
-ProgramPtr Context::createSharedProgram(ProgramPtr program)
-{
-	return ProgramPtr(new Program(shared_from_this(), program));
-}
-
-BufferPtr Context::createBuffer(BufferUsage usage, uint64_t size, const void* pData)
-{
-	auto pBuffer = BufferPtr(new Buffer(shared_from_this()));
-	pBuffer->init(usage, size, pData);
-	return pBuffer;
-}
-
-BufferPtr Context::createSharedBuffer(BufferPtr buffer)
-{
-	return BufferPtr(new Buffer(shared_from_this(), buffer));
 }
 
 VertexArrayPtr Context::createVertexArray()
@@ -190,7 +157,7 @@ void Context::colorWriteMask(bool& r, bool& g, bool& b, bool& a) const
 void Context::bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size, uint64_t offset)
 {
     m_->bindThisContext();
-    m_->bindBuffer(buffer, BufferTarget::Uniform, bindingPoint, size, offset);
+    m_->bindBuffer(buffer.get(), BufferTarget::Uniform, bindingPoint, size, offset);
 }
 
 void Context::bindTexture(TexturePtr texture, int32_t slot)
@@ -217,7 +184,7 @@ ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextGroupPt
 		return nullptr;
 	}
 
-    ContextPtr renderingContext(new Context(windowSurface, shareGroup ? shareGroup : ContextGroupPtr(new ContextGroup())));
+    ContextPtr renderingContext(new Context(windowSurface, shareGroup ? shareGroup : ContextGroupPtr(new ContextGroup())), ContextDeleter());
     renderingContext->m_->context = context;
     renderingContext->m_->shareGroup->m()->add(renderingContext);
 

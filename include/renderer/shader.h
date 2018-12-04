@@ -4,47 +4,40 @@
 #include <memory>
 #include <string>
 
+#include "../utils/enumclass.h"
+#include "../utils/pimpl.h"
+#include "../utils/noncopyble.h"
+#include "../utils/customdeleter.h"
+
 #include "renderer_global.h"
+#include "forwarddecl.h"
 
 namespace renderer {
 
-class Context;
-using ContextPtr = std::shared_ptr<Context>;
-
-class Shader;
-using ShaderPtr = std::shared_ptr<Shader>;
-
-enum class ShaderType : int32_t {
-	Vertex = 0,
-	Fragment,
-	Count
-};
-
-template <typename T> constexpr ShaderType castToShaderType(T value) { return static_cast<ShaderType>(value); }
-template <typename T> constexpr T castFromShaderType(ShaderType value) { return static_cast<T>(value); }
+ENUMCLASS(ShaderType, int32_t, Vertex, Fragment)
 
 class ShaderPrivate;
 class RENDERERSHARED_EXPORT Shader {
-public:
-	~Shader();
+    PIMPL(Shader)
+    NONCOPYBLE(Shader)
+    CUSTOMDELETER(Shader)
 
+public:
 	ContextPtr context() const;
+    ShaderType type() const;
 
 	void setSourceCode(const std::string& value);
 	std::string sourceCode() const;
 
 	bool compile(std::string *pLog = nullptr);
 
-	ShaderType type() const;
+    static ShaderPtr create(ContextPtr context, ShaderType type);
 
 private:
-	Shader(ContextPtr context, ShaderType type);
-	Shader(ContextPtr context, ShaderPtr sharedShader);
+    Shader(ContextPtr context, ShaderType type);
+    ~Shader();
 
-	ShaderPrivate *m;
-
-	friend class Context;
-	friend class Program;
+    ShaderPrivate *m_;
 };
 
 }

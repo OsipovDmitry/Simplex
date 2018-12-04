@@ -2,7 +2,9 @@
 #define CONTEXT_H
 
 #include "../utils/pimpl.h"
+#include "../utils/noncopyble.h"
 #include "../utils/enumclass.h"
+#include "../utils/customdeleter.h"
 #include "renderer_global.h"
 #include "forwarddecl.h"
 
@@ -21,21 +23,12 @@ ENUMCLASS(DepthTestFunc, int32_t,
 class ContextPrivate;
 class RENDERERSHARED_EXPORT Context : public std::enable_shared_from_this<Context> {
     PIMPL(Context)
+    NONCOPYBLE(Context)
+    CUSTOMDELETER(Context)
 
 public:
-	~Context();
-
 	WindowSurfacePtr windowSurface() const;
     ContextGroupPtr shareGroup() const;
-
-	ShaderPtr createShader(ShaderType type);
-	ShaderPtr createSharedShader(ShaderPtr shader);
-
-	ProgramPtr createProgram();
-	ProgramPtr createSharedProgram(ProgramPtr program);
-
-	BufferPtr createBuffer(BufferUsage usage, uint64_t size = 0, const void *pData = nullptr);
-	BufferPtr createSharedBuffer(BufferPtr buffer);
 
 	VertexArrayPtr createVertexArray();
 	VertexArrayPtr createSharedVertexArray(VertexArrayPtr vertexArray);
@@ -65,6 +58,7 @@ public:
 
 private:
     Context(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup = nullptr);
+    ~Context();
 	void init();
 
     ContextPrivate *m_;

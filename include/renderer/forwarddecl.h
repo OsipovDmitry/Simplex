@@ -30,7 +30,6 @@ using ProgramConstPtr = std::shared_ptr<const Program>;
 
 class Buffer;
 using BufferPtr = std::shared_ptr<Buffer>;
-using BufferConstPtr = std::shared_ptr<const Buffer>;
 enum class BufferUsage : int32_t;
 
 class VertexArray;

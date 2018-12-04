@@ -4,6 +4,7 @@
 #include "../utils/singletoon.h"
 #include "../utils/pimpl.h"
 #include "../utils/noncopyble.h"
+#include "../utils/customdeleter.h"
 #include "renderer_global.h"
 #include "forwarddecl.h"
 
@@ -32,10 +33,9 @@ class DisplayPixelFormatPrivate;
 class RENDERERSHARED_EXPORT DisplayPixelFormat {
     PIMPL(DisplayPixelFormat)
     NONCOPYBLE(DisplayPixelFormat)
+    CUSTOMDELETER(DisplayPixelFormat)
 
 public:
-    ~DisplayPixelFormat();
-
     int32_t redSize() const;
     int32_t greenSize() const;
     int32_t blueSize() const;
@@ -48,6 +48,7 @@ public:
 
 private:
     DisplayPixelFormat();
+    ~DisplayPixelFormat();
 
     DisplayPixelFormatPrivate *m_;
 };
@@ -56,10 +57,9 @@ class WindowSurfacePrivate;
 class RENDERERSHARED_EXPORT WindowSurface {
     PIMPL(WindowSurface)
     NONCOPYBLE(WindowSurface)
+    CUSTOMDELETER(WindowSurface)
 
 public:
-    ~WindowSurface();
-
     DisplayPixelFormatPtr pixelFormat() const;
     void swapBuffers();
 
@@ -67,6 +67,7 @@ public:
 
 private:
     WindowSurface(DisplayPixelFormatPtr pixelFormat);
+    ~WindowSurface();
 
     WindowSurfacePrivate *m_;
 };
