@@ -33,9 +33,6 @@ public:
 	VertexArrayPtr createVertexArray();
 	VertexArrayPtr createSharedVertexArray(VertexArrayPtr vertexArray);
 
-	TexturePtr createTexture(TextureType type, TextureInternalFormat internalFormat, const TextureSize& size, int32_t numLevels = -1); // если numLevels == -1, то автоматически рассчитывается trunc(log2(size)) + 1
-	TexturePtr createSharedTexture(TexturePtr texture);
-
 	RenderbufferPtr createRenderbuffer(TextureInternalFormat internalFormat, uint32_t width, uint32_t height);
 	FramebufferPtr createFramebuffer();
 	FramebufferPtr mainFramebuffer();

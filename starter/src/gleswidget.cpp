@@ -86,13 +86,13 @@ GLESWidget::GLESWidget(QWidget *parent, renderer::ContextGroupPtr shareGroup) : 
     m_vertexArray->bindIndexBuffer(renderer::Buffer::create(m_context, renderer::BufferUsage::StaticDraw, numIndices*sizeof(unsigned int), indices));
 
 	auto img = QImage(":/res/side1.png").convertToFormat(QImage::Format_RGB888);
-	m_texture = m_context->createTexture(renderer::TextureType::Type_2D, renderer::TextureInternalFormat::RGB8uiNorm, renderer::TextureSize(img.width(), img.height()));
+    m_texture = renderer::Texture::create(m_context, renderer::TextureType::Type_2D, renderer::TextureInternalFormat::RGB8uiNorm, renderer::TextureSize(img.width(), img.height()));
 	m_texture->setSubImage(types::ImageFormat::RGB, types::ImageType::Typy_8ui, img.bits());
 
     m_context->bindUniformBuffer(m_uniformBuffer, 0);
 	m_context->bindTexture(m_texture, 0);
 
-	m_framebufferTexture = m_context->createTexture(renderer::TextureType::Type_2D, renderer::TextureInternalFormat::RGBA8uiNorm, renderer::TextureSize(512, 512), 1);
+    m_framebufferTexture = renderer::Texture::create(m_context, renderer::TextureType::Type_2D, renderer::TextureInternalFormat::RGBA8uiNorm, renderer::TextureSize(512, 512), 1);
 
 	m_framebuffer = m_context->createFramebuffer();
 	m_framebuffer->setViewport(0, 0, 512, 512);

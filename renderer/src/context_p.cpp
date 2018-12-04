@@ -15,7 +15,7 @@
 #include "display_p.h"
 #include "program_p.h"
 #include "vertexarrayprivate.h"
-#include "textureprivate.h"
+#include "texture_p.h"
 #include "renderbufferprivate.h"
 #include "framebufferprivate.h"
 
@@ -29,7 +29,11 @@ ContextPrivate::ContextPrivate(Context* pc, WindowSurfacePtr ws, ContextGroupPtr
     shareGroup(sg),
 	context(nullptr),
     pCurrentProgram(),
-    pCurrentBuffers()
+    pCurrentBuffers(),
+    currentVertexArray(),
+    pCurrentTextures(),
+    currentRenderbuffer(),
+    currentFramebuffer()
 {}
 
 void ContextPrivate::bindThisContext() const
@@ -92,29 +96,35 @@ void ContextPrivate::bindVertexArray(VertexArrayConstPtr vArray)
 	currentVertexArray = vArray;
 }
 
-int32_t ContextPrivate::bindTexture(TextureConstPtr texture, int32_t slot)
+int32_t ContextPrivate::bindTexture(const Texture *texture, int32_t slot)
 {
 	if (slot == -1) {
-		auto iter = std::find_if(currentTextures.cbegin(), currentTextures.cend(), [](auto p) {
-			return p.lock() == nullptr;
-		});
-		if (iter == currentTextures.cend())
+        auto iter = std::find(pCurrentTextures.cbegin(), pCurrentTextures.cend(), nullptr);
+        if (iter == pCurrentTextures.cend())
 			slot = 0;
 		else
-			slot = iter - currentTextures.cbegin();
+            slot = std::distance(pCurrentTextures.cbegin(), iter);
 	}
 
-	if (currentTextures[slot].lock() == texture)
+    if (pCurrentTextures[slot] == texture)
 		return slot;
 
 	auto GLtarget = texture ? toTextureGLType(texture->type()) : GL_TEXTURE_2D;
-	auto GLid = texture ? *texture->m->id : 0;
+    auto GLid = texture ? texture->m()->id : 0;
 
 	CHECK_GL_ERROR(glActiveTexture(GL_TEXTURE0 + slot), "Can not bind texture", slot);
 	CHECK_GL_ERROR(glBindTexture(GLtarget, GLid), "Can not bind texture", slot);
-	currentTextures[slot] = texture;
+    pCurrentTextures[slot] = texture;
 
-	return slot;
+    return slot;
+}
+
+void ContextPrivate::unbindTextureIfCurrent(const Texture *texture)
+{
+    auto iter = std::find(pCurrentTextures.cbegin(), pCurrentTextures.cend(), texture);
+    if (iter != pCurrentTextures.cend()) {
+        bindTexture(nullptr, std::distance(pCurrentTextures.cbegin(), iter));
+    }
 }
 
 void ContextPrivate::bindRenderbuffer(RenderbufferConstPtr renderbuffer)

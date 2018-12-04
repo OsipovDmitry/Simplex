@@ -8,7 +8,7 @@
 #include "context_p.h"
 #include "renderbufferprivate.h"
 #include "framebufferprivate.h"
-#include "textureprivate.h"
+#include "texture_p.h"
 
 namespace renderer {
 
@@ -38,9 +38,9 @@ void Framebuffer::attachBuffer(FramebufferAttachment attachment, TexturePtr text
     m->context->m()->bindThisContext();
     m->context->m()->bindFramebuffer(shared_from_this());
 
-	switch (texture->m->type) {
+    switch (texture->m()->type) {
 		case TextureType::Type_2D: {
-			CHECK_GL_ERROR(glFramebufferTexture2D(GL_FRAMEBUFFER, toFramebufferGLAttachment(attachment), GL_TEXTURE_2D, texture ? *texture->m->id : 0, level), "Can not attach texture");
+            CHECK_GL_ERROR(glFramebufferTexture2D(GL_FRAMEBUFFER, toFramebufferGLAttachment(attachment), GL_TEXTURE_2D, texture ? texture->m()->id : 0, level), "Can not attach texture");
 			break;
 		}
 		case TextureType::Type_3D: {
@@ -66,7 +66,7 @@ void Framebuffer::attachBuffer(FramebufferAttachment attachment, TexturePtr text
     m->context->m()->bindThisContext();
     m->context->m()->bindFramebuffer(shared_from_this());
 
-	switch (texture->m->type) {
+    switch (texture->m()->type) {
 		case TextureType::Type_2D: {
 			LOG_ERROR("Framebuffer::attachBuffer(): Use overload method for 2d texture");
 			break;
@@ -80,7 +80,7 @@ void Framebuffer::attachBuffer(FramebufferAttachment attachment, TexturePtr text
 			break;
 		}
 		case TextureType::Type_CubeMap: {
-			CHECK_GL_ERROR(glFramebufferTexture2D(GL_FRAMEBUFFER, toFramebufferGLAttachment(attachment), toTextureCubemapGLSide(side), texture ? *texture->m->id : 0, level), "Can not attach texture");
+            CHECK_GL_ERROR(glFramebufferTexture2D(GL_FRAMEBUFFER, toFramebufferGLAttachment(attachment), toTextureCubemapGLSide(side), texture ? texture->m()->id : 0, level), "Can not attach texture");
 			break;
 		}
 	}
@@ -94,14 +94,14 @@ void Framebuffer::attachBuffer(FramebufferAttachment attachment, TexturePtr text
     m->context->m()->bindThisContext();
     m->context->m()->bindFramebuffer(shared_from_this());
 
-	switch (texture->m->type) {
+    switch (texture->m()->type) {
 		case TextureType::Type_2D: {
 			LOG_ERROR("Framebuffer::attachBuffer(): Use overload method for 2d texture");
 			break;
 		}
 		case TextureType::Type_3D:
 		case TextureType::Type_2DArray: {
-			CHECK_GL_ERROR(glFramebufferTextureLayer(GL_FRAMEBUFFER, toFramebufferGLAttachment(attachment), texture ? *texture->m->id : 0, level, layer), "Can not attach texture");
+            CHECK_GL_ERROR(glFramebufferTextureLayer(GL_FRAMEBUFFER, toFramebufferGLAttachment(attachment), texture ? texture->m()->id : 0, level, layer), "Can not attach texture");
 			break;
 		}
 		case TextureType::Type_CubeMap: {

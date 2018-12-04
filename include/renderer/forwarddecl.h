@@ -38,7 +38,6 @@ using VertexArrayConstPtr = std::shared_ptr<const VertexArray>;
 
 class Texture;
 using TexturePtr = std::shared_ptr<Texture>;
-using TextureConstPtr = std::shared_ptr<const Texture>;
 enum class TextureType : int32_t;
 enum class TextureInternalFormat : int32_t;
 struct TextureSize;

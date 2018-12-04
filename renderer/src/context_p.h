@@ -26,7 +26,7 @@ public:
     const Program *pCurrentProgram;
     std::array<const Buffer*, castFromBufferTarget(BufferTarget::Count)> pCurrentBuffers;
 	std::weak_ptr<const VertexArray> currentVertexArray;
-	std::array<std::weak_ptr<const Texture>, 32> currentTextures;
+    std::array<const Texture*, 32> pCurrentTextures;
 	std::weak_ptr<const Renderbuffer> currentRenderbuffer;
 	std::weak_ptr<const Framebuffer> currentFramebuffer;
 
@@ -34,8 +34,9 @@ public:
     void bindProgram(const Program *program);
     void bindBuffer(const Buffer *buffer, BufferTarget target, uint32_t bindingPoint = 0, int64_t size = -1, uint64_t offset = 0);
 	void bindVertexArray(VertexArrayConstPtr vArray);
-	int32_t bindTexture(TextureConstPtr texture, int32_t slot = -1); // если slot == -1, то пытаемся забиндить текстуру в любой свободный слот. Если свободного слота нет, то в 0.
-	void bindRenderbuffer(RenderbufferConstPtr renderbuffer);
+    int32_t bindTexture(const Texture *texture, int32_t slot = -1); // если slot == -1, то пытаемся забиндить текстуру в любой свободный слот. Если свободного слота нет, то в 0.
+    void unbindTextureIfCurrent(const Texture *texture);
+    void bindRenderbuffer(RenderbufferConstPtr renderbuffer);
 	void bindFramebuffer(FramebufferConstPtr frambuffer);
 
     ContextPrivate(Context *pc, WindowSurfacePtr ws, ContextGroupPtr sg);

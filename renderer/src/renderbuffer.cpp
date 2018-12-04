@@ -4,7 +4,7 @@
 
 #include "context_p.h"
 #include "renderbufferprivate.h"
-#include "textureprivate.h"
+#include "texture_p.h"
 
 namespace renderer {
 

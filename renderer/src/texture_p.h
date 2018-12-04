@@ -1,10 +1,10 @@
 #ifndef TEXTUREPRIVATE_H
 #define TEXTUREPRIVATE_H
 
+#include <GLES3/gl3.h>
+
 #include <renderer/texture.h>
 #include <types/image.h>
-
-#include "glutils.h"
 
 namespace renderer {
 
@@ -43,7 +43,7 @@ public:
 	TextureSize size;
 	TextureType type;
 	ContextPtr context;
-	GLuintPtr id;
+    GLuint id;
 	TextureInternalFormat internalFormat;
 	uint32_t numLevels;
 
@@ -51,7 +51,7 @@ public:
 		size(),
 		type(),
 		context(context_),
-		id(),
+        id(0),
 		internalFormat()
 	{}
 };

@@ -65,18 +65,6 @@ VertexArrayPtr Context::createSharedVertexArray(VertexArrayPtr vertexArray)
 	return pVertexArray;
 }
 
-TexturePtr Context::createTexture(TextureType type, TextureInternalFormat internalFormat, const TextureSize& size, int32_t numLevels)
-{
-	auto pTexture = TexturePtr(new Texture(shared_from_this()));
-	pTexture->init(type, numLevels, internalFormat, size);
-	return pTexture;
-}
-
-TexturePtr Context::createSharedTexture(TexturePtr texture)
-{
-	return TexturePtr(new Texture(shared_from_this(), texture));
-}
-
 RenderbufferPtr Context::createRenderbuffer(TextureInternalFormat internalFormat, uint32_t width, uint32_t height)
 {
 	auto pRenderbuffer = RenderbufferPtr(new Renderbuffer(shared_from_this()));
@@ -163,7 +151,7 @@ void Context::bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t
 void Context::bindTexture(TexturePtr texture, int32_t slot)
 {
     m_->bindThisContext();
-    m_->bindTexture(texture, slot);
+    m_->bindTexture(texture.get(), slot);
 }
 
 ContextPtr Context::createContext(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup)

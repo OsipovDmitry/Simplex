@@ -3,99 +3,76 @@
 
 #include <memory>
 
+#include "../utils/enumclass.h"
+#include"../utils/pimpl.h"
+#include"../utils/noncopyble.h"
+#include"../utils/customdeleter.h"
 #include "renderer_global.h"
+#include "forwarddecl.h"
 
 namespace types {
-
 enum class ImageFormat : int32_t;
 enum class ImageType : int32_t;
-
 }
 
 namespace renderer {
 
-class Context;
-using ContextPtr = std::shared_ptr<Context>;
-
-class Texture;
-using TexturePtr = std::shared_ptr<Texture>;
-
-enum class TextureType : int32_t {
+ENUMCLASS(TextureType, int32_t,
 	Type_2D,
 	Type_3D,
 	Type_2DArray,
-	Type_CubeMap,
-	Count
-};
-template <typename T> constexpr TextureType castToTextureType(T value) { return static_cast<TextureType>(value); }
-template <typename T> constexpr T castFromTextureType(TextureType value) { return static_cast<T>(value); }
+    Type_CubeMap
+)
 
-enum class TextureInternalFormat : int32_t {
-	Red8uiNorm, Red8iNorm, Red16f, Red32f, Red8uiUnnorm, Red8iUnnorm, Red16uiUnnorm, Red16iUnnorm, Red32uiUnnorm, Red32iUnnorm,
+
+ENUMCLASS(TextureInternalFormat, int32_t,
+    Red8uiNorm, Red8iNorm, Red16f, Red32f, Red8uiUnnorm, Red8iUnnorm, Red16uiUnnorm, Red16iUnnorm, Red32uiUnnorm, Red32iUnnorm,
 	RG8uiNorm, RG8iNorm, RG16f, RG32f, RG8uiUnnorm, RG8iUnnorm, RG16uiUnnorm, RG16iUnnorm, RG32uiUnnorm, RG32iUnnorm,
 	RGB8uiNorm, RGB8iNorm, RGB16f, RGB32f, RGB8uiUnnorm, RGB8iUnnorm, RGB16uiUnnorm, RGB16iUnnorm, RGB32uiUnnorm, RGB32iUnnorm,
 	RGBA8uiNorm, RGBA8iNorm, RGBA16f, RGBA32f, RGBA8uiUnnorm, RGBA8iUnnorm, RGBA16uiUnnorm, RGBA16iUnnorm, RGBA32uiUnnorm, RGBA32iUnnorm,
-	Depth16ui, Depth24ui, Depth32f, Depth24uiStencil8ui, //Depth32fStencil8ui,
+    Depth16ui, Depth24ui, Depth32f, Depth24uiStencil8ui //,Depth32fStencil8ui,
 	// RGB565uiNorm, R11fG11fB10f, RGB9E5, RGB5uiA1uiNorm, RGBA4uiNorm, RGB10A2uiNorm, RGB10A2uiUnnorm
-	Count,
-};
-template <typename T> constexpr TextureInternalFormat castToTextureInternalFormat(T value) { return static_cast<TextureInternalFormat>(value); }
-template <typename T> constexpr T castFromTextureInternalFormat(TextureInternalFormat value) { return static_cast<T>(value); }
+)
 
-enum class TextureCubemapSide : int32_t {
-	XNeg,
+ENUMCLASS(TextureCubemapSide, int32_t,
+    XNeg,
 	XPos,
 	YNeg,
 	YPos,
 	ZNeg,
-	ZPos,
-	Count
-};
-template <typename T> constexpr TextureCubemapSide castToTextureCubemapSide(T value) { return static_cast<TextureCubemapSide>(value); }
-template <typename T> constexpr T castFromTextureCubemapSide(TextureCubemapSide value) { return static_cast<T>(value); }
+    ZPos
+)
 
-enum class TextureMinificationFilter : int32_t {
+ENUMCLASS(TextureMinificationFilter, int32_t,
 	Nearest,
 	Linear,
 	NearestMipmapNearest,
 	NearestMipmapLinear,
 	LinearMipmapNearest,
-	LinearMipmapLinear,
-	Count
-};
-template <typename T> constexpr TextureMinificationFilter castToTextureMinificationFilter(T value) { return static_cast<TextureMinificationFilter>(value); }
-template <typename T> constexpr T castFromTextureMinificationFilter(TextureMinificationFilter value) { return static_cast<T>(value); }
+    LinearMipmapLinear
+)
 
-enum class TextureMagnificationFilter : int32_t {
+ENUMCLASS(TextureMagnificationFilter, int32_t,
 	Nearest,
-	Linear,
-	Count
-};
-template <typename T> constexpr TextureMagnificationFilter castToTextureMagnificationFilter(T value) { return static_cast<TextureMagnificationFilter>(value); }
-template <typename T> constexpr T castFromTextureMagnificationFilter(TextureMagnificationFilter value) { return static_cast<T>(value); }
+    Linear
+)
 
-enum class TextureWrapMode : int32_t {
+ENUMCLASS(TextureWrapMode, int32_t,
 	ClampToEdge,
 	Repeat,
-	MirroredRepeat,
-	Count
-};
-template <typename T> constexpr TextureWrapMode castToTextureWrapMode(T value) { return static_cast<TextureWrapMode>(value); }
-template <typename T> constexpr T castFromTextureWrapMode(TextureWrapMode value) { return static_cast<T>(value); }
+    MirroredRepeat
+)
 
-enum class TextureSwizzle : int32_t {
+ENUMCLASS(TextureSwizzle, int32_t,
 	Red,
 	Green,
 	Blue,
 	Alpha,
 	Zero,
-	One,
-	Count
-};
-template <typename T> constexpr TextureSwizzle castToTextureSwizzle(T value) { return static_cast<TextureSwizzle>(value); }
-template <typename T> constexpr T castFromTextureSwizzle(TextureSwizzle value) { return static_cast<T>(value); }
+    One
+)
 
-enum class TextureCompareFunc : int32_t {
+ENUMCLASS(TextureCompareFunc, int32_t,
 	LessEqual,
 	GreaterEqual,
 	Less,
@@ -103,11 +80,8 @@ enum class TextureCompareFunc : int32_t {
 	Equal,
 	NotEqual,
 	Newer,
-	Always_,
-	Count
-};
-template <typename T> constexpr TextureCompareFunc castToTextureCompareFunc(T value) { return static_cast<TextureCompareFunc>(value); }
-template <typename T> constexpr T castFromTextureCompareFunc(TextureCompareFunc value) { return static_cast<T>(value); }
+    Always_
+)
 
 struct TextureSize {
 	union { uint32_t width; uint32_t x; };
@@ -117,10 +91,12 @@ struct TextureSize {
 };
 
 class TexturePrivate;
-class RENDERERSHARED_EXPORT Texture : public std::enable_shared_from_this<Texture> {
-public:
-	~Texture();
+class RENDERERSHARED_EXPORT Texture {
+    PIMPL(Texture)
+    NONCOPYBLE(Texture)
+    CUSTOMDELETER(Texture)
 
+public:
 	ContextPtr context() const;
 	TextureType type() const;
 	TextureSize size() const;
@@ -151,16 +127,13 @@ public:
 	bool compareMode() const;
 	TextureCompareFunc compareFunc() const;
 
+    static TexturePtr create(ContextPtr context, TextureType type, TextureInternalFormat internalFormat, const TextureSize& size, int32_t numLevels = -1); // если numLevels == -1, то автоматически рассчитывается trunc(log2(size)) + 1
+
 private:
-	Texture(ContextPtr context);
-	Texture(ContextPtr context, TexturePtr sharedTexture);
-	void init(TextureType type, int32_t numLevels, TextureInternalFormat internalFormat, const TextureSize& size);
+    Texture(ContextPtr context, TextureType type, int32_t numLevels, TextureInternalFormat internalFormat, const TextureSize& size);
+    ~Texture();
 
-	TexturePrivate *m;
-
-	friend class Context;
-	friend class ContextPrivate;
-	friend class Framebuffer;
+    TexturePrivate *m_;
 };
 
 }
