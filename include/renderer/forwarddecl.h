@@ -40,6 +40,12 @@ class Texture;
 using TexturePtr = std::shared_ptr<Texture>;
 enum class TextureType : int32_t;
 enum class TextureInternalFormat : int32_t;
+enum class TextureCubemapSide : int32_t;
+enum class TextureMinificationFilter : int32_t;
+enum class TextureMagnificationFilter : int32_t;
+enum class TextureWrapMode : int32_t;
+enum class TextureSwizzle : int32_t;
+enum class TextureCompareFunc : int32_t;
 struct TextureSize;
 
 class Renderbuffer;
@@ -49,6 +55,9 @@ using RenderbufferConstPtr = std::shared_ptr<const Renderbuffer>;
 class Framebuffer;
 using FramebufferPtr = std::shared_ptr<Framebuffer>;
 using FramebufferConstPtr = std::shared_ptr<const Framebuffer>;
+enum class FramebufferAttachment : int32_t;
+enum class PrimitiveType : int32_t;
+enum class GeometryIndexType : int32_t;
 
 }
 

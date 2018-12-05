@@ -94,7 +94,7 @@ GLESWidget::GLESWidget(QWidget *parent, renderer::ContextGroupPtr shareGroup) : 
 
     m_framebufferTexture = renderer::Texture::create(m_context, renderer::TextureType::Type_2D, renderer::TextureInternalFormat::RGBA8uiNorm, renderer::TextureSize(512, 512), 1);
 
-	m_framebuffer = m_context->createFramebuffer();
+    m_framebuffer = renderer::Framebuffer::create(m_context);
 	m_framebuffer->setViewport(0, 0, 512, 512);
     m_framebuffer->attachBuffer(renderer::FramebufferAttachment::Color0, m_framebufferTexture);
 }
@@ -119,7 +119,7 @@ void GLESWidget::paintEvent(QPaintEvent *pEvent)
 	m_framebuffer->clearColorBuffer(0, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
 	m_framebuffer->renderIndexedGeometry(m_program, m_vertexArray, renderer::PrimitiveType::Triangles, numIndices, renderer::GeometryIndexType::Type_32ui);
 
-	auto pMainFramebuffer = m_context->mainFramebuffer();
+    auto pMainFramebuffer = renderer::Framebuffer::mainFramebuffer(m_context);
 	pMainFramebuffer->setViewport(0, 0, width(), height());
 	pMainFramebuffer->clearColorBuffer(0, glm::vec4(0.5f, 0.5f, 1.0f, 1.0f));
 	pMainFramebuffer->copyColorBuffer(glm::uvec4(10, 10, width()-10, height()-10), glm::uvec4(0, 0, 512, 512), m_framebuffer);

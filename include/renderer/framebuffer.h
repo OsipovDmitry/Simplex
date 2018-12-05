@@ -6,30 +6,16 @@
 #include <glm/vec4.hpp>
 
 #include "renderer_global.h"
+#include "forwarddecl.h"
+#include "../utils/pimpl.h"
+#include "../utils/noncopyble.h"
+#include "../utils/customdeleter.h"
+#include "../utils/enumclass.h"
 
 namespace renderer {
 
-class Context;
-using ContextPtr = std::shared_ptr<Context>;
-
-class Texture;
-using TexturePtr = std::shared_ptr<Texture>;
-enum class TextureCubemapSide : int32_t;
-
-class Program;
-using ProgramPtr = std::shared_ptr<Program>;
-
-class VertexArray;
-using VertexArrayPtr = std::shared_ptr<VertexArray>;
-
-class Renderbuffer;
-using RenderbufferPtr = std::shared_ptr<Renderbuffer>;
-
-class Framebuffer;
-using FramebufferPtr = std::shared_ptr<Framebuffer>;
-
-enum class FramebufferAttachment : int32_t {
-	Color0,
+ENUMCLASS(FramebufferAttachment, int32_t,
+    Color0,
 	Color1,
 	Color2,
 	Color3,
@@ -39,39 +25,32 @@ enum class FramebufferAttachment : int32_t {
 	Color7,
 	Depth,
 	Stencil,
-	DepthStencil,
-	Count,
-};
-template <typename T> constexpr FramebufferAttachment castToFramebufferAttachment(T value) { return static_cast<FramebufferAttachment>(value); }
-template <typename T> constexpr T castFromFramebufferAttachment(FramebufferAttachment value) { return static_cast<T>(value); }
+    DepthStencil
+)
 
-enum class PrimitiveType : int32_t {
+ENUMCLASS(PrimitiveType, int32_t,
 	Points,
 	LineStrip,
 	LineLoop,
 	Lines,
 	TriangleStrip,
 	TriangleFan,
-	Triangles,
-	Count
-};
-template <typename T> constexpr PrimitiveType castToPrimitiveType(T value) { return static_cast<PrimitiveType>(value); }
-template <typename T> constexpr T castFromPrimitiveType(PrimitiveType value) { return static_cast<T>(value); }
+    Triangles
+)
 
-enum class GeometryIndexType : int32_t {
+ENUMCLASS(GeometryIndexType, int32_t,
 	Type_8ui,
 	Type_16ui,
-	Type_32ui,
-	Count
-};
-template <typename T> constexpr GeometryIndexType castToGeometryIndexType(T value) { return static_cast<GeometryIndexType>(value); }
-template <typename T> constexpr T castFromGeometryIndexType(GeometryIndexType value) { return static_cast<T>(value); }
+    Type_32ui
+)
 
 class FramebufferPrivate;
-class RENDERERSHARED_EXPORT Framebuffer : public std::enable_shared_from_this<Framebuffer> {
-public:
-	~Framebuffer();
+class RENDERERSHARED_EXPORT Framebuffer {
+    PIMPL(Framebuffer)
+    NONCOPYBLE(Framebuffer)
+    CUSTOMDELETER(Framebuffer)
 
+public:
 	ContextPtr context() const;
 
 	void attachBuffer(FramebufferAttachment attachment, RenderbufferPtr renderbuffer);
@@ -96,14 +75,15 @@ public:
 	void renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, PrimitiveType primitiveType, uint32_t numIndices, GeometryIndexType indicesType, const void *pIndices);
 	void renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, PrimitiveType primitiveType, uint32_t numIndices, GeometryIndexType indicesType, uint32_t bufferOffset = 0);
 
+    static FramebufferPtr create(ContextPtr context);
+    static FramebufferPtr mainFramebuffer(ContextPtr context);
+
 private:
 	Framebuffer(ContextPtr context, std::false_type);
 	Framebuffer(ContextPtr context, std::true_type); // main framebuffer (id == 0)
+    ~Framebuffer();
 
-	FramebufferPrivate *m;
-
-	friend class Context;
-	friend class ContextPrivate;
+    FramebufferPrivate *m_;
 };
 
 }

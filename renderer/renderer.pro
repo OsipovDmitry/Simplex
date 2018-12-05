@@ -14,13 +14,13 @@ SOURCES += \
     src/texture.cpp \
     src/renderbuffer.cpp \
     src/framebuffer.cpp \
-    src/framebufferprivate.cpp \
     src/display.cpp \
     src/context_p.cpp \
     src/contextgroup_p.cpp \
     src/contextgroup.cpp \
     src/buffer_p.cpp \
-    src/texture_p.cpp
+    src/texture_p.cpp \
+    src/framebuffer_p.cpp
 
 HEADERS += \
     ../include/renderer/renderer_global.h \
@@ -37,7 +37,6 @@ HEADERS += \
     ../include/renderer/framebuffer.h \
     src/vertexarrayprivate.h \
     src/glutils.h \
-    src/framebufferprivate.h \
     src/display_p.h \
     src/context_p.h \
     src/contextgroup_p.h \
@@ -45,7 +44,8 @@ HEADERS += \
     src/shader_p.h \
     src/program_p.h \
     src/texture_p.h \
-    src/renderbuffer_p.h
+    src/renderbuffer_p.h \
+    src/framebuffer_p.h
 
 LIBS += \
     -llogger \

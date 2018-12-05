@@ -17,7 +17,7 @@
 #include "vertexarrayprivate.h"
 #include "texture_p.h"
 #include "renderbuffer_p.h"
-#include "framebufferprivate.h"
+#include "framebuffer_p.h"
 
 namespace renderer {
 
@@ -33,7 +33,7 @@ ContextPrivate::ContextPrivate(Context* pc, WindowSurfacePtr ws, ContextGroupPtr
     currentVertexArray(),
     pCurrentTextures(),
     pCurrentRenderbuffer(),
-    currentFramebuffer()
+    pCurrentFramebuffer()
 {}
 
 void ContextPrivate::bindThisContext() const
@@ -136,19 +136,20 @@ void ContextPrivate::bindRenderbuffer(const Renderbuffer *renderbuffer)
     pCurrentRenderbuffer = renderbuffer;
 }
 
-void ContextPrivate::bindFramebuffer(FramebufferConstPtr frambuffer)
+void ContextPrivate::bindFramebuffer(const Framebuffer *frambuffer)
 {
-	if (currentFramebuffer.lock() == frambuffer)
+    if (pCurrentFramebuffer == frambuffer)
 		return;
 
 	if (frambuffer) {
-		CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, *frambuffer->m->id), "Can not bind frambuffer");
-		CHECK_GL_ERROR(glViewport(frambuffer->m->viewport.x, frambuffer->m->viewport.y, frambuffer->m->viewport.z, frambuffer->m->viewport.w), "Can not bind frambuffer");
+        CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, frambuffer->m()->id), "Can not bind frambuffer");
+        const auto& vp = frambuffer->m()->viewport;
+        CHECK_GL_ERROR(glViewport(vp.x, vp.y, vp.z, vp.w), "Can not bind frambuffer");
 	}
 	else {
 		CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, 0), "Can not bind frambuffer");
 	}
-	currentFramebuffer = frambuffer;
+	pCurrentFramebuffer = frambuffer;
 }
 
 const std::array<GLenum, castFromDepthTestFunc(DepthTestFunc::Count)> depthTestFuncTable {

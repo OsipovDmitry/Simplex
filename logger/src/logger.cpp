@@ -13,7 +13,7 @@ public:
 
 Logger::~Logger()
 {
-	delete m;
+	delete m_;
 }
 
 void Logger::sendMessage(LogMessageType type, const std::string& msg)
@@ -22,7 +22,7 @@ void Logger::sendMessage(LogMessageType type, const std::string& msg)
 }
 
 Logger::Logger() :
-	m(new LoggerPrivate)
+	m_(new LoggerPrivate)
 {
 }
 

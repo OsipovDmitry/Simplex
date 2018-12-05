@@ -1,10 +1,10 @@
 #include <algorithm>
 
-#include "framebufferprivate.h"
+#include "framebuffer_p.h"
 
 namespace renderer {
 
-const std::array<GLenum, castFromFramebufferAttachment<size_t>(FramebufferAttachment::Count)> framebufferAttachmentTable {
+const std::array<GLenum, castFromFramebufferAttachment(FramebufferAttachment::Count)> framebufferAttachmentTable {
 	GL_COLOR_ATTACHMENT0,
 	GL_COLOR_ATTACHMENT1,
 	GL_COLOR_ATTACHMENT2,
@@ -20,7 +20,7 @@ const std::array<GLenum, castFromFramebufferAttachment<size_t>(FramebufferAttach
 
 GLenum toFramebufferGLAttachment(FramebufferAttachment val)
 {
-	return framebufferAttachmentTable[castFromFramebufferAttachment<size_t>(val)];
+    return framebufferAttachmentTable[castFromFramebufferAttachment(val)];
 }
 
 FramebufferAttachment fromFramebufferGLAttachment(GLenum val)
@@ -28,7 +28,7 @@ FramebufferAttachment fromFramebufferGLAttachment(GLenum val)
 	return castToFramebufferAttachment(std::find(framebufferAttachmentTable.cbegin(), framebufferAttachmentTable.cend(), val) - framebufferAttachmentTable.cbegin());
 }
 
-const std::array<GLenum, castFromPrimitiveType<size_t>(PrimitiveType::Count)> primitiveTypeTable {
+const std::array<GLenum, castFromPrimitiveType(PrimitiveType::Count)> primitiveTypeTable {
 	GL_POINTS,
 	GL_LINE_STRIP,
 	GL_LINE_LOOP,
@@ -40,7 +40,7 @@ const std::array<GLenum, castFromPrimitiveType<size_t>(PrimitiveType::Count)> pr
 
 GLenum toPrimitiveGLType(PrimitiveType val)
 {
-	return primitiveTypeTable[castFromPrimitiveType<size_t>(val)];
+    return primitiveTypeTable[castFromPrimitiveType(val)];
 }
 
 PrimitiveType fromPrimitiveGLType(GLenum val)
@@ -48,7 +48,7 @@ PrimitiveType fromPrimitiveGLType(GLenum val)
 	return castToPrimitiveType(std::find(primitiveTypeTable.cbegin(), primitiveTypeTable.cend(), val) - primitiveTypeTable.cbegin());
 }
 
-const std::array<GLenum, castFromGeometryIndexType<size_t>(GeometryIndexType::Count)> geometryIndexTypeTable {
+const std::array<GLenum, castFromGeometryIndexType(GeometryIndexType::Count)> geometryIndexTypeTable {
 	GL_UNSIGNED_BYTE,
 	GL_UNSIGNED_SHORT,
 	GL_UNSIGNED_INT
@@ -56,7 +56,7 @@ const std::array<GLenum, castFromGeometryIndexType<size_t>(GeometryIndexType::Co
 
 GLenum toGeometryIndexGLType(GeometryIndexType val)
 {
-	return geometryIndexTypeTable[castFromGeometryIndexType<size_t>(val)];
+    return geometryIndexTypeTable[castFromGeometryIndexType(val)];
 }
 
 GeometryIndexType fromGeometryIndexGLType(GLenum val)

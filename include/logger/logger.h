@@ -2,6 +2,8 @@
 #define LOGGER_H
 
 #include "../utils/singletoon.h"
+#include "../utils/pimpl.h"
+#include "../utils/noncopyble.h"
 
 #include "abstractlog.h"
 #include "logger_global.h"
@@ -18,15 +20,17 @@ class LoggerPrivate;
 class LOGGERSHARED_EXPORT Logger
 {
 	SINGLETON(Logger)
-public:
-	~Logger();
+    PIMPL(Logger)
+    NONCOPYBLE(Logger)
 
-	void sendMessage(LogMessageType type, const std::string& msg);
+public:
+    void sendMessage(LogMessageType type, const std::string& msg);
 
 private:
 	Logger();
+    ~Logger();
 
-	LoggerPrivate *m;
+    LoggerPrivate *m_;
 };
 
 }

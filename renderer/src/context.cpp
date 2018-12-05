@@ -19,30 +19,6 @@
 
 namespace renderer {
 
-Context::Context(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup) :
-    m_(new ContextPrivate(this, windowSurface, shareGroup))
-{
-}
-
-Context::~Context()
-{
-    auto context = m_->context;
-    delete m_;
-
-    if (eglDestroyContext(Display::instance().m()->display, context) == EGL_FALSE) {
-        auto error = eglGetError();
-        // ...
-        LOG_ERROR("Can not destroy context");
-        return;
-    }
-}
-
-void Context::init()
-{
-    m_->bindThisContext();
-	CHECK_GL_ERROR(glPixelStorei(GL_UNPACK_ALIGNMENT, 1), "Can not initialize context");
-}
-
 WindowSurfacePtr Context::windowSurface() const
 {
     return m_->windowSurface;
@@ -63,16 +39,6 @@ VertexArrayPtr Context::createSharedVertexArray(VertexArrayPtr vertexArray)
 	auto pVertexArray = VertexArrayPtr(new VertexArray(shared_from_this())); // конструируем абсолютно новый VAO, так как OpenGL не умеет расшаривать VAO
 	pVertexArray->initShared(vertexArray);
 	return pVertexArray;
-}
-
-FramebufferPtr Context::createFramebuffer()
-{
-    return FramebufferPtr(new Framebuffer(shared_from_this(), std::false_type()));
-}
-
-FramebufferPtr Context::mainFramebuffer()
-{
-	return FramebufferPtr(new Framebuffer(shared_from_this(), std::true_type()));
 }
 
 void Context::enableDepthTest(DepthTestFunc func)
@@ -185,6 +151,30 @@ ContextPtr Context::createContext(intptr_t windowId, int32_t r, int32_t g, int32
 		return nullptr;
 
     return createContext(surface, shareGroup);
+}
+
+Context::Context(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup) :
+    m_(new ContextPrivate(this, windowSurface, shareGroup))
+{
+}
+
+Context::~Context()
+{
+    auto context = m_->context;
+    delete m_;
+
+    if (eglDestroyContext(Display::instance().m()->display, context) == EGL_FALSE) {
+        auto error = eglGetError();
+        // ...
+        LOG_ERROR("Can not destroy context");
+        return;
+    }
+}
+
+void Context::init()
+{
+    m_->bindThisContext();
+    CHECK_GL_ERROR(glPixelStorei(GL_UNPACK_ALIGNMENT, 1), "Can not initialize context");
 }
 
 }

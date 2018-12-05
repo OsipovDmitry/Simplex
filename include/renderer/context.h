@@ -33,9 +33,6 @@ public:
 	VertexArrayPtr createVertexArray();
 	VertexArrayPtr createSharedVertexArray(VertexArrayPtr vertexArray);
 
-	FramebufferPtr createFramebuffer();
-	FramebufferPtr mainFramebuffer();
-
 	void bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size = -1, uint64_t offset = 0);
 	void bindTexture(TexturePtr texture, int32_t slot);
 
