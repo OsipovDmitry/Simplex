@@ -3,20 +3,16 @@
 
 #include <memory>
 
+#include "../utils/pimpl.h"
+#include "../utils/noncopyble.h"
+#include "../utils/customdeleter.h"
+#include "../utils/enumclass.h"
 #include "renderer_global.h"
+#include "forwarddecl.h"
 
 namespace renderer {
 
-class Context;
-using ContextPtr = std::shared_ptr<Context>;
-
-class Buffer;
-using BufferPtr = std::shared_ptr<Buffer>;
-
-class VertexArray;
-using VertexArrayPtr = std::shared_ptr<VertexArray>;
-
-enum class VertexArrayAttributePointerType : int32_t {
+ENUMCLASS(VertexArrayAttributePointerType, int32_t,
 	Type_8ui,
 	Type_8i,
 	Type_16ui,
@@ -24,18 +20,16 @@ enum class VertexArrayAttributePointerType : int32_t {
 	Type_32ui,
 	Type_32i,
 	Type_16f,
-	Type_32f,
-	Count
-};
-
-template <typename T> constexpr VertexArrayAttributePointerType castToVertexArrayAttributePointerType(T value) { return static_cast<VertexArrayAttributePointerType>(value); }
-template <typename T> constexpr T castFromVertexArrayAttributePointerType(VertexArrayAttributePointerType value) { return static_cast<T>(value); }
+    Type_32f
+)
 
 class VertexArrayPrivate;
-class RENDERERSHARED_EXPORT VertexArray : public std::enable_shared_from_this<VertexArray> {
-public:
-	~VertexArray();
+class RENDERERSHARED_EXPORT VertexArray {
+    PIMPL(VertexArray)
+    NONCOPYBLE(VertexArray)
+    CUSTOMDELETER(VertexArray)
 
+public:
 	ContextPtr context() const;
 
 	void bindIndexBuffer(BufferPtr buffer);
@@ -51,14 +45,14 @@ public:
 	BufferPtr indexBuffer() const;
 	BufferPtr vertexBuffer(int32_t attribIndex) const;
 
+
+    static VertexArrayPtr create(ContextPtr context);
 private:
 	VertexArray(ContextPtr context);
 	void initShared(VertexArrayPtr sharedVertexArray);
+    ~VertexArray();
 
-	VertexArrayPrivate *m;
-
-	friend class Context;
-	friend class ContextPrivate;
+    VertexArrayPrivate *m_;
 };
 
 }

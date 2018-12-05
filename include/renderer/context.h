@@ -21,7 +21,7 @@ ENUMCLASS(DepthTestFunc, int32_t,
           Always_)
 
 class ContextPrivate;
-class RENDERERSHARED_EXPORT Context : public std::enable_shared_from_this<Context> {
+class RENDERERSHARED_EXPORT Context {
     PIMPL(Context)
     NONCOPYBLE(Context)
     CUSTOMDELETER(Context)
@@ -29,9 +29,6 @@ class RENDERERSHARED_EXPORT Context : public std::enable_shared_from_this<Contex
 public:
 	WindowSurfacePtr windowSurface() const;
     ContextGroupPtr shareGroup() const;
-
-	VertexArrayPtr createVertexArray();
-	VertexArrayPtr createSharedVertexArray(VertexArrayPtr vertexArray);
 
 	void bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size = -1, uint64_t offset = 0);
 	void bindTexture(TexturePtr texture, int32_t slot);

@@ -29,18 +29,6 @@ ContextGroupPtr Context::shareGroup() const
     return m_->shareGroup;
 }
 
-VertexArrayPtr Context::createVertexArray()
-{
-	return VertexArrayPtr(new VertexArray(shared_from_this()));
-}
-
-VertexArrayPtr Context::createSharedVertexArray(VertexArrayPtr vertexArray)
-{
-	auto pVertexArray = VertexArrayPtr(new VertexArray(shared_from_this())); // конструируем абсолютно новый VAO, так как OpenGL не умеет расшаривать VAO
-	pVertexArray->initShared(vertexArray);
-	return pVertexArray;
-}
-
 void Context::enableDepthTest(DepthTestFunc func)
 {
     m_->bindThisContext();

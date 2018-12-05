@@ -199,7 +199,7 @@ void Framebuffer::renderIndexedGeometry(ProgramPtr program, VertexArrayPtr verte
     m_->context->m()->bindThisContext();
     m_->context->m()->bindFramebuffer(this);
     m_->context->m()->bindProgram(program.get());
-    m_->context->m()->bindVertexArray(vertexArray);
+    m_->context->m()->bindVertexArray(vertexArray.get());
 
 	CHECK_GL_ERROR(glDrawElements(toPrimitiveGLType(primitiveType), numIndices, toGeometryIndexGLType(indicesType), pIndices), "Can not render indexed geometry");
 }
@@ -209,7 +209,7 @@ void Framebuffer::renderIndexedGeometry(ProgramPtr program, VertexArrayPtr verte
     m_->context->m()->bindThisContext();
     m_->context->m()->bindFramebuffer(this);
     m_->context->m()->bindProgram(program.get());
-    m_->context->m()->bindVertexArray(vertexArray);
+    m_->context->m()->bindVertexArray(vertexArray.get());
 
     CHECK_GL_ERROR(glDrawElements(toPrimitiveGLType(primitiveType), numIndices, toGeometryIndexGLType(indicesType), (const void*)bufferOffset), "Can not render indexed geometry");
 }

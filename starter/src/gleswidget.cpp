@@ -73,7 +73,7 @@ GLESWidget::GLESWidget(QWidget *parent, renderer::ContextGroupPtr shareGroup) : 
 
 	glm::vec3 globalColor(0.6,0.5,0.3);
     m_uniformBuffer = renderer::Buffer::create(m_context, renderer::BufferUsage::StaticDraw, sizeof(glm::vec3), glm::value_ptr(globalColor));
-	m_vertexArray = m_context->createVertexArray();
+    m_vertexArray = renderer::VertexArray::create(m_context);
 	m_vertexArray->bindVertexBuffer(0,
                                     renderer::Buffer::create(m_context, renderer::BufferUsage::StaticDraw, numVertices*8*sizeof(float), vertices),
 									2, renderer::VertexArrayAttributePointerType::Type_32f, false, 8*sizeof(float), 0*sizeof(float));

@@ -14,7 +14,7 @@
 #include "context_p.h"
 #include "display_p.h"
 #include "program_p.h"
-#include "vertexarrayprivate.h"
+#include "vertexarray_p.h"
 #include "texture_p.h"
 #include "renderbuffer_p.h"
 #include "framebuffer_p.h"
@@ -30,7 +30,7 @@ ContextPrivate::ContextPrivate(Context* pc, WindowSurfacePtr ws, ContextGroupPtr
 	context(nullptr),
     pCurrentProgram(),
     pCurrentBuffers(),
-    currentVertexArray(),
+    pCurrentVertexArray(),
     pCurrentTextures(),
     pCurrentRenderbuffer(),
     pCurrentFramebuffer()
@@ -87,13 +87,13 @@ void ContextPrivate::bindBuffer(const Buffer *buffer, BufferTarget target, uint3
     pCurrentBuffers[cacheIndex] = buffer;
 }
 
-void ContextPrivate::bindVertexArray(VertexArrayConstPtr vArray)
+void ContextPrivate::bindVertexArray(const VertexArray *vArray)
 {
-	if (currentVertexArray.lock() == vArray)
+    if (pCurrentVertexArray == vArray)
 		return;
 
-	CHECK_GL_ERROR(glBindVertexArray(vArray ? *vArray->m->id : 0), "Can not bind VAO");
-	currentVertexArray = vArray;
+    CHECK_GL_ERROR(glBindVertexArray(vArray ? vArray->m()->id : 0), "Can not bind VAO");
+    pCurrentVertexArray = vArray;
 }
 
 int32_t ContextPrivate::bindTexture(const Texture *texture, int32_t slot)

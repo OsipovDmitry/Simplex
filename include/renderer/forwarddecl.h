@@ -26,7 +26,6 @@ enum class ShaderType : int32_t;
 
 class Program;
 using ProgramPtr = std::shared_ptr<Program>;
-using ProgramConstPtr = std::shared_ptr<const Program>;
 
 class Buffer;
 using BufferPtr = std::shared_ptr<Buffer>;
@@ -34,7 +33,7 @@ enum class BufferUsage : int32_t;
 
 class VertexArray;
 using VertexArrayPtr = std::shared_ptr<VertexArray>;
-using VertexArrayConstPtr = std::shared_ptr<const VertexArray>;
+enum class VertexArrayAttributePointerType : int32_t;
 
 class Texture;
 using TexturePtr = std::shared_ptr<Texture>;
@@ -50,11 +49,9 @@ struct TextureSize;
 
 class Renderbuffer;
 using RenderbufferPtr = std::shared_ptr<Renderbuffer>;
-using RenderbufferConstPtr = std::shared_ptr<const Renderbuffer>;
 
 class Framebuffer;
 using FramebufferPtr = std::shared_ptr<Framebuffer>;
-using FramebufferConstPtr = std::shared_ptr<const Framebuffer>;
 enum class FramebufferAttachment : int32_t;
 enum class PrimitiveType : int32_t;
 enum class GeometryIndexType : int32_t;
