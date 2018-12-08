@@ -2,33 +2,10 @@
 #define GLESWIDGET_H
 
 #include <memory>
+#include <glm/mat4x4.hpp>
+#include <renderer/forwarddecl.h>
 
 #include <QWidget>
-
-namespace renderer {
-
-class Context;
-using ContextPtr = std::shared_ptr<Context>;
-
-class ContextGroup;
-using ContextGroupPtr = std::shared_ptr<ContextGroup>;
-
-class Buffer;
-using BufferPtr = std::shared_ptr<Buffer>;
-
-class Program;
-using ProgramPtr = std::shared_ptr<Program>;
-
-class VertexArray;
-using VertexArrayPtr = std::shared_ptr<VertexArray>;
-
-class Texture;
-using TexturePtr = std::shared_ptr<Texture>;
-
-class Framebuffer;
-using FramebufferPtr = std::shared_ptr<Framebuffer>;
-
-}
 
 class GLESWidget : public QWidget
 {
@@ -39,6 +16,8 @@ public:
     renderer::ContextPtr context() const;
     void setContext(renderer::ContextPtr context);
     void setProgram(renderer::ProgramPtr program);
+    void setVAO(renderer::VertexArrayPtr vao, uint32_t numIndices);
+    void setTransform(const glm::mat4x4 mat);
 
 protected:
 	void paintEvent(QPaintEvent*);
@@ -52,6 +31,9 @@ private:
 
 	renderer::TexturePtr m_framebufferTexture;
 	renderer::FramebufferPtr m_framebuffer;
+
+    glm::mat4x4 m_transform;
+    uint32_t m_numIndices;
 };
 
 #endif // GLESWIDGET_H

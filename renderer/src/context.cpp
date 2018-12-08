@@ -33,7 +33,8 @@ void Context::enableDepthTest(DepthTestFunc func)
 {
     m_->bindThisContext();
 	CHECK_GL_ERROR(glEnable(GL_DEPTH_TEST), "Can not enable depth test");
-	CHECK_GL_ERROR(glDepthFunc(toDepthTestGLFunc(func)), "Can not enable depth test");
+    CHECK_GL_ERROR(glDepthFunc(toDepthTestGLFunc(func)), "Can not enable depth test");
+    glDepthRangef(0.0f, 1.0f);
 }
 
 void Context::disableDepthTest()

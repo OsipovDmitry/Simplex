@@ -148,7 +148,7 @@ void Framebuffer::clearDepthBuffer(float value)
 {
     m_->context->m()->bindThisContext();
     m_->context->m()->bindFramebuffer(this);
-	CHECK_GL_ERROR(glClearBufferfv(GL_DEPTH, 0, &value), "Can not clear framebuffer");
+    CHECK_GL_ERROR(glClearBufferfv(GL_DEPTH, 0, &value), "Can not clear framebuffer");
 }
 
 void Framebuffer::clearStencilBuffer(int32_t value)
