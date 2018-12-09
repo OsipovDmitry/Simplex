@@ -170,7 +170,54 @@ GLenum toDepthTestGLFunc(DepthTestFunc val)
 
 DepthTestFunc fromDepthTestGLFunc(GLenum val)
 {
-	return castToDepthTestFunc(std::find(depthTestFuncTable.cbegin(), depthTestFuncTable.cend(), val) - depthTestFuncTable.cbegin());
+    return castToDepthTestFunc(std::find(depthTestFuncTable.cbegin(), depthTestFuncTable.cend(), val) - depthTestFuncTable.cbegin());
+}
+
+
+const std::array<GLenum, castFromBlendFunc(BlendFunc::Count)> blendFuncTable {
+    GL_ZERO,
+    GL_ONE,
+    GL_SRC_COLOR,
+    GL_ONE_MINUS_SRC_COLOR,
+    GL_DST_COLOR,
+    GL_ONE_MINUS_DST_COLOR,
+    GL_SRC_ALPHA,
+    GL_ONE_MINUS_SRC_ALPHA,
+    GL_DST_ALPHA,
+    GL_ONE_MINUS_DST_ALPHA,
+    GL_CONSTANT_COLOR,
+    GL_ONE_MINUS_CONSTANT_COLOR,
+    GL_CONSTANT_ALPHA,
+    GL_ONE_MINUS_CONSTANT_ALPHA,
+    GL_SRC_ALPHA_SATURATE
+};
+
+GLenum toBlendGLFunc(BlendFunc val)
+{
+    return blendFuncTable[castFromBlendFunc(val)];
+}
+
+BlendFunc fromBlendGLFunc(GLenum val)
+{
+    return castToBlendFunc(std::find(blendFuncTable.cbegin(), blendFuncTable.cend(), val) - blendFuncTable.cbegin());
+}
+
+const std::array<GLenum, castFromBlendEquation(BlendEquation::Count)> blendEquationTable {
+    GL_FUNC_ADD,
+    GL_FUNC_SUBTRACT,
+    GL_FUNC_REVERSE_SUBTRACT,
+    GL_MIN,
+    GL_MAX
+};
+
+GLenum toBlendGLEquation(BlendEquation val)
+{
+    return blendEquationTable[castFromBlendEquation(val)];
+}
+
+BlendEquation fromBlendGLEquation(GLenum val)
+{
+    return castToBlendEquation(std::find(blendEquationTable.cbegin(), blendEquationTable.cend(), val) - blendEquationTable.cbegin());
 }
 
 }

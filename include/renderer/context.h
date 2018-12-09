@@ -20,6 +20,30 @@ ENUMCLASS(DepthTestFunc, int32_t,
           Newer,
           Always_)
 
+ENUMCLASS(BlendFunc, int32_t,
+          Zero,
+          One,
+          SourceColor,
+          OneMinusSourceColor,
+          DestColor,
+          OneMinusDestColor,
+          SourceAlpha,
+          OneMinusSourceAlpha,
+          DestAlpha,
+          OneMinusDestAlpha,
+          ConstColor,
+          OneMinusConstColor,
+          ConstAlpha,
+          OneMinusConstAlpha,
+          SourceAlphaSaturate)
+
+ENUMCLASS(BlendEquation, int32_t,
+          Add,
+          Subtract,
+          ReverseSubtract,
+          Min,
+          Max)
+
 class ContextPrivate;
 class RENDERERSHARED_EXPORT Context {
     PIMPL(Context)
@@ -37,11 +61,20 @@ public:
 	void disableDepthTest();
 	bool depthTestState() const;
 	DepthTestFunc depthTestFunc() const;
+
 	void setDepthWriteMask(bool state);
 	bool depthWriteMask() const;
 
 	void setColorWriteMask(bool r, bool g, bool b, bool a);
 	void colorWriteMask(bool& r, bool& g, bool& b, bool& a) const;
+
+    void enableBlend(BlendFunc srcRGB = BlendFunc::SourceAlpha,
+                     BlendFunc srcA = BlendFunc::SourceAlpha,
+                     BlendFunc dstRGB = BlendFunc::OneMinusSourceAlpha,
+                     BlendFunc dstA = BlendFunc::OneMinusSourceAlpha,
+                     BlendEquation eqRGB = BlendEquation::Add,
+                     BlendEquation eqA = BlendEquation::Add);
+    void disableBlend();
 
     static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup = nullptr); // Can also create context without surface(windowSurface == nullptr)
     static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 8, int32_t d = 24, int32_t s = 8, ContextGroupPtr shareGroup = nullptr);

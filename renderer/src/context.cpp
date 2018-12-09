@@ -34,7 +34,6 @@ void Context::enableDepthTest(DepthTestFunc func)
     m_->bindThisContext();
 	CHECK_GL_ERROR(glEnable(GL_DEPTH_TEST), "Can not enable depth test");
     CHECK_GL_ERROR(glDepthFunc(toDepthTestGLFunc(func)), "Can not enable depth test");
-    glDepthRangef(0.0f, 1.0f);
 }
 
 void Context::disableDepthTest()
@@ -87,7 +86,22 @@ void Context::colorWriteMask(bool& r, bool& g, bool& b, bool& a) const
 	r = value[0] != GL_FALSE;
 	g = value[1] != GL_FALSE;
 	b = value[2] != GL_FALSE;
-	a = value[3] != GL_FALSE;
+    a = value[3] != GL_FALSE;
+}
+
+void Context::enableBlend(BlendFunc srcRGB, BlendFunc srcA, BlendFunc dstRGB, BlendFunc dstA, BlendEquation eqRGB, BlendEquation eqA)
+{
+    m_->bindThisContext();
+    CHECK_GL_ERROR(glEnable(GL_BLEND), "Can not enable blending");
+    CHECK_GL_ERROR(glBlendFuncSeparate(toBlendGLFunc(srcRGB), toBlendGLFunc(dstRGB),
+                                       toBlendGLFunc(srcA), toBlendGLFunc(dstA)), "Can not enable blending");
+    CHECK_GL_ERROR(glBlendEquationSeparate(toBlendGLEquation(eqRGB), toBlendGLEquation(eqA)), "Can not enable blending");
+}
+
+void Context::disableBlend()
+{
+    m_->bindThisContext();
+    CHECK_GL_ERROR(glDisable(GL_BLEND), "Can not disable blending");
 }
 
 void Context::bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size, uint64_t offset)

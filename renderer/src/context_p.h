@@ -11,9 +11,14 @@
 
 namespace renderer {
 
-enum class DepthTestFunc : int32_t;
 GLenum toDepthTestGLFunc(DepthTestFunc val);
 DepthTestFunc fromDepthTestGLFunc(GLenum val);
+
+GLenum toBlendGLFunc(BlendFunc val);
+BlendFunc fromBlendGLFunc(GLenum val);
+
+GLenum toBlendGLEquation(BlendEquation val);
+BlendEquation fromBlendGLEquation(GLenum val);
 
 class ContextPrivate {
 public:

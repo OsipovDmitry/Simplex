@@ -16,6 +16,9 @@ using WindowSurfacePtr = std::shared_ptr<WindowSurface>;
 class Context;
 using ContextPtr = std::shared_ptr<Context>;
 using ContextWPtr = std::weak_ptr<Context>;
+enum class DepthTestFunc : int32_t;
+enum class BlendFunc : int32_t;
+enum class BlendEquation : int32_t;
 
 class ContextGroup;
 using ContextGroupPtr = std::shared_ptr<ContextGroup>;
