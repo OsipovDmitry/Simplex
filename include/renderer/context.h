@@ -1,6 +1,8 @@
 #ifndef CONTEXT_H
 #define CONTEXT_H
 
+#include <glm/vec4.hpp>
+
 #include "../utils/pimpl.h"
 #include "../utils/noncopyble.h"
 #include "../utils/enumclass.h"
@@ -75,6 +77,11 @@ public:
                      BlendEquation eqRGB = BlendEquation::Add,
                      BlendEquation eqA = BlendEquation::Add);
     void disableBlend();
+    void setBlendConstColor(const glm::vec4& value);
+    bool blendState() const;
+    void blenFunc(BlendFunc& srcRGB, BlendFunc& srcA, BlendFunc& dstRGB, BlendFunc& dstA) const;
+    void blendEquation(BlendEquation& eqRGB, BlendEquation& eqA) const;
+    glm::vec4 blendConstColor() const;
 
     static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup = nullptr); // Can also create context without surface(windowSurface == nullptr)
     static ContextPtr createContext(intptr_t windowId, int32_t r = 8, int32_t g = 8, int32_t b = 8, int32_t a = 8, int32_t d = 24, int32_t s = 8, ContextGroupPtr shareGroup = nullptr);

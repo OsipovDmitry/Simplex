@@ -104,6 +104,58 @@ void Context::disableBlend()
     CHECK_GL_ERROR(glDisable(GL_BLEND), "Can not disable blending");
 }
 
+void Context::setBlendConstColor(const glm::vec4 &value)
+{
+    m_->bindThisContext();
+    CHECK_GL_ERROR(glBlendColor(value.r, value.g, value.b, value.a), "Can not set blend const color");
+}
+
+bool Context::blendState() const
+{
+    m_->bindThisContext();
+    GLboolean value;
+    CHECK_GL_ERROR(glGetBooleanv(GL_BLEND, &value), "Can not get blend state", false);
+    return value != GL_FALSE;
+}
+
+void Context::blenFunc(BlendFunc &srcRGB, BlendFunc &srcA, BlendFunc &dstRGB, BlendFunc &dstA) const
+{
+    m_->bindThisContext();
+    GLint value;
+
+    CHECK_GL_ERROR(glGetIntegerv(GL_BLEND_SRC_RGB, &value), "Can not get blend func");
+    srcRGB = fromBlendGLFunc(value);
+
+    CHECK_GL_ERROR(glGetIntegerv(GL_BLEND_SRC_ALPHA, &value), "Can not get blend func");
+    srcA = fromBlendGLFunc(value);
+
+    CHECK_GL_ERROR(glGetIntegerv(GL_BLEND_DST_RGB, &value), "Can not get blend func");
+    dstRGB = fromBlendGLFunc(value);
+
+    CHECK_GL_ERROR(glGetIntegerv(GL_BLEND_DST_ALPHA, &value), "Can not get blend func");
+    dstA = fromBlendGLFunc(value);
+}
+
+void Context::blendEquation(BlendEquation &eqRGB, BlendEquation &eqA) const
+{
+    m_->bindThisContext();
+    GLint value;
+
+    CHECK_GL_ERROR(glGetIntegerv(GL_BLEND_EQUATION_RGB, &value), "Can not get blend equation");
+    eqRGB = fromBlendGLEquation(value);
+
+    CHECK_GL_ERROR(glGetIntegerv(GL_BLEND_EQUATION_ALPHA, &value), "Can not get blend equation");
+    eqA = fromBlendGLEquation(value);
+}
+
+glm::vec4 Context::blendConstColor() const
+{
+    m_->bindThisContext();
+    GLfloat value[4];
+    CHECK_GL_ERROR(glGetFloatv(GL_BLEND_COLOR, value), "Can not get blend const color", glm::vec4());
+    return glm::vec4(value[0], value[1], value[2], value[3]);
+}
+
 void Context::bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size, uint64_t offset)
 {
     m_->bindThisContext();
