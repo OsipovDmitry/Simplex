@@ -39,21 +39,24 @@ ContextPrivate::ContextPrivate(Context* pc, WindowSurfacePtr ws, ContextGroupPtr
 void ContextPrivate::bindThisContext() const
 {
     if (pCurrentContext == pPublicContext)
-		return;
+        return;
 
     EGLSurface surface = windowSurface ? windowSurface->m()->surface : nullptr;
 
     if (eglMakeCurrent(Display::instance().m()->display,
-					   surface,
-					   surface,
-					   context) == EGL_FALSE) {
-		auto error = eglGetError();
-		// ...
-		LOG_ERROR("Can not make context current");
-		return;
-	}
+                       surface,
+                       surface,
+                       context) == EGL_FALSE) {
+        auto error = eglGetError();
+        // ...
+        LOG_ERROR("Can not make context current");
+        return;
+    }
 
     pCurrentContext = pPublicContext;
+
+    static int idx = 0;
+    LOG_DEBUG(std::to_string(++idx));
 }
 
 void ContextPrivate::bindProgram(const Program *program)
@@ -90,7 +93,7 @@ void ContextPrivate::bindBuffer(const Buffer *buffer, BufferTarget target, uint3
 void ContextPrivate::bindVertexArray(const VertexArray *vArray)
 {
     if (pCurrentVertexArray == vArray)
-		return;
+        return;
 
     CHECK_GL_ERROR(glBindVertexArray(vArray ? vArray->m()->id : 0), "Can not bind VAO");
     pCurrentVertexArray = vArray;
@@ -139,7 +142,7 @@ void ContextPrivate::bindRenderbuffer(const Renderbuffer *renderbuffer)
 void ContextPrivate::bindFramebuffer(const Framebuffer *frambuffer)
 {
     if (pCurrentFramebuffer == frambuffer)
-		return;
+        return;
 
 	if (frambuffer) {
         CHECK_GL_ERROR(glBindFramebuffer(GL_FRAMEBUFFER, frambuffer->m()->id), "Can not bind frambuffer");

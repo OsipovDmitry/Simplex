@@ -39,10 +39,10 @@ ContextPtr VertexArray::context() const
 
 void VertexArray::bindIndexBuffer(BufferPtr buffer)
 {
-//	if (m_->context != buffer->context()) {
-//		LOG_CRITICAL("VAO and IBO are in different contexts");
-//		return;
-//	}
+    if (m_->context->shareGroup() != buffer->context()->shareGroup()) {
+        LOG_ERROR("VAO and IBO are in different contexts");
+        return;
+    }
 
     m_->context->m()->bindThisContext();
     m_->context->m()->bindVertexArray(this);
@@ -64,10 +64,10 @@ void VertexArray::unbindIndexBuffer()
 
 void VertexArray::bindVertexBuffer(int32_t attribIndex, BufferPtr buffer, int32_t numComponents, VertexArrayAttributePointerType dataType, bool normalize, int32_t dataStride, int32_t dataOffset)
 {
-//	if (m_->context != buffer->context()) {
-//		LOG_CRITICAL("VAO and VBO are in different contexts");
-//		return;
-//	}
+    if (m_->context->shareGroup() != buffer->context()->shareGroup()) {
+        LOG_ERROR("VAO and IBO are in different contexts");
+        return;
+    }
 
     m_->context->m()->bindThisContext();
     m_->context->m()->bindVertexArray(this);
@@ -81,10 +81,10 @@ void VertexArray::bindVertexBuffer(int32_t attribIndex, BufferPtr buffer, int32_
 
 void VertexArray::bindVertexBufferInteger(int32_t attribIndex, BufferPtr buffer, int32_t numComponents, VertexArrayAttributePointerType dataType, int32_t dataStride, int32_t dataOffset)
 {
-//	if (m_->context != buffer->context()) {
-//		LOG_CRITICAL("VAO and VBO are in different contexts");
-//		return;
-//	}
+    if (m_->context->shareGroup() != buffer->context()->shareGroup()) {
+        LOG_ERROR("VAO and IBO are in different contexts");
+        return;
+    }
 
     m_->context->m()->bindThisContext();
     m_->context->m()->bindVertexArray(this);

@@ -224,7 +224,6 @@ FramebufferPtr Framebuffer::mainFramebuffer(ContextPtr context)
     return FramebufferPtr(new Framebuffer(context, std::true_type()), FramebufferDeleter());
 }
 
-
 Framebuffer::Framebuffer(ContextPtr context, std::false_type) :
     m_(new FramebufferPrivate(context))
 {

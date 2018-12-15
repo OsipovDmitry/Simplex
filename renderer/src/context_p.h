@@ -35,7 +35,7 @@ public:
     const Renderbuffer *pCurrentRenderbuffer;
     const Framebuffer *pCurrentFramebuffer;
 
-	void bindThisContext() const;
+    void bindThisContext() const;
     void bindProgram(const Program *program);
     void bindBuffer(const Buffer *buffer, BufferTarget target, uint32_t bindingPoint = 0, int64_t size = -1, uint64_t offset = 0);
     void bindVertexArray(const VertexArray *vArray);

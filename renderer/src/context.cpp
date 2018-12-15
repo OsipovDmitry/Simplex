@@ -215,6 +215,9 @@ Context::Context(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup) :
 
 Context::~Context()
 {
+    if (ContextPrivate::pCurrentContext == this)
+        ContextPrivate::pCurrentContext = nullptr;
+
     auto context = m_->context;
     delete m_;
 

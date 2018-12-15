@@ -65,14 +65,15 @@ void Program::detachShader(ShaderType type)
 
 void Program::attachShader(ShaderPtr shader)
 {
-    if (m_->context != shader->context()) {
-		LOG_CRITICAL("Program and shader are in different contexts");
-		return;
-	}
+    if (m_->context->shareGroup() != shader->context()->shareGroup())
+    {
+        LOG_ERROR("Program and shader are in different contexts");
+        return;
+    }
 
-    m_->context->m()->bindThisContext();
-	auto type = shader->type();
+    auto type = shader->type();
 	detachShader(type);
+    m_->context->m()->bindThisContext();
     CHECK_GL_ERROR(glAttachShader(m_->id, shader->m()->id), "Can not attach shader");
     m_->shaders[castFromShaderType(type)] = shader;
 }
@@ -327,7 +328,7 @@ void Program::setUniform(const int32_t location, const glm::vec3& value)
 
 void Program::setUniform(const int32_t location, const glm::ivec3& value)
 {
-    m_->context->m()->bindThisContext();;
+    m_->context->m()->bindThisContext();
     m_->context->m()->bindProgram(this);
 	CHECK_GL_ERROR(glUniform3iv((GLint)location, 1, glm::value_ptr(value)), "Can not set uniform");
 }
