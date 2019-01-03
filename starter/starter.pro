@@ -9,6 +9,7 @@ SOURCES += \
 LIBS += \
 	-llogger \
 	-lrenderer \
+    -lscenegraph \
 	-lassimp
 
 HEADERS += \

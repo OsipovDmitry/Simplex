@@ -1,5 +1,5 @@
-#ifndef FORWARDDECL_H
-#define FORWARDDECL_H
+#ifndef RENDERERFORWARDDECL_H
+#define RENDERERFORWARDDECL_H
 
 #include <memory>
 #include <vector>
@@ -62,4 +62,4 @@ enum class GeometryIndexType : int32_t;
 }
 
 
-#endif // FORWARDDECL_H
+#endif // RENDERERFORWARDDECL_H

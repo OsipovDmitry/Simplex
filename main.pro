@@ -2,6 +2,7 @@ TEMPLATE = subdirs
 
 SUBDIRS += \
 	logger \
-	renderer \
-	starter
+    renderer \
+    scenegraph \
+    starter
 

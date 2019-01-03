@@ -1,0 +1,102 @@
+#include <algorithm>
+
+#include <logger/logger.h>
+
+#include <scenegraph/node.h>
+#include <scenegraph/scene.h>
+#include <scenegraph/abstractsceneoptimizer.h>
+
+#include "scene_p.h"
+#include "node_p.h"
+
+namespace scenegraph
+{
+
+ScenePtr Node::scene() const
+{
+    return m_->scene.lock();
+}
+
+NodePtr Node::parent() const
+{
+    return m_->parent.lock();
+}
+
+const NodeList Node::children() const
+{
+    return m_->children;
+}
+
+void Node::detach(NodePtr node)
+{
+    if (node->m_->parent.lock() != shared_from_this())
+    {
+        LOG_ERROR("Can not detach node");
+        return;
+    }
+
+    auto iter = std::find(m_->children.begin(), m_->children.end(), node);
+    if (iter != m_->children.end())
+    {
+        static_cast<ScenePrivate*>(m_->scene.lock()->m())->optimizer->nodeDetached(node.get());
+        m_->children.erase(iter);
+        node->m()->parent.reset();
+    }
+}
+
+void Node::attach(NodePtr node)
+{
+    if (node->m_->scene.lock() != m_->scene.lock())
+    {
+        LOG_ERROR("Can not attach node");
+        return;
+    }
+
+    NodePtr parent = node->parent();
+
+    if (parent.get() == this)
+        return;
+
+    if (parent)
+        parent->detach(node);
+
+    m_->children.push_back(node);
+    node->m_->parent = shared_from_this();
+    static_cast<ScenePrivate*>(m_->scene.lock()->m())->optimizer->nodeAttached(node.get());
+}
+
+NodePtr Node::create(ScenePtr scene)
+{
+    return NodePtr(new Node(scene), NodeDeleter());;
+}
+
+Node::Node(NodePrivate *p) :
+    m_(p)
+{
+}
+
+Node::Node(ScenePtr scene) :
+    m_(new NodePrivate(scene))
+{
+    static_cast<ScenePrivate*>(m_->scene.lock()->m())->optimizer->nodeCreated(this);
+}
+
+Node::~Node()
+{
+    if (m_->scene.expired() == false)
+    {
+        auto optimizer = static_cast<ScenePrivate*>(m_->scene.lock()->m())->optimizer;
+
+        for (auto child: m_->children)
+        {
+            optimizer->nodeDetached(child.get());
+            child->m_->parent.reset();
+        }
+
+        optimizer->nodeDestroyed(this);
+    }
+
+    delete m_;
+}
+
+}

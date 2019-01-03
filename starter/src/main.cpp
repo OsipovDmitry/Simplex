@@ -16,6 +16,11 @@
 #include <renderer/buffer.h>
 #include <renderer/framebuffer.h>
 
+#include <scenegraph/scene.h>
+#include <scenegraph/node.h>
+#include <scenegraph/abstractsceneoptimizer.h>
+#include <scenegraph/forwarddecl.h>
+
 #include "gleswidget.h"
 
 char vShaderStr[] =
@@ -51,6 +56,20 @@ char fShaderStr[] =
 int main(int argc, char **argv)
 {
     QApplication app(argc, argv);
+
+    {
+        auto scene = scenegraph::Scene::create(scenegraph::AbstractSceneOptimizerPtr(new scenegraph::AbstractSceneOptimizer()));
+
+        auto node1 = scenegraph::Node::create(scene);
+        scene->attach(node1);
+
+        node1->attach(scenegraph::Node::create(scene));
+
+        scene->detach(node1);
+        scene.reset();
+    }
+
+
 
     auto w1 = new GLESWidget;
     w1->setWindowTitle("Window 1");

@@ -1,0 +1,12 @@
+#ifndef SCENEGRAPH_GLOBAL_H
+#define SCENEGRAPH_GLOBAL_H
+
+#include "../utils/export.h"
+
+#if defined(SCENEGARPH_LIBRARY)
+#  define SCENEGRAPHSHARED_EXPORT Q_DECL_EXPORT
+#else
+#  define SCENEGRAPHSHARED_EXPORT Q_DECL_IMPORT
+#endif
+
+#endif // SCENEGRAPH_GLOBAL_H

@@ -2,7 +2,7 @@
 #define CUSTOMDELETER_H
 
 #define CUSTOMDELETER(Class) \
-    private: \
+    protected: \
         class Class##Deleter { \
         public: \
             void operator ()(Class *ptr) { delete ptr; } \
