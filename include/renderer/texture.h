@@ -4,16 +4,13 @@
 #include <memory>
 
 #include "../utils/enumclass.h"
-#include"../utils/pimpl.h"
-#include"../utils/noncopyble.h"
-#include"../utils/customdeleter.h"
+#include "../utils/pimpl.h"
+#include "../utils/noncopyble.h"
+#include "../utils/customdeleter.h"
+#include "../types/forwarddecl.h"
+
 #include "renderer_global.h"
 #include "forwarddecl.h"
-
-namespace types {
-enum class ImageFormat : int32_t;
-enum class ImageType : int32_t;
-}
 
 namespace renderer {
 

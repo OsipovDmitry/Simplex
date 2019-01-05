@@ -15,6 +15,7 @@ public:
 private:
     Scene(AbstractSceneOptimizerPtr optimizer);
     ~Scene();
+
 };
 
 }

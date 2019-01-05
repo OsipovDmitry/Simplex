@@ -18,7 +18,7 @@ ScenePtr Scene::create(AbstractSceneOptimizerPtr optimizer)
 }
 
 Scene::Scene(AbstractSceneOptimizerPtr optimizer) :
-    Node(new ScenePrivate(optimizer))
+    Node(new ScenePrivate(this, optimizer))
 {
 }
 

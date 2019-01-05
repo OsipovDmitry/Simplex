@@ -1,5 +1,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
+#include <types/geometry.h>
+
 #include <renderer/context.h>
 #include <renderer/framebuffer.h>
 #include <renderer/renderbuffer.h>
@@ -194,7 +196,7 @@ void Framebuffer::copyStencilBuffer(const glm::uvec4& dstRect, const glm::uvec4&
 	CHECK_GL_ERROR(glBlitFramebuffer(srcRect.x, srcRect.y, srcRect.z, srcRect.w, dstRect.x, dstRect.y, dstRect.z, dstRect.w, GL_STENCIL_BUFFER_BIT, GL_NEAREST), "Can not copy framebuffer");
 }
 
-void Framebuffer::renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, PrimitiveType primitiveType, uint32_t numIndices, GeometryIndexType indicesType, const void* pIndices)
+void Framebuffer::renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, types::PrimitiveType primitiveType, uint32_t numIndices, types::IndexType indicesType, const void* pIndices)
 {
     m_->context->m()->bindThisContext();
     m_->context->m()->bindFramebuffer(this);
@@ -204,7 +206,7 @@ void Framebuffer::renderIndexedGeometry(ProgramPtr program, VertexArrayPtr verte
 	CHECK_GL_ERROR(glDrawElements(toPrimitiveGLType(primitiveType), numIndices, toGeometryIndexGLType(indicesType), pIndices), "Can not render indexed geometry");
 }
 
-void Framebuffer::renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, PrimitiveType primitiveType, uint32_t numIndices, GeometryIndexType indicesType, uint32_t bufferOffset)
+void Framebuffer::renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, types::PrimitiveType primitiveType, uint32_t numIndices, types::IndexType indicesType, uint32_t bufferOffset)
 {
     m_->context->m()->bindThisContext();
     m_->context->m()->bindFramebuffer(this);

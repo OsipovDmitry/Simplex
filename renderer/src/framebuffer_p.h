@@ -6,6 +6,8 @@
 #include <GLES3/gl3.h>
 #include <glm/vec4.hpp>
 
+#include <types/forwarddecl.h>
+
 #include <renderer/forwarddecl.h>
 #include <renderer/framebuffer.h>
 
@@ -14,11 +16,11 @@ namespace renderer {
 GLenum toFramebufferGLAttachment(FramebufferAttachment val);
 FramebufferAttachment fromFramebufferGLAttachment(GLenum val);
 
-GLenum toPrimitiveGLType(PrimitiveType val);
-PrimitiveType fromPrimitiveGLType(GLenum val);
+GLenum toPrimitiveGLType(types::PrimitiveType val);
+types::PrimitiveType fromPrimitiveGLType(GLenum val);
 
-GLenum toGeometryIndexGLType(GeometryIndexType val);
-GeometryIndexType fromGeometryIndexGLType(GLenum val);
+GLenum toGeometryIndexGLType(types::IndexType val);
+types::IndexType fromGeometryIndexGLType(GLenum val);
 
 class FramebufferPrivate {
 public:

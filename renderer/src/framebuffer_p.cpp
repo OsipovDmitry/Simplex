@@ -1,5 +1,7 @@
 #include <algorithm>
 
+#include <types/geometry.h>
+
 #include "framebuffer_p.h"
 
 namespace renderer {
@@ -28,7 +30,7 @@ FramebufferAttachment fromFramebufferGLAttachment(GLenum val)
 	return castToFramebufferAttachment(std::find(framebufferAttachmentTable.cbegin(), framebufferAttachmentTable.cend(), val) - framebufferAttachmentTable.cbegin());
 }
 
-const std::array<GLenum, castFromPrimitiveType(PrimitiveType::Count)> primitiveTypeTable {
+const std::array<GLenum, types::castFromPrimitiveType(types::PrimitiveType::Count)> primitiveTypeTable {
 	GL_POINTS,
 	GL_LINE_STRIP,
 	GL_LINE_LOOP,
@@ -38,30 +40,30 @@ const std::array<GLenum, castFromPrimitiveType(PrimitiveType::Count)> primitiveT
 	GL_TRIANGLES
 };
 
-GLenum toPrimitiveGLType(PrimitiveType val)
+GLenum toPrimitiveGLType(types::PrimitiveType val)
 {
     return primitiveTypeTable[castFromPrimitiveType(val)];
 }
 
-PrimitiveType fromPrimitiveGLType(GLenum val)
+types::PrimitiveType fromPrimitiveGLType(GLenum val)
 {
-	return castToPrimitiveType(std::find(primitiveTypeTable.cbegin(), primitiveTypeTable.cend(), val) - primitiveTypeTable.cbegin());
+    return types::castToPrimitiveType(std::find(primitiveTypeTable.cbegin(), primitiveTypeTable.cend(), val) - primitiveTypeTable.cbegin());
 }
 
-const std::array<GLenum, castFromGeometryIndexType(GeometryIndexType::Count)> geometryIndexTypeTable {
+const std::array<GLenum, types::castFromIndexType(types::IndexType::Count)> geometryIndexTypeTable {
 	GL_UNSIGNED_BYTE,
 	GL_UNSIGNED_SHORT,
 	GL_UNSIGNED_INT
 };
 
-GLenum toGeometryIndexGLType(GeometryIndexType val)
+GLenum toGeometryIndexGLType(types::IndexType val)
 {
-    return geometryIndexTypeTable[castFromGeometryIndexType(val)];
+    return geometryIndexTypeTable[types::castFromIndexType(val)];
 }
 
-GeometryIndexType fromGeometryIndexGLType(GLenum val)
+types::IndexType fromGeometryIndexGLType(GLenum val)
 {
-	return castToGeometryIndexType(std::find(geometryIndexTypeTable.cbegin(), geometryIndexTypeTable.cend(), val) - geometryIndexTypeTable.cbegin());
+    return types::castToIndexType(std::find(geometryIndexTypeTable.cbegin(), geometryIndexTypeTable.cend(), val) - geometryIndexTypeTable.cbegin());
 }
 
 }

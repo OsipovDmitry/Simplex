@@ -56,8 +56,6 @@ using RenderbufferPtr = std::shared_ptr<Renderbuffer>;
 class Framebuffer;
 using FramebufferPtr = std::shared_ptr<Framebuffer>;
 enum class FramebufferAttachment : int32_t;
-enum class PrimitiveType : int32_t;
-enum class GeometryIndexType : int32_t;
 
 }
 

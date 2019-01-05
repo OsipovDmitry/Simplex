@@ -8,6 +8,7 @@
 
 #include <logger/logger.h>
 #include <types/image.h>
+#include <types/geometry.h>
 #include <renderer/display.h>
 #include <renderer/context.h>
 #include <renderer/program.h>
@@ -82,8 +83,7 @@ void GLESWidget::paintEvent(QPaintEvent *pEvent)
 
     pMainFramebuffer->clearColorBuffer(0, glm::vec4(0.8f, 0.8f, 0.8f, 1.0f));
     pMainFramebuffer->clearDepthBuffer(1.0f);
-    pMainFramebuffer->renderIndexedGeometry(m_program, m_vertexArray, renderer::PrimitiveType::Triangles, m_numIndices, renderer::GeometryIndexType::Type_32ui);
-
+    pMainFramebuffer->renderIndexedGeometry(m_program, m_vertexArray, types::PrimitiveType::Triangles, m_numIndices, types::IndexType::Uint32);
 //
 //	pMainFramebuffer->setViewport(0, 0, width(), height());
 //	pMainFramebuffer->clearColorBuffer(0, glm::vec4(0.5f, 0.5f, 1.0f, 1.0f));

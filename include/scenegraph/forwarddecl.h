@@ -19,6 +19,9 @@ using NodePtr = std::shared_ptr<Node>;
 using NodeWPtr = std::weak_ptr<Node>;
 using NodeList = std::list<NodePtr>;
 
+class Drawable;
+using DrawablePtr = std::shared_ptr<Drawable>;
+
 }
 
 #endif // SCENEGRAPHFORWARDDECL_H

@@ -11,8 +11,8 @@ class ScenePrivate : public NodePrivate
 public:
     AbstractSceneOptimizerPtr optimizer;
 
-    ScenePrivate(AbstractSceneOptimizerPtr o) :
-        NodePrivate(nullptr),
+    ScenePrivate(Scene *pPublicScene, AbstractSceneOptimizerPtr o) :
+        NodePrivate(pPublicScene, nullptr),
         optimizer(o)
     {}
 };

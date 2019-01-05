@@ -65,6 +65,44 @@ void Node::attach(NodePtr node)
     static_cast<ScenePrivate*>(m_->scene.lock()->m())->optimizer->nodeAttached(node.get());
 }
 
+glm::vec3 Node::position() const
+{
+    return m_->position;
+}
+
+void Node::setPosition(const glm::vec3 &value)
+{
+    m_->position = value;
+    m_->updateTransform();
+}
+
+glm::quat Node::orientation() const
+{
+    return m_->orientation;
+}
+
+void Node::setOrientation(const glm::quat &value) const
+{
+    m_->orientation = value;
+    m_->updateTransform();
+}
+
+const glm::mat4x4 &Node::localTransform() const
+{
+    if (m_->needUpdateTransform)
+        m_->recalcTransform();
+
+    return m_->cacheLocalTransform;
+}
+
+const glm::mat4x4 &Node::worldTransform() const
+{
+    if (m_->needUpdateTransform)
+        m_->recalcTransform();
+
+    return m_->cacheWorldTransform;
+}
+
 NodePtr Node::create(ScenePtr scene)
 {
     return NodePtr(new Node(scene), NodeDeleter());;
@@ -76,7 +114,7 @@ Node::Node(NodePrivate *p) :
 }
 
 Node::Node(ScenePtr scene) :
-    m_(new NodePrivate(scene))
+    m_(new NodePrivate(this, scene))
 {
     static_cast<ScenePrivate*>(m_->scene.lock()->m())->optimizer->nodeCreated(this);
 }

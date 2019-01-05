@@ -47,6 +47,7 @@ public:
 
 
     static VertexArrayPtr create(ContextPtr context);
+
 private:
 	VertexArray(ContextPtr context);
 	void initShared(VertexArrayPtr sharedVertexArray);

@@ -11,6 +11,7 @@
 #include "../utils/noncopyble.h"
 #include "../utils/customdeleter.h"
 #include "../utils/enumclass.h"
+#include "../types/forwarddecl.h"
 
 namespace renderer {
 
@@ -26,22 +27,6 @@ ENUMCLASS(FramebufferAttachment, int32_t,
 	Depth,
 	Stencil,
     DepthStencil
-)
-
-ENUMCLASS(PrimitiveType, int32_t,
-	Points,
-	LineStrip,
-	LineLoop,
-	Lines,
-	TriangleStrip,
-	TriangleFan,
-    Triangles
-)
-
-ENUMCLASS(GeometryIndexType, int32_t,
-	Type_8ui,
-	Type_16ui,
-    Type_32ui
 )
 
 class FramebufferPrivate;
@@ -72,8 +57,8 @@ public:
 	void copyDepthBuffer(const glm::uvec4& dstRect, const glm::uvec4& srcRect, FramebufferPtr srcBuffer);
 	void copyStencilBuffer(const glm::uvec4& dstRect, const glm::uvec4& srcRect, FramebufferPtr srcBuffer);
 
-	void renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, PrimitiveType primitiveType, uint32_t numIndices, GeometryIndexType indicesType, const void *pIndices);
-	void renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, PrimitiveType primitiveType, uint32_t numIndices, GeometryIndexType indicesType, uint32_t bufferOffset = 0);
+    void renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, types::PrimitiveType primitiveType, uint32_t numIndices, types::IndexType indicesType, const void *pIndices);
+    void renderIndexedGeometry(ProgramPtr program, VertexArrayPtr vertexArray, types::PrimitiveType primitiveType, uint32_t numIndices, types::IndexType indicesType, uint32_t bufferOffset = 0);
 
     static FramebufferPtr create(ContextPtr context);
     static FramebufferPtr mainFramebuffer(ContextPtr context);
