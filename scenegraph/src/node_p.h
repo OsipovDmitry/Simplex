@@ -20,6 +20,7 @@ public:
     SceneWPtr scene;
     NodeWPtr parent;
     NodeList children;
+    DrawableList drawables;
 
     glm::quat orientation;
     glm::vec3 position;

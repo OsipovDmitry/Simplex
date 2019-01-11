@@ -5,20 +5,21 @@
 
 #include <EGL/egl.h>
 
+#include <types/renderstate.h>
 #include <renderer/forwarddecl.h>
 
 #include "buffer_p.h"
 
 namespace renderer {
 
-GLenum toDepthTestGLFunc(DepthTestFunc val);
-DepthTestFunc fromDepthTestGLFunc(GLenum val);
+GLenum toDepthTestGLFunc(types::DepthTestFunc val);
+types::DepthTestFunc fromDepthTestGLFunc(GLenum val);
 
-GLenum toBlendGLFunc(BlendFunc val);
-BlendFunc fromBlendGLFunc(GLenum val);
+GLenum toBlendGLFunc(types::BlendFunc val);
+types::BlendFunc fromBlendGLFunc(GLenum val);
 
-GLenum toBlendGLEquation(BlendEquation val);
-BlendEquation fromBlendGLEquation(GLenum val);
+GLenum toBlendGLEquation(types::BlendEquation val);
+types::BlendEquation fromBlendGLEquation(GLenum val);
 
 class ContextPrivate {
 public:

@@ -24,10 +24,14 @@ class SCENEGRAPHSHARED_EXPORT Node : public std::enable_shared_from_this<Node>
 public:
     ScenePtr scene() const;
     NodePtr parent() const;
-    const NodeList children() const;
+    const NodeList& children() const;
 
     void detach(NodePtr node);
     void attach(NodePtr node);
+
+    void addDrawable(DrawablePtr drawable);
+    void deleteDrawable(DrawablePtr drawable);
+    const DrawableList& drawables() const;
 
     glm::vec3 position() const;
     void setPosition(const glm::vec3& value);

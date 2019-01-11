@@ -21,6 +21,13 @@ using NodeList = std::list<NodePtr>;
 
 class Drawable;
 using DrawablePtr = std::shared_ptr<Drawable>;
+using DrawableList = std::list<DrawablePtr>;
+
+class Material;
+using MaterialPtr = std::shared_ptr<Material>;
+
+class RenderState;
+using RenderStatePtr = std::shared_ptr<RenderState>;
 
 }
 

@@ -22,7 +22,7 @@ NodePtr Node::parent() const
     return m_->parent.lock();
 }
 
-const NodeList Node::children() const
+const NodeList &Node::children() const
 {
     return m_->children;
 }
@@ -63,6 +63,29 @@ void Node::attach(NodePtr node)
     m_->children.push_back(node);
     node->m_->parent = shared_from_this();
     static_cast<ScenePrivate*>(m_->scene.lock()->m())->optimizer->nodeAttached(node.get());
+}
+
+void Node::addDrawable(DrawablePtr drawable)
+{
+    auto iter = std::find(m_->drawables.begin(), m_->drawables.end(), drawable);
+    if (iter == m_->drawables.end())
+    {
+        m_->drawables.push_back(drawable);
+    }
+}
+
+void Node::deleteDrawable(DrawablePtr drawable)
+{
+    auto iter = std::find(m_->drawables.begin(), m_->drawables.end(), drawable);
+    if (iter != m_->drawables.end())
+    {
+        m_->drawables.erase(iter);
+    }
+}
+
+const DrawableList &Node::drawables() const
+{
+    return m_->drawables;
 }
 
 glm::vec3 Node::position() const

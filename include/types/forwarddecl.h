@@ -20,6 +20,10 @@ using IndexArrayPtr = std::shared_ptr<IndexArray>;
 struct Geometry;
 using GemetryPtr = std::shared_ptr<Geometry>;
 
+enum class DepthTestFunc : int32_t;
+enum class BlendFunc : int32_t;
+enum class BlendEquation : int32_t;
+
 }
 
 #endif // TYPES_FORWARDDECL_H

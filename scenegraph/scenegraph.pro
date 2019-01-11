@@ -11,7 +11,10 @@ SOURCES += \
     src/abstractsceneoptimizer.cpp \
     src/node_p.cpp \
     src/drawable.cpp \
-    src/material.cpp
+    src/material.cpp \
+    src/renderstate_p.cpp \
+    src/renderstate.cpp \
+    src/drawable_p.cpp
 
 HEADERS += \
     ../include/scenegraph/node.h \
@@ -19,13 +22,15 @@ HEADERS += \
     ../include/scenegraph/abstractsceneoptimizer.h \
     ../include/scenegraph/drawable.h \
     ../include/scenegraph/material.h \
+    ../include/scenegraph/renderstate.h \
     ../include/scenegraph/forwarddecl.h \
     ../include/scenegraph/scenegraph_global.h \
     src/abstractsceneoptimizer_p.h \
     src/node_p.h \
     src/scene_p.h \
     src/drawable_p.h \
-    src/material_p.h
+    src/material_p.h \
+    src/renderstate_p.h
 
 LIBS += \
     -llogger \

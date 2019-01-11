@@ -155,7 +155,7 @@ void ContextPrivate::bindFramebuffer(const Framebuffer *frambuffer)
 	pCurrentFramebuffer = frambuffer;
 }
 
-const std::array<GLenum, castFromDepthTestFunc(DepthTestFunc::Count)> depthTestFuncTable {
+const std::array<GLenum, types::castFromDepthTestFunc(types::DepthTestFunc::Count)> depthTestFuncTable {
 	GL_LEQUAL,
 	GL_GEQUAL,
 	GL_LESS,
@@ -166,18 +166,18 @@ const std::array<GLenum, castFromDepthTestFunc(DepthTestFunc::Count)> depthTestF
 	GL_NEVER
 };
 
-GLenum toDepthTestGLFunc(DepthTestFunc val)
+GLenum toDepthTestGLFunc(types::DepthTestFunc val)
 {
-    return depthTestFuncTable[castFromDepthTestFunc(val)];
+    return depthTestFuncTable[types::castFromDepthTestFunc(val)];
 }
 
-DepthTestFunc fromDepthTestGLFunc(GLenum val)
+types::DepthTestFunc fromDepthTestGLFunc(GLenum val)
 {
-    return castToDepthTestFunc(std::find(depthTestFuncTable.cbegin(), depthTestFuncTable.cend(), val) - depthTestFuncTable.cbegin());
+    return types::castToDepthTestFunc(std::find(depthTestFuncTable.cbegin(), depthTestFuncTable.cend(), val) - depthTestFuncTable.cbegin());
 }
 
 
-const std::array<GLenum, castFromBlendFunc(BlendFunc::Count)> blendFuncTable {
+const std::array<GLenum, types::castFromBlendFunc(types::BlendFunc::Count)> blendFuncTable {
     GL_ZERO,
     GL_ONE,
     GL_SRC_COLOR,
@@ -195,17 +195,17 @@ const std::array<GLenum, castFromBlendFunc(BlendFunc::Count)> blendFuncTable {
     GL_SRC_ALPHA_SATURATE
 };
 
-GLenum toBlendGLFunc(BlendFunc val)
+GLenum toBlendGLFunc(types::BlendFunc val)
 {
-    return blendFuncTable[castFromBlendFunc(val)];
+    return blendFuncTable[types::castFromBlendFunc(val)];
 }
 
-BlendFunc fromBlendGLFunc(GLenum val)
+types::BlendFunc fromBlendGLFunc(GLenum val)
 {
-    return castToBlendFunc(std::find(blendFuncTable.cbegin(), blendFuncTable.cend(), val) - blendFuncTable.cbegin());
+    return types::castToBlendFunc(std::find(blendFuncTable.cbegin(), blendFuncTable.cend(), val) - blendFuncTable.cbegin());
 }
 
-const std::array<GLenum, castFromBlendEquation(BlendEquation::Count)> blendEquationTable {
+const std::array<GLenum, types::castFromBlendEquation(types::BlendEquation::Count)> blendEquationTable {
     GL_FUNC_ADD,
     GL_FUNC_SUBTRACT,
     GL_FUNC_REVERSE_SUBTRACT,
@@ -213,14 +213,14 @@ const std::array<GLenum, castFromBlendEquation(BlendEquation::Count)> blendEquat
     GL_MAX
 };
 
-GLenum toBlendGLEquation(BlendEquation val)
+GLenum toBlendGLEquation(types::BlendEquation val)
 {
-    return blendEquationTable[castFromBlendEquation(val)];
+    return blendEquationTable[types::castFromBlendEquation(val)];
 }
 
-BlendEquation fromBlendGLEquation(GLenum val)
+types::BlendEquation fromBlendGLEquation(GLenum val)
 {
-    return castToBlendEquation(std::find(blendEquationTable.cbegin(), blendEquationTable.cend(), val) - blendEquationTable.cbegin());
+    return types::castToBlendEquation(std::find(blendEquationTable.cbegin(), blendEquationTable.cend(), val) - blendEquationTable.cbegin());
 }
 
 }

@@ -53,7 +53,7 @@ struct VertexArray
 
 struct IndexArray
 {
-    std::unique_ptr<void[]> data;
+    //std::unique_ptr<void[]> data;
     uint32_t numIndices;
     IndexType dataType;
     PrimitiveType primitiveType;

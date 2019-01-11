@@ -29,7 +29,7 @@ ContextGroupPtr Context::shareGroup() const
     return m_->shareGroup;
 }
 
-void Context::enableDepthTest(DepthTestFunc func)
+void Context::enableDepthTest(types::DepthTestFunc func)
 {
     m_->bindThisContext();
 	CHECK_GL_ERROR(glEnable(GL_DEPTH_TEST), "Can not enable depth test");
@@ -50,11 +50,11 @@ bool Context::depthTestState() const
 	return value != GL_FALSE;
 }
 
-DepthTestFunc Context::depthTestFunc() const
+types::DepthTestFunc Context::depthTestFunc() const
 {
     m_->bindThisContext();
 	GLint value;
-	CHECK_GL_ERROR(glGetIntegerv(GL_DEPTH_FUNC, &value), "Can not get depth test func", DepthTestFunc::Count);
+    CHECK_GL_ERROR(glGetIntegerv(GL_DEPTH_FUNC, &value), "Can not get depth test func", types::DepthTestFunc::Count);
 	return fromDepthTestGLFunc(value);
 }
 
@@ -89,7 +89,7 @@ void Context::colorWriteMask(bool& r, bool& g, bool& b, bool& a) const
     a = value[3] != GL_FALSE;
 }
 
-void Context::enableBlend(BlendFunc srcRGB, BlendFunc srcA, BlendFunc dstRGB, BlendFunc dstA, BlendEquation eqRGB, BlendEquation eqA)
+void Context::enableBlend(types::BlendFunc srcRGB, types::BlendFunc srcA, types::BlendFunc dstRGB, types::BlendFunc dstA, types::BlendEquation eqRGB, types::BlendEquation eqA)
 {
     m_->bindThisContext();
     CHECK_GL_ERROR(glEnable(GL_BLEND), "Can not enable blending");
@@ -118,7 +118,7 @@ bool Context::blendState() const
     return value != GL_FALSE;
 }
 
-void Context::blenFunc(BlendFunc &srcRGB, BlendFunc &srcA, BlendFunc &dstRGB, BlendFunc &dstA) const
+void Context::blenFunc(types::BlendFunc &srcRGB, types::BlendFunc &srcA, types::BlendFunc &dstRGB, types::BlendFunc &dstA) const
 {
     m_->bindThisContext();
     GLint value;
@@ -136,7 +136,7 @@ void Context::blenFunc(BlendFunc &srcRGB, BlendFunc &srcA, BlendFunc &dstRGB, Bl
     dstA = fromBlendGLFunc(value);
 }
 
-void Context::blendEquation(BlendEquation &eqRGB, BlendEquation &eqA) const
+void Context::blendEquation(types::BlendEquation &eqRGB, types::BlendEquation &eqA) const
 {
     m_->bindThisContext();
     GLint value;

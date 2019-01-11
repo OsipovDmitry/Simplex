@@ -5,46 +5,12 @@
 
 #include "../utils/pimpl.h"
 #include "../utils/noncopyble.h"
-#include "../utils/enumclass.h"
 #include "../utils/customdeleter.h"
+#include "../types/renderstate.h"
 #include "renderer_global.h"
 #include "forwarddecl.h"
 
 namespace renderer {
-
-ENUMCLASS(DepthTestFunc, int32_t,
-          LessEqual,
-          GreaterEqual,
-          Less,
-          Greater,
-          Equal,
-          NotEqual,
-          Newer,
-          Always_)
-
-ENUMCLASS(BlendFunc, int32_t,
-          Zero,
-          One,
-          SourceColor,
-          OneMinusSourceColor,
-          DestColor,
-          OneMinusDestColor,
-          SourceAlpha,
-          OneMinusSourceAlpha,
-          DestAlpha,
-          OneMinusDestAlpha,
-          ConstColor,
-          OneMinusConstColor,
-          ConstAlpha,
-          OneMinusConstAlpha,
-          SourceAlphaSaturate)
-
-ENUMCLASS(BlendEquation, int32_t,
-          Add,
-          Subtract,
-          ReverseSubtract,
-          Min,
-          Max)
 
 class ContextPrivate;
 class RENDERERSHARED_EXPORT Context {
@@ -59,10 +25,10 @@ public:
 	void bindUniformBuffer(BufferPtr buffer, uint32_t bindingPoint, int64_t size = -1, uint64_t offset = 0);
 	void bindTexture(TexturePtr texture, int32_t slot);
 
-	void enableDepthTest(DepthTestFunc func = DepthTestFunc::Less);
+    void enableDepthTest(types::DepthTestFunc func = types::DepthTestFunc::Less);
 	void disableDepthTest();
 	bool depthTestState() const;
-	DepthTestFunc depthTestFunc() const;
+    types::DepthTestFunc depthTestFunc() const;
 
 	void setDepthWriteMask(bool state);
 	bool depthWriteMask() const;
@@ -70,17 +36,17 @@ public:
 	void setColorWriteMask(bool r, bool g, bool b, bool a);
 	void colorWriteMask(bool& r, bool& g, bool& b, bool& a) const;
 
-    void enableBlend(BlendFunc srcRGB = BlendFunc::SourceAlpha,
-                     BlendFunc srcA = BlendFunc::SourceAlpha,
-                     BlendFunc dstRGB = BlendFunc::OneMinusSourceAlpha,
-                     BlendFunc dstA = BlendFunc::OneMinusSourceAlpha,
-                     BlendEquation eqRGB = BlendEquation::Add,
-                     BlendEquation eqA = BlendEquation::Add);
+    void enableBlend(types::BlendFunc srcRGB = types::BlendFunc::SourceAlpha,
+                     types::BlendFunc srcA = types::BlendFunc::SourceAlpha,
+                     types::BlendFunc dstRGB = types::BlendFunc::OneMinusSourceAlpha,
+                     types::BlendFunc dstA = types::BlendFunc::OneMinusSourceAlpha,
+                     types::BlendEquation eqRGB = types::BlendEquation::Add,
+                     types::BlendEquation eqA = types::BlendEquation::Add);
     void disableBlend();
     void setBlendConstColor(const glm::vec4& value);
     bool blendState() const;
-    void blenFunc(BlendFunc& srcRGB, BlendFunc& srcA, BlendFunc& dstRGB, BlendFunc& dstA) const;
-    void blendEquation(BlendEquation& eqRGB, BlendEquation& eqA) const;
+    void blenFunc(types::BlendFunc& srcRGB, types::BlendFunc& srcA, types::BlendFunc& dstRGB, types::BlendFunc& dstA) const;
+    void blendEquation(types::BlendEquation& eqRGB, types::BlendEquation& eqA) const;
     glm::vec4 blendConstColor() const;
 
     static ContextPtr createContext(WindowSurfacePtr windowSurface, ContextGroupPtr shareGroup = nullptr); // Can also create context without surface(windowSurface == nullptr)

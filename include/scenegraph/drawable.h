@@ -4,6 +4,7 @@
 #include "scenegraph_global.h"
 #include "forwarddecl.h"
 #include "../renderer/forwarddecl.h"
+#include "../types/forwarddecl.h"
 #include "../utils/pimpl.h"
 #include "../utils/noncopyble.h"
 #include "../utils/customdeleter.h"
@@ -18,19 +19,27 @@ class SCENEGRAPHSHARED_EXPORT Drawable {
     CUSTOMDELETER(Drawable)
 
 public:
-    renderer::ContextPtr context() const;
-
+    void setGeometry(renderer::VertexArrayPtr vao, types::PrimitiveType primitiveType, uint32_t numIndices, types::IndexType indicesType, uint32_t indexBufferOffset = 0);
     renderer::VertexArrayPtr vertexArray() const;
-    void setVertexArray(renderer::VertexArrayPtr value);
+    types::PrimitiveType primitiveType() const;
+    uint32_t numIndices() const;
+    types::IndexType indicesType() const;
+    uint32_t indexBufferOffset() const;
 
-    static DrawablePtr create(renderer::ContextPtr context);
+    MaterialPtr material() const;
+    void setMaterial(MaterialPtr value);
+
+    const RenderState &renderState() const;
+    RenderState& renderState();
+
+    static DrawablePtr create();
 
 private:
-    Drawable(renderer::ContextPtr context);
+    Drawable();
     ~Drawable();
 
     DrawablePrivate *m_;
-}
+};
 
 
 }
