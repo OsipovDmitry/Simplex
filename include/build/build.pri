@@ -13,4 +13,4 @@ INCLUDEPATH += ../include
 LIBS += -L$$DESTDIR
 
 QT -= core gui
-CONFIG += c++14
+CONFIG += c++17

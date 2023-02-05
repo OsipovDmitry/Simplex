@@ -1,6 +1,11 @@
 #ifndef FORWARDDECL_H
 #define FORWARDDECL_H
 
+namespace simplex
+{
+namespace core
+{
+
 class IApplication;
 class IGraphicsRenderer;
 class IAudioRenderer;
@@ -14,5 +19,7 @@ class GraphicsEngine;
 class AudioEngine;
 class PhysicsEngine;
 
+}
+}
 
 #endif // FORWARDDECL_H

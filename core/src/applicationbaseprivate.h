@@ -6,12 +6,20 @@
 
 #include <core/forwarddecl.h>
 
+namespace simplex
+{
+namespace core
+{
+
 class ApplicationBasePrivate
 {
 public:
     ApplicationBasePrivate() {}
 
-    std::set<std::shared_ptr<IEngine>> controllers;
+    std::set<std::shared_ptr<IEngine>> engines;
 };
+
+}
+}
 
 #endif // APPLICATIONBASEPRIVATE_H

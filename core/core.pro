@@ -1,10 +1,10 @@
 include(../include/build/build.pri)
 TEMPLATE = lib
-CONFIG += staticlib
 
 QT +=
 
-DEFINES +=
+DEFINES += \
+    CORE_LIBRARY
 
 HEADERS += \
     $$files("../include/core/*.h", true) \

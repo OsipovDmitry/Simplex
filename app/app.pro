@@ -1,14 +1,16 @@
 include(../include/build/build.pri)
 TEMPLATE = app
 
-QT +=
+QT += widgets
 
-HEADERS +=
+HEADERS += \
+    $$files("src/*.h", true)
 
 SOURCES += \
-    src/main.cpp
+    $$files("src/*.cpp", true)
 
 LIBS += \
-    -lutils
+    -lcore \
+    -lqt
 
 RESOURCES +=

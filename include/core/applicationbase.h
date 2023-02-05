@@ -5,17 +5,25 @@
 
 #include <utils/pimpl.h>
 #include <utils/noncopyble.h>
+
+#include <core/coreglobal.h>
 #include <core/forwarddecl.h>
 #include <core/iapplication.h>
 
+namespace simplex
+{
+namespace core
+{
+
 class ApplicationBasePrivate;
-class ApplicationBase : public IApplication
+class CORE_SHARED_EXPORT ApplicationBase : public IApplication
 {
     PIMPL(ApplicationBase)
     NONCOPYBLE(ApplicationBase)
 
 public:
     ApplicationBase();
+    ~ApplicationBase() override;
 
     bool registerEngine(std::shared_ptr<IEngine>);
     bool unregisterEngine(std::shared_ptr<IEngine>);
@@ -23,11 +31,14 @@ public:
     void update() override final;
 
 protected:
-    virtual void doUpdate();
+    virtual void doUpdate() {}
 
 private:
     std::unique_ptr<ApplicationBasePrivate> m_;
 
 };
+
+}
+}
 
 #endif // APPLICATIONBASE_H

@@ -1,15 +1,17 @@
 include(../include/build/build.pri)
 TEMPLATE = lib
-CONFIG += staticlib
 
-QT += core
+QT += widgets opengl openglwidgets
 
-DEFINES +=
+DEFINES += \
+    QT_LIBRARY
 
 HEADERS += \
-    $$files("../include/qt/*", true)
+    $$files("../include/qt/*.h", true) \
+    $$files("src/*.h", true)
 
-SOURCES +=
+SOURCES += \
+    $$files("src/*.cpp", true)
 
 LIBS +=
 

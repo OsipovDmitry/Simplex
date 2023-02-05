@@ -1,16 +1,17 @@
 include(../include/build/build.pri)
 TEMPLATE = lib
-CONFIG += staticlib
 
 QT +=
 
-DEFINES +=
+DEFINES += \
+    UTILS_LIBRARY
 
 HEADERS += \
     $$files("../include/utils/glm/*", true) \
-    $$files("../include/utils/*", true)
+    $$files("../include/utils/*.h", true)
 
-SOURCES +=
+SOURCES += \
+    $$files("src/*.cpp", true)
 
 LIBS +=
 
