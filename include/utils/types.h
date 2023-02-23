@@ -3,7 +3,6 @@
 
 #include <cstdint>
 
-#include <utils/utilsglobal.h>
 #include <utils/enumclass.h>
 
 namespace simplex
@@ -11,7 +10,7 @@ namespace simplex
 namespace utils
 {
 
-ENUMCLASS(Type, uint32_t,
+ENUMCLASS(Type, uint16_t,
           Single,
           Double,
 
@@ -23,24 +22,22 @@ ENUMCLASS(Type, uint32_t,
           Uint16,
           Uint32)
 
-class UTILS_SHARED_EXPORT TypeInfo
-{
-public:
-    explicit TypeInfo(Type);
+ENUMCLASS(PrimitiveType, uint16_t,
+          Points,
+          Lines,
+          LineStrip,
+          Triangles,
+          TriangleStrip,
+          TriangleFan)
 
-    bool isFloat();
-    bool isSignedInt();
-    bool isUnsignedInt();
-    bool isInt();
-
-    static bool isFloat(Type);
-    static bool isSignedInt(Type);
-    static bool isUnsignedInt(Type);
-    static bool isInt(Type);
-
-private:
-    Type m_type;
-};
+ENUMCLASS(VertexAttribute, uint16_t,
+          Position,
+          Normal,
+          TexCoord,
+          BonesIDs,
+          BonesWeights,
+          Tangent,
+          Color)
 
 }
 }

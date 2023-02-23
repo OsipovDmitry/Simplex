@@ -1,4 +1,4 @@
-#include <utils/types.h>
+#include <utils/typeinfo.h>
 
 namespace simplex
 {
@@ -11,24 +11,29 @@ TypeInfo::TypeInfo(Type type)
 {
 }
 
-bool TypeInfo::isFloat()
+bool TypeInfo::isFloat() const
 {
     return isFloat(m_type);
 }
 
-bool TypeInfo::isSignedInt()
+bool TypeInfo::isSignedInt() const
 {
     return isSignedInt(m_type);
 }
 
-bool TypeInfo::isUnsignedInt()
+bool TypeInfo::isUnsignedInt() const
 {
     return isUnsignedInt(m_type);
 }
 
-bool TypeInfo::isInt()
+bool TypeInfo::isInt() const
 {
     return isInt(m_type);
+}
+
+uint32_t TypeInfo::size() const
+{
+    return size(m_type);
 }
 
 bool TypeInfo::isFloat(Type type)
@@ -49,6 +54,22 @@ bool TypeInfo::isUnsignedInt(Type type)
 bool TypeInfo::isInt(Type type)
 {
     return isSignedInt(type) || isUnsignedInt(type);
+}
+
+uint32_t TypeInfo::size(Type type)
+{
+    switch (type)
+    {
+    case Type::Single : return sizeof(float);
+    case Type::Double : return sizeof(double);
+    case Type::Int8 : return sizeof(int8_t);
+    case Type::Int16 : return sizeof(int16_t);
+    case Type::Int32 : return sizeof(int32_t);
+    case Type::Uint8 : return sizeof(uint8_t);
+    case Type::Uint16 : return sizeof(uint16_t);
+    case Type::Uint32 : return sizeof(uint32_t);
+    default: return 0;
+    }
 }
 
 }
