@@ -4,7 +4,6 @@
 #include <QtOpenGLWidgets/QOpenGLWidget>
 
 #include <utils/noncopyble.h>
-#include <utils/pimpl.h>
 
 #include <core/forwarddecl.h>
 
@@ -18,7 +17,6 @@ namespace qt
 class QtRenderWidgetPrivate;
 class QT_SHARED_EXPORT QtRenderWidget : public QOpenGLWidget
 {
-    PIMPL(QtRenderWidget)
     NONCOPYBLE(QtRenderWidget)
 public:
     QtRenderWidget();

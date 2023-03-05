@@ -10,6 +10,7 @@ SOURCES += \
     $$files("src/*.cpp", true)
 
 LIBS += \
+    -lutils \
     -lcore \
     -lqt
 

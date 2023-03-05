@@ -1,16 +1,16 @@
 #ifndef IGRAPHICSRENDERER_H
 #define IGRAPHICSRENDERER_H
 
+#include <core/inamedobject.h>
+
 namespace simplex
 {
 namespace core
 {
 
-class IGraphicsRenderer
+class IGraphicsRenderer : public INamedObject
 {
 public:
-    virtual ~IGraphicsRenderer() = default;
-
     // graphis methods
 };
 

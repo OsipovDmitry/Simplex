@@ -6,6 +6,7 @@ namespace simplex
 namespace core
 {
 
+class IObject;
 class IApplication;
 class IGraphicsRenderer;
 class IAudioRenderer;

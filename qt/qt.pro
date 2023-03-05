@@ -13,6 +13,7 @@ HEADERS += \
 SOURCES += \
     $$files("src/*.cpp", true)
 
-LIBS +=
+LIBS += \
+    -lutils
 
 RESOURCES +=

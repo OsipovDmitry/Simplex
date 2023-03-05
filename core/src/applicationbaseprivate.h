@@ -3,6 +3,8 @@
 
 #include <set>
 #include <memory>
+#include <string>
+
 
 #include <core/forwarddecl.h>
 
@@ -14,9 +16,16 @@ namespace core
 class ApplicationBasePrivate
 {
 public:
-    ApplicationBasePrivate() {}
+    ApplicationBasePrivate(const std::string &name)
+        : m_name(name)
+    {}
 
-    std::set<std::shared_ptr<IEngine>> engines;
+    std::string &name() { return m_name; }
+    std::set<std::shared_ptr<IEngine>> &engines() { return m_engines; }
+
+private:
+    std::string m_name;
+    std::set<std::shared_ptr<IEngine>> m_engines;
 };
 
 }

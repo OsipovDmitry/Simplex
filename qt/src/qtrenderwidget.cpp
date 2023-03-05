@@ -1,3 +1,5 @@
+#include <utils/logger.h>
+
 #include <core/iapplication.h>
 
 #include <qt/qtrenderwidget.h>
@@ -21,13 +23,19 @@ QtRenderWidget::QtRenderWidget()
     format.setProfile(QSurfaceFormat::CoreProfile);
 
     setFormat(format);
+
+    LOG_INFO << "QtRenderWidget has been created (OpenGL context ver:" << format.majorVersion() << "." << format.minorVersion() << ")";
 }
 
-QtRenderWidget::~QtRenderWidget() = default;
+QtRenderWidget::~QtRenderWidget()
+{
+    LOG_INFO << "QtRenderWidget has been destroyed";
+}
 
 void QtRenderWidget::setApplication(std::shared_ptr<core::IApplication> application)
 {
     m_->application = application;
+    LOG_INFO << "Application \"" + application->name() + "\" has been set to QtRenderWidget";
 }
 
 std::shared_ptr<core::IGraphicsRenderer> QtRenderWidget::graphicsRenderer()
@@ -42,11 +50,13 @@ std::shared_ptr<const core::IGraphicsRenderer> QtRenderWidget::graphicsRenderer(
 
 void QtRenderWidget::initializeGL()
 {
+    LOG_INFO << "QtRenderWidget::initializeGL()";
     m_->renderer = std::make_shared<QtOpenGL_1_0_Renderer>(context());
 }
 
 void QtRenderWidget::resizeGL(int width, int height)
 {
+    LOG_INFO << "QtRenderWidget::resizeGL(" << width << ", " << height << ")";
     m_->renderer->resize(width, height);
 }
 

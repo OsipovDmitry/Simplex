@@ -1,16 +1,16 @@
 #ifndef IENGINE_H
 #define IENGINE_H
 
+#include <core/inamedobject.h>
+
 namespace simplex
 {
 namespace core
 {
 
-class IEngine
+class IEngine : public INamedObject
 {
 public:
-    virtual ~IEngine() = default;
-
     virtual void update() = 0;
 };
 

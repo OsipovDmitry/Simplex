@@ -22,8 +22,10 @@ class CORE_SHARED_EXPORT ApplicationBase : public IApplication
     NONCOPYBLE(ApplicationBase)
 
 public:
-    ApplicationBase();
+    ApplicationBase(const std::string&);
     ~ApplicationBase() override;
+
+    std::string name() const override;
 
     bool registerEngine(std::shared_ptr<IEngine>);
     bool unregisterEngine(std::shared_ptr<IEngine>);

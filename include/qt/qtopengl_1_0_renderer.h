@@ -20,6 +20,9 @@ class QT_SHARED_EXPORT QtOpenGL_1_0_Renderer : public core::IGraphicsRenderer, p
 
 public:
     QtOpenGL_1_0_Renderer(const QOpenGLContext *);
+    ~QtOpenGL_1_0_Renderer() override;
+
+    std::string name() const override;
 
     void resize(int, int);
     void render();

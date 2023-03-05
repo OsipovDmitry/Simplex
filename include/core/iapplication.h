@@ -1,12 +1,14 @@
 #ifndef IAPPLICATION_H
 #define IAPPLICATION_H
 
+#include <core/inamedobject.h>
+
 namespace simplex
 {
 namespace core
 {
 
-class IApplication
+class IApplication : public INamedObject
 {
 public:
     virtual ~IApplication() = default;

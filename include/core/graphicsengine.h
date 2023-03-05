@@ -14,13 +14,19 @@ namespace simplex
 namespace core
 {
 
+class GraphicsEnginePrivate;
 class CORE_SHARED_EXPORT GraphicsEngine : public IEngine
 {
     NONCOPYBLE(GraphicsEngine)
 public:
-    GraphicsEngine(std::shared_ptr<IGraphicsRenderer>);
+    GraphicsEngine(const std::string&, std::shared_ptr<IGraphicsRenderer>);
+    ~GraphicsEngine() override;
 
+    std::string name() const override;
     void update() override;
+
+private:
+    std::unique_ptr<GraphicsEnginePrivate> m_;
 };
 
 }

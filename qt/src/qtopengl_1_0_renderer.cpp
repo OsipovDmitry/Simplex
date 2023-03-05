@@ -1,3 +1,5 @@
+#include <utils/logger.h>
+
 #include <qt/qtopengl_1_0_renderer.h>
 
 namespace simplex
@@ -10,9 +12,21 @@ QtOpenGL_1_0_Renderer::QtOpenGL_1_0_Renderer(const QOpenGLContext *context)
     setOwningContext(context);
     if (!initializeOpenGLFunctions())
     {
-        // log...
+        LOG_CRITICAL << "Can't initialize QOpenGLFunctionsW";
         assert(false);
     }
+
+    LOG_INFO << "GraphicsRenderer \"" << name() << "\" has been created";
+}
+
+QtOpenGL_1_0_Renderer::~QtOpenGL_1_0_Renderer()
+{
+    LOG_INFO << "GraphicsRenderer \"" << name() << "\" has been destroyed";
+}
+
+std::string QtOpenGL_1_0_Renderer::name() const
+{
+    return "QtOpenGL_1_0_Renderer";
 }
 
 void QtOpenGL_1_0_Renderer::resize(int width, int height)
