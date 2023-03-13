@@ -25,7 +25,7 @@ public:
     ApplicationBase(const std::string&);
     ~ApplicationBase() override;
 
-    std::string name() const override;
+    const std::string &name() const override;
 
     bool registerEngine(std::shared_ptr<IEngine>);
     bool unregisterEngine(std::shared_ptr<IEngine>);

@@ -55,8 +55,19 @@ public:
     Logger(MessageLevel, const std::string &file = "", int line = -1);
     ~Logger();
 
+    Logger &operator <<(const char*);
     Logger &operator <<(const std::string&);
-    Logger &operator <<(int);
+    Logger &operator <<(bool);
+    Logger &operator <<(float);
+    Logger &operator <<(double);
+    Logger &operator <<(int8_t);
+    Logger &operator <<(uint8_t);
+    Logger &operator <<(int16_t);
+    Logger &operator <<(uint16_t);
+    Logger &operator <<(int32_t);
+    Logger &operator <<(uint32_t);
+    Logger &operator <<(int64_t);
+    Logger &operator <<(uint64_t);
 
 private:
     std::unique_ptr<LoggerPrivate> m_;

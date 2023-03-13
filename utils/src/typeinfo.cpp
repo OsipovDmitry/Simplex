@@ -1,4 +1,5 @@
 #include <utils/typeinfo.h>
+#include <utils/types.h>
 
 namespace simplex
 {
@@ -9,6 +10,11 @@ namespace utils
 TypeInfo::TypeInfo(Type type)
     : m_type(type)
 {
+}
+
+Type TypeInfo::type() const
+{
+    return m_type;
 }
 
 bool TypeInfo::isFloat() const

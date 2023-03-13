@@ -114,6 +114,13 @@ Logger::MessageLevel Logger::minMessageLevel()
     return LoggerPrivate::loggerMinMessageLevel();
 }
 
+Logger &Logger::operator <<(const char *value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
 Logger &Logger::operator <<(const std::string &value)
 {
     if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
@@ -121,7 +128,77 @@ Logger &Logger::operator <<(const std::string &value)
     return *this;
 }
 
-Logger &Logger::operator <<(int value)
+Logger &Logger::operator <<(bool value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
+Logger &Logger::operator <<(float value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
+Logger &Logger::operator <<(double value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
+Logger &Logger::operator <<(int8_t value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
+Logger &Logger::operator <<(uint8_t value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
+Logger &Logger::operator <<(int16_t value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
+Logger &Logger::operator <<(uint16_t value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
+Logger &Logger::operator <<(int32_t value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
+Logger &Logger::operator <<(uint32_t value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
+Logger &Logger::operator <<(int64_t value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
+Logger &Logger::operator <<(uint64_t value)
 {
     if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
         m_->stringStream() << value;

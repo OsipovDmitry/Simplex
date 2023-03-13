@@ -31,13 +31,12 @@ int main(int argc, char *argv[])
 
     auto renderWidget = new simplex::qt::QtRenderWidget;
 
-    auto widget = new QSplitter(Qt::Vertical);
-
-    widget->addWidget(renderWidget);
-    widget->addWidget(textEdit);
-    widget->setWindowTitle("Simplex 3D Engine");
-    widget->resize(800, 600);
-    widget->show();
+    QSplitter widget(Qt::Vertical);
+    widget.addWidget(renderWidget);
+    widget.addWidget(textEdit);
+    widget.setWindowTitle("Simplex 3D Engine");
+    widget.resize(800, 600);
+    widget.show();
 
     auto graphicsRenderer = renderWidget->graphicsRenderer();
 

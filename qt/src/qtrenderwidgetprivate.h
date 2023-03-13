@@ -10,7 +10,7 @@ namespace simplex
 namespace qt
 {
 
-class QtOpenGL_1_0_Renderer;
+class QtOpenGL_4_5_Renderer;
 
 class QtRenderWidgetPrivate
 {
@@ -18,7 +18,7 @@ public:
     QtRenderWidgetPrivate() {}
     ~QtRenderWidgetPrivate() {}
 
-    std::shared_ptr<QtOpenGL_1_0_Renderer> renderer;
+    std::shared_ptr<QtOpenGL_4_5_Renderer> renderer;
     std::weak_ptr<core::IApplication> application;
 };
 

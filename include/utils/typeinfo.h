@@ -4,7 +4,7 @@
 #include <cstdint>
 
 #include <utils/utilsglobal.h>
-#include <utils/types.h>
+#include <utils/forwarddecl.h>
 
 namespace simplex
 {
@@ -15,6 +15,8 @@ class UTILS_SHARED_EXPORT TypeInfo
 {
 public:
     explicit TypeInfo(Type);
+
+    Type type() const;
 
     bool isFloat() const;
     bool isSignedInt() const;

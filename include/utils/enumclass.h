@@ -8,6 +8,6 @@
     using Name##InternalType = type; \
     static constexpr Name castTo##Name(type value) { return static_cast< Name >(value); } \
     static constexpr type castFrom##Name(Name value) { return static_cast< type >(value); } \
-    static constexpr type numElements##Name() { return castFrom##Name(Name::Count); }
+    static constexpr size_t numElements##Name() { return static_cast<size_t>(Name::Count); }
 
 #endif // ENUMCLASS_H

@@ -7,7 +7,7 @@
 
 #include "noncopyble.h"
 
-namespace trash
+namespace simplex
 {
 namespace utils
 {

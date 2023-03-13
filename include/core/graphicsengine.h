@@ -22,7 +22,7 @@ public:
     GraphicsEngine(const std::string&, std::shared_ptr<IGraphicsRenderer>);
     ~GraphicsEngine() override;
 
-    std::string name() const override;
+    const std::string &name() const override;
     void update() override;
 
 private:

@@ -13,7 +13,7 @@ namespace core
 ApplicationBase::ApplicationBase(const std::string &name)
     : m_(std::make_unique<ApplicationBasePrivate>(name))
 {
-    LOG_INFO << "Application \"" << m_->name() << "\" has been created";
+    LOG_INFO << "Application \"" << ApplicationBase::name() << "\" has been created";
 }
 
 ApplicationBase::~ApplicationBase()
@@ -21,10 +21,10 @@ ApplicationBase::~ApplicationBase()
     while (!m_->engines().empty())
         unregisterEngine(*m_->engines().begin());
 
-    LOG_INFO << "Application \"" << m_->name() << "\" has been destroyed";
+    LOG_INFO << "Application \"" << ApplicationBase::name() << "\" has been destroyed";
 }
 
-std::string ApplicationBase::name() const
+const std::string &ApplicationBase::name() const
 {
     return m_->name();
 }
@@ -52,7 +52,7 @@ bool ApplicationBase::unregisterEngine(std::shared_ptr<IEngine> engine)
     }
 
     m_->engines().erase(engine);
-    LOG_INFO << "Engine \"" << engine->name() << "\" has been unregistered from application " << name();
+    LOG_INFO << "Engine \"" << engine->name() << "\" has been unregistered from application " << ApplicationBase::name();
 
     return true;
 }

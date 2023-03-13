@@ -1,5 +1,5 @@
-#ifndef FORWARDDECL_H
-#define FORWARDDECL_H
+#ifndef CORE_FORWARDDECL_H
+#define CORE_FORWARDDECL_H
 
 namespace simplex
 {
@@ -9,18 +9,13 @@ namespace core
 class IObject;
 class IApplication;
 class IGraphicsRenderer;
-class IAudioRenderer;
-class IPhysicsRenderer;
 class IEngine;
 
 class ApplicationBase;
 
-
 class GraphicsEngine;
-class AudioEngine;
-class PhysicsEngine;
 
 }
 }
 
-#endif // FORWARDDECL_H
+#endif // CORE_FORWARDDECL_H
