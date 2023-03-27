@@ -1,7 +1,7 @@
 #include <array>
 #include <functional>
 
-#include <ostream>
+#include <utils/glm/gtc/type_ptr.hpp>
 #include <utils/logger.h>
 #include <utils/types.h>
 #include <utils/typeinfo.h>
@@ -15,14 +15,29 @@ namespace qt
 
 std::weak_ptr<QtOpenGL_4_5_Renderer> QtOpenGL_4_5_Renderer::s_instance;
 
-QtOpenGL_4_5_Renderer::RenderProgram_4_5::RenderProgram_4_5(GLuint id)
-    : m_id(id)
+QtOpenGL_4_5_Renderer::RenderProgram_4_5::RenderProgram_4_5()
 {
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    m_id = renderer->glCreateProgram();
 }
 
 QtOpenGL_4_5_Renderer::RenderProgram_4_5::~RenderProgram_4_5()
 {
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
 
+    GLint count;
+    renderer->glGetProgramiv(m_id, GL_ATTACHED_SHADERS, &count);
+
+    std::vector<GLuint> shaders(static_cast<size_t>(count));
+    renderer->glGetAttachedShaders(m_id, 2, &count, shaders.data());
+
+    for (auto shaderId : shaders)
+    {
+        renderer->glDetachShader(m_id, shaderId);
+        renderer->glDeleteShader(shaderId);
+    }
+
+    renderer->glDeleteProgram(m_id);
 }
 
 GLuint QtOpenGL_4_5_Renderer::RenderProgram_4_5::id() const
@@ -30,10 +45,174 @@ GLuint QtOpenGL_4_5_Renderer::RenderProgram_4_5::id() const
     return m_id;
 }
 
+std::vector<std::string> QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributesInfo()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+
+    GLint numAttributes;
+    renderer->glGetProgramiv(m_id, GL_ACTIVE_ATTRIBUTES, &numAttributes);
+    std::vector<std::string> result;
+    result.reserve(static_cast<size_t>(numAttributes));
+
+    GLint nameSize;
+    renderer->glGetProgramiv(m_id, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &nameSize);
+    std::vector<GLchar> name(static_cast<size_t>(nameSize));
+
+    GLsizei length;
+    GLint size;
+    GLenum type;
+    for (GLint i = 0; i < numAttributes; ++i)
+    {
+        renderer->glGetActiveAttrib(m_id,
+                                    static_cast<GLuint>(i),
+                                    static_cast<GLsizei>(nameSize),
+                                    &length,
+                                    &size,
+                                    &type,
+                                    name.data());
+        result.emplace_back(name.data());
+    }
+
+    return result;
+}
+
+std::vector<std::string> QtOpenGL_4_5_Renderer::RenderProgram_4_5::uniformsInfo()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+
+    GLint numAttributes;
+    renderer->glGetProgramiv(m_id, GL_ACTIVE_UNIFORMS, &numAttributes);
+    std::vector<std::string> result;
+    result.reserve(static_cast<size_t>(numAttributes));
+
+    GLint nameSize;
+    renderer->glGetProgramiv(m_id, GL_ACTIVE_UNIFORM_MAX_LENGTH, &nameSize);
+    std::vector<GLchar> name(static_cast<size_t>(nameSize));
+
+    GLsizei length;
+    GLint size;
+    GLenum type;
+    for (GLint i = 0; i < numAttributes; ++i)
+    {
+        renderer->glGetActiveUniform(m_id,
+                                     static_cast<GLuint>(i),
+                                     static_cast<GLsizei>(nameSize),
+                                     &length,
+                                     &size,
+                                     &type,
+                                     name.data());
+        result.emplace_back(name.data());
+    }
+
+    return result;
+}
+
+int32_t QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributeLocation(const std::string& name)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    return static_cast<int32_t>(renderer->glGetAttribLocation(m_id, name.c_str()));
+}
+
+int32_t QtOpenGL_4_5_Renderer::RenderProgram_4_5::uniformLocation(const std::string& name)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    return static_cast<int32_t>(renderer->glGetUniformLocation(m_id, name.c_str()));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, float v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform1fv(m_id, loc, 1, &v);
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::vec2& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform2fv(m_id, loc, 1, glm::value_ptr(v));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::vec3& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform3fv(m_id, loc, 1, glm::value_ptr(v));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::vec4& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform4fv(m_id, loc, 1, glm::value_ptr(v));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, int32_t v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform1iv(m_id, loc, 1, &v);
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::ivec2& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform2iv(m_id, loc, 1, glm::value_ptr(v));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::ivec3& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform3iv(m_id, loc, 1, glm::value_ptr(v));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::ivec4& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform4iv(m_id, loc, 1, glm::value_ptr(v));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, uint32_t v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform1uiv(m_id, loc, 1, &v);
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::uvec2& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform2uiv(m_id, loc, 1, glm::value_ptr(v));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::uvec3& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform3uiv(m_id, loc, 1, glm::value_ptr(v));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::uvec4& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniform4uiv(m_id, loc, 1, glm::value_ptr(v));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat2x2& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniformMatrix2fv(m_id, loc, 1, GL_FALSE, glm::value_ptr(v));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat3x3& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniformMatrix3fv(m_id, loc, 1, GL_FALSE, glm::value_ptr(v));
+}
+
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat4x4& v)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glProgramUniformMatrix4fv(m_id, loc, 1, GL_FALSE, glm::value_ptr(v));
+}
+
 QtOpenGL_4_5_Renderer::Buffer_4_5::Buffer_4_5(uint64_t size, const void *data)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
-    renderer->glGenBuffers(1, &m_id);
+    renderer->glCreateBuffers(1, &m_id);
     Buffer_4_5::resize(size, data);
 }
 
@@ -93,10 +272,10 @@ GLbitfield QtOpenGL_4_5_Renderer::Buffer_4_5::MapAccess2GL(MapAccess value)
 }
 
 QtOpenGL_4_5_Renderer::VertexArray_4_5::VertexArray_4_5()
-    : m_drawDataDescription(utils::PrimitiveType::Triangles, 0u, nullptr, utils::Type::Uint32)
+    : m_indexBuffer(nullptr, utils::PrimitiveType::Triangles, 0, utils::Type::Uint32)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
-    renderer->glGenVertexArrays(1, &m_id);
+    renderer->glCreateVertexArrays(1, &m_id);
 }
 
 QtOpenGL_4_5_Renderer::VertexArray_4_5::~VertexArray_4_5()
@@ -110,23 +289,108 @@ GLuint QtOpenGL_4_5_Renderer::VertexArray_4_5::id() const
     return m_id;
 }
 
-void QtOpenGL_4_5_Renderer::VertexArray_4_5::attachVertexBuffer(utils::VertexAttribute attribIndex,
-                                                                std::shared_ptr<Buffer> buffer,
-                                                                uint8_t numComponents,
-                                                                utils::Type type,
-                                                                size_t offset,
-                                                                size_t stride,
-                                                                uint32_t relativeOffset)
+uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::attachVertexBuffer(std::shared_ptr<Buffer> buffer, size_t offset, uint32_t stride)
+{
+    auto bindingIndex = static_cast<uint32_t>(-1);
+
+    auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
+    if (!buffer_4_5)
+        return bindingIndex;
+
+    auto tuple = std::make_tuple(buffer_4_5, offset, stride);
+
+    if (auto it = std::find(m_vertexBuffers.begin(), m_vertexBuffers.end(), tuple); it != m_vertexBuffers.end())
+        return static_cast<uint32_t>(it - m_vertexBuffers.begin());
+
+    auto it = std::find_if(m_vertexBuffers.begin(), m_vertexBuffers.end(), [](const auto &v){ return std::get<0>(v) == nullptr;});
+    bindingIndex = static_cast<uint32_t>(it - m_vertexBuffers.begin());
+    if (it == m_vertexBuffers.end())
+        m_vertexBuffers.resize(m_vertexBuffers.size() + 1);
+    m_vertexBuffers[bindingIndex] = tuple;
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glVertexArrayVertexBuffer(m_id, static_cast<GLuint>(bindingIndex), buffer_4_5->id(), static_cast<GLintptr>(offset), static_cast<GLsizei>(stride));
+
+    return bindingIndex;
+}
+
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::detachVertexBuffer(uint32_t bindingIndex)
+{
+    m_vertexBuffers[bindingIndex] = std::make_tuple(nullptr, static_cast<size_t>(0), static_cast<uint32_t>(0));
+
+    for (const auto &[attrib, tuple]: m_vertexDeclarations)
+        if (std::get<0>(tuple) == bindingIndex)
+            undeclareVertexAttribute(attrib);
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glVertexArrayVertexBuffer(m_id, static_cast<GLuint>(bindingIndex), 0, 0, 0);
+
+}
+
+std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::VertexArray_4_5::vertexBufferByBindingIndex(uint32_t bindingIndex)
+{
+    return std::get<0>(m_vertexBuffers[bindingIndex]);
+}
+
+size_t QtOpenGL_4_5_Renderer::VertexArray_4_5::offsetByBindingIndex(uint32_t bindingIndex)
+{
+    return std::get<1>(m_vertexBuffers[bindingIndex]);
+}
+
+uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::strideByBindingIndex(uint32_t bindingIndex)
+{
+    return std::get<2>(m_vertexBuffers[bindingIndex]);
+}
+
+
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::attachIndexBuffer(std::shared_ptr<Buffer> buffer, utils::PrimitiveType primitiveType, uint32_t count, utils::Type type)
 {
     auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
     if (!buffer_4_5)
         return;
 
-    auto loc = static_cast<GLuint>(utils::castFromVertexAttribute(attribIndex));
+    m_indexBuffer = std::make_tuple(buffer_4_5, primitiveType, count, type);
 
     auto renderer = QtOpenGL_4_5_Renderer::instance();
-    renderer->glVertexArrayVertexBuffer(m_id, loc, buffer_4_5->id(), static_cast<GLintptr>(offset), static_cast<GLsizei>(stride));
-    renderer->glVertexArrayAttribBinding(m_id, loc, loc);
+    renderer->glVertexArrayElementBuffer(m_id, buffer_4_5->id());
+}
+
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::detachIndexBuffer()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glVertexArrayElementBuffer(m_id, 0);
+
+    m_indexBuffer = std::make_tuple(nullptr, utils::PrimitiveType::Triangles, 0, utils::Type::Uint32);
+}
+
+std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::VertexArray_4_5::indexBuffer()
+{
+    return std::get<0>(m_indexBuffer);
+}
+
+utils::PrimitiveType QtOpenGL_4_5_Renderer::VertexArray_4_5::primitiveType()
+{
+    return std::get<1>(m_indexBuffer);
+}
+
+uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::elementsCount()
+{
+    return std::get<2>(m_indexBuffer);
+}
+
+utils::Type QtOpenGL_4_5_Renderer::VertexArray_4_5::indicesType()
+{
+    return std::get<3>(m_indexBuffer);
+}
+
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::declareVertexAttribute(utils::VertexAttribute attrib, uint32_t bindingIndex, uint8_t numComponents, utils::Type type, uint32_t relativeOffset)
+{
+    m_vertexDeclarations[attrib] = std::make_tuple(bindingIndex, numComponents, type, relativeOffset);
+
+    auto loc = static_cast<GLuint>(attrib);
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glVertexArrayAttribBinding(m_id, loc, static_cast<GLuint>(bindingIndex));
     renderer->glEnableVertexArrayAttrib(m_id, loc);
 
     if (type == utils::Type::Single)
@@ -136,59 +400,38 @@ void QtOpenGL_4_5_Renderer::VertexArray_4_5::attachVertexBuffer(utils::VertexAtt
     else if (utils::TypeInfo::isInt(type))
         renderer->glVertexArrayAttribIFormat(m_id, loc, static_cast<GLint>(numComponents), Type2GL(type), static_cast<GLuint>(relativeOffset));
 
-    m_vertexBuffers[attribIndex] = buffer_4_5;
 }
 
-void QtOpenGL_4_5_Renderer::VertexArray_4_5::detachVertexBuffer(utils::VertexAttribute attribIndex)
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::undeclareVertexAttribute(utils::VertexAttribute attrib)
 {
-    auto loc = static_cast<GLuint>(utils::castFromVertexAttribute(attribIndex));
-
     auto renderer = QtOpenGL_4_5_Renderer::instance();
-    renderer->glVertexArrayVertexBuffer(m_id, loc, 0u, static_cast<GLintptr>(0), static_cast<GLsizei>(0));
-    renderer->glDisableVertexArrayAttrib(m_id, loc);
+    renderer->glDisableVertexArrayAttrib(m_id, static_cast<GLuint>(attrib));
 
-    m_vertexBuffers.erase(attribIndex);
+    m_vertexDeclarations.erase(attrib);
 }
 
-std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::VertexArray_4_5::vertexBuffer(utils::VertexAttribute attribIndex) const
+uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::bindingIndexByVertexAttribute(utils::VertexAttribute attrib)
 {
-    auto it = m_vertexBuffers.find(attribIndex);
-    return (it != m_vertexBuffers.end()) ? it->second : nullptr;
+    auto it = m_vertexDeclarations.find(attrib);
+    return (it != m_vertexDeclarations.end()) ? std::get<0>(it->second) : static_cast<uint32_t>(-1);
 }
 
-void QtOpenGL_4_5_Renderer::VertexArray_4_5::setDrawDataDescription(utils::PrimitiveType primitiveType,
-                                                                    size_t elementsCount,
-                                                                    std::shared_ptr<Buffer> buffer,
-                                                                    utils::Type type)
+uint8_t QtOpenGL_4_5_Renderer::VertexArray_4_5::numComponentsByVertexAttribute(utils::VertexAttribute attrib)
 {
-    auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
-    if (!buffer_4_5)
-        return;
-
-    auto renderer = QtOpenGL_4_5_Renderer::instance();
-    renderer->glVertexArrayElementBuffer(m_id, buffer_4_5->id());
-
-    m_drawDataDescription = { primitiveType, elementsCount, buffer_4_5, type };
+    auto it = m_vertexDeclarations.find(attrib);
+    return (it != m_vertexDeclarations.end()) ? std::get<1>(it->second) : 0;
 }
 
-utils::PrimitiveType QtOpenGL_4_5_Renderer::VertexArray_4_5::primitiveType() const
+utils::Type QtOpenGL_4_5_Renderer::VertexArray_4_5::typeByVertexAttribute(utils::VertexAttribute attrib)
 {
-    return std::get<0>(m_drawDataDescription);
+    auto it = m_vertexDeclarations.find(attrib);
+    return (it != m_vertexDeclarations.end()) ? std::get<2>(it->second) : utils::Type::Single;
 }
 
-size_t QtOpenGL_4_5_Renderer::VertexArray_4_5::elementsCount() const
+uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::relativeOffsetByVertexAttribute(utils::VertexAttribute attrib)
 {
-    return std::get<1>(m_drawDataDescription);
-}
-
-std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::VertexArray_4_5::indexBuffer() const
-{
-    return std::get<2>(m_drawDataDescription);
-}
-
-utils::Type QtOpenGL_4_5_Renderer::VertexArray_4_5::indicesType() const
-{
-    return std::get<3>(m_drawDataDescription);
+    auto it = m_vertexDeclarations.find(attrib);
+    return (it != m_vertexDeclarations.end()) ? std::get<3>(it->second) : 0;
 }
 
 std::shared_ptr<core::IGraphicsRenderer::RenderProgram> QtOpenGL_4_5_Renderer::createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader)
@@ -202,7 +445,7 @@ std::shared_ptr<core::IGraphicsRenderer::RenderProgram> QtOpenGL_4_5_Renderer::c
         std::make_pair(GL_FRAGMENT_SHADER, std::cref(fragmentShader))
     };
     std::array<GLuint, s_shadersCount> shadersIds {0u, 0u};
-    GLuint programId = 0u;
+    std::shared_ptr<RenderProgram_4_5> renderProgram;
     bool isOk = true;
 
     for (size_t i = 0; i < s_shadersCount; ++i)
@@ -231,18 +474,18 @@ std::shared_ptr<core::IGraphicsRenderer::RenderProgram> QtOpenGL_4_5_Renderer::c
 
     if (isOk)
     {
-        programId = renderer->glCreateProgram();
+        renderProgram = std::make_shared<RenderProgram_4_5>();
         for (size_t i = 0; i < s_shadersCount; ++i)
-            renderer->glAttachShader(programId, shadersIds[i]);
-        renderer->glLinkProgram(programId);
+            renderer->glAttachShader(renderProgram->id(), shadersIds[i]);
+        renderer->glLinkProgram(renderProgram->id());
         GLint linked;
-        renderer->glGetProgramiv(programId, GL_LINK_STATUS, &linked);
+        renderer->glGetProgramiv(renderProgram->id(), GL_LINK_STATUS, &linked);
         if (!linked) {
             GLint infoLen = 0;
-            renderer->glGetProgramiv(programId, GL_INFO_LOG_LENGTH, &infoLen);
+            renderer->glGetProgramiv(renderProgram->id(), GL_INFO_LOG_LENGTH, &infoLen);
             if(infoLen > 1) {
                 char *infoLog = static_cast<char*>(malloc(sizeof(char) * static_cast<unsigned int>(infoLen)));
-                renderer->glGetProgramInfoLog(programId, infoLen, nullptr, infoLog);
+                renderer->glGetProgramInfoLog(renderProgram->id(), infoLen, nullptr, infoLog);
                 LOG_ERROR << "Program link error: " << infoLog;
                 free(infoLog);
             }
@@ -252,13 +495,13 @@ std::shared_ptr<core::IGraphicsRenderer::RenderProgram> QtOpenGL_4_5_Renderer::c
 
     if (!isOk)
     {
-        renderer->glDeleteShader(programId);
+        renderProgram = nullptr;
         for (size_t i = 0; i < s_shadersCount; ++i)
-            renderer->glDeleteShader(shadersIds[i]);
-        return nullptr;
+            if (renderer->glIsShader(shadersIds[i]) == GL_TRUE)
+                renderer->glDeleteShader(shadersIds[i]);
     }
 
-    return isOk ? std::make_shared<RenderProgram_4_5>(programId) : nullptr;
+    return renderProgram;
 }
 
 std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::createBuffer(size_t size, const void *data)
@@ -290,34 +533,12 @@ const std::string &QtOpenGL_4_5_Renderer::name() const
 void QtOpenGL_4_5_Renderer::resize(int width, int height)
 {
     glViewport(0, 0, width, height);
-//    glMatrixMode(GL_MODELVIEW);
-//    glLoadIdentity();
-//    glMatrixMode(GL_PROJECTION);
-//    glLoadIdentity();
 }
 
 void QtOpenGL_4_5_Renderer::render()
 {
     glClearColor(.5f, .5f, 1.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
-//    glBegin(GL_TRIANGLES);
-//    glColor3f(1.f, 0.f, 0.f);
-//    glVertex2f(-.5f, -.7f);
-//    glColor3f(0.f, 1.f, 0.f);
-//    glVertex2f(.5f, -.7f);
-//    glColor3f(0.f, 0.f, 1.f);
-//    glVertex2f(0.f, .5f);
-//    glEnd();
-}
-
-void QtOpenGL_4_5_Renderer::render2(std::shared_ptr<RenderProgram> r, std::shared_ptr<VertexArray> v)
-{
-    auto rr = std::dynamic_pointer_cast<RenderProgram_4_5>(r);
-    auto vv = std::dynamic_pointer_cast<VertexArray_4_5>(v);
-
-    glBindVertexArray(vv->id());
-    glUseProgram(rr->id());
-    glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 QtOpenGL_4_5_Renderer::QtOpenGL_4_5_Renderer(const QOpenGLContext *context)
