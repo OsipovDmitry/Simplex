@@ -5,6 +5,7 @@
 #include <utils/logger.h>
 #include <utils/types.h>
 #include <utils/typeinfo.h>
+#include <utils/mesh.h>
 
 #include "qtopengl_4_5_renderer.h"
 
@@ -254,6 +255,7 @@ std::unique_ptr<core::IGraphicsRenderer::Buffer::MappedData> QtOpenGL_4_5_Render
 
     m_isMapped = true;
     auto renderer = QtOpenGL_4_5_Renderer::instance();
+
     return std::make_unique<MappedData_4_5>(
                 shared_from_this(),
                 renderer->glMapNamedBufferRange(m_id, static_cast<GLintptr>(offset), static_cast<GLsizei>(size), MapAccess2GL(access))
@@ -271,8 +273,9 @@ GLbitfield QtOpenGL_4_5_Renderer::Buffer_4_5::MapAccess2GL(MapAccess value)
     return s_table[castFromMapAccess(value)];
 }
 
-QtOpenGL_4_5_Renderer::VertexArray_4_5::VertexArray_4_5()
-    : m_indexBuffer(nullptr, utils::PrimitiveType::Triangles, 0, utils::Type::Uint32)
+QtOpenGL_4_5_Renderer::VertexArray_4_5::VertexArray_4_5(utils::PrimitiveType primitiveType)
+    : m_indexBuffer(nullptr, 0, utils::Type::Uint32)
+    , m_primitiveType(primitiveType)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glCreateVertexArrays(1, &m_id);
@@ -343,13 +346,13 @@ uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::strideByBindingIndex(uint32_t b
 }
 
 
-void QtOpenGL_4_5_Renderer::VertexArray_4_5::attachIndexBuffer(std::shared_ptr<Buffer> buffer, utils::PrimitiveType primitiveType, uint32_t count, utils::Type type)
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::attachIndexBuffer(std::shared_ptr<Buffer> buffer, uint32_t count, utils::Type type)
 {
     auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
     if (!buffer_4_5)
         return;
 
-    m_indexBuffer = std::make_tuple(buffer_4_5, primitiveType, count, type);
+    m_indexBuffer = std::make_tuple(buffer_4_5, count, type);
 
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glVertexArrayElementBuffer(m_id, buffer_4_5->id());
@@ -360,7 +363,7 @@ void QtOpenGL_4_5_Renderer::VertexArray_4_5::detachIndexBuffer()
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glVertexArrayElementBuffer(m_id, 0);
 
-    m_indexBuffer = std::make_tuple(nullptr, utils::PrimitiveType::Triangles, 0, utils::Type::Uint32);
+    m_indexBuffer = std::make_tuple(nullptr, 0, utils::Type::Uint32);
 }
 
 std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::VertexArray_4_5::indexBuffer()
@@ -368,22 +371,17 @@ std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::VertexAr
     return std::get<0>(m_indexBuffer);
 }
 
-utils::PrimitiveType QtOpenGL_4_5_Renderer::VertexArray_4_5::primitiveType()
+uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::elementsCount()
 {
     return std::get<1>(m_indexBuffer);
 }
 
-uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::elementsCount()
+utils::Type QtOpenGL_4_5_Renderer::VertexArray_4_5::indicesType()
 {
     return std::get<2>(m_indexBuffer);
 }
 
-utils::Type QtOpenGL_4_5_Renderer::VertexArray_4_5::indicesType()
-{
-    return std::get<3>(m_indexBuffer);
-}
-
-void QtOpenGL_4_5_Renderer::VertexArray_4_5::declareVertexAttribute(utils::VertexAttribute attrib, uint32_t bindingIndex, uint8_t numComponents, utils::Type type, uint32_t relativeOffset)
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::declareVertexAttribute(utils::VertexAttribute attrib, uint32_t bindingIndex, uint32_t numComponents, utils::Type type, uint32_t relativeOffset)
 {
     m_vertexDeclarations[attrib] = std::make_tuple(bindingIndex, numComponents, type, relativeOffset);
 
@@ -416,7 +414,7 @@ uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::bindingIndexByVertexAttribute(u
     return (it != m_vertexDeclarations.end()) ? std::get<0>(it->second) : static_cast<uint32_t>(-1);
 }
 
-uint8_t QtOpenGL_4_5_Renderer::VertexArray_4_5::numComponentsByVertexAttribute(utils::VertexAttribute attrib)
+uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::numComponentsByVertexAttribute(utils::VertexAttribute attrib)
 {
     auto it = m_vertexDeclarations.find(attrib);
     return (it != m_vertexDeclarations.end()) ? std::get<1>(it->second) : 0;
@@ -432,6 +430,11 @@ uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::relativeOffsetByVertexAttribute
 {
     auto it = m_vertexDeclarations.find(attrib);
     return (it != m_vertexDeclarations.end()) ? std::get<3>(it->second) : 0;
+}
+
+utils::PrimitiveType QtOpenGL_4_5_Renderer::VertexArray_4_5::primitiveType()
+{
+    return m_primitiveType;
 }
 
 std::shared_ptr<core::IGraphicsRenderer::RenderProgram> QtOpenGL_4_5_Renderer::createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader)
@@ -509,9 +512,56 @@ std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::createBu
     return std::make_shared<Buffer_4_5>(size, data);
 }
 
-std::shared_ptr<core::IGraphicsRenderer::VertexArray> QtOpenGL_4_5_Renderer::createVertexArray()
+std::shared_ptr<core::IGraphicsRenderer::VertexArray> QtOpenGL_4_5_Renderer::createVertexArray(std::shared_ptr<utils::Mesh> mesh, bool uniteBuffers)
 {
-    return std::make_shared<VertexArray_4_5>();
+    auto vertexArray = std::make_shared<VertexArray_4_5>(mesh ? mesh->primitiveType() : utils::PrimitiveType::Triangles);
+
+    if (mesh)
+    {
+        if (uniteBuffers)
+        {
+            uint64_t totalSize = 0u;
+            uint32_t stride = 0u;
+            for (auto const &[attrib, buffer] : mesh->vertexBuffers())
+            {
+                totalSize += buffer->sizeInBytes();
+                stride += buffer->numComponents() * utils::TypeInfo::size(buffer->type());
+            }
+
+            auto buffer = createBuffer(totalSize);
+            auto bindingIndex = vertexArray->attachVertexBuffer(buffer, 0u, stride);
+
+            uint32_t offset = 0u;
+            auto bufferData = buffer->map(Buffer::MapAccess::OnlyWrite);
+            for (auto const &[attrib, buffer] : mesh->vertexBuffers())
+            {
+                uint32_t vertexSize = buffer->numComponents() * utils::TypeInfo::size(buffer->type());
+                for (uint32_t i = 0; i < buffer->numVertices(); ++i)
+                    std::memcpy(static_cast<uint8_t*>(bufferData->get()) + stride * i + offset, buffer->vertex(i), vertexSize);
+                vertexArray->declareVertexAttribute(attrib, bindingIndex, buffer->numComponents(), buffer->type(), offset);
+                offset += vertexSize;
+            }
+        }
+        else
+        {
+            for (auto const &[attrib, buffer] : mesh->vertexBuffers())
+            {
+                auto bindingIndex = vertexArray->attachVertexBuffer(createBuffer(buffer->sizeInBytes(), buffer->data()),
+                                                                    0u,
+                                                                    buffer->numComponents() * utils::TypeInfo::size(buffer->type()));
+                vertexArray->declareVertexAttribute(attrib, bindingIndex, buffer->numComponents(), buffer->type(), 0u);
+            }
+        }
+
+        if (auto buffer = mesh->indexBuffer(); buffer)
+        {
+            vertexArray->attachIndexBuffer(createBuffer(buffer->sizeInBytes(), buffer->data()),
+                                           buffer->numIndices(),
+                                           buffer->type());
+        }
+    }
+
+    return vertexArray;
 }
 
 QtOpenGL_4_5_Renderer::~QtOpenGL_4_5_Renderer()
@@ -537,8 +587,19 @@ void QtOpenGL_4_5_Renderer::resize(int width, int height)
 
 void QtOpenGL_4_5_Renderer::render()
 {
+    glEnable(GL_DEPTH_TEST);
     glClearColor(.5f, .5f, 1.f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void QtOpenGL_4_5_Renderer::render2(std::shared_ptr<RenderProgram> rp, std::shared_ptr<VertexArray> vao)
+{
+    auto rp2 = std::dynamic_pointer_cast<RenderProgram_4_5>(rp);
+    auto vao2 = std::dynamic_pointer_cast<VertexArray_4_5>(vao);
+
+    glUseProgram(rp2->id());
+    glBindVertexArray(vao2->id());
+    glDrawElements(GL_TRIANGLES, vao2->elementsCount(), Type2GL(vao2->indicesType()), nullptr);
 }
 
 QtOpenGL_4_5_Renderer::QtOpenGL_4_5_Renderer(const QOpenGLContext *context)
@@ -574,7 +635,7 @@ GLenum QtOpenGL_4_5_Renderer::Type2GL(utils::Type value)
         GL_INT,
         GL_UNSIGNED_BYTE,
         GL_UNSIGNED_SHORT,
-        GL_UNSIGNED_INT
+        GL_UNSIGNED_INT,
     };
 
     return s_table[utils::castFromType(value)];
@@ -613,7 +674,7 @@ QtOpenGL_4_5_Renderer::Buffer_4_5::MappedData_4_5::~MappedData_4_5()
 
 void *QtOpenGL_4_5_Renderer::Buffer_4_5::MappedData_4_5::get()
 {
-    return m_data;
+    return m_mappedBuffer.expired() ? nullptr : m_data;
 }
 
 }

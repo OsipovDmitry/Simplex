@@ -6,14 +6,25 @@ namespace simplex
 namespace core
 {
 
-class IObject;
+class INamedObject;
 class IApplication;
-class IGraphicsRenderer;
 class IEngine;
+class IGraphicsRenderer;
+
+class SortedObject;
 
 class ApplicationBase;
 
 class GraphicsEngine;
+
+class Drawable;
+class Scene;
+class Node;
+class SceneRootNode;
+class CameraNode;
+class DrawableNode;
+
+class NodeVisitor;
 
 }
 }

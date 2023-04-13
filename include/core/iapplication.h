@@ -1,6 +1,8 @@
 #ifndef IAPPLICATION_H
 #define IAPPLICATION_H
 
+#include <inttypes.h>
+
 #include <core/inamedobject.h>
 
 namespace simplex
@@ -11,9 +13,9 @@ namespace core
 class IApplication : public INamedObject
 {
 public:
-    virtual ~IApplication() = default;
+    ~IApplication() override = default;
 
-    virtual void update() = 0;
+    virtual void update(uint64_t time, uint32_t dt) = 0;
 };
 
 }

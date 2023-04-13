@@ -57,7 +57,7 @@ public:
         GLuint m_id = 0;
     };
 
-    class Buffer_4_5 : public core::IGraphicsRenderer::Buffer, std::enable_shared_from_this<Buffer_4_5>
+    class Buffer_4_5 : public core::IGraphicsRenderer::Buffer, public std::enable_shared_from_this<Buffer_4_5>
     {
         NONCOPYBLE(Buffer_4_5)
     public:
@@ -94,7 +94,7 @@ public:
     {
         NONCOPYBLE(VertexArray_4_5)
     public:
-        VertexArray_4_5();
+        VertexArray_4_5(utils::PrimitiveType);
         ~VertexArray_4_5() override;
 
         GLuint id() const;
@@ -105,32 +105,34 @@ public:
         size_t offsetByBindingIndex(uint32_t bindingIndex) override;
         uint32_t strideByBindingIndex(uint32_t bindingIndex) override;
 
-        void attachIndexBuffer(std::shared_ptr<Buffer> buffer, utils::PrimitiveType primitiveType, uint32_t count, utils::Type type) override;
+        void attachIndexBuffer(std::shared_ptr<Buffer> buffer, uint32_t count, utils::Type type) override;
         void detachIndexBuffer() override;
         std::shared_ptr<Buffer> indexBuffer() override;
-        utils::PrimitiveType primitiveType() override;
         uint32_t elementsCount() override;
         utils::Type indicesType() override;
 
-        void declareVertexAttribute(utils::VertexAttribute, uint32_t bindingIndex, uint8_t numComponents, utils::Type type, uint32_t relativeOffset) override;
+        void declareVertexAttribute(utils::VertexAttribute, uint32_t bindingIndex, uint32_t numComponents, utils::Type type, uint32_t relativeOffset) override;
         void undeclareVertexAttribute(utils::VertexAttribute) override;
         uint32_t bindingIndexByVertexAttribute(utils::VertexAttribute) override;
-        uint8_t numComponentsByVertexAttribute(utils::VertexAttribute) override;
+        uint32_t numComponentsByVertexAttribute(utils::VertexAttribute) override;
         utils::Type typeByVertexAttribute(utils::VertexAttribute) override;
         uint32_t relativeOffsetByVertexAttribute(utils::VertexAttribute) override;
+
+        utils::PrimitiveType primitiveType() override;
 
     private:
         GLuint m_id = 0;
 
         std::vector<std::tuple<std::shared_ptr<Buffer_4_5>, size_t, uint32_t>> m_vertexBuffers;
-        std::tuple<std::shared_ptr<Buffer_4_5>, utils::PrimitiveType, uint32_t, utils::Type> m_indexBuffer;
-        std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, uint8_t, utils::Type, uint32_t>> m_vertexDeclarations;
+        std::tuple<std::shared_ptr<Buffer_4_5>, uint32_t, utils::Type> m_indexBuffer;
+        std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, uint32_t, utils::Type, uint32_t>> m_vertexDeclarations;
+        utils::PrimitiveType m_primitiveType;
 
     };
 
     std::shared_ptr<RenderProgram> createRenderProgram(const std::string& vertexShader, const std::string& fragmentShader) override;
     std::shared_ptr<Buffer> createBuffer(size_t = 0u, const void* = nullptr) override;
-    std::shared_ptr<VertexArray> createVertexArray() override;
+    std::shared_ptr<VertexArray> createVertexArray(std::shared_ptr<utils::Mesh> = nullptr, bool uniteBuffers = true) override;
 
 
     ~QtOpenGL_4_5_Renderer() override;
@@ -140,6 +142,7 @@ public:
 
     void resize(int, int);
     void render();
+    void render2(std::shared_ptr<RenderProgram>, std::shared_ptr<VertexArray>);
 
 private:
     static std::weak_ptr<QtOpenGL_4_5_Renderer> s_instance;

@@ -1,5 +1,5 @@
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef UTILS_TYPES_H
+#define UTILS_TYPES_H
 
 #include <cstdint>
 
@@ -42,4 +42,4 @@ ENUMCLASS(VertexAttribute, uint16_t,
 }
 }
 
-#endif // TYPES_H
+#endif // UTILS_TYPES_H

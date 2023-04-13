@@ -2,6 +2,7 @@
 #define GRAPHICSENGINE_H
 
 #include <memory>
+#include <vector>
 
 #include <utils/noncopyble.h>
 
@@ -23,7 +24,11 @@ public:
     ~GraphicsEngine() override;
 
     const std::string &name() const override;
-    void update() override;
+    void update(uint64_t time, uint32_t dt) override;
+
+    const std::vector<std::shared_ptr<Scene>> &scenes() const;
+    void addScene(std::shared_ptr<Scene>);
+    void removeScene(std::shared_ptr<Scene>);
 
 private:
     std::unique_ptr<GraphicsEnginePrivate> m_;

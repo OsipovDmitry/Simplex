@@ -1,5 +1,5 @@
-#ifndef SINGLETON_H
-#define SINGLETON_H
+#ifndef UTILS_SINGLETON_H
+#define UTILS_SINGLETON_H
 
 #define SINGLETON(Class) \
     public: \
@@ -8,4 +8,4 @@
         return p; \
     }
 
-#endif // SINGLETON_H
+#endif // UTILS_SINGLETON_H

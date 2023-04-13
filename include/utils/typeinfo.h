@@ -1,5 +1,5 @@
-#ifndef TYPEINFO_H
-#define TYPEINFO_H
+#ifndef UTILS_TYPEINFO_H
+#define UTILS_TYPEINFO_H
 
 #include <cstdint>
 
@@ -37,4 +37,4 @@ private:
 }
 }
 
-#endif // TYPEINFO_H
+#endif // UTILS_TYPEINFO_H

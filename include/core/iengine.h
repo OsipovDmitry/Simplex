@@ -11,7 +11,7 @@ namespace core
 class IEngine : public INamedObject
 {
 public:
-    virtual void update() = 0;
+    virtual void update(uint64_t time, uint32_t dt) = 0;
 };
 
 }

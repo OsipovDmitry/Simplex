@@ -84,24 +84,25 @@ public:
         virtual size_t offsetByBindingIndex(uint32_t bindingIndex) = 0;
         virtual uint32_t strideByBindingIndex(uint32_t bindingIndex) = 0;
 
-        virtual void attachIndexBuffer(std::shared_ptr<Buffer> buffer, utils::PrimitiveType primitiveType, uint32_t count, utils::Type type) = 0;
+        virtual void attachIndexBuffer(std::shared_ptr<Buffer> buffer, uint32_t count, utils::Type type) = 0;
         virtual void detachIndexBuffer() = 0;
         virtual std::shared_ptr<Buffer> indexBuffer() = 0;
-        virtual utils::PrimitiveType primitiveType() = 0;
         virtual uint32_t elementsCount() = 0;
         virtual utils::Type indicesType() = 0;
 
-        virtual void declareVertexAttribute(utils::VertexAttribute, uint32_t bindingIndex, uint8_t numComponents, utils::Type type, uint32_t relativeOffset) = 0;
+        virtual void declareVertexAttribute(utils::VertexAttribute, uint32_t bindingIndex, uint32_t numComponents, utils::Type type, uint32_t relativeOffset) = 0;
         virtual void undeclareVertexAttribute(utils::VertexAttribute) = 0;
         virtual uint32_t bindingIndexByVertexAttribute(utils::VertexAttribute) = 0;
-        virtual uint8_t numComponentsByVertexAttribute(utils::VertexAttribute) = 0;
+        virtual uint32_t numComponentsByVertexAttribute(utils::VertexAttribute) = 0;
         virtual utils::Type typeByVertexAttribute(utils::VertexAttribute) = 0;
         virtual uint32_t relativeOffsetByVertexAttribute(utils::VertexAttribute) = 0;
+
+        virtual utils::PrimitiveType primitiveType() = 0;
     };
 
     virtual std::shared_ptr<RenderProgram> createRenderProgram(const std::string& vertexShader, const std::string& fragmentShader) = 0;
     virtual std::shared_ptr<Buffer> createBuffer(size_t size = 0u, const void *data = nullptr) = 0;
-    virtual std::shared_ptr<VertexArray> createVertexArray() = 0;
+    virtual std::shared_ptr<VertexArray> createVertexArray(std::shared_ptr<utils::Mesh> = nullptr, bool uniteBuffers = true) = 0;
 };
 
 }

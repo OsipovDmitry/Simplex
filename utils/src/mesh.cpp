@@ -20,19 +20,12 @@ Buffer::Buffer(uint64_t sizeInBytes)
 
 Buffer::~Buffer()
 {
-    clear();
+    delete [] m_data;
 }
 
 uint64_t Buffer::sizeInBytes() const
 {
     return m_sizeInBytes;
-}
-
-void Buffer::clear()
-{
-    delete [] m_data;
-    m_data = nullptr;
-    m_sizeInBytes = 0u;
 }
 
 void Buffer::resize(uint64_t sizeInBytes)
@@ -44,7 +37,7 @@ void Buffer::resize(uint64_t sizeInBytes)
     if (m_data)
         std::memcpy(newData, m_data, std::min(sizeInBytes, m_sizeInBytes));
 
-    clear();
+    delete [] m_data;
     m_data = newData;
     m_sizeInBytes = sizeInBytes;
 }
@@ -59,10 +52,9 @@ const uint8_t *Buffer::data() const
     return m_data;
 }
 
-VertexBuffer::VertexBuffer(uint32_t numComponents, uint32_t numVertices, Type type)
-    : Buffer(numComponents * numVertices * TypeInfo::size(type))
+VertexBuffer::VertexBuffer(uint32_t numVertices, uint32_t numComponents, Type type)
+    : Buffer(numVertices * numComponents * TypeInfo::size(type))
     , m_numComponents(numComponents)
-    , m_numVertices(numVertices)
     , m_type(type)
 {
     assert(m_numComponents <= 4u);
@@ -79,7 +71,13 @@ uint32_t VertexBuffer::numComponents() const
 
 uint32_t VertexBuffer::numVertices() const
 {
-    return m_numVertices;
+    const uint32_t vertexSize = m_numComponents * TypeInfo::size(m_type);
+    return static_cast<uint32_t>(m_sizeInBytes / vertexSize);
+}
+
+void VertexBuffer::setNumVertices(uint32_t numVertices)
+{
+    resize(numVertices * m_numComponents * TypeInfo::size(m_type));
 }
 
 Type VertexBuffer::type() const
@@ -97,11 +95,9 @@ void VertexBuffer::setVertex(uint32_t index, const void *data)
     std::memcpy(m_data + m_numComponents * TypeInfo::size(m_type) * index, data, m_numComponents * TypeInfo::size(m_type));
 }
 
-IndexBuffer::IndexBuffer(PrimitiveType primitiveType, uint32_t numIndices, Type type)
+IndexBuffer::IndexBuffer(uint32_t numIndices, Type type)
     : Buffer(numIndices * TypeInfo::size(type))
     , m_type(type)
-    , m_primitiveType(primitiveType)
-    , m_numIndices(numIndices)
 {
     assert(TypeInfo::isUnsignedInt(m_type));
 }
@@ -115,17 +111,28 @@ Type IndexBuffer::type() const
     return m_type;
 }
 
-PrimitiveType IndexBuffer::primitiveType() const
-{
-    return m_primitiveType;
-}
-
 uint32_t IndexBuffer::numIndices() const
 {
-    return m_numIndices;
+    return static_cast<uint32_t>(m_sizeInBytes / TypeInfo::size(m_type));
 }
 
-Mesh::Mesh()
+void IndexBuffer::setNumIndices(uint32_t numIndices)
+{
+    resize(numIndices * TypeInfo::size(m_type));
+}
+
+const void *IndexBuffer::index(uint32_t idx) const
+{
+    return static_cast<const void*>(m_data + TypeInfo::size(m_type) * idx);
+}
+
+void IndexBuffer::setIndex(uint32_t idx, const void *data)
+{
+    std::memcpy(m_data + TypeInfo::size(m_type) * idx, data, TypeInfo::size(m_type));
+}
+
+Mesh::Mesh(PrimitiveType primitiveType)
+    : m_primitiveType(primitiveType)
 {
 }
 
@@ -139,14 +146,19 @@ void Mesh::undeclareVertexAttribute(VertexAttribute vertexAttribute)
     m_vertexBuffers.erase(vertexAttribute);
 }
 
-void Mesh::addIndexBuffer(std::shared_ptr<IndexBuffer> indexBuffer)
+void Mesh::attachIndexBuffer(std::shared_ptr<IndexBuffer> indexBuffer)
 {
-    m_indexBuffers.insert(indexBuffer);
+    m_indexBuffer = indexBuffer;
 }
 
-void Mesh::removeIndexBuffer(std::shared_ptr<IndexBuffer> indexBuffer)
+void Mesh::detachIndexBuffer()
 {
-    m_indexBuffers.erase(indexBuffer);
+    m_indexBuffer = nullptr;
+}
+
+PrimitiveType Mesh::primitiveType() const
+{
+    return m_primitiveType;
 }
 
 const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer> > &Mesh::vertexBuffers() const
@@ -154,9 +166,22 @@ const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer> > &Mesh:
     return m_vertexBuffers;
 }
 
-const std::unordered_set<std::shared_ptr<IndexBuffer> > &Mesh::indexBuffers() const
+std::shared_ptr<IndexBuffer> Mesh::indexBuffer() const
 {
-    return m_indexBuffers;
+    return m_indexBuffer;
+}
+
+std::shared_ptr<Mesh> Mesh::createEmptyMesh(PrimitiveType primitiveType, std::unordered_map<VertexAttribute, std::pair<uint32_t, Type>> attribs, std::optional<Type> indicesType)
+{
+    auto mesh = std::make_shared<Mesh>(primitiveType);
+
+    for (const auto &[attrib, decl] : attribs)
+        mesh->declareVertexAttribute(attrib, std::make_shared<VertexBuffer>(0u, decl.first, decl.second));
+
+    if (indicesType.has_value())
+        mesh->attachIndexBuffer(std::make_shared<IndexBuffer>(0u, indicesType.value()));
+
+    return mesh;
 }
 
 }

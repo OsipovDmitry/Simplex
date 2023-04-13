@@ -57,12 +57,12 @@ bool ApplicationBase::unregisterEngine(std::shared_ptr<IEngine> engine)
     return true;
 }
 
-void ApplicationBase::update()
+void ApplicationBase::update(uint64_t time, uint32_t dt)
 {
     for (auto engine : m_->engines())
-        engine->update();
+        engine->update(time, dt);
 
-    doUpdate();
+    doUpdate(time, dt);
 }
 
 }

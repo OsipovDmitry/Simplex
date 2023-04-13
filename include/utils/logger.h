@@ -1,5 +1,5 @@
-#ifndef LOGGER_H
-#define LOGGER_H
+#ifndef UTILS_LOGGER_H
+#define UTILS_LOGGER_H
 
 #include <memory>
 #include <string>
@@ -76,4 +76,4 @@ private:
 }
 }
 
-#endif // LOGGER_H
+#endif // UTILS_LOGGER_H

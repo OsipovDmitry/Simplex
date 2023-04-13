@@ -30,10 +30,10 @@ public:
     bool registerEngine(std::shared_ptr<IEngine>);
     bool unregisterEngine(std::shared_ptr<IEngine>);
 
-    void update() override final;
+    void update(uint64_t time, uint32_t dt) override final;
 
 protected:
-    virtual void doUpdate() {}
+    virtual void doUpdate(uint64_t, uint32_t) {}
 
 private:
     std::unique_ptr<ApplicationBasePrivate> m_;

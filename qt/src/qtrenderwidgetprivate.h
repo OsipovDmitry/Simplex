@@ -18,8 +18,24 @@ public:
     QtRenderWidgetPrivate() {}
     ~QtRenderWidgetPrivate() {}
 
-    std::shared_ptr<QtOpenGL_4_5_Renderer> renderer;
-    std::weak_ptr<core::IApplication> application;
+    void setRenderer(std::shared_ptr<QtOpenGL_4_5_Renderer> r) { m_renderer = r; }
+    std::shared_ptr<QtOpenGL_4_5_Renderer> renderer() const { return m_renderer; }
+
+    void setApplication(std::shared_ptr<core::IApplication> app) { m_application = app; }
+    std::shared_ptr<core::IApplication> application() const { return m_application.expired() ? nullptr : m_application.lock(); }
+
+    uint64_t &startTime() { return m_startTime; }
+    uint64_t &lastUpdateTime() { return m_lastUpdateTime; }
+    uint64_t &lastFpsTime() { return m_lastFpsTime; }
+    uint32_t &fpsCounter() { return m_fpsCounter; }
+
+private:
+    std::shared_ptr<QtOpenGL_4_5_Renderer> m_renderer;
+    std::weak_ptr<core::IApplication> m_application;
+    uint64_t m_startTime;
+    uint64_t m_lastUpdateTime;
+    uint64_t m_lastFpsTime;
+    uint32_t m_fpsCounter;
 };
 
 }

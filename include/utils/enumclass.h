@@ -1,5 +1,5 @@
-#ifndef ENUMCLASS_H
-#define ENUMCLASS_H
+#ifndef UTILS_ENUMCLASS_H
+#define UTILS_ENUMCLASS_H
 
 #define ENUMCLASS(Name, type, ...) \
     enum class Name : type { \
@@ -10,4 +10,4 @@
     static constexpr type castFrom##Name(Name value) { return static_cast< type >(value); } \
     static constexpr size_t numElements##Name() { return static_cast<size_t>(Name::Count); }
 
-#endif // ENUMCLASS_H
+#endif // UTILS_ENUMCLASS_H
