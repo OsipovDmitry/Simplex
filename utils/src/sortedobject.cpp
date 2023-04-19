@@ -1,8 +1,8 @@
-#include <core/sortedobject.h>
+#include <utils/sortedobject.h>
 
 namespace simplex
 {
-namespace core
+namespace utils
 {
 
 SortedObject::SortedObject(uint32_t index)

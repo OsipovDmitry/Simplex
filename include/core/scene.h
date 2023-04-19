@@ -4,11 +4,11 @@
 #include <memory>
 
 #include <utils/noncopyble.h>
+#include <utils/sortedobject.h>
 
 #include <core/coreglobal.h>
 #include <core/forwarddecl.h>
 #include <core/inamedobject.h>
-#include <core/sortedobject.h>
 
 namespace simplex
 {
@@ -16,7 +16,7 @@ namespace core
 {
 
 class ScenePrivate;
-class CORE_SHARED_EXPORT Scene : public INamedObject, public SortedObject, public std::enable_shared_from_this<Scene>
+class CORE_SHARED_EXPORT Scene : public INamedObject, public utils::SortedObject, public std::enable_shared_from_this<Scene>
 {
     NONCOPYBLE(Scene)
 public:
@@ -25,6 +25,7 @@ public:
 
     const std::string &name() const override;
 
+    std::shared_ptr<const SceneRootNode> sceneRootNode() const;
     std::shared_ptr<SceneRootNode> sceneRootNode();
 
 private:

@@ -9,6 +9,8 @@ namespace core
 
 NodePrivate::NodePrivate(const std::string &name)
     : m_name(name)
+    , m_globalTransfomDirty(true)
+    , m_boundingBoxDirty(true)
 {}
 
 NodePrivate::~NodePrivate()
@@ -25,14 +27,14 @@ bool &NodePrivate::isGlobalTransformDirty()
     return m_globalTransfomDirty;
 }
 
-bool &NodePrivate::isGlobalBoundingBoxDirty()
+bool &NodePrivate::isBoundingBoxDirty()
 {
-    return m_globalBoundingBoxDirty;
+    return m_boundingBoxDirty;
 }
 
-utils::Transform &NodePrivate::localTransform()
+utils::Transform &NodePrivate::transform()
 {
-    return m_localTransform;
+    return m_transform;
 }
 
 utils::Transform &NodePrivate::globalTransform()
@@ -40,20 +42,9 @@ utils::Transform &NodePrivate::globalTransform()
     return m_globalTransform;
 }
 
-utils::BoundingBox &NodePrivate::minimalBoundingBox()
-{
-    return m_minimalBoundingBox;
-}
-
-utils::BoundingBox &NodePrivate::localBoundingBox()
-{
-    static utils::BoundingBox s_localBoundingBox;
-    return s_localBoundingBox;
-}
-
 utils::BoundingBox &NodePrivate::globalBoundingBox()
 {
-    return m_globalBoundingBox;
+    return m_boundingBox;
 }
 
 void NodePrivate::doUpdate(uint64_t, uint32_t)
@@ -63,15 +54,15 @@ void NodePrivate::doUpdate(uint64_t, uint32_t)
 void NodePrivate::dirtyGlobalTransform(std::shared_ptr<Node> node)
 {
     node->m().isGlobalTransformDirty() = true;
-    for (auto child : node->children())
+    for (auto &child : node->children())
         dirtyGlobalTransform(child);
 }
 
-void NodePrivate::dirtyGlobalBoundingBox(std::shared_ptr<Node> node)
+void NodePrivate::dirtyBoundingBox(std::shared_ptr<Node> node)
 {
-    node->m().isGlobalBoundingBoxDirty() = true;
+    node->m().isBoundingBoxDirty() = true;
     if (auto parent = node->parent(); parent)
-        dirtyGlobalBoundingBox(parent);
+        dirtyBoundingBox(parent);
 }
 
 }

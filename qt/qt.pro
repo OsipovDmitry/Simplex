@@ -14,6 +14,7 @@ SOURCES += \
     $$files("src/*.cpp", true)
 
 LIBS += \
-    -lutils
+    -lutils \
+    -lcore
 
 RESOURCES +=

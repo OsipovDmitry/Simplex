@@ -7,6 +7,7 @@
 
 #include <utils/utilsglobal.h>
 #include <utils/forwarddecl.h>
+#include <utils/types.h>
 #include <utils/glm/vec4.hpp>
 #include <utils/glm/mat4x4.hpp>
 
@@ -19,38 +20,48 @@ class AbstractPainterPrivate;
 class UTILS_SHARED_EXPORT AbstractPainter
 {
 public:
-    AbstractPainter(std::shared_ptr<Mesh>);
+    AbstractPainter(std::shared_ptr<Mesh> = nullptr);
     virtual ~AbstractPainter();
 
-    std::shared_ptr<Mesh> mesh() const;
+    std::shared_ptr<const Mesh> mesh() const;
+    std::shared_ptr<Mesh> mesh();
+    void setMesh(std::shared_ptr<Mesh>);
 
     const glm::vec4 &defaultValue(VertexAttribute) const;
     void setDefaultValue(VertexAttribute, const glm::vec4&);
 
-    const glm::mat4x4 &vertexTransform() const;
-    const glm::mat4x4 &normalTransform() const;
-    void setVertexTransform(const glm::mat4x4&);
+    const glm::mat4 &vertexTransform() const;
+    const glm::mat4 &normalTransform() const;
+    void setVertexTransform(const glm::mat4&);
 
-    const glm::mat4x4 &texCoordTransform() const;
-    void setTexCoordTransform(const glm::mat4x4&);
+    const glm::mat4 &texCoordTransform() const;
+    void setTexCoordTransform(const glm::mat4&);
+
+    void drawArrays(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices,
+                    PrimitiveType primitiveType);
+
+    void drawElements(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices,
+                      PrimitiveType primitiveType,
+                      const std::vector<uint32_t> &indices,
+                      Type drawElemetsBufferType = Type::Uint32);
 
 protected:
     std::unique_ptr<AbstractPainterPrivate> m_;
+
+    std::pair<uint32_t, uint32_t> addVertices(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices);
 };
 
 class UTILS_SHARED_EXPORT MeshPainter : public AbstractPainter
 {
 public:
-    MeshPainter(std::shared_ptr<Mesh>);
-
-    void drawMesh(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices,
-                  const std::vector<uint32_t> &indices);
+    MeshPainter(std::shared_ptr<Mesh> = nullptr);
 
     void drawTriangle();
     void drawCube();
     void drawMonkey();
     void drawTeapot();
-
+    void drawSphere(uint32_t = 8u);
+    void drawCamera();
 };
 
 }

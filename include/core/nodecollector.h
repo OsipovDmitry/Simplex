@@ -26,7 +26,7 @@ public:
     const std::vector<std::shared_ptr<NodeClass>> &nodes() const { return m_nodes; }
     void clear() { m_nodes.clear(); }
 
-private:
+protected:
     std::vector<std::shared_ptr<NodeClass>> m_nodes;
 };
 

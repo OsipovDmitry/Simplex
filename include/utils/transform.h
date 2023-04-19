@@ -35,11 +35,11 @@ public:
         return *this;
     }
 
-    operator glm::mat4x4() const {
+    operator glm::mat4() const {
         return
-                glm::translate(glm::mat4x4(1.f), translation) *
+                glm::translate(glm::mat4(1.f), translation) *
                 glm::mat4_cast(rotation) *
-                glm::scale(glm::mat4x4(1.f), scale);
+                glm::scale(glm::mat4(1.f), scale);
     }
 
     Transform &invert()
@@ -60,14 +60,14 @@ public:
     static Transform fromTranslation(const glm::vec3 &value) { return Transform(glm::vec3(1.f, 1.f, 1.f), glm::quat(1.f, 0.f, 0.f, 0.f), value); }
 };
 
-inline glm::mat4x4 operator *(const glm::mat4x4 &left, const Transform &right)
+inline glm::mat4x4 operator *(const glm::mat4 &left, const Transform &right)
 {
-    return left * right.operator glm::mat4x4();
+    return left * right.operator glm::mat4();
 }
 
-inline glm::mat4x4 operator *(const Transform &left, const glm::mat4x4 &right)
+inline glm::mat4x4 operator *(const Transform &left, const glm::mat4 &right)
 {
-    return left.operator glm::mat4x4() * right;
+    return left.operator glm::mat4() * right;
 }
 
 } // namespace

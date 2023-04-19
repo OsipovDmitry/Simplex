@@ -20,13 +20,18 @@ namespace core
 class NodePrivate;
 class CORE_SHARED_EXPORT Node : public INamedObject, public utils::TreeNode<Node>, public std::enable_shared_from_this<Node>
 {
-    NONCOPYBLE(Node)
     PIMPL(Node)
 public:
     Node(const std::string&);
     ~Node() override;
 
     const std::string &name() const override;
+
+    const utils::Transform &globalTransform() const;
+    const utils::Transform &transform() const;
+    void setTransform(const utils::Transform&);
+
+    void accept(std::shared_ptr<NodeVisitor>);
 
     virtual std::shared_ptr<Node> asNode();
     virtual std::shared_ptr<const Node> asNode() const;
@@ -40,21 +45,13 @@ public:
     virtual std::shared_ptr<DrawableNode> asDrawableNode();
     virtual std::shared_ptr<const DrawableNode> asDrawableNode() const;
 
-    const utils::Transform &localTransform() const;
-    void setLocalTransform(const utils::Transform&);
-
-    const utils::Transform &globalTransform() const;
-
-    const utils::BoundingBox &minimalBoundingBox() const;
-    void setMinimalBoundingBox(const utils::BoundingBox&);
-
-    const utils::BoundingBox &localBoundingBox() const;
-    const utils::BoundingBox &globalBoundingBox() const;
-
-    void accept(std::shared_ptr<NodeVisitor>);
+    virtual const utils::BoundingBox &boundingBox() const;
 
 protected:
     Node(NodePrivate*);
+
+    void doAttach() override;
+    void doDetach() override;
 
     std::unique_ptr<NodePrivate> m_;
 };

@@ -14,12 +14,20 @@ enum class VertexAttribute : uint16_t;
 
 class Buffer;
 class VertexBuffer;
-class IndexBuffer;
+class DrawElementsBuffer;
 class Mesh;
 
 class Transform;
 class Plane;
 class BoundingBox;
+
+class AbstractClipSpace;
+class OrthoClipSpace;
+class PerspectiveClipSpace;
+
+class PrimitiveSet;
+class DrawArrays;
+class DrawElements;
 
 }
 }

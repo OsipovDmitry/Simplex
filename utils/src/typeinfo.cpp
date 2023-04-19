@@ -6,7 +6,6 @@ namespace simplex
 namespace utils
 {
 
-
 TypeInfo::TypeInfo(Type type)
     : m_type(type)
 {
@@ -15,6 +14,11 @@ TypeInfo::TypeInfo(Type type)
 Type TypeInfo::type() const
 {
     return m_type;
+}
+
+bool TypeInfo::isDefined() const
+{
+    return isDefined(m_type);
 }
 
 bool TypeInfo::isFloat() const
@@ -40,6 +44,11 @@ bool TypeInfo::isInt() const
 uint32_t TypeInfo::size() const
 {
     return size(m_type);
+}
+
+bool TypeInfo::isDefined(Type type)
+{
+    return type != Type::Undefined;
 }
 
 bool TypeInfo::isFloat(Type type)

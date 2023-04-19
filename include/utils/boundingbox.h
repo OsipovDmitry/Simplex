@@ -14,23 +14,25 @@ namespace utils
 
 struct BoundingBox;
 inline BoundingBox operator +(const BoundingBox&, const BoundingBox&);
+inline BoundingBox operator +(const BoundingBox&, const glm::vec3&);
 
 struct BoundingBox
 {
+    using PointType = glm::vec3;
     glm::vec3 minPoint, maxPoint;
 
     BoundingBox() : minPoint(std::numeric_limits<float>::max()), maxPoint(-std::numeric_limits<float>::max()) {}
     BoundingBox(const glm::vec3 &minP, const glm::vec3 &maxP) : minPoint(minP), maxPoint(maxP) {}
 
     bool isEmpty() const {
-        for (glm::vec3::length_type k = 0; k < 3; ++k)
+        for (glm::vec3::length_type k = 0; k < glm::vec3::length(); ++k)
             if (minPoint[k] > maxPoint[k]) return true;
         return false;
     }
 
     float distanceToPlane(const Plane &p) const {
         glm::vec3 vmin = minPoint, vmax = maxPoint;
-        for (glm::vec3::length_type k = 0; k < 3; ++k)
+        for (glm::vec3::length_type k = 0; k < glm::vec3::length(); ++k)
             if (p[k] < .0f) std::swap(vmin[k], vmax[k]);
         const float vMinDist = p.distanceTo(vmin), vMaxDist = p.distanceTo(vmax);
         return (vMinDist * vMaxDist <= .0f) ?
@@ -41,7 +43,7 @@ struct BoundingBox
     std::pair<float, float> pairDistancesToPlane(const Plane &p) const
     {
         glm::vec3 vmin = minPoint, vmax = maxPoint;
-        for (glm::vec3::length_type k = 0; k < 3; ++k)
+        for (glm::vec3::length_type k = 0; k < glm::vec3::length(); ++k)
             if (p[k] < .0f) std::swap(vmin[k], vmax[k]);
         const float vMinDist = p.distanceTo(vmin), vMaxDist = p.distanceTo(vmax);
         return std::make_pair(vMinDist, vMaxDist);
@@ -56,6 +58,7 @@ struct BoundingBox
     glm::vec3 halfSize() const { return .5f * (maxPoint - minPoint); }
 
     BoundingBox &operator += (const BoundingBox &b) { *this = *this + b; return *this; }
+    BoundingBox &operator += (const glm::vec3 &v) { *this = *this + v; return *this; }
 
     static BoundingBox fromMinMax(const glm::vec3 &minP, const glm::vec3 &maxP) { return BoundingBox(minP, maxP); }
     static BoundingBox fromCenterHalfSize(const glm::vec3 &cP, const glm::vec3 &hz) { return BoundingBox(cP-hz, cP+hz); }
@@ -63,12 +66,17 @@ struct BoundingBox
 
 inline BoundingBox operator +(const BoundingBox &b1, const BoundingBox &b2)
 {
-    BoundingBox result;
-    for (glm::vec3::length_type k = 0; k < 3; ++k) {
-        result.minPoint[k] = (b1.minPoint[k] < b2.minPoint[k]) ? b1.minPoint[k] : b2.minPoint[k];
-        result.maxPoint[k] = (b1.maxPoint[k] > b2.maxPoint[k]) ? b1.maxPoint[k] : b2.maxPoint[k];
-    }
-    return result;
+    return BoundingBox(glm::min(b1.minPoint, b2.minPoint), glm::max(b1.maxPoint, b2.maxPoint));
+}
+
+inline BoundingBox operator +(const BoundingBox &b, const glm::vec3 &v)
+{
+    return BoundingBox(glm::min(b.minPoint, v), glm::max(b.maxPoint, v));
+}
+
+inline BoundingBox operator +(const glm::vec3 &v, const BoundingBox &b)
+{
+    return b + v;
 }
 
 inline BoundingBox operator *(const Transform &t, const BoundingBox& b)

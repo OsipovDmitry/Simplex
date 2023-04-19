@@ -18,12 +18,14 @@ public:
 
     Type type() const;
 
+    bool isDefined() const;
     bool isFloat() const;
     bool isSignedInt() const;
     bool isUnsignedInt() const;
     bool isInt() const;
     uint32_t size() const;
 
+    static bool isDefined(Type);
     static bool isFloat(Type);
     static bool isSignedInt(Type);
     static bool isUnsignedInt(Type);

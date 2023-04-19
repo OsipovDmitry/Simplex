@@ -8,6 +8,8 @@ class TestApplication : public simplex::core::ApplicationBase
 public:
     TestApplication(std::shared_ptr<simplex::core::IGraphicsRenderer>);
 
+    std::shared_ptr<simplex::core::GraphicsEngine> graphicsEngine();
+
 private:
     std::shared_ptr<simplex::core::GraphicsEngine> m_graphicsEngine;
 };

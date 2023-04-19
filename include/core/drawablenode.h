@@ -24,9 +24,14 @@ public:
     std::shared_ptr<DrawableNode> asDrawableNode() override;
     std::shared_ptr<const DrawableNode> asDrawableNode() const override;
 
-    const std::unordered_set<std::shared_ptr<Drawable>> &drawables() const;
-    void addDrawable(std::shared_ptr<Drawable>);
-    void removeDrawable(std::shared_ptr<Drawable>);
+    const std::unordered_set<std::shared_ptr<IDrawable>> &drawables() const;
+    void addDrawable(std::shared_ptr<IDrawable>);
+    void removeDrawable(std::shared_ptr<IDrawable>);
+
+    virtual const utils::BoundingBox &localBoundingBox() const;
+    const utils::BoundingBox &boundingBox() const override;
+
+    void recalculateLocalBoundingBox();
 };
 
 }

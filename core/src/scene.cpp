@@ -22,6 +22,11 @@ const std::string &Scene::name() const
     return m_->name();
 }
 
+std::shared_ptr<const SceneRootNode> Scene::sceneRootNode() const
+{
+    return m_->sceneRootNode();
+}
+
 std::shared_ptr<SceneRootNode> Scene::sceneRootNode()
 {
     return m_->sceneRootNode();

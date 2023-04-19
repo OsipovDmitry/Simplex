@@ -13,11 +13,14 @@ class IGraphicsRenderer;
 
 class SortedObject;
 
+class RenderInfo;
+
 class ApplicationBase;
 
 class GraphicsEngine;
 
-class Drawable;
+class IDrawable;
+class DrawableBase;
 class Scene;
 class Node;
 class SceneRootNode;

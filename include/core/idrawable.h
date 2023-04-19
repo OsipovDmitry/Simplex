@@ -1,7 +1,9 @@
-#ifndef CORE_DRAWABLE_H
-#define CORE_DRAWABLE_H
+#ifndef CORE_IDRAWABLE_H
+#define CORE_IDRAWABLE_H
 
 #include <memory>
+
+#include <utils/forwarddecl.h>
 
 #include <core/igraphicsrenderer.h>
 
@@ -10,17 +12,18 @@ namespace simplex
 namespace core
 {
 
-class Drawable
+class IDrawable
 {
 public:
-    virtual ~Drawable() = default;
+    virtual ~IDrawable() = default;
+
+    virtual utils::BoundingBox calculateBoundingBox() = 0;
 
     virtual std::shared_ptr<IGraphicsRenderer::RenderProgram> renderProgram() = 0;
     virtual std::shared_ptr<IGraphicsRenderer::VertexArray> vertexArray() = 0;
-
 };
 
 }
 }
 
-#endif // CORE_DRAWABLE_H
+#endif // CORE_IDRAWABLE_H

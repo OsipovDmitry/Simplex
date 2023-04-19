@@ -10,7 +10,7 @@ namespace simplex
 namespace utils
 {
 
-Buffer::Buffer(uint64_t sizeInBytes)
+Buffer::Buffer(size_t sizeInBytes)
     : m_data(nullptr)
     , m_sizeInBytes(sizeInBytes)
 {
@@ -23,12 +23,12 @@ Buffer::~Buffer()
     delete [] m_data;
 }
 
-uint64_t Buffer::sizeInBytes() const
+size_t Buffer::sizeInBytes() const
 {
     return m_sizeInBytes;
 }
 
-void Buffer::resize(uint64_t sizeInBytes)
+void Buffer::resize(size_t sizeInBytes)
 {
     if (m_sizeInBytes == sizeInBytes)
         return;
@@ -95,70 +95,60 @@ void VertexBuffer::setVertex(uint32_t index, const void *data)
     std::memcpy(m_data + m_numComponents * TypeInfo::size(m_type) * index, data, m_numComponents * TypeInfo::size(m_type));
 }
 
-IndexBuffer::IndexBuffer(uint32_t numIndices, Type type)
-    : Buffer(numIndices * TypeInfo::size(type))
-    , m_type(type)
-{
-    assert(TypeInfo::isUnsignedInt(m_type));
-}
-
-IndexBuffer::~IndexBuffer()
+DrawElementsBuffer::DrawElementsBuffer(PrimitiveType primitiveType, uint32_t count, Type type, uint32_t baseVertex)
+    : DrawElements(primitiveType, count, type, 0, baseVertex)
+    , Buffer(count * TypeInfo::size(type))
 {
 }
 
-Type IndexBuffer::type() const
+DrawElementsBuffer::~DrawElementsBuffer()
 {
-    return m_type;
 }
 
-uint32_t IndexBuffer::numIndices() const
+std::shared_ptr<DrawElementsBuffer> DrawElementsBuffer::asDrawElementsBuffer()
 {
-    return static_cast<uint32_t>(m_sizeInBytes / TypeInfo::size(m_type));
+    return std::dynamic_pointer_cast<DrawElementsBuffer>(shared_from_this());
 }
 
-void IndexBuffer::setNumIndices(uint32_t numIndices)
+std::shared_ptr<const DrawElementsBuffer> DrawElementsBuffer::asDrawElementsBuffer() const
 {
+    return std::dynamic_pointer_cast<const DrawElementsBuffer>(shared_from_this());
+}
+
+uint32_t DrawElementsBuffer::numIndices() const
+{
+    return count();
+}
+
+void DrawElementsBuffer::setNumIndices(uint32_t numIndices)
+{
+    m_count = numIndices;
     resize(numIndices * TypeInfo::size(m_type));
 }
 
-const void *IndexBuffer::index(uint32_t idx) const
+const void *DrawElementsBuffer::index(uint32_t idx) const
 {
     return static_cast<const void*>(m_data + TypeInfo::size(m_type) * idx);
 }
 
-void IndexBuffer::setIndex(uint32_t idx, const void *data)
+void DrawElementsBuffer::setIndex(uint32_t idx, const void *data)
 {
     std::memcpy(m_data + TypeInfo::size(m_type) * idx, data, TypeInfo::size(m_type));
 }
 
-Mesh::Mesh(PrimitiveType primitiveType)
-    : m_primitiveType(primitiveType)
+Mesh::Mesh()
 {
 }
 
-void Mesh::declareVertexAttribute(VertexAttribute vertexAttribute, std::shared_ptr<VertexBuffer> vertexBuffer)
+void Mesh::attachVertexBuffer(VertexAttribute vertexAttribute, std::shared_ptr<VertexBuffer> vertexBuffer)
 {
+    assert(vertexBuffer);
     m_vertexBuffers.insert({vertexAttribute, vertexBuffer});
 }
 
-void Mesh::undeclareVertexAttribute(VertexAttribute vertexAttribute)
+void Mesh::detachVertexBuffer(VertexAttribute vertexAttribute)
 {
     m_vertexBuffers.erase(vertexAttribute);
-}
-
-void Mesh::attachIndexBuffer(std::shared_ptr<IndexBuffer> indexBuffer)
-{
-    m_indexBuffer = indexBuffer;
-}
-
-void Mesh::detachIndexBuffer()
-{
-    m_indexBuffer = nullptr;
-}
-
-PrimitiveType Mesh::primitiveType() const
-{
-    return m_primitiveType;
 }
 
 const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer> > &Mesh::vertexBuffers() const
@@ -166,22 +156,26 @@ const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer> > &Mesh:
     return m_vertexBuffers;
 }
 
-std::shared_ptr<IndexBuffer> Mesh::indexBuffer() const
+void Mesh::attachPrimitiveSet(std::shared_ptr<DrawArrays> primitiveSet)
 {
-    return m_indexBuffer;
+    assert(primitiveSet);
+    m_primitiveSets.insert(primitiveSet);
 }
 
-std::shared_ptr<Mesh> Mesh::createEmptyMesh(PrimitiveType primitiveType, std::unordered_map<VertexAttribute, std::pair<uint32_t, Type>> attribs, std::optional<Type> indicesType)
+void Mesh::attachPrimitiveSet(std::shared_ptr<DrawElementsBuffer> primitiveSet)
 {
-    auto mesh = std::make_shared<Mesh>(primitiveType);
+    assert(primitiveSet);
+    m_primitiveSets.insert(primitiveSet);
+}
 
-    for (const auto &[attrib, decl] : attribs)
-        mesh->declareVertexAttribute(attrib, std::make_shared<VertexBuffer>(0u, decl.first, decl.second));
+void Mesh::detachPrimitiveSet(std::shared_ptr<PrimitiveSet> primitiveSet)
+{
+    m_primitiveSets.erase(primitiveSet);
+}
 
-    if (indicesType.has_value())
-        mesh->attachIndexBuffer(std::make_shared<IndexBuffer>(0u, indicesType.value()));
-
-    return mesh;
+const std::unordered_set<std::shared_ptr<PrimitiveSet> > &Mesh::primitiveSets() const
+{
+    return m_primitiveSets;
 }
 
 }

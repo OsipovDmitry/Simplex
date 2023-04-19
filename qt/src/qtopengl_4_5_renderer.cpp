@@ -7,6 +7,9 @@
 #include <utils/typeinfo.h>
 #include <utils/mesh.h>
 
+#include <core/idrawable.h>
+#include <core/renderinfo.h>
+
 #include "qtopengl_4_5_renderer.h"
 
 namespace simplex
@@ -46,7 +49,7 @@ GLuint QtOpenGL_4_5_Renderer::RenderProgram_4_5::id() const
     return m_id;
 }
 
-std::vector<std::string> QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributesInfo()
+std::vector<std::string> QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributesInfo() const
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
 
@@ -77,7 +80,7 @@ std::vector<std::string> QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributesInf
     return result;
 }
 
-std::vector<std::string> QtOpenGL_4_5_Renderer::RenderProgram_4_5::uniformsInfo()
+std::vector<std::string> QtOpenGL_4_5_Renderer::RenderProgram_4_5::uniformsInfo() const
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
 
@@ -108,13 +111,13 @@ std::vector<std::string> QtOpenGL_4_5_Renderer::RenderProgram_4_5::uniformsInfo(
     return result;
 }
 
-int32_t QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributeLocation(const std::string& name)
+int32_t QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributeLocation(const std::string& name) const
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     return static_cast<int32_t>(renderer->glGetAttribLocation(m_id, name.c_str()));
 }
 
-int32_t QtOpenGL_4_5_Renderer::RenderProgram_4_5::uniformLocation(const std::string& name)
+int32_t QtOpenGL_4_5_Renderer::RenderProgram_4_5::uniformLocation(const std::string& name) const
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     return static_cast<int32_t>(renderer->glGetUniformLocation(m_id, name.c_str()));
@@ -192,19 +195,19 @@ void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm
     renderer->glProgramUniform4uiv(m_id, loc, 1, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat2x2& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat2& v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniformMatrix2fv(m_id, loc, 1, GL_FALSE, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat3x3& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat3& v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniformMatrix3fv(m_id, loc, 1, GL_FALSE, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat4x4& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat4& v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniformMatrix4fv(m_id, loc, 1, GL_FALSE, glm::value_ptr(v));
@@ -228,7 +231,7 @@ GLuint QtOpenGL_4_5_Renderer::Buffer_4_5::id() const
     return m_id;
 }
 
-size_t QtOpenGL_4_5_Renderer::Buffer_4_5::size()
+size_t QtOpenGL_4_5_Renderer::Buffer_4_5::size() const
 {
     GLint result;
     auto renderer = QtOpenGL_4_5_Renderer::instance();
@@ -240,6 +243,11 @@ void QtOpenGL_4_5_Renderer::Buffer_4_5::resize(size_t size, const void *data)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glNamedBufferData(m_id, static_cast<GLsizei>(size), data, GL_STATIC_DRAW);
+}
+
+std::unique_ptr<const core::IGraphicsRenderer::Buffer::MappedData> QtOpenGL_4_5_Renderer::Buffer_4_5::map(MapAccess access, size_t offset, size_t size) const
+{
+    return const_cast<Buffer_4_5*>(this)->map(access, offset, size);
 }
 
 std::unique_ptr<core::IGraphicsRenderer::Buffer::MappedData> QtOpenGL_4_5_Renderer::Buffer_4_5::map(MapAccess access, size_t offset, size_t size)
@@ -258,8 +266,8 @@ std::unique_ptr<core::IGraphicsRenderer::Buffer::MappedData> QtOpenGL_4_5_Render
 
     return std::make_unique<MappedData_4_5>(
                 shared_from_this(),
-                renderer->glMapNamedBufferRange(m_id, static_cast<GLintptr>(offset), static_cast<GLsizei>(size), MapAccess2GL(access))
-            );
+                static_cast<uint8_t*>(renderer->glMapNamedBufferRange(m_id, static_cast<GLintptr>(offset), static_cast<GLsizei>(size), MapAccess2GL(access)))
+                );
 }
 
 GLbitfield QtOpenGL_4_5_Renderer::Buffer_4_5::MapAccess2GL(MapAccess value)
@@ -273,9 +281,7 @@ GLbitfield QtOpenGL_4_5_Renderer::Buffer_4_5::MapAccess2GL(MapAccess value)
     return s_table[castFromMapAccess(value)];
 }
 
-QtOpenGL_4_5_Renderer::VertexArray_4_5::VertexArray_4_5(utils::PrimitiveType primitiveType)
-    : m_indexBuffer(nullptr, 0, utils::Type::Uint32)
-    , m_primitiveType(primitiveType)
+QtOpenGL_4_5_Renderer::VertexArray_4_5::VertexArray_4_5()
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glCreateVertexArrays(1, &m_id);
@@ -294,11 +300,10 @@ GLuint QtOpenGL_4_5_Renderer::VertexArray_4_5::id() const
 
 uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::attachVertexBuffer(std::shared_ptr<Buffer> buffer, size_t offset, uint32_t stride)
 {
-    auto bindingIndex = static_cast<uint32_t>(-1);
-
     auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
-    if (!buffer_4_5)
-        return bindingIndex;
+    assert(buffer_4_5);
+
+    auto bindingIndex = static_cast<uint32_t>(-1);
 
     auto tuple = std::make_tuple(buffer_4_5, offset, stride);
 
@@ -330,59 +335,30 @@ void QtOpenGL_4_5_Renderer::VertexArray_4_5::detachVertexBuffer(uint32_t binding
 
 }
 
-std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::VertexArray_4_5::vertexBufferByBindingIndex(uint32_t bindingIndex)
+std::shared_ptr<const core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::VertexArray_4_5::vertexBuffer(uint32_t bindingIndex) const
 {
     return std::get<0>(m_vertexBuffers[bindingIndex]);
 }
 
-size_t QtOpenGL_4_5_Renderer::VertexArray_4_5::offsetByBindingIndex(uint32_t bindingIndex)
+size_t QtOpenGL_4_5_Renderer::VertexArray_4_5::vertexBufferOffset(uint32_t bindingIndex) const
 {
     return std::get<1>(m_vertexBuffers[bindingIndex]);
 }
 
-uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::strideByBindingIndex(uint32_t bindingIndex)
+uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::vertexBufferStride(uint32_t bindingIndex) const
 {
     return std::get<2>(m_vertexBuffers[bindingIndex]);
 }
 
-
-void QtOpenGL_4_5_Renderer::VertexArray_4_5::attachIndexBuffer(std::shared_ptr<Buffer> buffer, uint32_t count, utils::Type type)
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::declareVertexAttribute(utils::VertexAttribute attrib,
+                                                                    uint32_t bindingIndex,
+                                                                    uint32_t numComponents,
+                                                                    utils::Type type,
+                                                                    uint32_t relativeOffset)
 {
-    auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
-    if (!buffer_4_5)
-        return;
+    assert(numComponents <= 4);
+    assert(utils::TypeInfo::isDefined(type));
 
-    m_indexBuffer = std::make_tuple(buffer_4_5, count, type);
-
-    auto renderer = QtOpenGL_4_5_Renderer::instance();
-    renderer->glVertexArrayElementBuffer(m_id, buffer_4_5->id());
-}
-
-void QtOpenGL_4_5_Renderer::VertexArray_4_5::detachIndexBuffer()
-{
-    auto renderer = QtOpenGL_4_5_Renderer::instance();
-    renderer->glVertexArrayElementBuffer(m_id, 0);
-
-    m_indexBuffer = std::make_tuple(nullptr, 0, utils::Type::Uint32);
-}
-
-std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::VertexArray_4_5::indexBuffer()
-{
-    return std::get<0>(m_indexBuffer);
-}
-
-uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::elementsCount()
-{
-    return std::get<1>(m_indexBuffer);
-}
-
-utils::Type QtOpenGL_4_5_Renderer::VertexArray_4_5::indicesType()
-{
-    return std::get<2>(m_indexBuffer);
-}
-
-void QtOpenGL_4_5_Renderer::VertexArray_4_5::declareVertexAttribute(utils::VertexAttribute attrib, uint32_t bindingIndex, uint32_t numComponents, utils::Type type, uint32_t relativeOffset)
-{
     m_vertexDeclarations[attrib] = std::make_tuple(bindingIndex, numComponents, type, relativeOffset);
 
     auto loc = static_cast<GLuint>(attrib);
@@ -397,7 +373,6 @@ void QtOpenGL_4_5_Renderer::VertexArray_4_5::declareVertexAttribute(utils::Verte
         renderer->glVertexArrayAttribLFormat(m_id, loc, static_cast<GLint>(numComponents), Type2GL(type), static_cast<GLuint>(relativeOffset));
     else if (utils::TypeInfo::isInt(type))
         renderer->glVertexArrayAttribIFormat(m_id, loc, static_cast<GLint>(numComponents), Type2GL(type), static_cast<GLuint>(relativeOffset));
-
 }
 
 void QtOpenGL_4_5_Renderer::VertexArray_4_5::undeclareVertexAttribute(utils::VertexAttribute attrib)
@@ -408,36 +383,71 @@ void QtOpenGL_4_5_Renderer::VertexArray_4_5::undeclareVertexAttribute(utils::Ver
     m_vertexDeclarations.erase(attrib);
 }
 
-uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::bindingIndexByVertexAttribute(utils::VertexAttribute attrib)
+uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::vertexAttributeBindingIndex(utils::VertexAttribute attrib) const
 {
     auto it = m_vertexDeclarations.find(attrib);
     return (it != m_vertexDeclarations.end()) ? std::get<0>(it->second) : static_cast<uint32_t>(-1);
 }
 
-uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::numComponentsByVertexAttribute(utils::VertexAttribute attrib)
+uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::vertexAttributeNumComponents(utils::VertexAttribute attrib) const
 {
     auto it = m_vertexDeclarations.find(attrib);
     return (it != m_vertexDeclarations.end()) ? std::get<1>(it->second) : 0;
 }
 
-utils::Type QtOpenGL_4_5_Renderer::VertexArray_4_5::typeByVertexAttribute(utils::VertexAttribute attrib)
+utils::Type QtOpenGL_4_5_Renderer::VertexArray_4_5::vertexAttributeType(utils::VertexAttribute attrib) const
 {
     auto it = m_vertexDeclarations.find(attrib);
     return (it != m_vertexDeclarations.end()) ? std::get<2>(it->second) : utils::Type::Single;
 }
 
-uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::relativeOffsetByVertexAttribute(utils::VertexAttribute attrib)
+uint32_t QtOpenGL_4_5_Renderer::VertexArray_4_5::vertexAttributeRelativeOffset(utils::VertexAttribute attrib) const
 {
     auto it = m_vertexDeclarations.find(attrib);
     return (it != m_vertexDeclarations.end()) ? std::get<3>(it->second) : 0;
 }
 
-utils::PrimitiveType QtOpenGL_4_5_Renderer::VertexArray_4_5::primitiveType()
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::attachIndexBuffer(std::shared_ptr<Buffer> buffer)
 {
-    return m_primitiveType;
+    auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
+    assert(buffer_4_5);
+
+    m_indexBuffer = buffer_4_5;
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glVertexArrayElementBuffer(m_id, buffer_4_5->id());
 }
 
-std::shared_ptr<core::IGraphicsRenderer::RenderProgram> QtOpenGL_4_5_Renderer::createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader)
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::detachIndexBuffer()
+{
+    m_indexBuffer = nullptr;
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glVertexArrayElementBuffer(m_id, 0);
+}
+
+std::shared_ptr<const core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::VertexArray_4_5::indexBuffer() const
+{
+    return m_indexBuffer;
+}
+
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::addPrimitiveSet(std::shared_ptr<utils::PrimitiveSet> primitiveSet)
+{
+    assert(primitiveSet);
+    m_primitiveSets.insert(primitiveSet);
+}
+
+void QtOpenGL_4_5_Renderer::VertexArray_4_5::removePrimitiveSet(std::shared_ptr<utils::PrimitiveSet> primitiveSet)
+{
+    m_primitiveSets.erase(primitiveSet);
+}
+
+const std::unordered_set<std::shared_ptr<utils::PrimitiveSet> > QtOpenGL_4_5_Renderer::VertexArray_4_5::primitiveSets() const
+{
+    return m_primitiveSets;
+}
+
+std::shared_ptr<core::IGraphicsRenderer::RenderProgram> QtOpenGL_4_5_Renderer::createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const
 {
     static const size_t s_shadersCount = 2;
     static const std::array<std::string, s_shadersCount> s_shaderTypes { "Vertex", "Fragment" };
@@ -507,23 +517,27 @@ std::shared_ptr<core::IGraphicsRenderer::RenderProgram> QtOpenGL_4_5_Renderer::c
     return renderProgram;
 }
 
-std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::createBuffer(size_t size, const void *data)
+std::shared_ptr<core::IGraphicsRenderer::Buffer> QtOpenGL_4_5_Renderer::createBuffer(size_t size, const void *data) const
 {
     return std::make_shared<Buffer_4_5>(size, data);
 }
 
-std::shared_ptr<core::IGraphicsRenderer::VertexArray> QtOpenGL_4_5_Renderer::createVertexArray(std::shared_ptr<utils::Mesh> mesh, bool uniteBuffers)
+std::shared_ptr<core::IGraphicsRenderer::VertexArray> QtOpenGL_4_5_Renderer::createVertexArray(std::shared_ptr<utils::Mesh> mesh,
+                                                                                               bool uniteVertexBuffers) const
 {
-    auto vertexArray = std::make_shared<VertexArray_4_5>(mesh ? mesh->primitiveType() : utils::PrimitiveType::Triangles);
+    auto vertexArray = std::make_shared<VertexArray_4_5>();
 
     if (mesh)
     {
-        if (uniteBuffers)
+        uint32_t numVertices = mesh->vertexBuffers().empty() ? 0u : mesh->vertexBuffers().begin()->second->numVertices();
+
+        if (uniteVertexBuffers)
         {
-            uint64_t totalSize = 0u;
+            size_t totalSize = 0u;
             uint32_t stride = 0u;
             for (auto const &[attrib, buffer] : mesh->vertexBuffers())
             {
+                assert(numVertices == buffer->numVertices());
                 totalSize += buffer->sizeInBytes();
                 stride += buffer->numComponents() * utils::TypeInfo::size(buffer->type());
             }
@@ -531,21 +545,22 @@ std::shared_ptr<core::IGraphicsRenderer::VertexArray> QtOpenGL_4_5_Renderer::cre
             auto buffer = createBuffer(totalSize);
             auto bindingIndex = vertexArray->attachVertexBuffer(buffer, 0u, stride);
 
-            uint32_t offset = 0u;
-            auto bufferData = buffer->map(Buffer::MapAccess::OnlyWrite);
+            uint32_t relativeOffset = 0u;
+            auto bufferData = buffer->map(Buffer::MapAccess::WriteOnly);
             for (auto const &[attrib, buffer] : mesh->vertexBuffers())
             {
                 uint32_t vertexSize = buffer->numComponents() * utils::TypeInfo::size(buffer->type());
                 for (uint32_t i = 0; i < buffer->numVertices(); ++i)
-                    std::memcpy(static_cast<uint8_t*>(bufferData->get()) + stride * i + offset, buffer->vertex(i), vertexSize);
-                vertexArray->declareVertexAttribute(attrib, bindingIndex, buffer->numComponents(), buffer->type(), offset);
-                offset += vertexSize;
+                    std::memcpy(static_cast<uint8_t*>(bufferData->get()) + stride * i + relativeOffset, buffer->vertex(i), vertexSize);
+                vertexArray->declareVertexAttribute(attrib, bindingIndex, buffer->numComponents(), buffer->type(), relativeOffset);
+                relativeOffset += vertexSize;
             }
         }
         else
         {
             for (auto const &[attrib, buffer] : mesh->vertexBuffers())
             {
+                assert(numVertices == buffer->numVertices());
                 auto bindingIndex = vertexArray->attachVertexBuffer(createBuffer(buffer->sizeInBytes(), buffer->data()),
                                                                     0u,
                                                                     buffer->numComponents() * utils::TypeInfo::size(buffer->type()));
@@ -553,11 +568,45 @@ std::shared_ptr<core::IGraphicsRenderer::VertexArray> QtOpenGL_4_5_Renderer::cre
             }
         }
 
-        if (auto buffer = mesh->indexBuffer(); buffer)
+        uint64_t indexBufferTotalSize = 0u;
+
+        for (auto &primitiveSet : mesh->primitiveSets())
         {
-            vertexArray->attachIndexBuffer(createBuffer(buffer->sizeInBytes(), buffer->data()),
-                                           buffer->numIndices(),
-                                           buffer->type());
+            if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
+            {
+                vertexArray->addPrimitiveSet(std::make_shared<utils::DrawArrays>(drawArrays->primitiveType(),
+                                                                                 drawArrays->first(),
+                                                                                 drawArrays->count()));
+            }
+            else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
+                if (auto drawElementsBuffer = drawElements->asDrawElementsBuffer(); drawElementsBuffer)
+                {
+                    vertexArray->addPrimitiveSet(std::make_shared<utils::DrawElements>(drawElementsBuffer->primitiveType(),
+                                                                                       drawElementsBuffer->count(),
+                                                                                       drawElementsBuffer->type(),
+                                                                                       indexBufferTotalSize,
+                                                                                       drawElementsBuffer->baseVertex()));
+                    indexBufferTotalSize += drawElementsBuffer->sizeInBytes();
+                }
+        }
+
+        if (indexBufferTotalSize)
+        {
+            auto buffer = createBuffer(indexBufferTotalSize);
+            vertexArray->attachIndexBuffer(buffer);
+
+            auto bufferData = buffer->map(Buffer::MapAccess::WriteOnly);
+            size_t offset = 0;
+
+            for (auto &primitiveSet : mesh->primitiveSets())
+            {
+                if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
+                    if (auto drawElementsBuffer = drawElements->asDrawElementsBuffer(); drawElementsBuffer)
+                    {
+                        std::memcpy(static_cast<uint8_t*>(bufferData->get()) + offset, drawElementsBuffer->data(), drawElementsBuffer->sizeInBytes());
+                        offset += drawElementsBuffer->sizeInBytes();
+                    }
+            }
         }
     }
 
@@ -580,29 +629,70 @@ const std::string &QtOpenGL_4_5_Renderer::name() const
     return s_name;
 }
 
-void QtOpenGL_4_5_Renderer::resize(int width, int height)
+void QtOpenGL_4_5_Renderer::resize(uint32_t width, uint32_t height)
 {
-    glViewport(0, 0, width, height);
+    m_width = width;
+    m_height = height;
 }
 
-void QtOpenGL_4_5_Renderer::render()
+uint32_t QtOpenGL_4_5_Renderer::width() const
 {
+    return m_width;
+}
+
+uint32_t QtOpenGL_4_5_Renderer::height() const
+{
+    return m_height;
+}
+
+void QtOpenGL_4_5_Renderer::clearRenderData()
+{
+    m_renderData.clear();
+}
+
+void QtOpenGL_4_5_Renderer::addRenderData(const glm::mat4 &transform, std::shared_ptr<core::IDrawable> drawable)
+{
+    m_renderData.push_back({transform, drawable});
+}
+
+void QtOpenGL_4_5_Renderer::render(const core::RenderInfo &renderInfo)
+{
+    glViewport(0, 0, static_cast<GLsizei>(renderInfo.viewport().x), static_cast<GLsizei>(renderInfo.viewport().y));
     glEnable(GL_DEPTH_TEST);
     glClearColor(.5f, .5f, 1.f, 1.f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-}
 
-void QtOpenGL_4_5_Renderer::render2(std::shared_ptr<RenderProgram> rp, std::shared_ptr<VertexArray> vao)
-{
-    auto rp2 = std::dynamic_pointer_cast<RenderProgram_4_5>(rp);
-    auto vao2 = std::dynamic_pointer_cast<VertexArray_4_5>(vao);
+    for (auto &renderData : m_renderData)
+    {
+        auto rp2 = std::dynamic_pointer_cast<RenderProgram_4_5>(renderData.second->renderProgram());
+        auto vao2 = std::dynamic_pointer_cast<VertexArray_4_5>(renderData.second->vertexArray());
 
-    glUseProgram(rp2->id());
-    glBindVertexArray(vao2->id());
-    glDrawElements(GL_TRIANGLES, vao2->elementsCount(), Type2GL(vao2->indicesType()), nullptr);
+        rp2->setUniform(rp2->uniformLocation("u_modelMatrix"), renderData.first);
+        rp2->setUniform(rp2->uniformLocation("u_viewMatrix"), renderInfo.viewMatrix());
+        rp2->setUniform(rp2->uniformLocation("u_projectionMatrix"), renderInfo.projectionMatrix());
+
+        glUseProgram(rp2->id());
+        glBindVertexArray(vao2->id());
+
+        for (auto &primitiveSet : vao2->primitiveSets())
+        {
+            if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
+                glDrawArrays(PrimitiveType2GL(drawArrays->primitiveType()),
+                             static_cast<GLint>(drawArrays->first()),
+                             static_cast<GLint>(drawArrays->count()));
+            else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
+                glDrawElementsBaseVertex(PrimitiveType2GL(drawElements->primitiveType()),
+                                         static_cast<GLsizei>(drawElements->count()),
+                                         Type2GL(drawElements->type()),
+                                         reinterpret_cast<const void*>(drawElements->offset()),
+                                         static_cast<GLint>(drawElements->baseVertex()));
+        }
+    }
 }
 
 QtOpenGL_4_5_Renderer::QtOpenGL_4_5_Renderer(const QOpenGLContext *context)
+    : m_width(0u)
+    , m_height(0u)
 {
     if (!s_instance.expired())
     {
@@ -628,6 +718,7 @@ void QtOpenGL_4_5_Renderer::setInstance(std::shared_ptr<QtOpenGL_4_5_Renderer> i
 GLenum QtOpenGL_4_5_Renderer::Type2GL(utils::Type value)
 {
     static std::array<GLbitfield, utils::numElementsType()> s_table {
+        GL_NONE,
         GL_FLOAT,
         GL_DOUBLE,
         GL_BYTE,
@@ -655,7 +746,7 @@ GLenum QtOpenGL_4_5_Renderer::PrimitiveType2GL(utils::PrimitiveType value)
     return s_table[utils::castFromPrimitiveType(value)];
 }
 
-QtOpenGL_4_5_Renderer::Buffer_4_5::MappedData_4_5::MappedData_4_5(std::shared_ptr<Buffer_4_5> mappedBuffer, void *data)
+QtOpenGL_4_5_Renderer::Buffer_4_5::MappedData_4_5::MappedData_4_5(std::shared_ptr<const Buffer_4_5> mappedBuffer, uint8_t *data)
     : m_mappedBuffer(mappedBuffer)
     , m_data(data)
 {
@@ -665,14 +756,19 @@ QtOpenGL_4_5_Renderer::Buffer_4_5::MappedData_4_5::~MappedData_4_5()
 {
     if (!m_mappedBuffer.expired())
     {
-        auto buffer = m_mappedBuffer.lock();
+        auto buffer_4_5 = m_mappedBuffer.lock();
         auto instance = QtOpenGL_4_5_Renderer::instance();
-        instance->glUnmapNamedBuffer(buffer->m_id);
-        buffer->m_isMapped = false;
+        instance->glUnmapNamedBuffer(buffer_4_5->id());
+        buffer_4_5->m_isMapped = false;
     }
 }
 
-void *QtOpenGL_4_5_Renderer::Buffer_4_5::MappedData_4_5::get()
+const uint8_t *QtOpenGL_4_5_Renderer::Buffer_4_5::MappedData_4_5::get() const
+{
+    return const_cast<MappedData_4_5*>(this)->get();
+}
+
+uint8_t *QtOpenGL_4_5_Renderer::Buffer_4_5::MappedData_4_5::get()
 {
     return m_mappedBuffer.expired() ? nullptr : m_data;
 }

@@ -25,7 +25,7 @@ public:
 
     void clear()
     {
-        for (auto chld : m_children)
+        for (auto &chld : m_children)
         {
             chld->TreeNode<T>::doDetach();
             chld->m_parent = nullptr;

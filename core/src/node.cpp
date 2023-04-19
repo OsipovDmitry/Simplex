@@ -62,14 +62,14 @@ std::shared_ptr<const DrawableNode> Node::asDrawableNode() const
     return nullptr;
 }
 
-const utils::Transform &Node::localTransform() const
+const utils::Transform &Node::transform() const
 {
-    return m_->localTransform();
+    return m_->transform();
 }
 
-void Node::setLocalTransform(const utils::Transform &t)
+void Node::setTransform(const utils::Transform &t)
 {
-    m_->localTransform() = t;
+    m_->transform() = t;
     NodePrivate::dirtyGlobalTransform(asNode());
 }
 
@@ -77,7 +77,7 @@ const utils::Transform &Node::globalTransform() const
 {
     if (m_->isGlobalTransformDirty())
     {
-        m_->globalTransform() = m_->localTransform();
+        m_->globalTransform() = m_->transform();
         if (auto parentNode = parent(); parentNode)
             m_->globalTransform() = parentNode->globalTransform() * m_->globalTransform();
         m_->isGlobalTransformDirty() = false;
@@ -85,32 +85,15 @@ const utils::Transform &Node::globalTransform() const
     return m_->globalTransform();
 }
 
-const utils::BoundingBox &Node::minimalBoundingBox() const
+const utils::BoundingBox &Node::boundingBox() const
 {
-    return m_->minimalBoundingBox();
-}
-
-void Node::setMinimalBoundingBox(const utils::BoundingBox &bb)
-{
-    m_->minimalBoundingBox() = bb;
-    NodePrivate::dirtyGlobalBoundingBox(asNode());
-}
-
-const utils::BoundingBox &Node::localBoundingBox() const
-{
-    return m_->localBoundingBox();
-}
-
-const utils::BoundingBox &Node::globalBoundingBox() const
-{
-    if (m_->isGlobalBoundingBoxDirty())
+    if (m_->isBoundingBoxDirty())
     {
         auto& bb = m_->globalBoundingBox();
-        bb = m_->minimalBoundingBox();
-        bb += m_->localBoundingBox();
+        bb = utils::BoundingBox();
         for (auto &child : children())
-            bb += child->localTransform() * child->globalBoundingBox();
-        m_->isGlobalBoundingBoxDirty() = false;
+            bb += child->transform() * child->boundingBox();
+        m_->isBoundingBoxDirty() = false;
     }
 
     return m_->globalBoundingBox();
@@ -126,6 +109,20 @@ void Node::accept(std::shared_ptr<NodeVisitor> nodeVisitor)
 Node::Node(NodePrivate *nodePrivate)
     : m_(std::unique_ptr<NodePrivate>(nodePrivate))
 {
+}
+
+void Node::doAttach()
+{
+    NodePrivate::dirtyGlobalTransform(asNode());
+    if (auto p = parent(); p)
+        NodePrivate::dirtyBoundingBox(p);
+}
+
+void Node::doDetach()
+{
+    NodePrivate::dirtyGlobalTransform(asNode());
+    if (auto p = parent(); p)
+        NodePrivate::dirtyBoundingBox(p);
 }
 
 }
