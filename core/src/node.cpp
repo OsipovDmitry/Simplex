@@ -1,5 +1,6 @@
-#include <core/node.h>
 #include <core/nodevisitor.h>
+#include <core/node.h>
+#include <core/coloreddrawable.h>
 
 #include "nodeprivate.h"
 
@@ -11,6 +12,7 @@ namespace core
 Node::Node(const std::string &name)
     : m_(std::make_unique<NodePrivate>(name))
 {
+    initialize();
 }
 
 Node::~Node()
@@ -89,7 +91,7 @@ const utils::BoundingBox &Node::boundingBox() const
 {
     if (m_->isBoundingBoxDirty())
     {
-        auto& bb = m_->globalBoundingBox();
+        auto &bb = m_->globalBoundingBox();
         bb = utils::BoundingBox();
         for (auto &child : children())
             bb += child->transform() * child->boundingBox();
@@ -99,9 +101,9 @@ const utils::BoundingBox &Node::boundingBox() const
     return m_->globalBoundingBox();
 }
 
-void Node::accept(std::shared_ptr<NodeVisitor> nodeVisitor)
+void Node::accept(NodeVisitor &nodeVisitor)
 {
-    if (nodeVisitor->visit(asNode()))
+    if (nodeVisitor.visit(asNode()))
         for (auto &child : children())
             child->accept(nodeVisitor);
 }
@@ -109,6 +111,7 @@ void Node::accept(std::shared_ptr<NodeVisitor> nodeVisitor)
 Node::Node(NodePrivate *nodePrivate)
     : m_(std::unique_ptr<NodePrivate>(nodePrivate))
 {
+    initialize();
 }
 
 void Node::doAttach()
@@ -123,6 +126,12 @@ void Node::doDetach()
     NodePrivate::dirtyGlobalTransform(asNode());
     if (auto p = parent(); p)
         NodePrivate::dirtyBoundingBox(p);
+}
+
+void Node::initialize()
+{
+    auto &mPrivate = m();
+    mPrivate.boundingBoxDrawable() = std::make_shared<ColoredDrawable>(mPrivate.boundingBoxVertexArray());
 }
 
 }

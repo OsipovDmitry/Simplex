@@ -57,7 +57,9 @@ public:
     MeshPainter(std::shared_ptr<Mesh> = nullptr);
 
     void drawTriangle();
+    void drawTetrahedron();
     void drawCube();
+    void drawBoundingBox();
     void drawMonkey();
     void drawTeapot();
     void drawSphere(uint32_t = 8u);

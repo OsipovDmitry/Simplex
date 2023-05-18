@@ -7,7 +7,9 @@
 #include <utils/glm/gtc/type_ptr.hpp>
 
 #include "triangledata.h"
+#include "tetrahedrondata.h"
 #include "cubedata.h"
+#include "boundingboxdata.h"
 #include "monkeydata.h"
 #include "teapotdata.h"
 #include "cameradata.h"
@@ -241,6 +243,16 @@ void MeshPainter::drawTriangle()
                  toType<decltype(s_triangleIndices)::value_type>());
 }
 
+void MeshPainter::drawTetrahedron()
+{
+    drawElements({{VertexAttribute::Position, s_tetrahedronVertices},
+                  {VertexAttribute::Normal, s_tetrahedronNormals},
+                  {VertexAttribute::TexCoord, s_tetrahedronTexCoords}},
+                 PrimitiveType::Triangles,
+                 s_tetrahedronIndices,
+                 toType<decltype(s_tetrahedronIndices)::value_type>());
+}
+
 void MeshPainter::drawCube()
 {
     drawElements({{VertexAttribute::Position, s_cubeVertices},
@@ -249,6 +261,14 @@ void MeshPainter::drawCube()
                  PrimitiveType::Triangles,
                  s_cubeIndices,
                  toType<decltype(s_cubeIndices)::value_type>());
+}
+
+void MeshPainter::drawBoundingBox()
+{
+    drawElements({{VertexAttribute::Position, s_boundingBoxVertices}},
+                 PrimitiveType::Lines,
+                 s_boundingBoxIndices,
+                 toType<decltype(s_boundingBoxIndices)::value_type>());
 }
 
 void MeshPainter::drawMonkey()

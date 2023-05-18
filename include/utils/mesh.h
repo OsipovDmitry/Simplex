@@ -78,7 +78,7 @@ public:
 
     void attachVertexBuffer(VertexAttribute, std::shared_ptr<VertexBuffer>);
     void detachVertexBuffer(VertexAttribute);
-    const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer>>& vertexBuffers() const;
+    const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer>> &vertexBuffers() const;
 
     void attachPrimitiveSet(std::shared_ptr<DrawArrays>);
     void attachPrimitiveSet(std::shared_ptr<DrawElementsBuffer>);

@@ -1,73 +1,93 @@
 #ifndef UTILS_TRANSFORM_H
 #define UTILS_TRANSFORM_H
 
-#include <utils/glm/mat4x4.hpp>
-#include <utils/glm/vec3.hpp>
-#include <utils/glm/gtc/quaternion.hpp>
+#include <utils/glm/detail/type_vec1.hpp>
+#include <utils/glm/detail/type_vec2.hpp>
+#include <utils/glm/detail/type_vec3.hpp>
+#include <utils/glm/gtx/quaternion.hpp>
+#include <utils/glm/detail/type_mat2x2.hpp>
+#include <utils/glm/detail/type_mat3x3.hpp>
+#include <utils/glm/detail/type_mat4x4.hpp>
+
+#include <utils/forwarddecl.h>
+#include <utils/veccast.h>
 
 namespace simplex
 {
 namespace utils
 {
 
-struct Transform
+template<glm::length_t L, typename T>
+struct TransformT
 {
+    static_assert((L >= 1) && (L < 4), "The dimaension of Transform must be [1..3]");
+    static_assert(std::numeric_limits<T>::is_iec559, "The base type of Transform must be floating point");
+
 public:
-    glm::quat rotation;
-    glm::vec3 scale;
-    glm::vec3 translation;
+    static constexpr glm::length_t length() { return L; }
+    using value_type = T;
 
-    explicit Transform(const glm::vec3 &s = glm::vec3(1.f, 1.f, 1.f), const glm::quat &r = glm::quat(1.f, 0.f, 0.f, 0.f), const glm::vec3 &t = glm::vec3(0.f, 0.f, 0.f))
-        : rotation(r), scale(s), translation(t) {}
+    using PointType = glm::vec<L, T>;
+    using QuatType = glm::qua<T>;
+    using MatType = glm::mat<L+1, L+1, T>;
 
-    glm::vec3 operator *(const glm::vec3 &v) const {
-        return translation + glm::vec3(rotation * glm::vec4((scale * v), 1.f));
+    QuatType rotation;
+    PointType translation;
+    T scale;
+
+    explicit TransformT(T s = 1.0, const QuatType &r = QuatType(1.0, 0.0, 0.0, 0.0), const PointType &t = PointType(0.0))
+        : rotation(r), translation(t), scale(s) {}
+
+    PointType operator *(const PointType &v) const
+    {
+        return translation + PointType(rotation * vec_cast<3>(scale * v));
     }
-    Transform operator *(const Transform &t2) const {
-        return Transform(scale * t2.scale,
-                         rotation * t2.rotation,
-                         translation + scale * glm::vec3(rotation * glm::vec4(t2.translation, 1.f)));
-    }
-    Transform& operator *=(const Transform &t2) {
-        translation += scale * glm::vec3(rotation * glm::vec4(t2.translation, 1.f));
+
+    TransformT<L, T> &operator *=(const TransformT<L, T> &t2) {
+        translation += scale * PointType(rotation * vec_cast<3>(t2.translation));
         rotation *= t2.rotation;
         scale *= t2.scale;
         return *this;
     }
 
-    operator glm::mat4() const {
-        return
-                glm::translate(glm::mat4(1.f), translation) *
-                glm::mat4_cast(rotation) *
-                glm::scale(glm::mat4(1.f), scale);
+    TransformT<L, T> operator *(const TransformT<L, T> &t2) const {
+        return TransformT(*this) *= t2;
     }
 
-    Transform &invert()
+    TransformT<L, T> &invert()
     {
         scale = 1.f / scale;
         rotation = glm::conjugate(rotation);
-        translation = -glm::vec3(rotation  * glm::vec4(translation * scale, 1.f));
+        translation = -PointType(rotation  * vec_cast<3>(scale * translation));
         return *this;
     }
-    Transform inverted() const
+
+    TransformT<L, T> inverted() const
     {
-        return Transform(*this).invert();
+        return TransformT<L, T>(*this).invert();
     }
 
-    static Transform fromScale(const glm::vec3 &value) { return Transform(value, glm::quat(1.f, 0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 0.f)); }
-    static Transform fromScale(float value) { return fromScale(glm::vec3(value, value, value)); }
-    static Transform fromRotation(const glm::quat &value) { return Transform(glm::vec3(1.f, 1.f, 1.f), value, glm::vec3(0.f, 0.f, 0.f)); }
-    static Transform fromTranslation(const glm::vec3 &value) { return Transform(glm::vec3(1.f, 1.f, 1.f), glm::quat(1.f, 0.f, 0.f, 0.f), value); }
+    operator MatType() const {
+        return glm::translate(glm::mat<4, 4, T>(1.0), vec_cast<3>(translation)) *
+               glm::mat<4, 4, T>(rotation) *
+               glm::scale(glm::mat<4, 4, T>(1.0), glm::vec<3, T>(scale));
+    }
+
+    static TransformT<L, T> fromScale(float value) { return TransformT<L, T>(value, QuatType(1.f, 0.f, 0.f, 0.f), PointType(0.0)); }
+    static TransformT<L, T> fromRotation(const QuatType &value) { return TransformT<L, T>(1.0, value, PointType(0.0)); }
+    static TransformT<L, T> fromTranslation(const PointType &value) { return TransformT<L, T>(1.0, QuatType(1.0, 0.0, 0.0, 0.0), value); }
 };
 
-inline glm::mat4x4 operator *(const glm::mat4 &left, const Transform &right)
+template<glm::length_t L, typename T>
+inline typename TransformT<L, T>::MatType operator *(const typename TransformT<L, T>::MatType &left, const TransformT<L, T> &right)
 {
-    return left * right.operator glm::mat4();
+    return left * typename TransformT<L, T>::MatType(right);
 }
 
-inline glm::mat4x4 operator *(const Transform &left, const glm::mat4 &right)
+template<glm::length_t L, typename T>
+inline typename TransformT<L, T>::MatType operator *(const TransformT<L, T> &left, const typename TransformT<L, T>::MatType &right)
 {
-    return left.operator glm::mat4() * right;
+    return typename TransformT<L, T>::MatType(left) * right;
 }
 
 } // namespace

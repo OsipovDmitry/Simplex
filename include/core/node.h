@@ -31,7 +31,7 @@ public:
     const utils::Transform &transform() const;
     void setTransform(const utils::Transform&);
 
-    void accept(std::shared_ptr<NodeVisitor>);
+    void accept(NodeVisitor&);
 
     virtual std::shared_ptr<Node> asNode();
     virtual std::shared_ptr<const Node> asNode() const;
@@ -54,6 +54,10 @@ protected:
     void doDetach() override;
 
     std::unique_ptr<NodePrivate> m_;
+
+private:
+    void initialize();
+
 };
 
 }

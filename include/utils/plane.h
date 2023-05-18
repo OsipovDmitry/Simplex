@@ -1,31 +1,55 @@
 #ifndef UTILS_PLANE_H
 #define UTILS_PLANE_H
 
-#include <utils/glm/vec3.hpp>
-#include <utils/glm/vec4.hpp>
+#include <utils/glm/detail/type_vec1.hpp>
+#include <utils/glm/detail/type_vec2.hpp>
+#include <utils/glm/detail/type_vec3.hpp>
+#include <utils/glm/detail/type_vec4.hpp>
 #include <utils/glm/geometric.hpp>
+#include <utils/forwarddecl.h>
+#include <utils/transform.h>
 
 namespace simplex
 {
 namespace utils
 {
 
-struct Plane : public glm::vec4
+template<glm::length_t L, typename T>
+struct PlaneT : protected glm::vec<L+1, T>
 {
+    static_assert((L >= 1) && (L < 4), "The dimaension of Plane must be [1..3]");
+    static_assert(std::numeric_limits<T>::is_iec559, "The base type of Plane must be floating point");
+
 public:
-    Plane() : glm::vec4(0.f, 1.f, 0.f, 0.f) {}
-    Plane(const glm::vec3 &n, float d) : glm::vec4(glm::normalize(n), -d) {}
-    Plane(const glm::vec4 &v) : glm::vec4(v) { *this /= glm::length(normal()); }
+    static constexpr glm::length_t length() { return L; }
+    using value_type = T;
 
-    glm::vec3 normal() const { return glm::vec3(x, y, z); }
-    void setNormal(const glm::vec3 &n) { glm::vec3 nn = glm::normalize(n); x = nn.x; y = nn.y; z = nn.z; }
+    using PointType = glm::vec<L, T>;
+    using BaseType = glm::vec<L+1, T>;
 
-    float dist() const { return -w; }
-    void setDist(float d) { w = -d; }
+    PlaneT(const BaseType &v = BaseType(glm::vec4(1.f, 0.f, 0.f, 0.f))) : glm::vec<L+1, T>(v) { *this /= glm::length(normal()); }
+    PlaneT(const PointType &n, T d) : glm::vec<L+1, T>(glm::normalize(n), -d) {}
 
-    float distanceTo(const glm::vec3 &v) const { return glm::dot(*this, glm::vec4(v, 1.f)); }
+    PointType normal() const { return PointType(*this); }
+    void setNormal(const PointType &n) { *this = PlaneT<L, T>(glm::normalize(n), dist()); }
 
+    T dist() const { return -this->operator [](L); }
+    void setDist(T d) { this->operator [](L) = -d; }
+
+    PointType anyPoint(T distanceToPlane = 0.0) const { return normal() * (distanceToPlane + dist()); }
+
+    T distanceTo(const PointType &v) const { return glm::dot(*this, BaseType(v, 1.0)); }
 };
+
+template<glm::length_t L, typename T>
+inline PlaneT<L, T> operator *(const TransformT<L, T> &t, const PlaneT<L, T> &p)
+{
+    const auto anyPoint0 = t * p.anyPoint(0.0);
+    const auto anyPoint1 = t * p.anyPoint(1.0);
+
+    const auto newNormal = glm::normalize(anyPoint1 - anyPoint0);
+    return PlaneT<L, T>(newNormal, glm::dot(newNormal, anyPoint0));
+}
 
 } // namespace
 } // namespace

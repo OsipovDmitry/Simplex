@@ -1,7 +1,6 @@
 #ifndef QTOPENGL_1_0_RENDERER_H
 #define QTOPENGL_1_0_RENDERER_H
 
-#include <unordered_map>
 #include <tuple>
 #include <list>
 
@@ -28,12 +27,13 @@ public:
         ~RenderProgram_4_5() override;
 
         GLuint id() const;
+        bool compile(std::string&);
 
-        std::vector<std::string> attributesInfo() const override;
-        std::vector<std::string> uniformsInfo() const override;
+        const std::vector<AttributeInfo> &attributesInfo() const override;
+        const std::vector<UniformInfo> &uniformsInfo() const override;
 
-        int32_t attributeLocation(const std::string&) const override;
-        int32_t uniformLocation(const std::string&) const override;
+        std::string attributeNameByIndex(uint16_t) const override;
+        std::string uniformNameByIndex(uint16_t) const override;
 
         void setUniform(int32_t, float) override;
         void setUniform(int32_t, const glm::vec2&) override;
@@ -56,6 +56,12 @@ public:
 
     private:
         GLuint m_id = 0;
+
+        std::vector<AttributeInfo> m_attributesInfo;
+        std::vector<UniformInfo> m_uniformsInfo;
+
+        GLint m_attributeNameMaxLength;
+        GLint m_uniformNameMaxLength;
     };
 
     class Buffer_4_5 : public core::IGraphicsRenderer::Buffer, public std::enable_shared_from_this<Buffer_4_5>
@@ -134,7 +140,7 @@ public:
         std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> m_primitiveSets;
     };
 
-    std::shared_ptr<RenderProgram> createRenderProgram(const std::string& vertexShader, const std::string& fragmentShader) const override;
+    std::shared_ptr<RenderProgram> createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const override;
     std::shared_ptr<Buffer> createBuffer(size_t = 0u, const void* = nullptr) const override;
     std::shared_ptr<VertexArray> createVertexArray(std::shared_ptr<utils::Mesh> = nullptr, bool uniteVertexBuffers = true) const override;
 
@@ -161,7 +167,9 @@ private:
     static void setInstance(std::shared_ptr<QtOpenGL_4_5_Renderer>);
 
     static GLenum Type2GL(utils::Type);
+    static utils::Type GL2Type(GLenum);
     static GLenum PrimitiveType2GL(utils::PrimitiveType);
+    static void setupUniforms(std::shared_ptr<core::IDrawable>, const core::RenderInfo&, const glm::mat4&);
 
     friend class QtRenderWidget;
 };

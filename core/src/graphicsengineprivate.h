@@ -21,7 +21,7 @@ public:
     {}
 
     std::string &name() { return m_name; }
-    std::shared_ptr<IGraphicsRenderer> renderer() { return m_renderer; }
+    std::shared_ptr<IGraphicsRenderer> &renderer() { return m_renderer; }
     std::vector<std::shared_ptr<Scene>> &scenes() { return m_scenes; }
 
 private:

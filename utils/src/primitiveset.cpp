@@ -82,7 +82,7 @@ DrawElements::DrawElements(PrimitiveType pt, uint32_t count, Type type, uint64_t
     , m_offset(offset)
     , m_baseVertex(baseVertex)
 {
-    assert(TypeInfo::isUnsignedInt(m_type));
+    assert(TypeInfo::isUnsignedIntScalar(m_type));
 }
 
 std::shared_ptr<DrawElements> DrawElements::asDrawElements()

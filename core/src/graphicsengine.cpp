@@ -3,6 +3,7 @@
 #include <utils/logger.h>
 #include <utils/mesh.h>
 #include <utils/meshpainter.h>
+#include <utils/frustum.h>
 
 #include <core/igraphicsrenderer.h>
 #include <core/renderinfo.h>
@@ -11,20 +12,61 @@
 #include <core/scenerootnode.h>
 #include <core/cameranode.h>
 #include <core/drawablenode.h>
-#include <core/drawablebase.h>
+#include <core/coloreddrawable.h>
+#include <core/nodevisitor.h>
+#include <core/collectorvisitor.h>
 
 #include "graphicsengineprivate.h"
+#include "cameranodeprivate.h"
+#include "coloreddrawableprivate.h"
 #include "nodeupdatevisitor.h"
-#include "drawablenodecollector.h"
+#include "znearfarnodevisitor.h"
+#include "drawablenoderenderer.h"
 
 namespace simplex
 {
 namespace core
 {
 
+const char colorVertexShaderSource[] {
+    "#version 450\n"
+    "layout(location = 0) in vec3 a_position;\n"
+    "uniform mat4 u_modelViewProjectionMatrix;\n"
+    "void main() {\n"
+    "   gl_Position = u_modelViewProjectionMatrix * vec4(a_position, 1.0f);\n"
+    "}"
+};
+const char colorFragmentShaderSource[] {
+    "#version 450\n"
+    "uniform vec4 u_color;\n"
+    "layout(location = 0) out vec4 color;\n"
+    "void main() {\n"
+    "  color = u_color;\n"
+    "}"
+};
+
+float GraphicsEngine::s_minZNear = 0.5f;
+float GraphicsEngine::s_maxZFat = 100000.0f;
+
 GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<IGraphicsRenderer> renderer)
     : m_(std::make_unique<GraphicsEnginePrivate>(name, renderer))
 {
+    auto boundingBoxMesh = std::make_shared<utils::Mesh>();
+    boundingBoxMesh->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
+    utils::MeshPainter(boundingBoxMesh).drawBoundingBox();
+
+    NodePrivate::boundingBoxVertexArray() = renderer->createVertexArray(boundingBoxMesh);
+
+    auto cameraMesh = std::make_shared<utils::Mesh>();
+    cameraMesh->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
+    utils::MeshPainter painter(cameraMesh);
+    painter.setVertexTransform(glm::scale(glm::mat4(1.f), glm::vec3(3.f)));
+    painter.drawCamera();
+
+    CameraNodePrivate::cameraVertexArray() = renderer->createVertexArray(cameraMesh);
+
+    ColoredDrawablePrivate::coloredRenderProgram() = renderer->createRenderProgram(colorVertexShaderSource, colorFragmentShaderSource);
+
     LOG_INFO << "Engine \"" << GraphicsEngine::name() << "\" has been created";
 }
 
@@ -40,68 +82,81 @@ const std::string &GraphicsEngine::name() const
 
 void GraphicsEngine::update(uint64_t time, uint32_t dt)
 {
-
-    auto cameraMesh = std::make_shared<utils::Mesh>();
-    cameraMesh->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
-    cameraMesh->attachVertexBuffer(utils::VertexAttribute::Normal, std::make_shared<utils::VertexBuffer>(0u, 3u));
-    cameraMesh->attachVertexBuffer(utils::VertexAttribute::Color, std::make_shared<utils::VertexBuffer>(0u, 3u));
-    utils::MeshPainter painter(cameraMesh);
-    painter.setDefaultValue(utils::VertexAttribute::Color, glm::vec4(1.f, 0.f, 0.f, 1.f));
-    painter.setVertexTransform(glm::scale(glm::mat4(1.f), glm::vec3(3.f)));
-    painter.drawCamera();
-
     auto renderer = m_->renderer();
-
-    auto nodeUpdateVisitor = std::make_shared<NodeUpdateVisitor>(time ,dt);
-    auto cameraNodeCollector = std::make_shared<NodeCollector<CameraNode>>();
-    auto drawableNodeCollector = std::make_shared<DrawableNodeCollector>();
+    float aspectRatio = static_cast<float>(renderer->width()) / static_cast<float>(renderer->height());
 
     auto sceneList = scenes();
     std::stable_sort(sceneList.begin(), sceneList.end(), utils::SortedObject::Comparator());
+
     for (auto &scene : sceneList)
     {
         auto rootNode = scene->sceneRootNode();
 
+        NodeUpdateVisitor nodeUpdateVisitor(time ,dt);
         rootNode->accept(nodeUpdateVisitor);
-
-        cameraNodeCollector->clear();
-        rootNode->accept(cameraNodeCollector);
-        auto cameraList = cameraNodeCollector->nodes();
-        std::stable_sort(cameraList.begin(), cameraList.end(), utils::SortedObject::Comparator());
 
         // update lights and shadows
 
-        for (auto &camera : cameraList)
+        CollectorVisitor<CameraNode> cameraNodeCollector;
+        rootNode->accept(cameraNodeCollector);
+        std::stable_sort(cameraNodeCollector.nodes().begin(), cameraNodeCollector.nodes().end(), utils::SortedObject::Comparator());
+
+        std::vector<std::array<float, 2>> cameraZPlanes(cameraNodeCollector.nodes().size());
+        for (size_t i = 0; i < cameraNodeCollector.nodes().size(); ++i)
         {
+            const auto &camera = cameraNodeCollector.nodes()[i];
+
+            ZNearFarNodeVisitor zNearFarNodeVisitor(utils::OpenFrustum(camera->projectionMatrix(aspectRatio, 0.f, 1.f) *
+                                                                       camera->globalTransform().inverted()));
+            rootNode->accept(zNearFarNodeVisitor);
+            cameraZPlanes[i] = zNearFarNodeVisitor.zNearFar();
+        }
+
+        for (size_t i = 0; i < cameraNodeCollector.nodes().size(); ++i)
+        {
+            const auto &camera = cameraNodeCollector.nodes()[i];
+
             if (!camera->isRenderingEnabled())
                 continue;
 
-            float aspectRatio = static_cast<float>(renderer->width()) / static_cast<float>(renderer->height());
-
-            auto viewMatrix = glm::inverse(glm::mat4(camera->globalTransform()));
-            auto projectionMatrix = camera->projectionMatrix(aspectRatio, 0.1f, 1000.0f);
+            auto zNear = glm::max(s_minZNear, cameraZPlanes[i][0]);
+            auto zFar = glm::min(s_maxZFat, cameraZPlanes[i][1]);
 
             RenderInfo renderInfo;
             renderInfo.setViewport(glm::uvec2(renderer->width(), renderer->height()));
-            renderInfo.setViewMatrix(viewMatrix);
-            renderInfo.setProjectionMatrix(projectionMatrix);
-
-            drawableNodeCollector->clear();
-            rootNode->accept(drawableNodeCollector);
+            renderInfo.setViewMatrix(camera->globalTransform().inverted());
+            renderInfo.setProjectionMatrix(camera->projectionMatrix(aspectRatio, zNear, zFar));
 
             renderer->clearRenderData();
-            for (auto &c : cameraList)
-                if (c != camera)
-                    renderer->addRenderData(c->globalTransform(), std::make_shared<DrawableBase>(drawableNodeCollector->nodes().front()->drawables().begin()->get()->renderProgram(),
-                                                                                                 m_->renderer()->createVertexArray(cameraMesh)));
-            for (auto &drawableNode : drawableNodeCollector->nodes())
-                for (const auto &drawable : drawableNode->drawables())
-                    renderer->addRenderData(drawableNode->globalTransform(), drawable);
+
+            if (true)
+            {
+                for (size_t j = 0; j < cameraNodeCollector.nodes().size(); ++j)
+                {
+                    if (i == j) continue;
+
+                    const auto &anotherCamera = cameraNodeCollector.nodes()[j];
+
+                    renderer->addRenderData(anotherCamera->globalTransform(), anotherCamera->m().cameraDrawable());
+                    renderer->addRenderData(anotherCamera->globalTransform() *
+                                            glm::inverse(anotherCamera->projectionMatrix(aspectRatio, cameraZPlanes[j][0], cameraZPlanes[j][1])),
+                                            anotherCamera->m().frustumDrawable());
+                }
+            }
+
+            DrawableNodeRenderer drawableNodeRenderer(renderer, utils::Frustum(renderInfo.projectionMatrix() * renderInfo.viewMatrix()));
+            rootNode->accept(drawableNodeRenderer);
+
             renderer->render(renderInfo);
         }
     }
 
     renderer->clearRenderData();
+}
+
+std::shared_ptr<IGraphicsRenderer> GraphicsEngine::graphicsRenderer() const
+{
+    return m_->renderer();
 }
 
 const std::vector<std::shared_ptr<Scene>> &GraphicsEngine::scenes() const

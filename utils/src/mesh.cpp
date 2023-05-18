@@ -58,6 +58,7 @@ VertexBuffer::VertexBuffer(uint32_t numVertices, uint32_t numComponents, Type ty
     , m_type(type)
 {
     assert(m_numComponents <= 4u);
+    assert(TypeInfo::isScalar(m_type));
 }
 
 VertexBuffer::~VertexBuffer()
@@ -99,6 +100,7 @@ DrawElementsBuffer::DrawElementsBuffer(PrimitiveType primitiveType, uint32_t cou
     : DrawElements(primitiveType, count, type, 0, baseVertex)
     , Buffer(count * TypeInfo::size(type))
 {
+    assert(TypeInfo::isUnsignedIntScalar(m_type));
 }
 
 DrawElementsBuffer::~DrawElementsBuffer()

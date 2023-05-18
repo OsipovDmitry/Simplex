@@ -14,16 +14,34 @@ ENUMCLASS(Type, uint16_t,
           Undefined,
 
           Single,
+          SingleVec2,
+          SingleVec3,
+          SingleVec4,
+          SingleMat2,
+          SingleMat3,
+          SingleMat4,
+
           Double,
+          DoubleVec2,
+          DoubleVec3,
+          DoubleVec4,
+          DoubleMat2,
+          DoubleMat3,
+          DoubleMat4,
 
           Int8,
           Int16,
           Int32,
+          Int32Vec2,
+          Int32Vec3,
+          Int32Vec4,
 
           Uint8,
           Uint16,
-          Uint32)
-
+          Uint32,
+          Uint32Vec2,
+          Uint32Vec3,
+          Uint32Vec4)
 
 template<typename T> inline Type toType() { return Type::Undefined; }
 template<> inline Type toType<float>() { return Type::Single; }

@@ -8,6 +8,7 @@
 #include <core/forwarddecl.h>
 #include <core/node.h>
 
+
 namespace simplex
 {
 namespace core
@@ -32,6 +33,10 @@ public:
     const utils::BoundingBox &boundingBox() const override;
 
     void recalculateLocalBoundingBox();
+
+private:
+    void initialize();
+
 };
 
 }

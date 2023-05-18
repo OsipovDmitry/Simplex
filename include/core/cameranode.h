@@ -35,6 +35,9 @@ protected:
     bool canAttach(std::shared_ptr<Node>) override;
     bool canDetach(std::shared_ptr<Node>) override;
 
+private:
+    void initialize();
+
 };
 
 }

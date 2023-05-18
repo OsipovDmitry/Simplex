@@ -16,13 +16,12 @@ namespace core
 class DrawableBasePrivate
 {
 public:
-    DrawableBasePrivate(std::shared_ptr<IGraphicsRenderer::RenderProgram> rp, std::shared_ptr<IGraphicsRenderer::VertexArray> vao)
-        : m_renderProgram(rp)
-        , m_vertexArray(vao)
-    {}
+    DrawableBasePrivate(std::shared_ptr<IGraphicsRenderer::RenderProgram> rp, std::shared_ptr<IGraphicsRenderer::VertexArray> vao);
 
-    std::shared_ptr<IGraphicsRenderer::RenderProgram> renderProgram() { return m_renderProgram; }
-    std::shared_ptr<IGraphicsRenderer::VertexArray> vertexArray() { return m_vertexArray; }
+    virtual ~DrawableBasePrivate();
+
+    std::shared_ptr<IGraphicsRenderer::RenderProgram> &renderProgram();
+    std::shared_ptr<IGraphicsRenderer::VertexArray> &vertexArray();
 
     template<typename T>
     static T readDataToType(const uint8_t* data, utils::Type type)
@@ -87,7 +86,7 @@ public:
         return result;
     }
 
-private:
+protected:
     std::shared_ptr<IGraphicsRenderer::RenderProgram> m_renderProgram;
     std::shared_ptr<IGraphicsRenderer::VertexArray> m_vertexArray;
 

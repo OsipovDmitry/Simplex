@@ -1,9 +1,12 @@
 #ifndef UTILS_BOUNDINGBOX_H
 #define UTILS_BOUNDINGBOX_H
 
-#include <vector>
+#include <array>
 
-#include <utils/glm/vec3.hpp>
+#include <utils/glm/detail/type_vec1.hpp>
+#include <utils/glm/detail/type_vec2.hpp>
+#include <utils/glm/detail/type_vec3.hpp>
+#include <utils/forwarddecl.h>
 #include <utils/transform.h>
 #include <utils/plane.h>
 
@@ -12,86 +15,106 @@ namespace simplex
 namespace utils
 {
 
-struct BoundingBox;
-inline BoundingBox operator +(const BoundingBox&, const BoundingBox&);
-inline BoundingBox operator +(const BoundingBox&, const glm::vec3&);
-
-struct BoundingBox
+template <glm::length_t L, typename T>
+struct BoundingBoxT
 {
-    using PointType = glm::vec3;
-    glm::vec3 minPoint, maxPoint;
+    static_assert((L >= 1) && (L < 4), "The dimaension of BoundingBox must be [1..3]");
+    static_assert(std::numeric_limits<T>::is_iec559, "The base type of BoundingBox must be floating point");
 
-    BoundingBox() : minPoint(std::numeric_limits<float>::max()), maxPoint(-std::numeric_limits<float>::max()) {}
-    BoundingBox(const glm::vec3 &minP, const glm::vec3 &maxP) : minPoint(minP), maxPoint(maxP) {}
+public:
+    static constexpr glm::length_t length() { return L; }
+    using value_type = T;
+
+    using PointType = glm::vec<L, T>;
+
+    BoundingBoxT() : m_minPoint(std::numeric_limits<float>::max()), m_maxPoint(-std::numeric_limits<float>::max()) {}
+    BoundingBoxT(const PointType &minP, const PointType &maxP) : m_minPoint(minP), m_maxPoint(maxP) {}
 
     bool isEmpty() const {
-        for (glm::vec3::length_type k = 0; k < glm::vec3::length(); ++k)
-            if (minPoint[k] > maxPoint[k]) return true;
+        for (glm::length_t k = 0; k < L; ++k)
+            if (m_minPoint[k] > m_maxPoint[k]) return true;
         return false;
     }
 
-    float distanceToPlane(const Plane &p) const {
-        glm::vec3 vmin = minPoint, vmax = maxPoint;
-        for (glm::vec3::length_type k = 0; k < glm::vec3::length(); ++k)
-            if (p[k] < .0f) std::swap(vmin[k], vmax[k]);
+    float distanceToPlane(const PlaneT<L, T> &p) const {
+        PointType vmin = m_minPoint, vmax = m_maxPoint;
+        const auto normal = p.normal();
+        for (glm::length_t k = 0; k < L; ++k)
+            if (normal[k] < .0f) std::swap(vmin[k], vmax[k]);
         const float vMinDist = p.distanceTo(vmin), vMaxDist = p.distanceTo(vmax);
         return (vMinDist * vMaxDist <= .0f) ?
                     .0f :
                     (vMinDist > .0f) ? vMinDist  : vMaxDist;
     }
 
-    std::pair<float, float> pairDistancesToPlane(const Plane &p) const
+    std::array<float, 2> pairDistancesToPlane(const PlaneT<L, T> &p) const
     {
-        glm::vec3 vmin = minPoint, vmax = maxPoint;
-        for (glm::vec3::length_type k = 0; k < glm::vec3::length(); ++k)
-            if (p[k] < .0f) std::swap(vmin[k], vmax[k]);
+        PointType vmin = m_minPoint, vmax = m_maxPoint;
+        const auto normal = p.normal();
+        for (glm::length_t k = 0; k < L; ++k)
+            if (normal[k] < .0f) std::swap(vmin[k], vmax[k]);
         const float vMinDist = p.distanceTo(vmin), vMaxDist = p.distanceTo(vmax);
-        return std::make_pair(vMinDist, vMaxDist);
+        return { vMinDist, vMaxDist };
     }
 
-    glm::vec3 closestPoint(const glm::vec3 &v) const
+    PointType closestPoint(const PointType &v) const
     {
-        return glm::clamp(v, minPoint, maxPoint);
+        return glm::clamp(v, m_minPoint, m_maxPoint);
     }
 
-    glm::vec3 center() const { return .5f * (minPoint + maxPoint); }
-    glm::vec3 halfSize() const { return .5f * (maxPoint - minPoint); }
+    const PointType &minPoint() const { return m_minPoint; }
+    const PointType &maxPoint() const { return m_maxPoint; }
+    PointType center() const { return .5f * (m_minPoint + m_maxPoint); }
+    PointType halfSize() const { return .5f * (m_maxPoint - m_minPoint); }
 
-    BoundingBox &operator += (const BoundingBox &b) { *this = *this + b; return *this; }
-    BoundingBox &operator += (const glm::vec3 &v) { *this = *this + v; return *this; }
+    BoundingBoxT<L, T> &operator += (const BoundingBoxT<L, T> &b);
+    BoundingBoxT<L, T> &operator += (const PointType &v);
 
-    static BoundingBox fromMinMax(const glm::vec3 &minP, const glm::vec3 &maxP) { return BoundingBox(minP, maxP); }
-    static BoundingBox fromCenterHalfSize(const glm::vec3 &cP, const glm::vec3 &hz) { return BoundingBox(cP-hz, cP+hz); }
+    static BoundingBoxT<L, T> fromMinMax(const PointType &minP, const PointType &maxP) { return BoundingBoxT<L, T>(minP, maxP); }
+    static BoundingBoxT<L, T> fromCenterHalfSize(const PointType &cP, const PointType &hz) { return BoundingBoxT<L, T>(cP-hz, cP+hz); }
+
+private:
+    PointType m_minPoint, m_maxPoint;
 };
 
-inline BoundingBox operator +(const BoundingBox &b1, const BoundingBox &b2)
+template <glm::length_t L, typename T>
+inline BoundingBoxT<L, T> operator +(const BoundingBoxT<L, T> &b1, const BoundingBoxT<L, T> &b2)
 {
-    return BoundingBox(glm::min(b1.minPoint, b2.minPoint), glm::max(b1.maxPoint, b2.maxPoint));
+    return BoundingBoxT<L, T>(glm::min(b1.minPoint(), b2.minPoint()), glm::max(b1.maxPoint(), b2.maxPoint()));
 }
 
-inline BoundingBox operator +(const BoundingBox &b, const glm::vec3 &v)
+template <glm::length_t L, typename T>
+inline BoundingBoxT<L, T> operator +(const BoundingBoxT<L, T> &b, const typename BoundingBoxT<L, T>::PointType &v)
 {
-    return BoundingBox(glm::min(b.minPoint, v), glm::max(b.maxPoint, v));
+    return BoundingBoxT<L, T>(glm::min(b.minPoint(), v), glm::max(b.maxPoint(), v));
 }
 
-inline BoundingBox operator +(const glm::vec3 &v, const BoundingBox &b)
+template <glm::length_t L, typename T>
+inline BoundingBoxT<L, T> operator +(const typename BoundingBoxT<L, T>::PointType &v, const BoundingBoxT<L, T> &b)
 {
     return b + v;
 }
 
-inline BoundingBox operator *(const Transform &t, const BoundingBox& b)
+template <glm::length_t L, typename T>
+inline BoundingBoxT<L, T> operator *(const TransformT<L, T> &t, const BoundingBoxT<L, T> &b)
 {
-    if (b.isEmpty()) return BoundingBox();
+    if (b.isEmpty()) return BoundingBoxT<L, T>();
 
-    const auto xAxis = glm::abs(glm::vec3(t.rotation * glm::vec4(1.f, 0.f, 0.f, 1.f)));
-    const auto yAxis = glm::abs(glm::vec3(t.rotation * glm::vec4(0.f, 1.f, 0.f, 1.f)));
-    const auto zAxis = glm::abs(glm::vec3(t.rotation * glm::vec4(0.f, 0.f, 1.f, 1.f)));
+    const auto xAxis = glm::abs(t.rotation * glm::vec3(1.f, 0.f, 0.f));
+    const auto yAxis = glm::abs(t.rotation * glm::vec3(0.f, 1.f, 0.f));
+    const auto zAxis = glm::abs(t.rotation * glm::vec3(0.f, 0.f, 1.f));
 
-    const glm::vec3 halfSize = glm::mat3x3(xAxis, yAxis, zAxis) * (b.halfSize() * t.scale);
-    const glm::vec3 center = t * b.center();
+    const auto halfSize = glm::mat<L, L, T>(glm::mat3(xAxis, yAxis, zAxis)) * (b.halfSize() * t.scale);
+    const auto center = t * b.center();
 
-    return BoundingBox(center - halfSize, center + halfSize);
+    return BoundingBoxT<L, T>(center - halfSize, center + halfSize);
 }
+
+template <glm::length_t L, typename T>
+inline BoundingBoxT<L, T> &BoundingBoxT<L, T>::operator +=(const BoundingBoxT<L, T> &b) { *this = *this + b; return *this; }
+
+template <glm::length_t L, typename T>
+inline BoundingBoxT<L, T> &BoundingBoxT<L, T>::operator +=(const typename BoundingBoxT<L, T>::PointType &v) { *this = *this + v; return *this; }
 
 } // namespace
 } // namespace

@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 
 #include <utils/glm/vec2.hpp>
 #include <utils/glm/vec3.hpp>
@@ -13,8 +14,9 @@
 #include <utils/glm/mat3x3.hpp>
 #include <utils/glm/mat4x4.hpp>
 
-#include <utils/enumclass.h>
 #include <utils/forwarddecl.h>
+#include <utils/enumclass.h>
+#include <utils/types.h>
 
 #include <core/forwarddecl.h>
 #include <core/inamedobject.h>
@@ -30,13 +32,47 @@ public:
     class RenderProgram
     {
     public:
+        ENUMCLASS(UniformId, uint16_t,
+                  Viewport,
+                  ModelMatrix,
+                  NormalMatrix,
+                  ViewMatrix,
+                  ViewMatrixInverse,
+                  ProjectionMatrix,
+                  ProjectionMatrixInverse,
+                  ViewProjectionMatrix,
+                  ViewProjectionMatrixInverse,
+                  ModelViewMatrix,
+                  NormalViewMatrix,
+                  ModelViewProjectionMatrix,
+                  ViewPosition,
+                  ViewXDirection,
+                  ViewYDirection,
+                  ViewZDirection)
+
+        struct UniformInfo
+        {
+            UniformId id;
+            uint16_t index;
+            int32_t location;
+            utils::Type type;
+        };
+
+        struct AttributeInfo
+        {
+            utils::VertexAttribute id;
+            uint16_t index;
+            int32_t location;
+            utils::Type type;
+        };
+
         virtual ~RenderProgram() = default;
 
-        virtual std::vector<std::string> attributesInfo() const = 0;
-        virtual std::vector<std::string> uniformsInfo() const = 0;
+        virtual const std::vector<AttributeInfo> &attributesInfo() const = 0;
+        virtual const std::vector<UniformInfo> &uniformsInfo() const = 0;
 
-        virtual int32_t attributeLocation(const std::string&) const = 0;
-        virtual int32_t uniformLocation(const std::string&) const = 0;
+        virtual std::string attributeNameByIndex(uint16_t) const = 0;
+        virtual std::string uniformNameByIndex(uint16_t) const = 0;
 
         virtual void setUniform(int32_t, float) = 0;
         virtual void setUniform(int32_t, const glm::vec2&) = 0;
@@ -56,6 +92,12 @@ public:
         virtual void setUniform(int32_t, const glm::mat2&) = 0;
         virtual void setUniform(int32_t, const glm::mat3&) = 0;
         virtual void setUniform(int32_t, const glm::mat4&) = 0;
+
+    protected:
+        static utils::VertexAttribute vertexAttributeByName(const std::string&);
+        static UniformId UniformIdByName(const std::string&);
+
+        static utils::Type typeByUniformId(UniformId);
     };
 
     class Buffer
@@ -105,7 +147,7 @@ public:
         virtual const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> primitiveSets() const = 0;
     };
 
-    virtual std::shared_ptr<RenderProgram> createRenderProgram(const std::string& vertexShader, const std::string& fragmentShader) const = 0;
+    virtual std::shared_ptr<RenderProgram> createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const = 0;
     virtual std::shared_ptr<Buffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
     virtual std::shared_ptr<VertexArray> createVertexArray(std::shared_ptr<utils::Mesh> = nullptr, bool uniteBuffers = true) const = 0;
 
@@ -117,6 +159,72 @@ public:
     virtual void addRenderData(const glm::mat4&, std::shared_ptr<IDrawable>) = 0;
     virtual void render(const RenderInfo&) = 0;
 };
+
+inline utils::VertexAttribute IGraphicsRenderer::RenderProgram::vertexAttributeByName(const std::string &name)
+{
+    static const std::unordered_map<std::string, utils::VertexAttribute> s_table {
+        { "a_position", utils::VertexAttribute::Position },
+        { "a_normal", utils::VertexAttribute::Normal },
+        { "a_texCoord", utils::VertexAttribute::TexCoord },
+        { "a_boneIDs", utils::VertexAttribute::BonesIDs },
+        { "a_bonesWeights", utils::VertexAttribute::BonesWeights },
+        { "a_tangent", utils::VertexAttribute::Tangent },
+        { "a_color", utils::VertexAttribute::Color },
+    };
+
+    auto it = s_table.find(name);
+    return (it == s_table.end()) ? utils::VertexAttribute::Count : it->second;
+}
+
+inline IGraphicsRenderer::RenderProgram::UniformId IGraphicsRenderer::RenderProgram::UniformIdByName(const std::string &name)
+{
+    static const std::unordered_map<std::string, UniformId> s_table {
+        { "u_viewport", UniformId::Viewport },
+        { "u_modelMatrix", UniformId::ModelMatrix },
+        { "u_normalMatrix", UniformId::NormalMatrix },
+        { "u_viewMatrix", UniformId::ViewMatrix },
+        { "u_viewMatrixInverse", UniformId::ViewMatrixInverse },
+        { "u_projectionMatrix", UniformId::ProjectionMatrix },
+        { "u_projectionMatrixInverse", UniformId::ProjectionMatrixInverse },
+        { "u_viewProjectionMatrix", UniformId::ViewProjectionMatrix },
+        { "u_viewProjectionMatrixInverse", UniformId::ViewProjectionMatrixInverse },
+        { "u_modelViewMatrix", UniformId::ModelViewMatrix },
+        { "u_normalViewMatrix", UniformId::NormalViewMatrix },
+        { "u_modelViewProjectionMatrix", UniformId::ModelViewProjectionMatrix },
+        { "u_viewPosition", UniformId::ViewPosition },
+        { "u_viewXDirection", UniformId::ViewXDirection },
+        { "u_viewYDirection", UniformId::ViewYDirection },
+        { "u_viewZDirection", UniformId::ViewZDirection },
+    };
+
+    auto it = s_table.find(name);
+    return (it == s_table.end()) ? UniformId::Count : it->second;
+}
+
+inline utils::Type IGraphicsRenderer::RenderProgram::typeByUniformId(UniformId uniformId)
+{
+    static const std::array<utils::Type, numElementsUniformId() + 1u> s_table {
+        utils::Type::Uint32Vec2,
+        utils::Type::SingleMat4,
+        utils::Type::SingleMat4,
+        utils::Type::SingleMat4,
+        utils::Type::SingleMat4,
+        utils::Type::SingleMat4,
+        utils::Type::SingleMat4,
+        utils::Type::SingleMat4,
+        utils::Type::SingleMat4,
+        utils::Type::SingleMat4,
+        utils::Type::SingleMat4,
+        utils::Type::SingleMat4,
+        utils::Type::SingleVec3,
+        utils::Type::SingleVec3,
+        utils::Type::SingleVec3,
+        utils::Type::SingleVec3,
+        utils::Type::Undefined
+    };
+
+    return s_table[castFromUniformId(uniformId)];
+}
 
 }
 }

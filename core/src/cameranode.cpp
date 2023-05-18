@@ -2,6 +2,7 @@
 #include <utils/clipspace.h>
 
 #include <core/cameranode.h>
+#include <core/coloreddrawable.h>
 
 #include "cameranodeprivate.h"
 
@@ -13,6 +14,8 @@ namespace core
 CameraNode::CameraNode(const std::string &name)
     : Node(new CameraNodePrivate(name))
 {
+    initialize();
+
     setPerspectiveProjection(glm::half_pi<float>());
     setRenderingEnabled(true);
 }
@@ -66,6 +69,16 @@ bool CameraNode::canDetach(std::shared_ptr<Node>)
 {
     LOG_ERROR << "It's forbidden to detach from camera node \"" << name() << "\"";
     return false;
+}
+
+void CameraNode::initialize()
+{
+    auto &mPrivate = m();
+    mPrivate.cameraDrawable() = std::make_shared<ColoredDrawable>(mPrivate.cameraVertexArray());
+    mPrivate.frustumDrawable() = std::make_shared<ColoredDrawable>(mPrivate.boundingBoxVertexArray());
+
+    mPrivate.cameraDrawable()->setColor(glm::vec4(1.f, 1.f, 1.f, 1.f));
+    mPrivate.frustumDrawable()->setColor(glm::vec4(1.f, 1.f, 1.f, 1.f));
 }
 
 }

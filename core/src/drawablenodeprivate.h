@@ -5,8 +5,6 @@
 #include <memory>
 
 #include <core/forwarddecl.h>
-#include <core/idrawable.h>
-#include <core/drawablenode.h>
 
 #include "nodeprivate.h"
 
@@ -18,34 +16,23 @@ namespace core
 class DrawableNodePrivate : public NodePrivate
 {
 public:
-    DrawableNodePrivate(const std::string &name)
-        : NodePrivate(name)
-        , m_localBoundingBoxDirty(true)
-    {}
+    DrawableNodePrivate(const std::string &name);
 
-    bool &isLocalBoundingBoxDirty()
-    {
-        return m_localBoundingBoxDirty;
-    }
+    bool &isLocalBoundingBoxDirty();
+    utils::BoundingBox &localBoundingBox();
 
-    utils::BoundingBox &localBoundingBox()
-    {
-        return m_localBoundingBox;
-    }
+    std::unordered_set<std::shared_ptr<IDrawable>> &drawables();
 
-    const std::unordered_set<std::shared_ptr<IDrawable>> &drawables() const { return m_drawables; }
-    std::unordered_set<std::shared_ptr<IDrawable>> &drawables() { return m_drawables; }
+    std::shared_ptr<ColoredDrawable> &localBoundingBoxDrawable();
 
-    static void dirtyLocalBoundingBox(std::shared_ptr<DrawableNode> node)
-    {
-        node->m().m_localBoundingBoxDirty = true;
-        NodePrivate::dirtyBoundingBox(node);
-    }
+    static void dirtyLocalBoundingBox(std::shared_ptr<DrawableNode> node);
 
 private:
     std::unordered_set<std::shared_ptr<IDrawable>> m_drawables;
     utils::BoundingBox m_localBoundingBox;
     bool m_localBoundingBoxDirty;
+
+    std::shared_ptr<ColoredDrawable> m_localBoundingBoxDrawable;
 };
 
 }

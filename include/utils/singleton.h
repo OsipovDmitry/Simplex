@@ -3,7 +3,7 @@
 
 #define SINGLETON(Class) \
     public: \
-    static Class& instance() { \
+    static Class &instance() { \
         static Class p; \
         return p; \
     }

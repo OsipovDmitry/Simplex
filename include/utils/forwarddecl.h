@@ -3,6 +3,8 @@
 
 #include <cstdint>
 
+#include <utils/glm/detail/setup.hpp>
+
 namespace simplex
 {
 namespace utils
@@ -17,10 +19,6 @@ class VertexBuffer;
 class DrawElementsBuffer;
 class Mesh;
 
-class Transform;
-class Plane;
-class BoundingBox;
-
 class AbstractClipSpace;
 class OrthoClipSpace;
 class PerspectiveClipSpace;
@@ -28,6 +26,26 @@ class PerspectiveClipSpace;
 class PrimitiveSet;
 class DrawArrays;
 class DrawElements;
+
+template<glm::length_t L, typename T>
+struct TransformT;
+using Transform = TransformT<3, float>;
+
+template<glm::length_t L, typename T>
+struct PlaneT;
+using Plane = PlaneT<3, float>;
+
+template <glm::length_t L, typename T>
+struct BoundingBoxT;
+using BoundingBox = BoundingBoxT<3, float>;
+
+template<typename T>
+struct FrustumT;
+using Frustum = FrustumT<float>;
+
+template<typename T>
+struct OpenFrustumT;
+using OpenFrustum = OpenFrustumT<float>;
 
 }
 }

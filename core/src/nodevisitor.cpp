@@ -9,12 +9,14 @@ NodeVisitor::NodeVisitor()
 {
 }
 
+NodeVisitor::~NodeVisitor()
+{
+}
+
 bool NodeVisitor::visit(std::shared_ptr<Node>)
 {
     return true;
 }
-
-
 
 } // namespace
 } // namespace

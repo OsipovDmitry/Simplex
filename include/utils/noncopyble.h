@@ -3,6 +3,6 @@
 
 #define NONCOPYBLE(Class) \
     Class(const Class&) = delete; \
-    Class& operator =(const Class&) = delete;
+    Class &operator =(const Class&) = delete;
 
 #endif // UTILS_NONCOPYBLE_H

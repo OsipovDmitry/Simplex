@@ -56,7 +56,7 @@ Logger::MessageLevel LoggerPrivate::s_minMessageLevel = Logger::MessageLevel::In
 class Logger::FileOutputPrivate
 {
 public:
-    FileOutputPrivate(const std::string& fileOutputPrefix)
+    FileOutputPrivate(const std::string &fileOutputPrefix)
         : m_fileOuputName(fileOutputPrefix)
     {}
 
@@ -213,7 +213,7 @@ Logger::Output::~Output()
 {
 }
 
-Logger::FileOutput::FileOutput(const std::string& fileOutputPrefix)
+Logger::FileOutput::FileOutput(const std::string &fileOutputPrefix)
     : Output()
     , m_(std::make_unique<Logger::FileOutputPrivate>(fileOutputPrefix))
 {

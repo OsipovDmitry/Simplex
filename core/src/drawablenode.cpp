@@ -1,4 +1,6 @@
+#include <core/idrawable.h>
 #include <core/drawablenode.h>
+#include <core/coloreddrawable.h>
 
 #include "drawablenodeprivate.h"
 
@@ -10,7 +12,7 @@ namespace core
 DrawableNode::DrawableNode(const std::string &name)
     : Node(new DrawableNodePrivate(name))
 {
-
+    initialize();
 }
 
 DrawableNode::~DrawableNode()
@@ -63,7 +65,7 @@ const utils::BoundingBox &DrawableNode::boundingBox() const
     auto &mPrivate = m();
     if (mPrivate.isBoundingBoxDirty())
     {
-        auto& bb = mPrivate.globalBoundingBox();
+        auto &bb = mPrivate.globalBoundingBox();
         bb = utils::BoundingBox();
         bb += localBoundingBox();
         for (auto &child : children())
@@ -77,6 +79,12 @@ const utils::BoundingBox &DrawableNode::boundingBox() const
 void DrawableNode::recalculateLocalBoundingBox()
 {
     DrawableNodePrivate::dirtyLocalBoundingBox(asDrawableNode());
+}
+
+void DrawableNode::initialize()
+{
+    auto &mPrivate = m();
+    mPrivate.localBoundingBoxDrawable() = std::make_shared<ColoredDrawable>(mPrivate.boundingBoxVertexArray());
 }
 
 }

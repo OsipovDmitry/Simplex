@@ -2,8 +2,8 @@
 #include <functional>
 
 #include <utils/glm/gtc/type_ptr.hpp>
+#include <utils/glm/gtc/matrix_inverse.hpp>
 #include <utils/logger.h>
-#include <utils/types.h>
 #include <utils/typeinfo.h>
 #include <utils/mesh.h>
 
@@ -49,18 +49,16 @@ GLuint QtOpenGL_4_5_Renderer::RenderProgram_4_5::id() const
     return m_id;
 }
 
-std::vector<std::string> QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributesInfo() const
+bool QtOpenGL_4_5_Renderer::RenderProgram_4_5::compile(std::string &log)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
 
     GLint numAttributes;
     renderer->glGetProgramiv(m_id, GL_ACTIVE_ATTRIBUTES, &numAttributes);
-    std::vector<std::string> result;
-    result.reserve(static_cast<size_t>(numAttributes));
+    m_attributesInfo.reserve(static_cast<size_t>(numAttributes));
 
-    GLint nameSize;
-    renderer->glGetProgramiv(m_id, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &nameSize);
-    std::vector<GLchar> name(static_cast<size_t>(nameSize));
+    renderer->glGetProgramiv(m_id, GL_ACTIVE_ATTRIBUTE_MAX_LENGTH, &m_attributeNameMaxLength);
+    std::vector<GLchar> attributeName(static_cast<size_t>(m_attributeNameMaxLength));
 
     GLsizei length;
     GLint size;
@@ -69,58 +67,107 @@ std::vector<std::string> QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributesInf
     {
         renderer->glGetActiveAttrib(m_id,
                                     static_cast<GLuint>(i),
-                                    static_cast<GLsizei>(nameSize),
+                                    static_cast<GLsizei>(m_attributeNameMaxLength),
                                     &length,
                                     &size,
                                     &type,
-                                    name.data());
-        result.emplace_back(name.data());
+                                    attributeName.data());
+        m_attributesInfo.push_back({ vertexAttributeByName(attributeName.data()),
+                                     static_cast<uint16_t>(i),
+                                     static_cast<int32_t>(renderer->glGetAttribLocation(m_id, attributeName.data())),
+                                     GL2Type(type) });
     }
+
+    GLint numUniforms;
+    renderer->glGetProgramiv(m_id, GL_ACTIVE_UNIFORMS, &numUniforms);
+    m_uniformsInfo.reserve(static_cast<size_t>(numUniforms));
+
+    renderer->glGetProgramiv(m_id, GL_ACTIVE_UNIFORM_MAX_LENGTH, &m_uniformNameMaxLength);
+    std::vector<GLchar> uniformName(static_cast<size_t>(m_uniformNameMaxLength));
+
+    for (GLint i = 0; i < numUniforms; ++i)
+    {
+        renderer->glGetActiveUniform(m_id,
+                                     static_cast<GLuint>(i),
+                                     static_cast<GLsizei>(m_uniformNameMaxLength),
+                                     &length,
+                                     &size,
+                                     &type,
+                                     uniformName.data());
+        m_uniformsInfo.push_back({ UniformIdByName(uniformName.data()),
+                                   static_cast<uint16_t>(i),
+                                   static_cast<int32_t>(renderer->glGetUniformLocation(m_id, uniformName.data())),
+                                   GL2Type(type) });
+    }
+
+    bool result = true;
+    for (const auto &uniformInfo : m_uniformsInfo)
+        if ((uniformInfo.id != UniformId::Count) && (uniformInfo.type != typeByUniformId(uniformInfo.id)))
+        {
+            renderer->glGetActiveUniform(m_id,
+                                         static_cast<GLuint>(uniformInfo.index),
+                                         static_cast<GLsizei>(m_uniformNameMaxLength),
+                                         &length,
+                                         &size,
+                                         &type,
+                                         uniformName.data());
+
+            result = false;
+            log = "Uniform variable \"" + std::string(uniformName.data()) + "\" has wrong type";
+            break;
+        }
 
     return result;
 }
 
-std::vector<std::string> QtOpenGL_4_5_Renderer::RenderProgram_4_5::uniformsInfo() const
+const std::vector<core::IGraphicsRenderer::RenderProgram::AttributeInfo> &QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributesInfo() const
+{
+    return m_attributesInfo;
+}
+
+const std::vector<core::IGraphicsRenderer::RenderProgram::UniformInfo> &QtOpenGL_4_5_Renderer::RenderProgram_4_5::uniformsInfo() const
+{
+    return m_uniformsInfo;
+}
+
+std::string QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributeNameByIndex(uint16_t index) const
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
-
-    GLint numAttributes;
-    renderer->glGetProgramiv(m_id, GL_ACTIVE_UNIFORMS, &numAttributes);
-    std::vector<std::string> result;
-    result.reserve(static_cast<size_t>(numAttributes));
-
-    GLint nameSize;
-    renderer->glGetProgramiv(m_id, GL_ACTIVE_UNIFORM_MAX_LENGTH, &nameSize);
-    std::vector<GLchar> name(static_cast<size_t>(nameSize));
 
     GLsizei length;
     GLint size;
     GLenum type;
-    for (GLint i = 0; i < numAttributes; ++i)
-    {
-        renderer->glGetActiveUniform(m_id,
-                                     static_cast<GLuint>(i),
-                                     static_cast<GLsizei>(nameSize),
-                                     &length,
-                                     &size,
-                                     &type,
-                                     name.data());
-        result.emplace_back(name.data());
-    }
+    std::vector<GLchar> name(static_cast<size_t>(m_attributeNameMaxLength));
 
-    return result;
+    renderer->glGetActiveAttrib(m_id,
+                                static_cast<GLuint>(index),
+                                static_cast<GLsizei>(m_attributeNameMaxLength),
+                                &length,
+                                &size,
+                                &type,
+                                name.data());
+
+    return name.data();
 }
 
-int32_t QtOpenGL_4_5_Renderer::RenderProgram_4_5::attributeLocation(const std::string& name) const
+std::string QtOpenGL_4_5_Renderer::RenderProgram_4_5::uniformNameByIndex(uint16_t index) const
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
-    return static_cast<int32_t>(renderer->glGetAttribLocation(m_id, name.c_str()));
-}
 
-int32_t QtOpenGL_4_5_Renderer::RenderProgram_4_5::uniformLocation(const std::string& name) const
-{
-    auto renderer = QtOpenGL_4_5_Renderer::instance();
-    return static_cast<int32_t>(renderer->glGetUniformLocation(m_id, name.c_str()));
+    GLsizei length;
+    GLint size;
+    GLenum type;
+    std::vector<GLchar> name(static_cast<size_t>(m_uniformNameMaxLength));
+
+    renderer->glGetActiveUniform(m_id,
+                                 static_cast<GLuint>(index),
+                                 static_cast<GLsizei>(m_uniformNameMaxLength),
+                                 &length,
+                                 &size,
+                                 &type,
+                                 name.data());
+
+    return name.data();
 }
 
 void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, float v)
@@ -129,19 +176,19 @@ void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, float v)
     renderer->glProgramUniform1fv(m_id, loc, 1, &v);
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::vec2& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::vec2 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniform2fv(m_id, loc, 1, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::vec3& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::vec3 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniform3fv(m_id, loc, 1, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::vec4& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::vec4 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniform4fv(m_id, loc, 1, glm::value_ptr(v));
@@ -153,19 +200,19 @@ void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, int32_t v
     renderer->glProgramUniform1iv(m_id, loc, 1, &v);
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::ivec2& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::ivec2 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniform2iv(m_id, loc, 1, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::ivec3& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::ivec3 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniform3iv(m_id, loc, 1, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::ivec4& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::ivec4 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniform4iv(m_id, loc, 1, glm::value_ptr(v));
@@ -177,37 +224,37 @@ void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, uint32_t 
     renderer->glProgramUniform1uiv(m_id, loc, 1, &v);
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::uvec2& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::uvec2 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniform2uiv(m_id, loc, 1, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::uvec3& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::uvec3 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniform3uiv(m_id, loc, 1, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::uvec4& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::uvec4 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniform4uiv(m_id, loc, 1, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat2& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat2 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniformMatrix2fv(m_id, loc, 1, GL_FALSE, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat3& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat3 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniformMatrix3fv(m_id, loc, 1, GL_FALSE, glm::value_ptr(v));
 }
 
-void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat4& v)
+void QtOpenGL_4_5_Renderer::RenderProgram_4_5::setUniform(int32_t loc, const glm::mat4 &v)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glProgramUniformMatrix4fv(m_id, loc, 1, GL_FALSE, glm::value_ptr(v));
@@ -357,7 +404,7 @@ void QtOpenGL_4_5_Renderer::VertexArray_4_5::declareVertexAttribute(utils::Verte
                                                                     uint32_t relativeOffset)
 {
     assert(numComponents <= 4);
-    assert(utils::TypeInfo::isDefined(type));
+    assert(utils::TypeInfo::isScalar(type));
 
     m_vertexDeclarations[attrib] = std::make_tuple(bindingIndex, numComponents, type, relativeOffset);
 
@@ -367,11 +414,11 @@ void QtOpenGL_4_5_Renderer::VertexArray_4_5::declareVertexAttribute(utils::Verte
     renderer->glVertexArrayAttribBinding(m_id, loc, static_cast<GLuint>(bindingIndex));
     renderer->glEnableVertexArrayAttrib(m_id, loc);
 
-    if (type == utils::Type::Single)
+    if (utils::TypeInfo::isSingleScalar(type))
         renderer->glVertexArrayAttribFormat(m_id, loc, static_cast<GLint>(numComponents), Type2GL(type), GL_FALSE, static_cast<GLuint>(relativeOffset));
-    else if (type == utils::Type::Double)
+    else if (utils::TypeInfo::isDoubleScalar(type))
         renderer->glVertexArrayAttribLFormat(m_id, loc, static_cast<GLint>(numComponents), Type2GL(type), static_cast<GLuint>(relativeOffset));
-    else if (utils::TypeInfo::isInt(type))
+    else if (utils::TypeInfo::isIntScalar(type))
         renderer->glVertexArrayAttribIFormat(m_id, loc, static_cast<GLint>(numComponents), Type2GL(type), static_cast<GLuint>(relativeOffset));
 }
 
@@ -463,7 +510,7 @@ std::shared_ptr<core::IGraphicsRenderer::RenderProgram> QtOpenGL_4_5_Renderer::c
 
     for (size_t i = 0; i < s_shadersCount; ++i)
     {
-        const auto& shader = shadersData[i];
+        const auto &shader = shadersData[i];
         const char *data = shader.second.get().c_str();
 
         shadersIds[i] = renderer->glCreateShader(shader.first);
@@ -502,7 +549,17 @@ std::shared_ptr<core::IGraphicsRenderer::RenderProgram> QtOpenGL_4_5_Renderer::c
                 LOG_ERROR << "Program link error: " << infoLog;
                 free(infoLog);
             }
-            isOk= false;
+            isOk = false;
+        }
+    }
+
+    if (isOk)
+    {
+        std::string logString;
+        if (!renderProgram->compile(logString))
+        {
+            isOk = false;
+            LOG_ERROR << "Program compile error: " << logString;
         }
     }
 
@@ -667,12 +724,10 @@ void QtOpenGL_4_5_Renderer::render(const core::RenderInfo &renderInfo)
         auto rp2 = std::dynamic_pointer_cast<RenderProgram_4_5>(renderData.second->renderProgram());
         auto vao2 = std::dynamic_pointer_cast<VertexArray_4_5>(renderData.second->vertexArray());
 
-        rp2->setUniform(rp2->uniformLocation("u_modelMatrix"), renderData.first);
-        rp2->setUniform(rp2->uniformLocation("u_viewMatrix"), renderInfo.viewMatrix());
-        rp2->setUniform(rp2->uniformLocation("u_projectionMatrix"), renderInfo.projectionMatrix());
-
         glUseProgram(rp2->id());
         glBindVertexArray(vao2->id());
+
+        setupUniforms(renderData.second, renderInfo, renderData.first);
 
         for (auto &primitiveSet : vao2->primitiveSets())
         {
@@ -717,24 +772,77 @@ void QtOpenGL_4_5_Renderer::setInstance(std::shared_ptr<QtOpenGL_4_5_Renderer> i
 
 GLenum QtOpenGL_4_5_Renderer::Type2GL(utils::Type value)
 {
-    static std::array<GLbitfield, utils::numElementsType()> s_table {
+    static std::array<GLenum, utils::numElementsType()> s_table {
         GL_NONE,
         GL_FLOAT,
+        GL_FLOAT_VEC2,
+        GL_FLOAT_VEC3,
+        GL_FLOAT_VEC4,
+        GL_FLOAT_MAT2,
+        GL_FLOAT_MAT3,
+        GL_FLOAT_MAT4,
         GL_DOUBLE,
+        GL_DOUBLE_VEC2,
+        GL_DOUBLE_VEC3,
+        GL_DOUBLE_VEC4,
+        GL_DOUBLE_MAT2,
+        GL_DOUBLE_MAT3,
+        GL_DOUBLE_MAT4,
         GL_BYTE,
         GL_SHORT,
         GL_INT,
+        GL_INT_VEC2,
+        GL_INT_VEC3,
+        GL_INT_VEC4,
         GL_UNSIGNED_BYTE,
         GL_UNSIGNED_SHORT,
         GL_UNSIGNED_INT,
+        GL_UNSIGNED_INT_VEC2,
+        GL_UNSIGNED_INT_VEC3,
+        GL_UNSIGNED_INT_VEC4,
     };
 
     return s_table[utils::castFromType(value)];
 }
 
+utils::Type QtOpenGL_4_5_Renderer::GL2Type(GLenum type)
+{
+    static std::unordered_map<GLenum, utils::Type> s_table {
+        { GL_FLOAT, utils::Type::Single },
+        { GL_FLOAT_VEC2, utils::Type::SingleVec2 },
+        { GL_FLOAT_VEC3, utils::Type::SingleVec3 },
+        { GL_FLOAT_VEC4, utils::Type::SingleVec4 },
+        { GL_FLOAT_MAT2, utils::Type::SingleMat2 },
+        { GL_FLOAT_MAT3, utils::Type::SingleMat3 },
+        { GL_FLOAT_MAT4, utils::Type::SingleMat4 },
+        { GL_DOUBLE, utils::Type::Double },
+        { GL_DOUBLE_VEC2, utils::Type::DoubleVec2 },
+        { GL_DOUBLE_VEC3, utils::Type::DoubleVec3 },
+        { GL_DOUBLE_VEC4, utils::Type::DoubleVec4 },
+        { GL_DOUBLE_MAT2, utils::Type::DoubleMat2 },
+        { GL_DOUBLE_MAT3, utils::Type::DoubleMat3 },
+        { GL_DOUBLE_MAT4, utils::Type::DoubleMat4 },
+        { GL_BYTE, utils::Type::Int8 },
+        { GL_SHORT, utils::Type::Int16 },
+        { GL_INT, utils::Type::Int32 },
+        { GL_INT_VEC2, utils::Type::Int32Vec2 },
+        { GL_INT_VEC3, utils::Type::Int32Vec3 },
+        { GL_INT_VEC4, utils::Type::Int32Vec4 },
+        { GL_UNSIGNED_BYTE, utils::Type::Uint8 },
+        { GL_UNSIGNED_SHORT, utils::Type::Uint16 },
+        { GL_UNSIGNED_INT, utils::Type::Uint32 },
+        { GL_UNSIGNED_INT_VEC2, utils::Type::Uint32Vec2 },
+        { GL_UNSIGNED_INT_VEC3, utils::Type::Uint32Vec3 },
+        { GL_UNSIGNED_INT_VEC4, utils::Type::Uint32Vec4 },
+    };
+
+    auto it = s_table.find(type);
+    return (it == s_table.end()) ? utils::Type::Undefined : it->second;
+}
+
 GLenum QtOpenGL_4_5_Renderer::PrimitiveType2GL(utils::PrimitiveType value)
 {
-    static std::array<GLbitfield, utils::numElementsPrimitiveType()> s_table {
+    static std::array<GLenum, utils::numElementsPrimitiveType()> s_table {
         GL_POINTS,
         GL_LINES,
         GL_LINE_STRIP,
@@ -744,6 +852,88 @@ GLenum QtOpenGL_4_5_Renderer::PrimitiveType2GL(utils::PrimitiveType value)
     };
 
     return s_table[utils::castFromPrimitiveType(value)];
+}
+
+void QtOpenGL_4_5_Renderer::setupUniforms(std::shared_ptr<core::IDrawable> drawable,
+                                          const core::RenderInfo &renderInfo,
+                                          const glm::mat4 &modelMatrix)
+{
+    auto renderProgram = drawable->renderProgram();
+
+    for (const auto &uniformInfo : renderProgram->uniformsInfo())
+    {
+        switch (uniformInfo.id)
+        {
+        case RenderProgram::UniformId::Viewport: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewport());
+            break;
+        }
+        case RenderProgram::UniformId::ModelMatrix: {
+            renderProgram->setUniform(uniformInfo.location, modelMatrix);
+            break;
+        }
+        case RenderProgram::UniformId::NormalMatrix: {
+            renderProgram->setUniform(uniformInfo.location, glm::inverseTranspose(modelMatrix));
+            break;
+        }
+        case RenderProgram::UniformId::ViewMatrix: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewMatrix());
+            break;
+        }
+        case RenderProgram::UniformId::ViewMatrixInverse: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewMatrixInverse());
+            break;
+        }
+        case RenderProgram::UniformId::ProjectionMatrix: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.projectionMatrix());
+            break;
+        }
+        case RenderProgram::UniformId::ProjectionMatrixInverse: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.projectionMatrixInverse());
+            break;
+        }
+        case RenderProgram::UniformId::ViewProjectionMatrix: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewProjectionMatrix());
+            break;
+        }
+        case RenderProgram::UniformId::ViewProjectionMatrixInverse: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewProjectionMatrixInverse());
+            break;
+        }
+        case RenderProgram::UniformId::ModelViewMatrix: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewMatrix() * modelMatrix);
+            break;
+        }
+        case RenderProgram::UniformId::NormalViewMatrix: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewMatrix() * glm::inverseTranspose(modelMatrix));
+            break;
+        }
+        case RenderProgram::UniformId::ModelViewProjectionMatrix: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewProjectionMatrix() * modelMatrix);
+            break;
+        }
+        case RenderProgram::UniformId::ViewPosition: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewPosition());
+            break;
+        }
+        case RenderProgram::UniformId::ViewXDirection: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewXDirection());
+            break;
+        }
+        case RenderProgram::UniformId::ViewYDirection: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewYDirection());
+            break;
+        }
+        case RenderProgram::UniformId::ViewZDirection: {
+            renderProgram->setUniform(uniformInfo.location, renderInfo.viewZDirection());
+            break;
+        }
+        case RenderProgram::UniformId::Count: {
+            drawable->setupUniform(uniformInfo);
+            break;
+        }
+        }
+    }
 }
 
 QtOpenGL_4_5_Renderer::Buffer_4_5::MappedData_4_5::MappedData_4_5(std::shared_ptr<const Buffer_4_5> mappedBuffer, uint8_t *data)

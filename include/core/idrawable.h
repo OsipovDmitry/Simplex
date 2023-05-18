@@ -21,6 +21,8 @@ public:
 
     virtual std::shared_ptr<IGraphicsRenderer::RenderProgram> renderProgram() = 0;
     virtual std::shared_ptr<IGraphicsRenderer::VertexArray> vertexArray() = 0;
+
+    virtual void setupUniform(const IGraphicsRenderer::RenderProgram::UniformInfo&) = 0;
 };
 
 }

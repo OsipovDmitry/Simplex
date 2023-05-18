@@ -21,6 +21,8 @@ class GraphicsEngine;
 
 class IDrawable;
 class DrawableBase;
+class ColoredDrawable;
+
 class Scene;
 class Node;
 class SceneRootNode;
@@ -28,6 +30,10 @@ class CameraNode;
 class DrawableNode;
 
 class NodeVisitor;
+class ConditionalNodeVisitor;
+class FrustumCullingVisitor;
+template <typename NodeClass>
+class CollectorVisitor;
 
 }
 }
