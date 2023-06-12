@@ -4,6 +4,7 @@
 #include <QSplitter>
 #include <QPointer>
 #include <QListWidget>
+#include <QTimer>
 
 #include <iostream>
 
@@ -43,6 +44,7 @@ private:
 
 int main(int argc, char *argv[])
 {
+
 //    std::vector<glm::vec4> vertices;
 //    std::vector<glm::vec4> normals;
 //    std::vector<glm::vec4> tcs;
@@ -156,6 +158,11 @@ int main(int argc, char *argv[])
         renderWidget->update();
     });
     listWidget->setCurrentRow(0);
+
+    auto timer = new QTimer(widget);
+    timer->setInterval(16);
+    QObject::connect(timer, &QTimer::timeout, [renderWidget](){ renderWidget->update(); });
+    timer->start();
 
     return QApplication::exec();
 }

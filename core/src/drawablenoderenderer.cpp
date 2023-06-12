@@ -40,7 +40,7 @@ bool DrawableNodeRenderer::visit(std::shared_ptr<Node> node)
             for (const auto &drawable : drawableNode->drawables())
                 m_renderer->addRenderData(drawableNode->globalTransform(), drawable);
 
-            if (true)
+            if (false)
             {
 
                 m_renderer->addRenderData(drawableNode->globalTransform() *

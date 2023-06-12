@@ -118,6 +118,11 @@ bool TypeInfo::isMat(Type type)
     return isFloatMat(type);
 }
 
+bool TypeInfo::isSampler(Type type)
+{
+    return (castFromType(type) >= castFromType(Type::Sampler1D)) && (castFromType(type) <= castFromType(Type::SamplerCubeArrayShadow));
+}
+
 uint32_t TypeInfo::size(Type type)
 {
     switch (type)
@@ -148,6 +153,20 @@ uint32_t TypeInfo::size(Type type)
     case Type::Uint32Vec2 : return sizeof(glm::u32vec2);
     case Type::Uint32Vec3 : return sizeof(glm::u32vec3);
     case Type::Uint32Vec4 : return sizeof(glm::u32vec4);
+    case Type::Sampler1D :
+    case Type::Sampler2D :
+    case Type::Sampler3D :
+    case Type::SamplerCube :
+    case Type::Sampler1DArray :
+    case Type::Sampler2DArray :
+    case Type::SamplerCubeArray :
+    case Type::SamplerRect :
+    case Type::Sampler1DShadow :
+    case Type::Sampler2DShadow :
+    case Type::SamplerCubeShadow :
+    case Type::Sampler1DArrayShadow :
+    case Type::Sampler2DArrayShadow :
+    case Type::SamplerCubeArrayShadow : return sizeof(uint32_t);
     default: return 0;
     }
 }

@@ -19,6 +19,7 @@
 #include "graphicsengineprivate.h"
 #include "cameranodeprivate.h"
 #include "coloreddrawableprivate.h"
+#include "textureddrawableprivate.h"
 #include "nodeupdatevisitor.h"
 #include "znearfarnodevisitor.h"
 #include "drawablenoderenderer.h"
@@ -45,6 +46,38 @@ const char colorFragmentShaderSource[] {
     "}"
 };
 
+const std::string textureVertexShaderSource = {
+    "#version 450\n"
+    "layout(location = 0) in vec3 a_position;\n"
+    "layout(location = 1) in vec3 a_normal;\n"
+    "layout(location = 2) in vec2 a_texCoord;\n"
+    "layout(location = 6) in vec3 a_color;\n"
+    "uniform mat4 u_modelViewProjectionMatrix;\n"
+    "out vec3 normal;\n"
+    "out vec2 texCoord;\n"
+    "out vec4 color;\n"
+    "void main() {\n"
+    "   normal = a_normal;\n"
+    "   texCoord = a_texCoord;\n"
+    "   color = vec4(a_color, 1.0f);\n"
+    "   gl_Position = u_modelViewProjectionMatrix * vec4(a_position.xyz, 1.0f);\n"
+    "}"
+};
+const std::string textureFragmentShaderSource = {
+    "#version 450\n"
+    "uniform sampler2D u_texture;\n"
+    "in vec3 normal;"
+    "in vec2 texCoord;\n"
+    "in vec4 color;\n"
+    "layout(location = 0) out vec4 ocolor;\n"
+    "void main() {\n"
+    "  vec3 n = normalize(normal);\n"
+    "  vec3 l = normalize(vec3(0.3f, 1.0f, -0.7f));\n"
+    "  float d = max(0.4f, dot(n, l));\n"
+    "  ocolor = d * texture(u_texture, texCoord);\n"
+    "}"
+};
+
 float GraphicsEngine::s_minZNear = 0.5f;
 float GraphicsEngine::s_maxZFat = 100000.0f;
 
@@ -66,6 +99,7 @@ GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<IGraphic
     CameraNodePrivate::cameraVertexArray() = renderer->createVertexArray(cameraMesh);
 
     ColoredDrawablePrivate::coloredRenderProgram() = renderer->createRenderProgram(colorVertexShaderSource, colorFragmentShaderSource);
+    TexturedDrawablePrivate::texturedRenderProgram() = renderer->createRenderProgram(textureVertexShaderSource, textureFragmentShaderSource);
 
     LOG_INFO << "Engine \"" << GraphicsEngine::name() << "\" has been created";
 }
@@ -83,7 +117,9 @@ const std::string &GraphicsEngine::name() const
 void GraphicsEngine::update(uint64_t time, uint32_t dt)
 {
     auto renderer = m_->renderer();
-    float aspectRatio = static_cast<float>(renderer->width()) / static_cast<float>(renderer->height());
+
+    const auto &viewportSize = renderer->viewportSize();
+    float aspectRatio = static_cast<float>(viewportSize.x) / static_cast<float>(viewportSize.y);
 
     auto sceneList = scenes();
     std::stable_sort(sceneList.begin(), sceneList.end(), utils::SortedObject::Comparator());
@@ -123,13 +159,13 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             auto zFar = glm::min(s_maxZFat, cameraZPlanes[i][1]);
 
             RenderInfo renderInfo;
-            renderInfo.setViewport(glm::uvec2(renderer->width(), renderer->height()));
+            renderInfo.setViewport(viewportSize);
             renderInfo.setViewMatrix(camera->globalTransform().inverted());
             renderInfo.setProjectionMatrix(camera->projectionMatrix(aspectRatio, zNear, zFar));
 
             renderer->clearRenderData();
 
-            if (true)
+            if (false)
             {
                 for (size_t j = 0; j < cameraNodeCollector.nodes().size(); ++j)
                 {

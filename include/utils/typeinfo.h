@@ -45,6 +45,8 @@ public:
     bool isVec() const { return isVec(m_type); }
     bool isMat() const { return isMat(m_type); }
 
+    bool isSampler() const { return isSampler(m_type); }
+
     uint32_t size();
 
     static bool isDefined(Type);
@@ -73,6 +75,8 @@ public:
     static bool isScalar(Type);
     static bool isVec(Type);
     static bool isMat(Type);
+
+    static bool isSampler(Type);
 
     static uint32_t size(Type);
 

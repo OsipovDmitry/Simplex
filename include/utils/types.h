@@ -41,7 +41,22 @@ ENUMCLASS(Type, uint16_t,
           Uint32,
           Uint32Vec2,
           Uint32Vec3,
-          Uint32Vec4)
+          Uint32Vec4,
+
+          Sampler1D,
+          Sampler2D,
+          Sampler3D,
+          SamplerCube,
+          Sampler1DArray,
+          Sampler2DArray,
+          SamplerCubeArray,
+          SamplerRect,
+          Sampler1DShadow,
+          Sampler2DShadow,
+          SamplerCubeShadow,
+          Sampler1DArrayShadow,
+          Sampler2DArrayShadow,
+          SamplerCubeArrayShadow)
 
 template<typename T> inline Type toType() { return Type::Undefined; }
 template<> inline Type toType<float>() { return Type::Single; }

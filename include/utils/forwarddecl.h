@@ -18,6 +18,7 @@ class Buffer;
 class VertexBuffer;
 class DrawElementsBuffer;
 class Mesh;
+class Image;
 
 class AbstractClipSpace;
 class OrthoClipSpace;
