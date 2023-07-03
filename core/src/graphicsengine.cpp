@@ -11,6 +11,7 @@
 #include <core/scene.h>
 #include <core/scenerootnode.h>
 #include <core/cameranode.h>
+#include <core/viewport.h>
 #include <core/drawablenode.h>
 #include <core/coloreddrawable.h>
 #include <core/nodevisitor.h>
@@ -53,11 +54,12 @@ const std::string textureVertexShaderSource = {
     "layout(location = 2) in vec2 a_texCoord;\n"
     "layout(location = 6) in vec3 a_color;\n"
     "uniform mat4 u_modelViewProjectionMatrix;\n"
+    "uniform mat4 u_normalMatrix;\n"
     "out vec3 normal;\n"
     "out vec2 texCoord;\n"
     "out vec4 color;\n"
     "void main() {\n"
-    "   normal = a_normal;\n"
+    "   normal = vec3(u_normalMatrix * vec4(a_normal, 1.0f));\n"
     "   texCoord = a_texCoord;\n"
     "   color = vec4(a_color, 1.0f);\n"
     "   gl_Position = u_modelViewProjectionMatrix * vec4(a_position.xyz, 1.0f);\n"
@@ -72,7 +74,7 @@ const std::string textureFragmentShaderSource = {
     "layout(location = 0) out vec4 ocolor;\n"
     "void main() {\n"
     "  vec3 n = normalize(normal);\n"
-    "  vec3 l = normalize(vec3(0.3f, 1.0f, -0.7f));\n"
+    "  vec3 l = normalize(vec3(0.3f, 1.0f, 0.7f));\n"
     "  float d = max(0.4f, dot(n, l));\n"
     "  ocolor = d * texture(u_texture, texCoord);\n"
     "}"
@@ -97,6 +99,7 @@ GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<IGraphic
     painter.drawCamera();
 
     CameraNodePrivate::cameraVertexArray() = renderer->createVertexArray(cameraMesh);
+    CameraNodePrivate::defaultFrameBuffer() = renderer->defaultFrameBuffer();
 
     ColoredDrawablePrivate::coloredRenderProgram() = renderer->createRenderProgram(colorVertexShaderSource, colorFragmentShaderSource);
     TexturedDrawablePrivate::texturedRenderProgram() = renderer->createRenderProgram(textureVertexShaderSource, textureFragmentShaderSource);
@@ -120,6 +123,9 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
 
     const auto &viewportSize = renderer->viewportSize();
     float aspectRatio = static_cast<float>(viewportSize.x) / static_cast<float>(viewportSize.y);
+
+    const auto viewportHalfSize = glm::max(glm::uvec2(1u, 1u), viewportSize / 2u);
+    const auto viewportQuarterSize = glm::max(glm::uvec2(1u, 1u), viewportHalfSize / 2u);
 
     auto sceneList = scenes();
     std::stable_sort(sceneList.begin(), sceneList.end(), utils::SortedObject::Comparator());
@@ -159,9 +165,34 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             auto zFar = glm::min(s_maxZFat, cameraZPlanes[i][1]);
 
             RenderInfo renderInfo;
-            renderInfo.setViewport(viewportSize);
+
+            renderInfo.setFrameBuffer(camera->frameBuffer());
             renderInfo.setViewMatrix(camera->globalTransform().inverted());
             renderInfo.setProjectionMatrix(camera->projectionMatrix(aspectRatio, zNear, zFar));
+
+            switch (camera->viewport()->sizePolicy())
+            {
+            case Viewport::SizePolicy::Defined: {
+                renderInfo.setViewport(camera->viewport()->size());
+                break;
+            }
+            case Viewport::SizePolicy::Screen: {
+                renderInfo.setViewport(glm::uvec4(0u, 0u, viewportSize));
+                break;
+            }
+            case Viewport::SizePolicy::HalfScreen: {
+                renderInfo.setViewport(glm::uvec4(0u, 0u, viewportHalfSize));
+                break;
+            }
+            case Viewport::SizePolicy::QuarterScreen: {
+                renderInfo.setViewport(glm::uvec4(0u, 0u, viewportQuarterSize));
+                break;
+            }
+            default: {
+                renderInfo.setViewport(glm::uvec4(0u, 0u, 1u, 1u));
+                break;
+            }
+            }
 
             renderer->clearRenderData();
 

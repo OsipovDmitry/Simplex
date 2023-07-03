@@ -18,10 +18,7 @@ protected:
 private:
     std::shared_ptr<simplex::core::GraphicsEngine> m_graphicsEngine;
 
-    std::shared_ptr<simplex::core::CameraNode> m_cameraNode1;
-    std::shared_ptr<simplex::core::CameraNode> m_cameraNode2;
-    std::shared_ptr<simplex::core::Scene> m_scene;
-    std::vector<std::shared_ptr<simplex::core::DrawableNode>> m_drawableNodes;
+    std::shared_ptr<simplex::core::Scene> m_scene0, m_scene1;
 };
 
 #endif // TESTAPPLICATION_H

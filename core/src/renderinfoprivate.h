@@ -1,9 +1,11 @@
 #ifndef RENDERINFOPRIVATE_H
 #define RENDERINFOPRIVATE_H
 
-#include <utils/glm/vec2.hpp>
 #include <utils/glm/vec3.hpp>
+#include <utils/glm/vec4.hpp>
 #include <utils/glm/mat4x4.hpp>
+
+#include <core/igraphicsrenderer.h>
 
 namespace simplex
 {
@@ -15,7 +17,8 @@ class RenderInfoPrivate
 public:
     RenderInfoPrivate() {}
 
-    glm::uvec2 &viewport() { return m_viewport; }
+    std::shared_ptr<IGraphicsRenderer::FrameBuffer> &frameBuffer() { return m_frameBuffer; }
+    glm::uvec4 &viewport() { return m_viewport; }
     glm::mat4 &viewMatrix() { return m_viewMatrix; }
     glm::mat4 &viewMatrixInverse() { return m_viewMatrixInverse; }
     glm::mat4 &projectionMatrix() { return m_projectionMatrix; }
@@ -28,7 +31,8 @@ public:
     glm::vec3 &viewZDirection() { return m_viewZDirection; }
 
 private:
-    glm::uvec2 m_viewport;
+    std::shared_ptr<IGraphicsRenderer::FrameBuffer> m_frameBuffer;
+    glm::uvec4 m_viewport;
     glm::mat4 m_viewMatrix;
     glm::mat4 m_viewMatrixInverse;
     glm::mat4 m_projectionMatrix;

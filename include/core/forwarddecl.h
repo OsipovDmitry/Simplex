@@ -19,6 +19,8 @@ class ApplicationBase;
 
 class GraphicsEngine;
 
+class Viewport;
+
 class IDrawable;
 class DrawableBase;
 class ColoredDrawable;

@@ -2,6 +2,7 @@
 #include <utils/clipspace.h>
 
 #include <core/cameranode.h>
+#include <core/viewport.h>
 #include <core/coloreddrawable.h>
 
 #include "cameranodeprivate.h"
@@ -18,6 +19,9 @@ CameraNode::CameraNode(const std::string &name)
 
     setPerspectiveProjection(glm::half_pi<float>());
     setRenderingEnabled(true);
+
+    setFrameBuffer(m().defaultFrameBuffer());
+    viewport()->setSizePolicy(Viewport::SizePolicy::Screen);
 }
 
 CameraNode::~CameraNode()
@@ -57,6 +61,32 @@ void CameraNode::setPerspectiveProjection(float fov)
 glm::mat4 CameraNode::projectionMatrix(float aspect, float zNear, float zFar) const
 {
     return m().clipSpace()->projectionMatrix(aspect, zNear, zFar);
+}
+
+std::shared_ptr<Viewport> CameraNode::viewport()
+{
+    return m().viewport();
+}
+
+std::shared_ptr<const Viewport> CameraNode::viewport() const
+{
+    return const_cast<CameraNode*>(this)->viewport();
+}
+
+std::shared_ptr<IGraphicsRenderer::FrameBuffer> CameraNode::frameBuffer()
+{
+    return m().frameBuffer();
+}
+
+std::shared_ptr<const IGraphicsRenderer::FrameBuffer> CameraNode::frameBuffer() const
+{
+    return const_cast<CameraNode*>(this)->frameBuffer();
+}
+
+void CameraNode::setFrameBuffer(std::shared_ptr<IGraphicsRenderer::FrameBuffer> value)
+{
+    assert(value);
+    m().frameBuffer() = value;
 }
 
 bool CameraNode::canAttach(std::shared_ptr<Node>)

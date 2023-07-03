@@ -7,6 +7,7 @@
 
 #include <core/forwarddecl.h>
 #include <core/node.h>
+#include <core/igraphicsrenderer.h>
 
 namespace simplex
 {
@@ -30,6 +31,13 @@ public:
     void setOrthoProjection();
     void setPerspectiveProjection(float fov);
     glm::mat4 projectionMatrix(float aspect, float zNear, float zFar) const;
+
+    std::shared_ptr<Viewport> viewport();
+    std::shared_ptr<const Viewport> viewport() const;
+
+    std::shared_ptr<IGraphicsRenderer::FrameBuffer> frameBuffer();
+    std::shared_ptr<const IGraphicsRenderer::FrameBuffer> frameBuffer() const;
+    void setFrameBuffer(std::shared_ptr<IGraphicsRenderer::FrameBuffer>);
 
 protected:
     bool canAttach(std::shared_ptr<Node>) override;

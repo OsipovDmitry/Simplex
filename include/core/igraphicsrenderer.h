@@ -77,7 +77,7 @@ public:
         virtual const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> primitiveSets() const = 0;
     };
 
-    class Texture
+    class RenderSurface
     {
     public:
         ENUMCLASS(InternalFormat, uint32_t,
@@ -93,13 +93,33 @@ public:
                   R8I, R8UI, R16I, R16UI, R32I, R32UI,
                   RG8I, RG8UI, RG16I, RG16UI, RG32I, RG32UI,
                   RGB8I, RGB8UI, RGB16I, RGB16UI, RGB32I, RGB32UI,
-                  RGBA8I, RGBA8UI, RGBA16I, RGBA16UI, RGBA32I, RGBA32UI)
+                  RGBA8I, RGBA8UI, RGBA16I, RGBA16UI, RGBA32I, RGBA32UI,
+                  Depth16, Depth24, Depth32F, Stencil8, Depth24Stencil8, Dept32FStencil8)
 
-        virtual ~Texture() = default;
+        virtual ~RenderSurface() = default;
 
-        virtual glm::uvec3 size(uint32_t level = 0) const = 0;
-        virtual uint32_t numMipmapLevels() const = 0;
+        virtual glm::uvec2 size() const = 0;
         virtual InternalFormat internalFormat() const = 0;
+    };
+
+    class Texture : public RenderSurface
+    {
+    public:
+        ENUMCLASS(WrapMode, uint32_t,
+                  ClampToEdge,
+                  ClampToBorder,
+                  MirroredRepeat,
+                  Repeat,
+                  MirrorClampToEdge)
+
+        ENUMCLASS(Filtering, uint32_t,
+                  Point,
+                  Linear,
+                  Bilinear,
+                  Trilinear)
+
+        virtual glm::uvec3 mipmapSize(uint32_t level = 0) const = 0;
+        virtual uint32_t numMipmapLevels() const = 0;
 
         virtual void setSubImage(uint32_t level,
                                  const glm::uvec3 &offset,
@@ -109,6 +129,66 @@ public:
                                  const void *data) = 0;
 
         virtual void generateMipmaps() = 0;
+        virtual void setBorderColor(const glm::vec4&) = 0;
+        virtual void setWrapMode(WrapMode) = 0;
+        virtual void setFiltering(Filtering) = 0;
+
+    };
+
+    class RenderBuffer : public RenderSurface
+    {
+    public:
+    };
+
+    class FrameBuffer
+    {
+    public:
+        ENUMCLASS(Attachment, uint32_t,
+                  Color0,
+                  Color1,
+                  Color2,
+                  Color3,
+                  Depth,
+                  Stencil,
+                  DepthStencil)
+
+        static constexpr Attachment ColorAttachment(uint32_t i) { return castToAttachment(castFromAttachment(Attachment::Color0) + i); }
+        static constexpr uint32_t ColorAttachmentIndex(Attachment a) { return castFromAttachment(a) - castFromAttachment(Attachment::Color0); }
+        static constexpr uint32_t ColorAttachmentsCount() { return ColorAttachmentIndex(Attachment::Depth); }
+
+        struct AttachmentInfo
+        {
+            std::shared_ptr<RenderSurface> renderSurface;
+            uint32_t level;
+            uint32_t layer;
+        };
+
+        using Attachments = std::unordered_map<Attachment, AttachmentInfo>;
+
+        virtual ~FrameBuffer() = default;
+
+        virtual bool isComplete() const = 0;
+
+        virtual const Attachments &attachments() const = 0;
+        virtual void attach(Attachment, std::shared_ptr<RenderSurface>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
+        virtual void detach(Attachment) = 0;
+
+        union ClearColorValue
+        {
+            glm::vec4 floatColor;
+            glm::i32vec4 intColor;
+            glm::u32vec4 uintColor;
+        };
+        using ClearColor = std::pair<utils::Type, ClearColorValue>;
+
+        virtual const ClearColor &clearColor(uint32_t) const = 0;
+        virtual void setClearColor(uint32_t, const glm::vec4&) = 0;
+        virtual void setClearColor(uint32_t, const glm::i32vec4&) = 0;
+        virtual void setClearColor(uint32_t, const glm::u32vec4&) = 0;
+
+        virtual float clearDepth() const = 0;
+        virtual int32_t clearStencil() const = 0;
+        virtual void setClearDepthStencil(float, int32_t) = 0;
     };
 
     class RenderProgram
@@ -184,13 +264,19 @@ public:
         static utils::Type typeByUniformId(UniformId);
     };
 
+
+    virtual std::shared_ptr<FrameBuffer> defaultFrameBuffer() = 0;
+    virtual std::shared_ptr<const FrameBuffer> defaultFrameBuffer() const = 0;
+
     virtual std::shared_ptr<RenderProgram> createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const = 0;
     virtual std::shared_ptr<Buffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
     virtual std::shared_ptr<VertexArray> createVertexArray(std::shared_ptr<utils::Mesh> = nullptr, bool uniteBuffers = true) const = 0;
-    virtual std::shared_ptr<Texture> createTexture2DEmpty(uint32_t width, uint32_t height, Texture::InternalFormat, uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<Texture> createTexture2DEmpty(uint32_t width, uint32_t height, RenderSurface::InternalFormat, uint32_t numLevels = 1) const = 0;
     virtual std::shared_ptr<Texture> createTexture2D(std::shared_ptr<utils::Image>,
-                                                     Texture::InternalFormat = Texture::InternalFormat::Undefined,
+                                                     RenderSurface::InternalFormat = RenderSurface::InternalFormat::Undefined,
                                                      uint32_t numLevels = 0, bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<RenderBuffer> createRenderBuffer(uint32_t width, uint32_t height, RenderSurface::InternalFormat) const = 0;
+    virtual std::shared_ptr<FrameBuffer> createFrameBuffer() const = 0;
 
     virtual void resize(uint32_t, uint32_t) = 0;
     virtual const glm::uvec2 &viewportSize() const = 0;

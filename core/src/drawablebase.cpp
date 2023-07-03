@@ -116,8 +116,8 @@ DrawableBase::DrawableBase(DrawableBasePrivate *drawableBasePrivate)
 
 void DrawableBase::initialize()
 {
-    auto vao = vertexArray();
-    auto rp = renderProgram();
+    auto vao = m_->vertexArray();
+    auto rp = m_->renderProgram();
 
     assert(vao);
     assert(rp);

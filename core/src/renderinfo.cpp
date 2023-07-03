@@ -7,11 +7,13 @@ namespace simplex
 namespace core
 {
 
-RenderInfo::RenderInfo(const glm::uvec2 &viewport,
+RenderInfo::RenderInfo(std::shared_ptr<IGraphicsRenderer::FrameBuffer> frameBuffer,
+                       const glm::uvec4 &viewport,
                        const glm::mat4 &viewMatrix,
                        const glm::mat4 &projectionMatrix)
     : m_(std::make_unique<RenderInfoPrivate>())
 {
+    setFrameBuffer(frameBuffer);
     setViewport(viewport);
     setViewMatrix(viewMatrix);
     setProjectionMatrix(projectionMatrix);
@@ -21,12 +23,22 @@ RenderInfo::~RenderInfo()
 {
 }
 
-const glm::uvec2 &RenderInfo::viewport() const
+const std::shared_ptr<IGraphicsRenderer::FrameBuffer> RenderInfo::frameBuffer() const
+{
+    return m_->frameBuffer();
+}
+
+void RenderInfo::setFrameBuffer(std::shared_ptr<IGraphicsRenderer::FrameBuffer> value)
+{
+    m_->frameBuffer() = value;
+}
+
+const glm::uvec4 &RenderInfo::viewport() const
 {
     return m_->viewport();
 }
 
-void RenderInfo::setViewport(const glm::uvec2 &vp)
+void RenderInfo::setViewport(const glm::uvec4 &vp)
 {
     m_->viewport() = vp;
 }

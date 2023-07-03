@@ -19,6 +19,19 @@ class QtOpenGL_4_5_Renderer : public core::IGraphicsRenderer, public QOpenGLFunc
 {
     NONCOPYBLE(QtOpenGL_4_5_Renderer)
 public:
+    class Conversions
+    {
+    public:
+        static GLenum Type2GL(utils::Type);
+        static utils::Type GL2Type(GLenum);
+        static GLenum PrimitiveType2GL(utils::PrimitiveType);
+        static GLenum InternalFormat2GL(RenderSurface::InternalFormat);
+        static RenderSurface::InternalFormat GL2InternalFormat(GLenum);
+        static GLenum NumComponents2GL(uint32_t);
+        static Texture::InternalFormat NumComponentsAndTypeToInternalFormat(uint32_t, utils::Type);
+        static GLenum Attachment2GL(FrameBuffer::Attachment);
+        static GLenum WrapMode2GL(Texture::WrapMode);
+    };
 
     class Buffer_4_5 : public core::IGraphicsRenderer::Buffer, public std::enable_shared_from_this<Buffer_4_5>
     {
@@ -104,18 +117,19 @@ public:
 
         GLuint id() const;
 
-        glm::uvec3 size(uint32_t level = 0) const override;
-        uint32_t numMipmapLevels() const override;
+        glm::uvec2 size() const override;
         InternalFormat internalFormat() const override;
 
+        glm::uvec3 mipmapSize(uint32_t level = 0) const override;
+        uint32_t numMipmapLevels() const override;
+
         void generateMipmaps() override;
+        void setBorderColor(const glm::vec4&) override;
+        void setWrapMode(WrapMode) override;
+        void setFiltering(Filtering) override;
 
     protected:
         GLuint m_id = 0;
-
-        static GLenum InternalFormat2GL(InternalFormat);
-        static InternalFormat GL2InternalFormat(GLenum);
-        static GLenum NumComponents2GL(uint32_t);
     };
 
     class Texture2D_4_5 : public TextureBase_4_5
@@ -131,6 +145,74 @@ public:
                          utils::Type type,
                          const void *data) override;
 
+    };
+
+    class RenderBuffer_4_5 : public RenderBuffer
+    {
+    public:
+        RenderBuffer_4_5(uint32_t width, uint32_t height, Texture::InternalFormat);
+        ~RenderBuffer_4_5() override;
+
+        GLuint id() const;
+
+        glm::uvec2 size() const override;
+        InternalFormat internalFormat() const override;
+
+    protected:
+        GLuint m_id = 0;
+    };
+
+    class FrameBufferBase_4_5 : public FrameBuffer
+    {
+    public:
+        FrameBufferBase_4_5(GLuint id);
+        ~FrameBufferBase_4_5() override;
+
+        GLuint id() const;
+
+        bool isComplete() const override;
+
+        const Attachments &attachments() const override;
+
+        const ClearColor &clearColor(uint32_t) const override;
+        void setClearColor(uint32_t, const glm::vec4&) override;
+        void setClearColor(uint32_t, const glm::i32vec4&) override;
+        void setClearColor(uint32_t, const glm::u32vec4&) override;
+
+        float clearDepth() const override;
+        int32_t clearStencil() const override;
+        void setClearDepthStencil(float, int32_t) override;
+
+        void clear();
+
+    protected:
+        GLuint m_id;
+
+        Attachments m_attchments;
+
+        std::array<ClearColor, ColorAttachmentsCount()> m_clearColor;
+        float m_clearDepth;
+        int32_t m_clearStencil;
+    };
+
+    class FrameBuffer_4_5 : public FrameBufferBase_4_5
+    {
+    public:
+        FrameBuffer_4_5();
+        ~FrameBuffer_4_5() override;
+
+        void attach(Attachment, std::shared_ptr<RenderSurface>, uint32_t level = 0u, uint32_t layer = 0u) override;
+        void detach(Attachment) override;
+    };
+
+    class DefaultFrameBuffer_4_5 : public FrameBufferBase_4_5
+    {
+    public:
+        DefaultFrameBuffer_4_5(GLuint);
+        ~DefaultFrameBuffer_4_5() override;
+
+        void attach(Attachment, std::shared_ptr<RenderSurface>, uint32_t = 0u, uint32_t = 0u) override;
+        void detach(Attachment) override;
     };
 
     class RenderProgram_4_5 : public core::IGraphicsRenderer::RenderProgram
@@ -180,16 +262,25 @@ public:
         GLint m_uniformNameMaxLength;
     };
 
+    std::shared_ptr<FrameBuffer> defaultFrameBuffer() override;
+    std::shared_ptr<const FrameBuffer> defaultFrameBuffer() const override;
 
     std::shared_ptr<RenderProgram> createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const override;
     std::shared_ptr<Buffer> createBuffer(size_t = 0u, const void* = nullptr) const override;
     std::shared_ptr<VertexArray> createVertexArray(std::shared_ptr<utils::Mesh> = nullptr, bool uniteVertexBuffers = true) const override;
-    std::shared_ptr<Texture> createTexture2DEmpty(uint32_t width, uint32_t height, Texture::InternalFormat, uint32_t numLevels = 1) const override;
+    std::shared_ptr<Texture> createTexture2DEmpty(uint32_t width, uint32_t height, RenderSurface::InternalFormat, uint32_t numLevels = 1) const override;
     std::shared_ptr<Texture> createTexture2D(std::shared_ptr<utils::Image>,
-                                             Texture::InternalFormat = Texture::InternalFormat::Undefined,
+                                             RenderSurface::InternalFormat = RenderSurface::InternalFormat::Undefined,
                                              uint32_t numLevels = 0, bool genMipmaps = true) const override;
+    std::shared_ptr<RenderBuffer> createRenderBuffer(uint32_t width, uint32_t height, RenderSurface::InternalFormat) const override;
+    std::shared_ptr<FrameBuffer> createFrameBuffer() const override;
 
+    QtOpenGL_4_5_Renderer(const QOpenGLContext*, GLuint);
     ~QtOpenGL_4_5_Renderer() override;
+
+    void makeDefaultFrameBuffer(GLuint);
+
+    static void setInstance(std::shared_ptr<QtOpenGL_4_5_Renderer>);
     static std::shared_ptr<QtOpenGL_4_5_Renderer> instance();
 
     const std::string &name() const override;
@@ -205,20 +296,13 @@ public:
 
 private:
     static std::weak_ptr<QtOpenGL_4_5_Renderer> s_instance;
+    std::shared_ptr<DefaultFrameBuffer_4_5> m_defaultFrameBuffer;
 
     std::list<std::pair<glm::mat4, std::shared_ptr<core::IDrawable>>> m_renderData;
     glm::uvec2 m_viewportSize;
     uint32_t m_textureUnit;
 
-    QtOpenGL_4_5_Renderer(const QOpenGLContext*);
-    static void setInstance(std::shared_ptr<QtOpenGL_4_5_Renderer>);
-
-    static GLenum Type2GL(utils::Type);
-    static utils::Type GL2Type(GLenum);
-    static GLenum PrimitiveType2GL(utils::PrimitiveType);
-    static Texture::InternalFormat NumComponentsAndTypeToInternalFormat(uint32_t, utils::Type);
     static void setupUniforms(std::shared_ptr<core::IDrawable>, const core::RenderInfo&, const glm::mat4&);
-    friend class QtRenderWidget;
 };
 
 }

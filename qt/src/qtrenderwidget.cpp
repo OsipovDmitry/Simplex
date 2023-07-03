@@ -19,6 +19,8 @@ QtRenderWidget::QtRenderWidget()
     : QOpenGLWidget(nullptr)
     , m_(std::make_unique<QtRenderWidgetPrivate>())
 {   
+    setAttribute(Qt::WA_DeleteOnClose);
+
     QSurfaceFormat format;
     format.setDepthBufferSize(24);
     format.setStencilBufferSize(8);
@@ -54,13 +56,6 @@ void QtRenderWidget::initializeGL()
 {
     LOG_INFO << "QtRenderWidget::initializeGL()";
 
-    m_->renderer() = QtOpenGL_4_5_Renderer::instance();
-    if (!m_->renderer())
-    {
-        m_->renderer() = std::shared_ptr<QtOpenGL_4_5_Renderer>(new QtOpenGL_4_5_Renderer(context()));
-        QtOpenGL_4_5_Renderer::setInstance(m_->renderer());
-    }
-
     m_->startTime() = m_->lastFpsTime() = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch());
     m_->lastUpdateTime() = 0u;
 }
@@ -74,11 +69,18 @@ void QtRenderWidget::resizeGL(int width, int height)
     }
 
     LOG_INFO << "QtRenderWidget::resizeGL(" << width << ", " << height << ")";
-    m_->renderer()->resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
+    if (auto &renderer = m_->renderer(); renderer)
+        renderer->resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 }
 
 void QtRenderWidget::paintGL()
 {
+    if (auto &renderer = m_->renderer(); !renderer)
+    {
+        renderer = std::shared_ptr<QtOpenGL_4_5_Renderer>(new QtOpenGL_4_5_Renderer(context(), defaultFramebufferObject()));
+        QtOpenGL_4_5_Renderer::setInstance(renderer);
+    }
+
     auto time = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch()) - m_->startTime();
     auto dt = static_cast<uint32_t>(time - m_->lastUpdateTime());
     m_->lastUpdateTime() = time;

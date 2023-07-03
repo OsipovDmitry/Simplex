@@ -77,7 +77,7 @@ bool QtOpenGL_4_5_Renderer::RenderProgram_4_5::compile(std::string &log)
         m_attributesInfo.push_back({ vertexAttributeByName(attributeName.data()),
                                      static_cast<uint16_t>(i),
                                      static_cast<int32_t>(renderer->glGetAttribLocation(m_id, attributeName.data())),
-                                     GL2Type(type) });
+                                     Conversions::GL2Type(type) });
     }
 
     GLint numUniforms;
@@ -99,7 +99,7 @@ bool QtOpenGL_4_5_Renderer::RenderProgram_4_5::compile(std::string &log)
         m_uniformsInfo.push_back({ UniformIdByName(uniformName.data()),
                                    static_cast<uint16_t>(i),
                                    static_cast<int32_t>(renderer->glGetUniformLocation(m_id, uniformName.data())),
-                                   GL2Type(type) });
+                                   Conversions::GL2Type(type) });
     }
 
     bool result = true;
@@ -428,11 +428,11 @@ void QtOpenGL_4_5_Renderer::VertexArray_4_5::declareVertexAttribute(utils::Verte
     renderer->glEnableVertexArrayAttrib(m_id, loc);
 
     if (utils::TypeInfo::isSingleScalar(type))
-        renderer->glVertexArrayAttribFormat(m_id, loc, static_cast<GLint>(numComponents), Type2GL(type), GL_FALSE, static_cast<GLuint>(relativeOffset));
+        renderer->glVertexArrayAttribFormat(m_id, loc, static_cast<GLint>(numComponents), Conversions::Type2GL(type), GL_FALSE, static_cast<GLuint>(relativeOffset));
     else if (utils::TypeInfo::isDoubleScalar(type))
-        renderer->glVertexArrayAttribLFormat(m_id, loc, static_cast<GLint>(numComponents), Type2GL(type), static_cast<GLuint>(relativeOffset));
+        renderer->glVertexArrayAttribLFormat(m_id, loc, static_cast<GLint>(numComponents), Conversions::Type2GL(type), static_cast<GLuint>(relativeOffset));
     else if (utils::TypeInfo::isIntScalar(type))
-        renderer->glVertexArrayAttribIFormat(m_id, loc, static_cast<GLint>(numComponents), Type2GL(type), static_cast<GLuint>(relativeOffset));
+        renderer->glVertexArrayAttribIFormat(m_id, loc, static_cast<GLint>(numComponents), Conversions::Type2GL(type), static_cast<GLuint>(relativeOffset));
 }
 
 void QtOpenGL_4_5_Renderer::VertexArray_4_5::undeclareVertexAttribute(utils::VertexAttribute attrib)
@@ -505,6 +505,16 @@ void QtOpenGL_4_5_Renderer::VertexArray_4_5::removePrimitiveSet(std::shared_ptr<
 const std::unordered_set<std::shared_ptr<utils::PrimitiveSet> > QtOpenGL_4_5_Renderer::VertexArray_4_5::primitiveSets() const
 {
     return m_primitiveSets;
+}
+
+std::shared_ptr<core::IGraphicsRenderer::FrameBuffer> QtOpenGL_4_5_Renderer::defaultFrameBuffer()
+{
+    return m_defaultFrameBuffer;
+}
+
+std::shared_ptr<const core::IGraphicsRenderer::FrameBuffer> QtOpenGL_4_5_Renderer::defaultFrameBuffer() const
+{
+    return const_cast<QtOpenGL_4_5_Renderer*>(this)->defaultFrameBuffer();
 }
 
 std::shared_ptr<core::IGraphicsRenderer::RenderProgram> QtOpenGL_4_5_Renderer::createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const
@@ -685,11 +695,11 @@ std::shared_ptr<core::IGraphicsRenderer::VertexArray> QtOpenGL_4_5_Renderer::cre
 
 std::shared_ptr<core::IGraphicsRenderer::Texture> QtOpenGL_4_5_Renderer::createTexture2DEmpty(uint32_t width,
                                                                                               uint32_t height,
-                                                                                              Texture::InternalFormat internalFormat,
+                                                                                              RenderSurface::InternalFormat internalFormat,
                                                                                               uint32_t numLevels) const
 {
     assert(width * height);
-    assert(internalFormat != Texture::InternalFormat::Undefined);
+    assert(internalFormat != RenderSurface::InternalFormat::Undefined);
 
     auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec2(width, height)));
     if (numLevels == 0)
@@ -700,13 +710,13 @@ std::shared_ptr<core::IGraphicsRenderer::Texture> QtOpenGL_4_5_Renderer::createT
 }
 
 std::shared_ptr<core::IGraphicsRenderer::Texture> QtOpenGL_4_5_Renderer::createTexture2D(std::shared_ptr<utils::Image> image,
-                                                                                         Texture::InternalFormat internalFormat,
+                                                                                         RenderSurface::InternalFormat internalFormat,
                                                                                          uint32_t numLevels, bool genMipmaps) const
 {
     assert(image);
 
-    if (internalFormat == Texture::InternalFormat::Undefined)
-        internalFormat = NumComponentsAndTypeToInternalFormat(image->numComponents(), image->type());
+    if (internalFormat == RenderSurface::InternalFormat::Undefined)
+        internalFormat = Conversions::NumComponentsAndTypeToInternalFormat(image->numComponents(), image->type());
 
     auto result = createTexture2DEmpty(image->width(), image->height(), internalFormat, numLevels);
     result->setSubImage(0u, glm::uvec3(0u), glm::uvec3(image->width(), image->height(), 0u), image->numComponents(), image->type(), image->data());
@@ -717,9 +727,79 @@ std::shared_ptr<core::IGraphicsRenderer::Texture> QtOpenGL_4_5_Renderer::createT
     return result;
 }
 
+std::shared_ptr<core::IGraphicsRenderer::RenderBuffer> QtOpenGL_4_5_Renderer::createRenderBuffer(uint32_t width,
+                                                                                                 uint32_t height,
+                                                                                                 RenderSurface::InternalFormat internalFormat) const
+{
+    return std::make_shared<RenderBuffer_4_5>(width, height, internalFormat);
+}
+
+std::shared_ptr<core::IGraphicsRenderer::FrameBuffer> QtOpenGL_4_5_Renderer::createFrameBuffer() const
+{
+    return std::make_shared<FrameBuffer_4_5>();
+}
+
+QtOpenGL_4_5_Renderer::QtOpenGL_4_5_Renderer(const QOpenGLContext *context, GLuint defaultFbo)
+    : m_viewportSize(0u, 0u)
+{
+    if (!s_instance.expired())
+    {
+        LOG_CRITICAL << "QtOpenGL_4_5_Renderer instance has already been created";
+        assert(false);
+    }
+
+    setOwningContext(context);
+    if (!initializeOpenGLFunctions())
+    {
+        LOG_CRITICAL << "Can't initialize QOpenGLFunctions";
+        assert(false);
+    }
+
+    makeDefaultFrameBuffer(defaultFbo);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    LOG_INFO << "GraphicsRenderer \"" << QtOpenGL_4_5_Renderer::name() << "\" has been created";
+}
+
 QtOpenGL_4_5_Renderer::~QtOpenGL_4_5_Renderer()
 {
     LOG_INFO << "GraphicsRenderer \"" << QtOpenGL_4_5_Renderer::name() << "\" has been destroyed";
+}
+
+void QtOpenGL_4_5_Renderer::makeDefaultFrameBuffer(GLuint defaultFbo)
+{
+    m_defaultFrameBuffer = std::make_shared<DefaultFrameBuffer_4_5>(defaultFbo);
+    auto &attachments = const_cast<FrameBuffer::Attachments&>(m_defaultFrameBuffer->attachments());
+
+    GLint objType = GL_NONE;
+    glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_DEPTH_STENCIL_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
+    if (objType != GL_NONE)
+        attachments.insert({FrameBuffer::Attachment::DepthStencil, {nullptr, 0, 0}});
+    else
+    {
+        objType = GL_NONE;
+        glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_DEPTH_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
+        if (objType != GL_NONE)
+            attachments.insert({FrameBuffer::Attachment::Depth, {nullptr, 0, 0}});
+
+        objType = GL_NONE;
+        glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_STENCIL_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
+        if (objType != GL_NONE)
+            attachments.insert({FrameBuffer::Attachment::Stencil, {nullptr, 0, 0}});
+    }
+    for (uint32_t i = 0; i < FrameBuffer::ColorAttachmentsCount(); ++i)
+    {
+        objType = GL_NONE;
+        glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_COLOR_ATTACHMENT0 + i, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
+        if (objType != GL_NONE)
+            attachments.insert({FrameBuffer::ColorAttachment(i), {nullptr, 0, 0}});
+    }
+
+}
+
+void QtOpenGL_4_5_Renderer::setInstance(std::shared_ptr<QtOpenGL_4_5_Renderer> instance)
+{
+    s_instance = instance;
 }
 
 std::shared_ptr<QtOpenGL_4_5_Renderer> QtOpenGL_4_5_Renderer::instance()
@@ -729,7 +809,7 @@ std::shared_ptr<QtOpenGL_4_5_Renderer> QtOpenGL_4_5_Renderer::instance()
 
 const std::string &QtOpenGL_4_5_Renderer::name() const
 {
-    static const std::string s_name = "QtOpenGL_1_0_Renderer";
+    static const std::string s_name = "QtOpenGL_4_5_Renderer";
     return s_name;
 }
 
@@ -756,33 +836,43 @@ void QtOpenGL_4_5_Renderer::addRenderData(const glm::mat4 &transform, std::share
 
 void QtOpenGL_4_5_Renderer::render(const core::RenderInfo &renderInfo)
 {
-    glViewport(0, 0, static_cast<GLsizei>(renderInfo.viewport().x), static_cast<GLsizei>(renderInfo.viewport().y));
+    auto fbo = std::dynamic_pointer_cast<FrameBufferBase_4_5>(renderInfo.frameBuffer());
+    assert(fbo);
+
+    fbo->clear();
+
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo->id());
+
+    glViewport(static_cast<GLint>(renderInfo.viewport().x),
+               static_cast<GLint>(renderInfo.viewport().y),
+               static_cast<GLsizei>(renderInfo.viewport().z),
+               static_cast<GLsizei>(renderInfo.viewport().w));
+
     glEnable(GL_DEPTH_TEST);
-    glClearColor(.5f, .5f, 1.f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glDisable(GL_STENCIL_TEST);
 
     for (auto &renderData : m_renderData)
     {
-        auto rp2 = std::dynamic_pointer_cast<RenderProgram_4_5>(renderData.second->renderProgram());
-        auto vao2 = std::dynamic_pointer_cast<VertexArray_4_5>(renderData.second->vertexArray());
+        auto rp = std::dynamic_pointer_cast<RenderProgram_4_5>(renderData.second->renderProgram());
+        auto vao = std::dynamic_pointer_cast<VertexArray_4_5>(renderData.second->vertexArray());
 
-        glUseProgram(rp2->id());
-        glBindVertexArray(vao2->id());
+        glUseProgram(rp->id());
+        glBindVertexArray(vao->id());
 
         m_textureUnit = 0u;
 
         setupUniforms(renderData.second, renderInfo, renderData.first);
 
-        for (auto &primitiveSet : vao2->primitiveSets())
+        for (auto &primitiveSet : vao->primitiveSets())
         {
             if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
-                glDrawArrays(PrimitiveType2GL(drawArrays->primitiveType()),
+                glDrawArrays(Conversions::PrimitiveType2GL(drawArrays->primitiveType()),
                              static_cast<GLint>(drawArrays->first()),
                              static_cast<GLint>(drawArrays->count()));
             else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
-                glDrawElementsBaseVertex(PrimitiveType2GL(drawElements->primitiveType()),
+                glDrawElementsBaseVertex(Conversions::PrimitiveType2GL(drawElements->primitiveType()),
                                          static_cast<GLsizei>(drawElements->count()),
-                                         Type2GL(drawElements->type()),
+                                         Conversions::Type2GL(drawElements->type()),
                                          reinterpret_cast<const void*>(drawElements->offset()),
                                          static_cast<GLint>(drawElements->baseVertex()));
         }
@@ -798,193 +888,6 @@ uint32_t QtOpenGL_4_5_Renderer::bindTexture(std::shared_ptr<const Texture> textu
     return m_textureUnit++;
 }
 
-QtOpenGL_4_5_Renderer::QtOpenGL_4_5_Renderer(const QOpenGLContext *context)
-    : m_viewportSize(0u, 0u)
-{
-    if (!s_instance.expired())
-    {
-        LOG_CRITICAL << "QtOpenGL_4_5_Renderer instance has already been created";
-        assert(false);
-    }
-
-    setOwningContext(context);
-    if (!initializeOpenGLFunctions())
-    {
-        LOG_CRITICAL << "Can't initialize QOpenGLFunctionsW";
-        assert(false);
-    }
-
-    LOG_INFO << "GraphicsRenderer \"" << QtOpenGL_4_5_Renderer::name() << "\" has been created";
-
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-}
-
-void QtOpenGL_4_5_Renderer::setInstance(std::shared_ptr<QtOpenGL_4_5_Renderer> instance)
-{
-    s_instance = instance;
-}
-
-GLenum QtOpenGL_4_5_Renderer::Type2GL(utils::Type value)
-{
-    static std::array<GLenum, utils::numElementsType()> s_table {
-        GL_NONE,
-        GL_FLOAT,
-        GL_FLOAT_VEC2,
-        GL_FLOAT_VEC3,
-        GL_FLOAT_VEC4,
-        GL_FLOAT_MAT2,
-        GL_FLOAT_MAT3,
-        GL_FLOAT_MAT4,
-        GL_DOUBLE,
-        GL_DOUBLE_VEC2,
-        GL_DOUBLE_VEC3,
-        GL_DOUBLE_VEC4,
-        GL_DOUBLE_MAT2,
-        GL_DOUBLE_MAT3,
-        GL_DOUBLE_MAT4,
-        GL_BYTE,
-        GL_SHORT,
-        GL_INT,
-        GL_INT_VEC2,
-        GL_INT_VEC3,
-        GL_INT_VEC4,
-        GL_UNSIGNED_BYTE,
-        GL_UNSIGNED_SHORT,
-        GL_UNSIGNED_INT,
-        GL_UNSIGNED_INT_VEC2,
-        GL_UNSIGNED_INT_VEC3,
-        GL_UNSIGNED_INT_VEC4,
-        GL_SAMPLER_1D,
-        GL_SAMPLER_2D,
-        GL_SAMPLER_3D,
-        GL_SAMPLER_CUBE,
-        GL_SAMPLER_1D_ARRAY,
-        GL_SAMPLER_2D_ARRAY,
-        GL_SAMPLER_CUBE_MAP_ARRAY,
-        GL_SAMPLER_2D_RECT,
-        GL_SAMPLER_1D_SHADOW,
-        GL_SAMPLER_2D_SHADOW,
-        GL_SAMPLER_CUBE_SHADOW,
-        GL_SAMPLER_1D_ARRAY_SHADOW,
-        GL_SAMPLER_2D_ARRAY_SHADOW,
-        GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW
-    };
-
-    return s_table[utils::castFromType(value)];
-}
-
-utils::Type QtOpenGL_4_5_Renderer::GL2Type(GLenum type)
-{
-    static std::unordered_map<GLenum, utils::Type> s_table {
-        { GL_FLOAT, utils::Type::Single },
-        { GL_FLOAT_VEC2, utils::Type::SingleVec2 },
-        { GL_FLOAT_VEC3, utils::Type::SingleVec3 },
-        { GL_FLOAT_VEC4, utils::Type::SingleVec4 },
-        { GL_FLOAT_MAT2, utils::Type::SingleMat2 },
-        { GL_FLOAT_MAT3, utils::Type::SingleMat3 },
-        { GL_FLOAT_MAT4, utils::Type::SingleMat4 },
-        { GL_DOUBLE, utils::Type::Double },
-        { GL_DOUBLE_VEC2, utils::Type::DoubleVec2 },
-        { GL_DOUBLE_VEC3, utils::Type::DoubleVec3 },
-        { GL_DOUBLE_VEC4, utils::Type::DoubleVec4 },
-        { GL_DOUBLE_MAT2, utils::Type::DoubleMat2 },
-        { GL_DOUBLE_MAT3, utils::Type::DoubleMat3 },
-        { GL_DOUBLE_MAT4, utils::Type::DoubleMat4 },
-        { GL_BYTE, utils::Type::Int8 },
-        { GL_SHORT, utils::Type::Int16 },
-        { GL_INT, utils::Type::Int32 },
-        { GL_INT_VEC2, utils::Type::Int32Vec2 },
-        { GL_INT_VEC3, utils::Type::Int32Vec3 },
-        { GL_INT_VEC4, utils::Type::Int32Vec4 },
-        { GL_UNSIGNED_BYTE, utils::Type::Uint8 },
-        { GL_UNSIGNED_SHORT, utils::Type::Uint16 },
-        { GL_UNSIGNED_INT, utils::Type::Uint32 },
-        { GL_UNSIGNED_INT_VEC2, utils::Type::Uint32Vec2 },
-        { GL_UNSIGNED_INT_VEC3, utils::Type::Uint32Vec3 },
-        { GL_UNSIGNED_INT_VEC4, utils::Type::Uint32Vec4 },
-        { GL_SAMPLER_1D, utils::Type::Sampler1D },
-        { GL_SAMPLER_2D, utils::Type::Sampler2D },
-        { GL_SAMPLER_3D, utils::Type::Sampler3D },
-        { GL_SAMPLER_CUBE, utils::Type::SamplerCube },
-        { GL_SAMPLER_1D_ARRAY, utils::Type::Sampler1DArray },
-        { GL_SAMPLER_2D_ARRAY, utils::Type::Sampler2DArray },
-        { GL_SAMPLER_CUBE_MAP_ARRAY, utils::Type::SamplerCubeArray },
-        { GL_SAMPLER_2D_RECT, utils::Type::SamplerRect },
-        { GL_SAMPLER_1D_SHADOW, utils::Type::Sampler1DShadow },
-        { GL_SAMPLER_2D_SHADOW, utils::Type::Sampler2DShadow },
-        { GL_SAMPLER_CUBE_SHADOW, utils::Type::SamplerCubeShadow },
-        { GL_SAMPLER_1D_ARRAY_SHADOW, utils::Type::Sampler1DArrayShadow },
-        { GL_SAMPLER_2D_ARRAY_SHADOW, utils::Type::Sampler2DArrayShadow },
-        { GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW, utils::Type::SamplerCubeArrayShadow },
-    };
-
-    auto it = s_table.find(type);
-    return (it == s_table.end()) ? utils::Type::Undefined : it->second;
-}
-
-GLenum QtOpenGL_4_5_Renderer::PrimitiveType2GL(utils::PrimitiveType value)
-{
-    static std::array<GLenum, utils::numElementsPrimitiveType()> s_table {
-        GL_POINTS,
-        GL_LINES,
-        GL_LINE_STRIP,
-        GL_TRIANGLES,
-        GL_TRIANGLE_STRIP,
-        GL_TRIANGLE_FAN,
-    };
-
-    return s_table[utils::castFromPrimitiveType(value)];
-}
-
-core::IGraphicsRenderer::Texture::InternalFormat QtOpenGL_4_5_Renderer::NumComponentsAndTypeToInternalFormat(uint32_t numComponents,
-                                                                                                             utils::Type type)
-{
-    Texture::InternalFormat result = Texture::InternalFormat::Undefined;
-
-    switch (type)
-    {
-    case utils::Type::Uint8:
-    {
-        switch (numComponents)
-        {
-        case 1: { result = Texture::InternalFormat::R8; break; }
-        case 2: { result = Texture::InternalFormat::RG8; break; }
-        case 3: { result = Texture::InternalFormat::RGB8; break; }
-        case 4: { result = Texture::InternalFormat::RGBA8; break; }
-        default: { break; }
-        }
-        break;
-    }
-    case utils::Type::Uint16:
-    {
-        switch (numComponents)
-        {
-        case 1: { result = Texture::InternalFormat::R16; break; }
-        case 2: { result = Texture::InternalFormat::RG16; break; }
-        case 3: { result = Texture::InternalFormat::RGB16; break; }
-        case 4: { result = Texture::InternalFormat::RGBA16; break; }
-        default: { break; }
-        }
-        break;
-    }
-    case utils::Type::Single:
-    {
-        switch (numComponents)
-        {
-        case 1: { result = Texture::InternalFormat::R16F; break; }
-        case 2: { result = Texture::InternalFormat::RG16F; break; }
-        case 3: { result = Texture::InternalFormat::RGB16F; break; }
-        case 4: { result = Texture::InternalFormat::RGBA16F; break; }
-        default: { break; }
-        }
-        break;
-    }
-    default: { break; }
-    }
-
-    return result;
-}
-
 void QtOpenGL_4_5_Renderer::setupUniforms(std::shared_ptr<core::IDrawable> drawable,
                                           const core::RenderInfo &renderInfo,
                                           const glm::mat4 &modelMatrix)
@@ -996,7 +899,7 @@ void QtOpenGL_4_5_Renderer::setupUniforms(std::shared_ptr<core::IDrawable> drawa
         switch (uniformInfo.id)
         {
         case RenderProgram::UniformId::Viewport: {
-            renderProgram->setUniform(uniformInfo.location, renderInfo.viewport());
+            renderProgram->setUniform(uniformInfo.location, glm::uvec2(renderInfo.viewport().z, renderInfo.viewport().w));
             break;
         }
         case RenderProgram::UniformId::ModelMatrix: {
@@ -1111,7 +1014,12 @@ GLuint QtOpenGL_4_5_Renderer::TextureBase_4_5::id() const
     return m_id;
 }
 
-glm::uvec3 QtOpenGL_4_5_Renderer::TextureBase_4_5::size(uint32_t level) const
+glm::uvec2 QtOpenGL_4_5_Renderer::TextureBase_4_5::size() const
+{
+    return mipmapSize(0u);
+}
+
+glm::uvec3 QtOpenGL_4_5_Renderer::TextureBase_4_5::mipmapSize(uint32_t level) const
 {
     GLint w, h, d;
 
@@ -1140,7 +1048,7 @@ core::IGraphicsRenderer::Texture::InternalFormat QtOpenGL_4_5_Renderer::TextureB
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glGetTextureLevelParameteriv(m_id, 0, GL_TEXTURE_INTERNAL_FORMAT, &result);
 
-    return GL2InternalFormat(static_cast<GLenum>(result));
+    return Conversions::GL2InternalFormat(static_cast<GLenum>(result));
 }
 
 void QtOpenGL_4_5_Renderer::TextureBase_4_5::generateMipmaps()
@@ -1149,49 +1057,49 @@ void QtOpenGL_4_5_Renderer::TextureBase_4_5::generateMipmaps()
     renderer->glGenerateTextureMipmap(m_id);
 }
 
-GLenum QtOpenGL_4_5_Renderer::TextureBase_4_5::InternalFormat2GL(InternalFormat value)
+void QtOpenGL_4_5_Renderer::TextureBase_4_5::setBorderColor(const glm::vec4 &value)
 {
-    static std::array<GLenum, numElementsInternalFormat()> s_table {
-        GL_NONE,
-        GL_R8, GL_R8_SNORM, GL_R16, GL_R16_SNORM,
-        GL_RG8, GL_RG8_SNORM, GL_RG16, GL_RG16_SNORM,
-        GL_R3_G3_B2, GL_RGB4, GL_RGB5, GL_RGB8, GL_RGB8_SNORM, GL_RGB10, GL_RGB12, GL_RGB16, GL_RGB16_SNORM,
-        GL_RGBA4, GL_RGB5_A1, GL_RGBA8, GL_RGBA8_SNORM, GL_RGB10_A2, GL_RGB10_A2UI, GL_RGBA12, GL_RGBA16, GL_RGBA16_SNORM,
-        GL_SRGB8, GL_SRGB8_ALPHA8,
-        GL_R16F, GL_RG16F, GL_RGB16F, GL_RGBA16F,
-        GL_R32F, GL_RG32F, GL_RGB32F, GL_RGBA32F,
-        GL_R11F_G11F_B10F, GL_RGB9_E5,
-        GL_R8I, GL_R8UI, GL_R16I, GL_R16UI, GL_R32I, GL_R32UI,
-        GL_RG8I, GL_RG8UI, GL_RG16I, GL_RG16UI, GL_RG32I, GL_RG32UI,
-        GL_RGB8I, GL_RGB8UI, GL_RGB16I, GL_RGB16UI, GL_RGB32I, GL_RGB32UI,
-        GL_RGBA8I, GL_RGBA8UI, GL_RGBA16I, GL_RGBA16UI, GL_RGBA32I, GL_RGBA32UI
-    };
-
-    return s_table[castFromInternalFormat(value)];
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glTextureParameterfv(m_id, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(value));
 }
 
-core::IGraphicsRenderer::Texture::InternalFormat QtOpenGL_4_5_Renderer::TextureBase_4_5::GL2InternalFormat(GLenum value)
+void QtOpenGL_4_5_Renderer::TextureBase_4_5::setWrapMode(WrapMode value)
 {
-    static std::unordered_map<GLenum, InternalFormat> s_table {
-    };
+    auto glValue = static_cast<GLint>(Conversions::WrapMode2GL(value));
 
-    auto it = s_table.find(value);
-    return (it == s_table.end()) ? InternalFormat::Undefined : it->second;
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, glValue);
+    renderer->glTextureParameteri(m_id, GL_TEXTURE_WRAP_T, glValue);
+    renderer->glTextureParameteri(m_id, GL_TEXTURE_WRAP_R, glValue);
 }
 
-GLenum QtOpenGL_4_5_Renderer::TextureBase_4_5::NumComponents2GL(uint32_t value)
+void QtOpenGL_4_5_Renderer::TextureBase_4_5::setFiltering(Filtering value)
 {
-    GLenum result = GL_NONE;
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
     switch (value)
     {
-    case 1: { result = GL_RED; break; }
-    case 2: { result = GL_RG; break; }
-    case 3: { result = GL_RGB; break; }
-    case 4: { result = GL_RGBA; break; }
+    case Texture::Filtering::Point: {
+        renderer->glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        renderer->glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        break;
+    }
+    case Texture::Filtering::Linear: {
+        renderer->glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        renderer->glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        break;
+    }
+    case Texture::Filtering::Bilinear: {
+        renderer->glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        renderer->glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+        break;
+    }
+    case Texture::Filtering::Trilinear: {
+        renderer->glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        renderer->glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        break;
+    }
     default: break;
     }
-
-    return result;
 }
 
 QtOpenGL_4_5_Renderer::Texture2D_4_5::Texture2D_4_5(uint32_t width, uint32_t height, InternalFormat internalFormat, uint32_t numLevels)
@@ -1200,7 +1108,7 @@ QtOpenGL_4_5_Renderer::Texture2D_4_5::Texture2D_4_5(uint32_t width, uint32_t hei
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glTextureStorage2D(m_id,
                                  static_cast<GLsizei>(numLevels),
-                                 InternalFormat2GL(internalFormat),
+                                 Conversions::InternalFormat2GL(internalFormat),
                                  static_cast<GLsizei>(width),
                                  static_cast<GLsizei>(height));
 }
@@ -1215,11 +1123,489 @@ void QtOpenGL_4_5_Renderer::Texture2D_4_5::setSubImage(uint32_t level, const glm
                                   static_cast<GLint>(level),
                                   static_cast<GLint>(offset.x), static_cast<GLint>(offset.y),
                                   static_cast<GLint>(size.x), static_cast<GLint>(size.y),
-                                  NumComponents2GL(numComponents),
-                                  QtOpenGL_4_5_Renderer::Type2GL(type),
+                                  Conversions::NumComponents2GL(numComponents),
+                                  Conversions::Type2GL(type),
                                   data);
 }
 
+QtOpenGL_4_5_Renderer::RenderBuffer_4_5::RenderBuffer_4_5(uint32_t width, uint32_t height, InternalFormat internalFormat)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glCreateRenderbuffers(1, &m_id);
+    renderer->glNamedRenderbufferStorage(m_id,
+                                         Conversions::InternalFormat2GL(internalFormat),
+                                         static_cast<GLsizei>(width),
+                                         static_cast<GLsizei>(height));
+}
+
+QtOpenGL_4_5_Renderer::RenderBuffer_4_5::~RenderBuffer_4_5()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glDeleteRenderbuffers(1, &m_id);
+}
+
+GLuint QtOpenGL_4_5_Renderer::RenderBuffer_4_5::id() const
+{
+    return m_id;
+}
+
+glm::uvec2 QtOpenGL_4_5_Renderer::RenderBuffer_4_5::size() const
+{
+    GLint width, height;
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glGetNamedRenderbufferParameteriv(m_id, GL_RENDERBUFFER_WIDTH, &width);
+    renderer->glGetNamedRenderbufferParameteriv(m_id, GL_RENDERBUFFER_HEIGHT, &height);
+
+    return glm::uvec2(width, height);
+}
+
+core::IGraphicsRenderer::RenderSurface::InternalFormat QtOpenGL_4_5_Renderer::RenderBuffer_4_5::internalFormat() const
+{
+    GLint result;
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glGetNamedRenderbufferParameteriv(m_id, GL_RENDERBUFFER_INTERNAL_FORMAT, &result);
+
+    return Conversions::GL2InternalFormat(static_cast<GLenum>(result));
+}
+
+QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::FrameBufferBase_4_5(GLuint id)
+    : m_id(id)
+{
+    for (uint32_t i = 0; i < ColorAttachmentsCount(); ++i)
+        m_clearColor[i] = { utils::Type::Single, ClearColorValue{glm::vec4(.5f, .5f, 1.f, 1.f)} };
+    m_clearDepth = 1.f;
+    m_clearStencil = 0.f;
+}
+
+QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::~FrameBufferBase_4_5()
+{
+}
+
+GLuint QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::id() const
+{
+    return m_id;
+}
+
+bool QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::isComplete() const
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    return renderer->glCheckNamedFramebufferStatus(m_id, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+}
+
+const core::IGraphicsRenderer::FrameBuffer::Attachments &QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::attachments() const
+{
+    return m_attchments;
+}
+
+const core::IGraphicsRenderer::FrameBuffer::ClearColor &QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::clearColor(uint32_t index) const
+{
+    assert(index < ColorAttachmentsCount());
+    return m_clearColor[index];
+}
+
+void QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::vec4 &value)
+{
+    assert(index < ColorAttachmentsCount());
+    m_clearColor[index] = { utils::Type::Single, ClearColorValue{value} };
+}
+
+void QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::i32vec4 &value)
+{
+    assert(index < ColorAttachmentsCount());
+    m_clearColor[index] = { utils::Type::Int32, ClearColorValue{value} };
+}
+
+void QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::u32vec4 &value)
+{
+    assert(index < ColorAttachmentsCount());
+    m_clearColor[index] = { utils::Type::Uint32, ClearColorValue{value} };
+}
+
+float QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::clearDepth() const
+{
+    return m_clearDepth;
+}
+
+int32_t QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::clearStencil() const
+{
+    return m_clearStencil;
+}
+
+void QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::setClearDepthStencil(float depth, int32_t stencil)
+{
+    m_clearDepth = depth;
+    m_clearStencil = stencil;
+}
+
+void QtOpenGL_4_5_Renderer::FrameBufferBase_4_5::clear()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+
+    for (const auto &attachment : m_attchments)
+    {
+        switch (attachment.first)
+        {
+        case FrameBuffer::Attachment::Depth:
+        {
+            renderer->glClearNamedFramebufferfv(m_id, GL_DEPTH, 0, &m_clearDepth);
+            break;
+        }
+        case FrameBuffer::Attachment::Stencil:
+        {
+            renderer->glClearNamedFramebufferiv(m_id, GL_STENCIL, 0, &m_clearStencil);
+            break;
+        }
+        case FrameBuffer::Attachment::DepthStencil:
+        {
+            renderer->glClearNamedFramebufferfi(m_id, GL_DEPTH_STENCIL, m_clearDepth, m_clearStencil);
+            break;
+        }
+        default:
+        {
+            auto drawBuffer = FrameBuffer::ColorAttachmentIndex(attachment.first);
+            const auto &clearColor = m_clearColor[drawBuffer];
+            switch (clearColor.first)
+            {
+            case utils::Type::Single: {
+                renderer->glClearNamedFramebufferfv(m_id, GL_COLOR, static_cast<GLint>(drawBuffer), glm::value_ptr(clearColor.second.floatColor));
+                break;
+            }
+            case utils::Type::Int32: {
+                renderer->glClearNamedFramebufferiv(m_id, GL_COLOR, static_cast<GLint>(drawBuffer), glm::value_ptr(clearColor.second.intColor));
+                break;
+            }
+            case utils::Type::Uint32: {
+                renderer->glClearNamedFramebufferuiv(m_id, GL_COLOR, static_cast<GLint>(drawBuffer), glm::value_ptr(clearColor.second.uintColor));
+                break;
+            }
+            default:
+                break;
+            }
+            break;
+        }
+        }
+    }
+}
+
+QtOpenGL_4_5_Renderer::FrameBuffer_4_5::FrameBuffer_4_5()
+    : FrameBufferBase_4_5(0u)
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glCreateFramebuffers(1, &m_id);
+}
+
+QtOpenGL_4_5_Renderer::FrameBuffer_4_5::~FrameBuffer_4_5()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glDeleteFramebuffers(1, &m_id);
+}
+
+void QtOpenGL_4_5_Renderer::FrameBuffer_4_5::attach(Attachment key, std::shared_ptr<RenderSurface> surface, uint32_t level, uint32_t layer)
+{
+    detach(key);
+
+    if (auto texture = std::dynamic_pointer_cast<TextureBase_4_5>(surface); texture)
+    {
+        auto renderer = QtOpenGL_4_5_Renderer::instance();
+        if (false
+//            || std::dynamic_pointer_cast<Texture3D_4_5>(texture)
+//            || std::dynamic_pointer_cast<TextureCubemap_4_5>(texture)
+//            || std::dynamic_pointer_cast<Texture1DArray_4_5>(texture)
+//            || std::dynamic_pointer_cast<Texture2DArray_4_5>(texture)
+//            || std::dynamic_pointer_cast<TextureCubemapArray_4_5>(texture)
+           )
+        {
+            renderer->glNamedFramebufferTextureLayer(m_id,
+                                                     Conversions::Attachment2GL(key),
+                                                     texture->id(),
+                                                     static_cast<GLint>(level),
+                                                     static_cast<GLint>(layer));
+        }
+        else
+        {
+            renderer->glNamedFramebufferTexture(m_id, Conversions::Attachment2GL(key), texture->id(), static_cast<GLint>(level));
+        }
+        m_attchments[key] = { surface, level, layer };
+    }
+    else if (auto renderBuffer = std::dynamic_pointer_cast<RenderBuffer_4_5>(surface); renderBuffer)
+    {
+        auto renderer = QtOpenGL_4_5_Renderer::instance();
+        renderer->glNamedFramebufferRenderbuffer(m_id,
+                                                 Conversions::Attachment2GL(key),
+                                                 GL_RENDERBUFFER,
+                                                 renderBuffer->id());
+        m_attchments[key] = { surface, level, layer };
+    }
+}
+
+void QtOpenGL_4_5_Renderer::FrameBuffer_4_5::detach(Attachment key)
+{
+    auto it = m_attchments.find(key);
+    if (it != m_attchments.end())
+    {
+        auto renderer = QtOpenGL_4_5_Renderer::instance();
+        renderer->glNamedFramebufferRenderbuffer(m_id,
+                                                 Conversions::Attachment2GL(key),
+                                                 GL_RENDERBUFFER,
+                                                 0u);
+        m_attchments.erase(it);
+    }
+}
+
+QtOpenGL_4_5_Renderer::DefaultFrameBuffer_4_5::DefaultFrameBuffer_4_5(GLuint defaultFbo)
+    : FrameBufferBase_4_5(defaultFbo)
+{
+}
+
+QtOpenGL_4_5_Renderer::DefaultFrameBuffer_4_5::~DefaultFrameBuffer_4_5()
+{
+}
+
+void QtOpenGL_4_5_Renderer::DefaultFrameBuffer_4_5::attach(Attachment, std::shared_ptr<RenderSurface>, uint32_t, uint32_t)
+{
+}
+
+void QtOpenGL_4_5_Renderer::DefaultFrameBuffer_4_5::detach(Attachment)
+{
+}
+
+GLenum QtOpenGL_4_5_Renderer::Conversions::Type2GL(utils::Type value)
+{
+    static std::array<GLenum, utils::numElementsType()> s_table {
+        GL_NONE,
+        GL_FLOAT,
+        GL_FLOAT_VEC2,
+        GL_FLOAT_VEC3,
+        GL_FLOAT_VEC4,
+        GL_FLOAT_MAT2,
+        GL_FLOAT_MAT3,
+        GL_FLOAT_MAT4,
+        GL_DOUBLE,
+        GL_DOUBLE_VEC2,
+        GL_DOUBLE_VEC3,
+        GL_DOUBLE_VEC4,
+        GL_DOUBLE_MAT2,
+        GL_DOUBLE_MAT3,
+        GL_DOUBLE_MAT4,
+        GL_BYTE,
+        GL_SHORT,
+        GL_INT,
+        GL_INT_VEC2,
+        GL_INT_VEC3,
+        GL_INT_VEC4,
+        GL_UNSIGNED_BYTE,
+        GL_UNSIGNED_SHORT,
+        GL_UNSIGNED_INT,
+        GL_UNSIGNED_INT_VEC2,
+        GL_UNSIGNED_INT_VEC3,
+        GL_UNSIGNED_INT_VEC4,
+        GL_SAMPLER_1D,
+        GL_SAMPLER_2D,
+        GL_SAMPLER_3D,
+        GL_SAMPLER_CUBE,
+        GL_SAMPLER_1D_ARRAY,
+        GL_SAMPLER_2D_ARRAY,
+        GL_SAMPLER_CUBE_MAP_ARRAY,
+        GL_SAMPLER_2D_RECT,
+        GL_SAMPLER_1D_SHADOW,
+        GL_SAMPLER_2D_SHADOW,
+        GL_SAMPLER_CUBE_SHADOW,
+        GL_SAMPLER_1D_ARRAY_SHADOW,
+        GL_SAMPLER_2D_ARRAY_SHADOW,
+        GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW
+    };
+
+    return s_table[utils::castFromType(value)];
+}
+
+utils::Type QtOpenGL_4_5_Renderer::Conversions::GL2Type(GLenum value)
+{
+    static std::unordered_map<GLenum, utils::Type> s_table {
+        { GL_FLOAT, utils::Type::Single },
+        { GL_FLOAT_VEC2, utils::Type::SingleVec2 },
+        { GL_FLOAT_VEC3, utils::Type::SingleVec3 },
+        { GL_FLOAT_VEC4, utils::Type::SingleVec4 },
+        { GL_FLOAT_MAT2, utils::Type::SingleMat2 },
+        { GL_FLOAT_MAT3, utils::Type::SingleMat3 },
+        { GL_FLOAT_MAT4, utils::Type::SingleMat4 },
+        { GL_DOUBLE, utils::Type::Double },
+        { GL_DOUBLE_VEC2, utils::Type::DoubleVec2 },
+        { GL_DOUBLE_VEC3, utils::Type::DoubleVec3 },
+        { GL_DOUBLE_VEC4, utils::Type::DoubleVec4 },
+        { GL_DOUBLE_MAT2, utils::Type::DoubleMat2 },
+        { GL_DOUBLE_MAT3, utils::Type::DoubleMat3 },
+        { GL_DOUBLE_MAT4, utils::Type::DoubleMat4 },
+        { GL_BYTE, utils::Type::Int8 },
+        { GL_SHORT, utils::Type::Int16 },
+        { GL_INT, utils::Type::Int32 },
+        { GL_INT_VEC2, utils::Type::Int32Vec2 },
+        { GL_INT_VEC3, utils::Type::Int32Vec3 },
+        { GL_INT_VEC4, utils::Type::Int32Vec4 },
+        { GL_UNSIGNED_BYTE, utils::Type::Uint8 },
+        { GL_UNSIGNED_SHORT, utils::Type::Uint16 },
+        { GL_UNSIGNED_INT, utils::Type::Uint32 },
+        { GL_UNSIGNED_INT_VEC2, utils::Type::Uint32Vec2 },
+        { GL_UNSIGNED_INT_VEC3, utils::Type::Uint32Vec3 },
+        { GL_UNSIGNED_INT_VEC4, utils::Type::Uint32Vec4 },
+        { GL_SAMPLER_1D, utils::Type::Sampler1D },
+        { GL_SAMPLER_2D, utils::Type::Sampler2D },
+        { GL_SAMPLER_3D, utils::Type::Sampler3D },
+        { GL_SAMPLER_CUBE, utils::Type::SamplerCube },
+        { GL_SAMPLER_1D_ARRAY, utils::Type::Sampler1DArray },
+        { GL_SAMPLER_2D_ARRAY, utils::Type::Sampler2DArray },
+        { GL_SAMPLER_CUBE_MAP_ARRAY, utils::Type::SamplerCubeArray },
+        { GL_SAMPLER_2D_RECT, utils::Type::SamplerRect },
+        { GL_SAMPLER_1D_SHADOW, utils::Type::Sampler1DShadow },
+        { GL_SAMPLER_2D_SHADOW, utils::Type::Sampler2DShadow },
+        { GL_SAMPLER_CUBE_SHADOW, utils::Type::SamplerCubeShadow },
+        { GL_SAMPLER_1D_ARRAY_SHADOW, utils::Type::Sampler1DArrayShadow },
+        { GL_SAMPLER_2D_ARRAY_SHADOW, utils::Type::Sampler2DArrayShadow },
+        { GL_SAMPLER_CUBE_MAP_ARRAY_SHADOW, utils::Type::SamplerCubeArrayShadow },
+    };
+
+    auto it = s_table.find(value);
+    return (it == s_table.end()) ? utils::Type::Undefined : it->second;
+}
+
+GLenum QtOpenGL_4_5_Renderer::Conversions::PrimitiveType2GL(utils::PrimitiveType value)
+{
+    static std::array<GLenum, utils::numElementsPrimitiveType()> s_table {
+        GL_POINTS,
+        GL_LINES,
+        GL_LINE_STRIP,
+        GL_TRIANGLES,
+        GL_TRIANGLE_STRIP,
+        GL_TRIANGLE_FAN,
+    };
+
+    return s_table[utils::castFromPrimitiveType(value)];
+}
+
+GLenum QtOpenGL_4_5_Renderer::Conversions::InternalFormat2GL(RenderSurface::InternalFormat value)
+{
+    static std::array<GLenum, RenderSurface::numElementsInternalFormat()> s_table {
+        GL_NONE,
+        GL_R8, GL_R8_SNORM, GL_R16, GL_R16_SNORM,
+        GL_RG8, GL_RG8_SNORM, GL_RG16, GL_RG16_SNORM,
+        GL_R3_G3_B2, GL_RGB4, GL_RGB5, GL_RGB8, GL_RGB8_SNORM, GL_RGB10, GL_RGB12, GL_RGB16, GL_RGB16_SNORM,
+        GL_RGBA4, GL_RGB5_A1, GL_RGBA8, GL_RGBA8_SNORM, GL_RGB10_A2, GL_RGB10_A2UI, GL_RGBA12, GL_RGBA16, GL_RGBA16_SNORM,
+        GL_SRGB8, GL_SRGB8_ALPHA8,
+        GL_R16F, GL_RG16F, GL_RGB16F, GL_RGBA16F,
+        GL_R32F, GL_RG32F, GL_RGB32F, GL_RGBA32F,
+        GL_R11F_G11F_B10F, GL_RGB9_E5,
+        GL_R8I, GL_R8UI, GL_R16I, GL_R16UI, GL_R32I, GL_R32UI,
+        GL_RG8I, GL_RG8UI, GL_RG16I, GL_RG16UI, GL_RG32I, GL_RG32UI,
+        GL_RGB8I, GL_RGB8UI, GL_RGB16I, GL_RGB16UI, GL_RGB32I, GL_RGB32UI,
+        GL_RGBA8I, GL_RGBA8UI, GL_RGBA16I, GL_RGBA16UI, GL_RGBA32I, GL_RGBA32UI,
+        GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT24, GL_DEPTH_COMPONENT32F, GL_STENCIL_INDEX8, GL_DEPTH24_STENCIL8, GL_DEPTH32F_STENCIL8
+    };
+
+    return s_table[RenderSurface::castFromInternalFormat(value)];
+}
+
+core::IGraphicsRenderer::RenderSurface::InternalFormat QtOpenGL_4_5_Renderer::Conversions::GL2InternalFormat(GLenum value)
+{
+    static std::unordered_map<GLenum, RenderSurface::InternalFormat> s_table {
+    };
+
+    auto it = s_table.find(value);
+    return (it == s_table.end()) ? RenderSurface::InternalFormat::Undefined : it->second;
+}
+
+GLenum QtOpenGL_4_5_Renderer::Conversions::NumComponents2GL(uint32_t value)
+{
+    GLenum result = GL_NONE;
+    switch (value)
+    {
+    case 1: { result = GL_RED; break; }
+    case 2: { result = GL_RG; break; }
+    case 3: { result = GL_RGB; break; }
+    case 4: { result = GL_RGBA; break; }
+    default: break;
+    }
+
+    return result;
+}
+
+core::IGraphicsRenderer::RenderSurface::InternalFormat QtOpenGL_4_5_Renderer::Conversions::NumComponentsAndTypeToInternalFormat(
+        uint32_t numComponents,
+        utils::Type type)
+{
+    RenderSurface::InternalFormat result = RenderSurface::InternalFormat::Undefined;
+
+    switch (type)
+    {
+    case utils::Type::Uint8:
+    {
+        switch (numComponents)
+        {
+        case 1: { result = RenderSurface::InternalFormat::R8; break; }
+        case 2: { result = RenderSurface::InternalFormat::RG8; break; }
+        case 3: { result = RenderSurface::InternalFormat::RGB8; break; }
+        case 4: { result = RenderSurface::InternalFormat::RGBA8; break; }
+        default: { break; }
+        }
+        break;
+    }
+    case utils::Type::Uint16:
+    {
+        switch (numComponents)
+        {
+        case 1: { result = RenderSurface::InternalFormat::R16; break; }
+        case 2: { result = RenderSurface::InternalFormat::RG16; break; }
+        case 3: { result = RenderSurface::InternalFormat::RGB16; break; }
+        case 4: { result = RenderSurface::InternalFormat::RGBA16; break; }
+        default: { break; }
+        }
+        break;
+    }
+    case utils::Type::Single:
+    {
+        switch (numComponents)
+        {
+        case 1: { result = RenderSurface::InternalFormat::R16F; break; }
+        case 2: { result = RenderSurface::InternalFormat::RG16F; break; }
+        case 3: { result = RenderSurface::InternalFormat::RGB16F; break; }
+        case 4: { result = RenderSurface::InternalFormat::RGBA16F; break; }
+        default: { break; }
+        }
+        break;
+    }
+    default: { break; }
+    }
+
+    return result;
+}
+
+GLenum QtOpenGL_4_5_Renderer::Conversions::Attachment2GL(FrameBuffer::Attachment value)
+{
+    static std::array<GLenum, FrameBuffer::numElementsAttachment()> s_table {
+        GL_COLOR_ATTACHMENT0,
+        GL_COLOR_ATTACHMENT1,
+        GL_COLOR_ATTACHMENT2,
+        GL_COLOR_ATTACHMENT3,
+        GL_DEPTH_ATTACHMENT,
+        GL_STENCIL_ATTACHMENT,
+        GL_DEPTH_STENCIL_ATTACHMENT
+    };
+
+    return s_table[FrameBuffer::castFromAttachment(value)];
+}
+
+GLenum QtOpenGL_4_5_Renderer::Conversions::WrapMode2GL(Texture::WrapMode value)
+{
+    static std::array<GLenum, Texture::numElementsWrapMode()> s_table {
+        GL_CLAMP_TO_EDGE,
+        GL_CLAMP_TO_BORDER,
+        GL_MIRRORED_REPEAT,
+        GL_REPEAT,
+        GL_MIRROR_CLAMP_TO_EDGE
+    };
+
+    return s_table[Texture::castFromWrapMode(value)];
+}
 
 }
 }
