@@ -16,11 +16,10 @@ namespace core
 {
 
 class ScenePrivate;
-class CORE_SHARED_EXPORT Scene : public INamedObject, public utils::SortedObject, public std::enable_shared_from_this<Scene>
+class CORE_SHARED_EXPORT Scene : public INamedObject, public utils::SortedObject
 {
     NONCOPYBLE(Scene)
 public:
-    Scene(const std::string&);
     ~Scene() override;
 
     const std::string &name() const override;
@@ -29,7 +28,11 @@ public:
     std::shared_ptr<SceneRootNode> sceneRootNode();
 
 private:
+    Scene(const std::string&);
+
     std::unique_ptr<ScenePrivate> m_;
+
+    friend class GraphicsEngine;
 };
 
 }

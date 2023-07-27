@@ -18,7 +18,7 @@ ConditionalNodeVisitor::~ConditionalNodeVisitor()
 
 std::shared_ptr<const ConditionalNodeVisitor::AbstractCondition> ConditionalNodeVisitor::condition() const
 {
-    return const_cast<ConditionalNodeVisitor*>(this)->condition();
+    return m_->condition();
 }
 
 std::shared_ptr<ConditionalNodeVisitor::AbstractCondition> ConditionalNodeVisitor::condition()

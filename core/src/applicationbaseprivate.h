@@ -1,7 +1,7 @@
 #ifndef APPLICATIONBASEPRIVATE_H
 #define APPLICATIONBASEPRIVATE_H
 
-#include <set>
+#include <unordered_map>
 #include <memory>
 #include <string>
 
@@ -21,11 +21,11 @@ public:
     {}
 
     std::string &name() { return m_name; }
-    std::set<std::shared_ptr<IEngine>> &engines() { return m_engines; }
+    std::unordered_map<std::string, std::shared_ptr<IEngine>> &engines() { return m_engines; }
 
 private:
     std::string m_name;
-    std::set<std::shared_ptr<IEngine>> m_engines;
+    std::unordered_map<std::string, std::shared_ptr<IEngine>> m_engines;
 };
 
 }

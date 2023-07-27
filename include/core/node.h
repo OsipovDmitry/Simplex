@@ -48,15 +48,13 @@ public:
     virtual const utils::BoundingBox &boundingBox() const;
 
 protected:
-    Node(NodePrivate*);
+    Node(std::unique_ptr<NodePrivate>);
 
     void doAttach() override;
     void doDetach() override;
 
     std::unique_ptr<NodePrivate> m_;
 
-private:
-    void initialize();
 
 };
 

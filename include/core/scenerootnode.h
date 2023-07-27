@@ -24,7 +24,7 @@ public:
     std::shared_ptr<Scene> scene();
 
 protected:
-    SceneRootNode(const std::string&, Scene*);
+    SceneRootNode(const std::string&);
 
     friend class Scene;
 

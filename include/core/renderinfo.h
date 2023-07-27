@@ -20,14 +20,11 @@ class CORE_SHARED_EXPORT RenderInfo
 {
     NONCOPYBLE(RenderInfo)
 public:
-    RenderInfo(std::shared_ptr<IGraphicsRenderer::FrameBuffer> frameBuffer = nullptr,
-               const glm::uvec4 &viewport = glm::uvec4(0u, 0u, 1u, 1u),
-               const glm::mat4 &viewMatrix = glm::mat4(1.f),
-               const glm::mat4 &projectionMatrix = glm::mat4(1.f));
+    RenderInfo();
     ~RenderInfo();
 
-    const std::shared_ptr<IGraphicsRenderer::FrameBuffer> frameBuffer() const;
-    void setFrameBuffer(std::shared_ptr<IGraphicsRenderer::FrameBuffer>);
+    const std::shared_ptr<graphics::IFrameBuffer> frameBuffer() const;
+    void setFrameBuffer(std::shared_ptr<graphics::IFrameBuffer>);
 
     const glm::uvec4 &viewport() const;
     void setViewport(const glm::uvec4&);
@@ -46,6 +43,29 @@ public:
 
     const glm::mat4 &viewProjectionMatrix() const;
     const glm::mat4 &viewProjectionMatrixInverse() const;
+
+    const std::shared_ptr<const graphics::ITexture> &gBufferColor0Map() const;
+    const std::shared_ptr<const graphics::ITexture> &gBufferColor1Map() const;
+    const std::shared_ptr<const graphics::ITexture> &gBufferDepthMap() const;
+    void setGBufferMaps(std::shared_ptr<const graphics::ITexture>,
+                        std::shared_ptr<const graphics::ITexture>,
+                        std::shared_ptr<const graphics::ITexture>);
+
+    bool faceCulling() const;
+    graphics::FaceType cullFaceType() const;
+    void setFaceCulling(bool, graphics::FaceType = graphics::FaceType::Back);
+
+    bool colorMask(uint16_t) const;
+    void setColorMask(uint16_t, bool);
+
+    bool depthTest() const;
+    graphics::DepthFunc depthFunc() const;
+    void setDepthTest(bool, graphics::DepthFunc func = graphics::DepthFunc::Less);
+    bool depthMask() const;
+    void setDepthMask(bool);
+
+    bool stencilTest() const;
+    void setStencilTest(bool);
 
 private:
     std::unique_ptr<RenderInfoPrivate> m_;

@@ -8,13 +8,28 @@
 
 #include <utils/utilsglobal.h>
 #include <utils/noncopyble.h>
-#include <utils/types.h>
 #include <utils/primitiveset.h>
 
 namespace simplex
 {
 namespace utils
 {
+
+ENUMCLASS(VertexComponentType, uint16_t,
+          Undefined,
+          Single,
+          Double,
+          Int32,
+          Uint32)
+
+ENUMCLASS(VertexAttribute, uint16_t,
+          Position,
+          Normal,
+          TexCoord,
+          BonesIDs,
+          BonesWeights,
+          Tangent,
+          Color)
 
 class UTILS_SHARED_EXPORT Buffer
 {
@@ -37,11 +52,12 @@ protected:
 class UTILS_SHARED_EXPORT VertexBuffer : public Buffer
 {
 public:
-    VertexBuffer(uint32_t numVertices, uint32_t numComponents, Type = Type::Single);
+    VertexBuffer(uint32_t numVertices, uint32_t numComponents, VertexComponentType);
     ~VertexBuffer() override;
 
     uint32_t numComponents() const;
-    Type type() const;
+    VertexComponentType componentType() const;
+    uint32_t componentSize() const;
 
     uint32_t numVertices() const;
     void setNumVertices(uint32_t);
@@ -49,15 +65,17 @@ public:
     const void *vertex(uint32_t) const;
     void setVertex(uint32_t, const void*);
 
+    static uint32_t componentSize(VertexComponentType);
+
 protected:
     uint32_t m_numComponents;
-    Type m_type;
+    VertexComponentType m_type;
 };
 
 class UTILS_SHARED_EXPORT DrawElementsBuffer : public DrawElements, public Buffer
 {
 public:
-    DrawElementsBuffer(PrimitiveType, uint32_t count, Type type, uint32_t baseVertex);
+    DrawElementsBuffer(PrimitiveType, uint32_t count, DrawElementsIndexType, uint32_t baseVertex);
     ~DrawElementsBuffer() override;
 
     std::shared_ptr<DrawElementsBuffer> asDrawElementsBuffer() override;
@@ -84,6 +102,8 @@ public:
     void attachPrimitiveSet(std::shared_ptr<DrawElementsBuffer>);
     void detachPrimitiveSet(std::shared_ptr<PrimitiveSet>);
     const std::unordered_set<std::shared_ptr<PrimitiveSet>> &primitiveSets() const;
+
+    static std::shared_ptr<Mesh> createEmptyMesh(const std::unordered_map<VertexAttribute, std::tuple<uint32_t, VertexComponentType>>&);
 
 private:
     std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer>> m_vertexBuffers;

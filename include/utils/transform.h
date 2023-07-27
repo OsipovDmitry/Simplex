@@ -10,12 +10,15 @@
 #include <utils/glm/detail/type_mat4x4.hpp>
 
 #include <utils/forwarddecl.h>
-#include <utils/veccast.h>
 
 namespace simplex
 {
 namespace utils
 {
+
+template <typename T> inline glm::vec<3, T> vec3cast(const glm::vec<1, T> &v) { return glm::vec<3, T>(v, 0.f, 0.f); }
+template <typename T> inline glm::vec<3, T> vec3cast(const glm::vec<2, T> &v) { return glm::vec<3, T>(v, 0.f); }
+template <typename T> inline glm::vec<3, T> vec3cast(const glm::vec<3, T> &v) { return v; }
 
 template<glm::length_t L, typename T>
 struct TransformT
@@ -40,11 +43,11 @@ public:
 
     PointType operator *(const PointType &v) const
     {
-        return translation + PointType(rotation * vec_cast<3>(scale * v));
+        return translation + PointType(rotation * vec3cast(scale * v));
     }
 
     TransformT<L, T> &operator *=(const TransformT<L, T> &t2) {
-        translation += scale * PointType(rotation * vec_cast<3>(t2.translation));
+        translation += scale * PointType(rotation * vec3cast(t2.translation));
         rotation *= t2.rotation;
         scale *= t2.scale;
         return *this;
@@ -58,7 +61,7 @@ public:
     {
         scale = 1.f / scale;
         rotation = glm::conjugate(rotation);
-        translation = -PointType(rotation  * vec_cast<3>(scale * translation));
+        translation = -PointType(rotation  * vec3cast(scale * translation));
         return *this;
     }
 
@@ -68,7 +71,7 @@ public:
     }
 
     operator MatType() const {
-        return glm::translate(glm::mat<4, 4, T>(1.0), vec_cast<3>(translation)) *
+        return glm::translate(glm::mat<4, 4, T>(1.0), vec3cast(translation)) *
                glm::mat<4, 4, T>(rotation) *
                glm::scale(glm::mat<4, 4, T>(1.0), glm::vec<3, T>(scale));
     }

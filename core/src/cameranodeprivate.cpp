@@ -1,4 +1,4 @@
-#include <core/viewport.h>
+#include <core/rendersurface.h>
 
 #include "cameranodeprivate.h"
 
@@ -7,58 +7,31 @@ namespace simplex
 namespace core
 {
 
-std::shared_ptr<IGraphicsRenderer::VertexArray> CameraNodePrivate::s_cameraVertexArray;
-std::shared_ptr<IGraphicsRenderer::FrameBuffer> CameraNodePrivate::s_defaultFrameBuffer;
-
 CameraNodePrivate::CameraNodePrivate(const std::string &name)
     : NodePrivate(name)
-    , m_viewport(std::make_shared<Viewport>())
-    , m_frameBuffer(nullptr)
 {
 }
 
-CameraNodePrivate::~CameraNodePrivate()
-{
-}
+CameraNodePrivate::~CameraNodePrivate() = default;
 
 std::shared_ptr<utils::AbstractClipSpace> &CameraNodePrivate::clipSpace()
 {
     return m_clipSpace;
 }
 
-bool &CameraNodePrivate::renderingEnabled()
+bool &CameraNodePrivate::isRenderingEnabled()
 {
-    return m_renderingEnabled;
+    return m_isRenderingEnabled;
 }
 
-std::shared_ptr<Viewport> &CameraNodePrivate::viewport()
+std::shared_ptr<RenderSurface> &CameraNodePrivate::renderSurface()
 {
-    return m_viewport;
+    return m_renderSurface;
 }
 
-std::shared_ptr<IGraphicsRenderer::FrameBuffer> &CameraNodePrivate::frameBuffer()
+std::shared_ptr<GSurface> &CameraNodePrivate::gSurface()
 {
-    return m_frameBuffer;
-}
-
-std::shared_ptr<ColoredDrawable> &CameraNodePrivate::cameraDrawable()
-{
-    return m_cameraDrawable;
-}
-
-std::shared_ptr<ColoredDrawable> &CameraNodePrivate::frustumDrawable()
-{
-    return m_frustumDrawable;
-}
-
-std::shared_ptr<IGraphicsRenderer::VertexArray> &CameraNodePrivate::cameraVertexArray()
-{
-    return s_cameraVertexArray;
-}
-
-std::shared_ptr<IGraphicsRenderer::FrameBuffer> &CameraNodePrivate::defaultFrameBuffer()
-{
-    return s_defaultFrameBuffer;
+    return m_gSurface;
 }
 
 }

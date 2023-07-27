@@ -4,13 +4,29 @@
 #include <memory>
 
 #include <utils/utilsglobal.h>
-#include <utils/forwarddecl.h>
 #include <utils/noncopyble.h>
+#include <utils/enumclass.h>
+#include <utils/forwarddecl.h>
 
 namespace simplex
 {
 namespace utils
 {
+
+ENUMCLASS(PrimitiveType, uint16_t,
+          Undefined,
+          Points,
+          Lines,
+          LineStrip,
+          Triangles,
+          TriangleStrip,
+          TriangleFan)
+
+ENUMCLASS(DrawElementsIndexType, uint16_t,
+          Undefined,
+          Uint8,
+          Uint16,
+          Uint32)
 
 class UTILS_SHARED_EXPORT PrimitiveSet : public std::enable_shared_from_this<PrimitiveSet>
 {
@@ -53,7 +69,7 @@ protected:
 class UTILS_SHARED_EXPORT DrawElements : public PrimitiveSet
 {
 public:
-    DrawElements(PrimitiveType, uint32_t count, Type type, size_t offset, uint32_t baseVertex);
+    DrawElements(PrimitiveType, uint32_t count, DrawElementsIndexType type, size_t offset, uint32_t baseVertex);
 
     std::shared_ptr<DrawElements> asDrawElements() override;
     std::shared_ptr<const DrawElements> asDrawElements() const override;
@@ -62,13 +78,16 @@ public:
     virtual std::shared_ptr<const DrawElementsBuffer> asDrawElementsBuffer() const;
 
     uint32_t count() const;
-    Type type() const;
+    DrawElementsIndexType type() const;
     size_t offset() const;
     uint32_t baseVertex() const;
 
+    uint32_t indexSize() const;
+    static uint32_t indexSize(DrawElementsIndexType);
+
 protected:
     uint32_t m_count;
-    Type m_type;
+    DrawElementsIndexType m_type;
     size_t m_offset;
     uint32_t m_baseVertex;
 };

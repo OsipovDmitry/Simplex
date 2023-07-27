@@ -27,9 +27,11 @@ public:
 
     const std::string &name() const override final;
 
+    std::shared_ptr<IEngine> engine(const std::string&);
     bool registerEngine(std::shared_ptr<IEngine>);
     bool unregisterEngine(std::shared_ptr<IEngine>);
 
+    void shutDown() override final;
     void update(uint64_t time, uint32_t dt) override final;
 
 protected:

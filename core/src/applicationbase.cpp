@@ -18,9 +18,7 @@ ApplicationBase::ApplicationBase(const std::string &name)
 
 ApplicationBase::~ApplicationBase()
 {
-    while (!m_->engines().empty())
-        unregisterEngine(*m_->engines().begin());
-
+    ApplicationBase::shutDown();
     LOG_INFO << "Application \"" << ApplicationBase::name() << "\" has been destroyed";
 }
 
@@ -29,38 +27,50 @@ const std::string &ApplicationBase::name() const
     return m_->name();
 }
 
-bool ApplicationBase::registerEngine(std::shared_ptr<IEngine> engine)
+std::shared_ptr<IEngine> ApplicationBase::engine(const std::string &name)
 {
-    if (auto it = m_->engines().find(engine); it != m_->engines().end())
+    auto it = m_->engines().find(name);
+    return it == m_->engines().end() ? nullptr : it->second;
+}
+
+bool ApplicationBase::registerEngine(std::shared_ptr<IEngine> value)
+{
+    if (auto eng = engine(value->name()); eng)
     {
-        LOG_ERROR << "Engine \"" << engine->name() << "\" is already registered";
+        LOG_ERROR << "Engine \"" << eng->name() << "\" is already registered";
         return false;
     }
 
-    m_->engines().insert(engine);
-    LOG_INFO << "Engine \"" << engine->name() << "\" has been registered to application \"" << name() << "\"";
+    m_->engines().insert({value->name(), value});
+    LOG_INFO << "Engine \"" << value->name() << "\" has been registered to application \"" << name() << "\"";
 
     return true;
 }
 
-bool ApplicationBase::unregisterEngine(std::shared_ptr<IEngine> engine)
+bool ApplicationBase::unregisterEngine(std::shared_ptr<IEngine> value)
 {
-    if (auto it = m_->engines().find(engine); it == m_->engines().end())
+    if (auto eng = engine(value->name()); !eng)
     {
-        LOG_ERROR << "Engine \"" << engine->name() << "\" is not registered";
+        LOG_ERROR << "Engine \"" << value->name() << "\" is not registered";
         return false;
     }
 
-    m_->engines().erase(engine);
-    LOG_INFO << "Engine \"" << engine->name() << "\" has been unregistered from application \"" << ApplicationBase::name() << "\"";
+    m_->engines().erase(value->name());
+    LOG_INFO << "Engine \"" << value->name() << "\" has been unregistered from application \"" << ApplicationBase::name() << "\"";
 
     return true;
+}
+
+void ApplicationBase::shutDown()
+{
+    while (!m_->engines().empty())
+        unregisterEngine(m_->engines().begin()->second);
 }
 
 void ApplicationBase::update(uint64_t time, uint32_t dt)
 {
-    for (auto engine : m_->engines())
-        engine->update(time, dt);
+    for (const auto &engine : m_->engines())
+        engine.second->update(time, dt);
 
     doUpdate(time, dt);
 }

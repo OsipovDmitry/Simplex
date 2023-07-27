@@ -23,16 +23,12 @@ public:
 
     std::unordered_set<std::shared_ptr<IDrawable>> &drawables();
 
-    std::shared_ptr<ColoredDrawable> &localBoundingBoxDrawable();
-
     static void dirtyLocalBoundingBox(std::shared_ptr<DrawableNode> node);
 
 private:
     std::unordered_set<std::shared_ptr<IDrawable>> m_drawables;
     utils::BoundingBox m_localBoundingBox;
     bool m_localBoundingBoxDirty;
-
-    std::shared_ptr<ColoredDrawable> m_localBoundingBoxDrawable;
 };
 
 }

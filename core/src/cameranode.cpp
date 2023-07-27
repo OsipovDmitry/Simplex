@@ -2,8 +2,8 @@
 #include <utils/clipspace.h>
 
 #include <core/cameranode.h>
-#include <core/viewport.h>
-#include <core/coloreddrawable.h>
+#include <core/rendersurface.h>
+#include <core/igraphicsrenderer.h>
 
 #include "cameranodeprivate.h"
 
@@ -12,16 +12,12 @@ namespace simplex
 namespace core
 {
 
-CameraNode::CameraNode(const std::string &name)
-    : Node(new CameraNodePrivate(name))
+CameraNode::CameraNode(std::shared_ptr<RenderSurface> renderSurface, const std::string &name)
+    : Node(std::make_unique<CameraNodePrivate>(name))
 {
-    initialize();
-
     setPerspectiveProjection(glm::half_pi<float>());
     setRenderingEnabled(true);
-
-    setFrameBuffer(m().defaultFrameBuffer());
-    viewport()->setSizePolicy(Viewport::SizePolicy::Screen);
+    setRenderSurface(renderSurface);
 }
 
 CameraNode::~CameraNode()
@@ -38,14 +34,21 @@ std::shared_ptr<const CameraNode> CameraNode::asCameraNode() const
     return std::dynamic_pointer_cast<const CameraNode>(shared_from_this());
 }
 
+void CameraNode::resizeRenderSurfaces(const glm::uvec2 &size)
+{
+    auto &mPrivate = m();
+    mPrivate.renderSurface()->resize(size);
+    mPrivate.gSurface()->resize(size);
+}
+
 bool CameraNode::isRenderingEnabled() const
 {
-    return m().renderingEnabled();
+    return m().isRenderingEnabled();
 }
 
 void CameraNode::setRenderingEnabled(bool enabled)
 {
-    m().renderingEnabled() = enabled;
+    m().isRenderingEnabled() = enabled;
 }
 
 void CameraNode::setOrthoProjection()
@@ -63,30 +66,27 @@ glm::mat4 CameraNode::projectionMatrix(float aspect, float zNear, float zFar) co
     return m().clipSpace()->projectionMatrix(aspect, zNear, zFar);
 }
 
-std::shared_ptr<Viewport> CameraNode::viewport()
+std::shared_ptr<RenderSurface> CameraNode::renderSurface()
 {
-    return m().viewport();
+    return m().renderSurface();
 }
 
-std::shared_ptr<const Viewport> CameraNode::viewport() const
+std::shared_ptr<GSurface> CameraNode::gSurface()
 {
-    return const_cast<CameraNode*>(this)->viewport();
+    return m().gSurface();
 }
 
-std::shared_ptr<IGraphicsRenderer::FrameBuffer> CameraNode::frameBuffer()
+void CameraNode::setRenderSurface(std::shared_ptr<RenderSurface> renderSurface)
 {
-    return m().frameBuffer();
-}
+    assert(renderSurface);
 
-std::shared_ptr<const IGraphicsRenderer::FrameBuffer> CameraNode::frameBuffer() const
-{
-    return const_cast<CameraNode*>(this)->frameBuffer();
-}
-
-void CameraNode::setFrameBuffer(std::shared_ptr<IGraphicsRenderer::FrameBuffer> value)
-{
-    assert(value);
-    m().frameBuffer() = value;
+    auto &mPrivate = m();
+    mPrivate.renderSurface() = renderSurface;
+    mPrivate.gSurface() = std::shared_ptr<GSurface>(new GSurface(renderSurface->renderer().lock()));
+    if (renderSurface->isSizeFixed())
+        mPrivate.gSurface()->setFixedSize(renderSurface->fixedSize());
+    else
+        mPrivate.gSurface()->setFloatingSize(renderSurface->sizeScale());
 }
 
 bool CameraNode::canAttach(std::shared_ptr<Node>)
@@ -101,14 +101,52 @@ bool CameraNode::canDetach(std::shared_ptr<Node>)
     return false;
 }
 
-void CameraNode::initialize()
-{
-    auto &mPrivate = m();
-    mPrivate.cameraDrawable() = std::make_shared<ColoredDrawable>(mPrivate.cameraVertexArray());
-    mPrivate.frustumDrawable() = std::make_shared<ColoredDrawable>(mPrivate.boundingBoxVertexArray());
+GSurface::~GSurface() = default;
 
-    mPrivate.cameraDrawable()->setColor(glm::vec4(1.f, 1.f, 1.f, 1.f));
-    mPrivate.frustumDrawable()->setColor(glm::vec4(1.f, 1.f, 1.f, 1.f));
+std::shared_ptr<graphics::ITexture> GSurface::colorBuffer0()
+{
+    graphics::IFrameBuffer::AttachmentInfo info;
+    frameBuffer()->attachment(core::graphics::FrameBufferAttachment::Color0, info);
+    return std::dynamic_pointer_cast<graphics::ITexture>(info.renderSurface);
+}
+
+std::shared_ptr<graphics::ITexture> GSurface::colorBuffer1()
+{
+    graphics::IFrameBuffer::AttachmentInfo info;
+    frameBuffer()->attachment(core::graphics::FrameBufferAttachment::Color1, info);
+    return std::dynamic_pointer_cast<graphics::ITexture>(info.renderSurface);
+}
+
+std::shared_ptr<graphics::ITexture> GSurface::depthBuffer()
+{
+    graphics::IFrameBuffer::AttachmentInfo info;
+    frameBuffer()->attachment(core::graphics::FrameBufferAttachment::DepthStencil, info);
+    return std::dynamic_pointer_cast<graphics::ITexture>(info.renderSurface);
+}
+
+GSurface::GSurface(std::shared_ptr<graphics::IRenderer> renderer)
+    : RenderSurface(renderer, renderer->createFrameBuffer())
+{
+    auto fb = frameBuffer();
+    fb->setClearMask({core::graphics::FrameBufferAttachment::Color0,
+                      core::graphics::FrameBufferAttachment::Color1,
+                      core::graphics::FrameBufferAttachment::DepthStencil});
+    fb->setClearColor(0u, glm::vec4(0.f, 0.f, 0.f, 1.f));
+    fb->setClearColor(1u, glm::vec4(0.f, 0.f, 0.f, 0.f));
+    fb->setClearDepthStencil(1.f, 0);
+}
+
+void GSurface::doResize(const glm::uvec2 &size)
+{
+    assert(!renderer().expired());
+    auto graphicsRenderer = renderer().lock();
+
+    frameBuffer()->attach(core::graphics::FrameBufferAttachment::Color0,
+                          graphicsRenderer->createTextureRectEmpty(size.x, size.y, core::graphics::PixelInternalFormat::R11F_G11F_B10F));
+    frameBuffer()->attach(core::graphics::FrameBufferAttachment::Color1,
+                          graphicsRenderer->createTextureRectEmpty(size.x, size.y, core::graphics::PixelInternalFormat::RGB10_A2));
+    frameBuffer()->attach(core::graphics::FrameBufferAttachment::DepthStencil,
+                          graphicsRenderer->createTextureRectEmpty(size.x, size.y, core::graphics::PixelInternalFormat::Depth24Stencil8));
 }
 
 }

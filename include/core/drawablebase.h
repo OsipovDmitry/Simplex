@@ -19,18 +19,22 @@ class CORE_SHARED_EXPORT DrawableBase : public IDrawable
     PIMPL(DrawableBase)
 
 public:
-    DrawableBase(std::shared_ptr<IGraphicsRenderer::RenderProgram>, std::shared_ptr<IGraphicsRenderer::VertexArray>);
+    DrawableBase(std::shared_ptr<graphics::IRenderProgram>, std::shared_ptr<graphics::IVertexArray>);
     ~DrawableBase() override;
 
     utils::BoundingBox calculateBoundingBox() override;
 
-    std::shared_ptr<IGraphicsRenderer::RenderProgram> renderProgram() override;
-    std::shared_ptr<IGraphicsRenderer::VertexArray> vertexArray() override;
+    std::shared_ptr<graphics::IRenderProgram> renderProgram() override;
+    std::shared_ptr<graphics::IVertexArray> vertexArray() override;
 
-    void setupUniform(const IGraphicsRenderer::RenderProgram::UniformInfo&) override;
+    std::shared_ptr<const AbstractUniform> uniform(const graphics::UniformInfo&) const override;
 
 protected:
-    DrawableBase(DrawableBasePrivate*);
+    DrawableBase(std::unique_ptr<DrawableBasePrivate>);
+
+    void addUniform(int32_t, std::shared_ptr<AbstractUniform>);
+    void removeUniform(int32_t);
+    std::shared_ptr<AbstractUniform> uniform(int32_t) const;
 
     std::unique_ptr<DrawableBasePrivate> m_;
 

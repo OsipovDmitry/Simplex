@@ -15,6 +15,7 @@ class IApplication : public INamedObject
 public:
     ~IApplication() override = default;
 
+    virtual void shutDown() = 0;
     virtual void update(uint64_t time, uint32_t dt) = 0;
 };
 

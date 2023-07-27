@@ -1,5 +1,6 @@
 #include <QDateTime>
 #include <QOpenGLPaintDevice>
+#include <QCloseEvent>
 
 #include <utils/logger.h>
 
@@ -18,9 +19,7 @@ namespace qt
 QtRenderWidget::QtRenderWidget()
     : QOpenGLWidget(nullptr)
     , m_(std::make_unique<QtRenderWidgetPrivate>())
-{   
-    setAttribute(Qt::WA_DeleteOnClose);
-
+{
     QSurfaceFormat format;
     format.setDepthBufferSize(24);
     format.setStencilBufferSize(8);
@@ -42,22 +41,14 @@ void QtRenderWidget::setApplication(std::shared_ptr<core::IApplication> applicat
     LOG_INFO << "Application \"" + application->name() + "\" has been set to QtRenderWidget";
 }
 
-std::shared_ptr<core::IGraphicsRenderer> QtRenderWidget::graphicsRenderer()
+std::shared_ptr<core::graphics::IRenderer> QtRenderWidget::graphicsRenderer()
 {
     return m_->renderer();
 }
 
-std::shared_ptr<const core::IGraphicsRenderer> QtRenderWidget::graphicsRenderer() const
+std::shared_ptr<const core::graphics::IRenderer> QtRenderWidget::graphicsRenderer() const
 {
     return const_cast<QtRenderWidget*>(this)->graphicsRenderer();
-}
-
-void QtRenderWidget::initializeGL()
-{
-    LOG_INFO << "QtRenderWidget::initializeGL()";
-
-    m_->startTime() = m_->lastFpsTime() = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch());
-    m_->lastUpdateTime() = 0u;
 }
 
 void QtRenderWidget::resizeGL(int width, int height)
@@ -75,10 +66,12 @@ void QtRenderWidget::resizeGL(int width, int height)
 
 void QtRenderWidget::paintGL()
 {
-    if (auto &renderer = m_->renderer(); !renderer)
+    if (!m_->renderer())
     {
-        renderer = std::shared_ptr<QtOpenGL_4_5_Renderer>(new QtOpenGL_4_5_Renderer(context(), defaultFramebufferObject()));
-        QtOpenGL_4_5_Renderer::setInstance(renderer);
+        m_->renderer() = QtOpenGL_4_5_Renderer::create(context(), defaultFramebufferObject());
+
+        m_->startTime() = m_->lastFpsTime() = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch());
+        m_->lastUpdateTime() = 0u;
     }
 
     auto time = static_cast<uint64_t>(QDateTime::currentMSecsSinceEpoch()) - m_->startTime();
@@ -98,6 +91,18 @@ void QtRenderWidget::paintGL()
 
     if (auto app = m_->application(); !app.expired())
         app.lock()->update(time, dt);
+}
+
+void QtRenderWidget::closeEvent(QCloseEvent *event)
+{
+    makeCurrent();
+
+    if (auto app = m_->application(); !app.expired())
+        app.lock()->shutDown();
+
+    m_->renderer() = nullptr;
+
+    event->accept();
 }
 
 }

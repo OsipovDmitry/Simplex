@@ -14,7 +14,8 @@ namespace utils
 class UTILS_SHARED_EXPORT SortedObject
 {
 public:
-    SortedObject(uint32_t = static_cast<uint32_t>(-1));
+    explicit SortedObject();
+    explicit SortedObject(uint32_t);
     virtual ~SortedObject() = default;
 
     uint32_t sortIndex() const;

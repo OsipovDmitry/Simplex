@@ -1,10 +1,10 @@
 #include <cassert>
 #include <array>
 
-#include <utils/meshpainter.h>
-#include <utils/mesh.h>
 #include <utils/glm/gtc/matrix_inverse.hpp>
 #include <utils/glm/gtc/type_ptr.hpp>
+#include <utils/meshpainter.h>
+#include <utils/mesh.h>
 
 #include "triangledata.h"
 #include "tetrahedrondata.h"
@@ -13,6 +13,7 @@
 #include "monkeydata.h"
 #include "teapotdata.h"
 #include "cameradata.h"
+#include "screenquaddata.h"
 
 namespace simplex
 {
@@ -30,37 +31,21 @@ public:
 
     static void setVertexToBuffer(std::shared_ptr<VertexBuffer> buffer, uint32_t idx, const glm::vec4 &v)
     {
-        switch (buffer->type())
+        switch (buffer->componentType())
         {
-        case Type::Single: {
+        case VertexComponentType::Single: {
             buffer->setVertex(idx, glm::value_ptr(v));
             break;
         }
-        case Type::Double: {
+        case VertexComponentType::Double: {
             buffer->setVertex(idx, glm::value_ptr(glm::dvec4(v)));
             break;
         }
-        case Type::Int8: {
-            buffer->setVertex(idx, glm::value_ptr(glm::i8vec4(v)));
-            break;
-        }
-        case Type::Int16: {
-            buffer->setVertex(idx, glm::value_ptr(glm::i16vec4(v)));
-            break;
-        }
-        case Type::Int32: {
+        case VertexComponentType::Int32: {
             buffer->setVertex(idx, glm::value_ptr(glm::i32vec4(v)));
             break;
         }
-        case Type::Uint8: {
-            buffer->setVertex(idx, glm::value_ptr(glm::u8vec4(v)));
-            break;
-        }
-        case Type::Uint16: {
-            buffer->setVertex(idx, glm::value_ptr(glm::u16vec4(v)));
-            break;
-        }
-        case Type::Uint32: {
+        case VertexComponentType::Uint32: {
             buffer->setVertex(idx, glm::value_ptr(glm::u32vec4(v)));
             break;
         }
@@ -73,17 +58,17 @@ public:
     {
         switch (buffer->type())
         {
-        case Type::Uint8: {
+        case DrawElementsIndexType::Uint8: {
             auto castedV = static_cast<uint8_t>(v);
             buffer->setIndex(idx, &castedV);
             break;
         }
-        case Type::Uint16: {
+        case DrawElementsIndexType::Uint16: {
             auto castedV = static_cast<uint16_t>(v);
             buffer->setIndex(idx, &castedV);
             break;
         }
-        case Type::Uint32: {
+        case DrawElementsIndexType::Uint32: {
             buffer->setIndex(idx, &v);
             break;
         }
@@ -177,14 +162,14 @@ void AbstractPainter::drawArrays(const std::unordered_map<VertexAttribute, const
 void AbstractPainter::drawElements(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices,
                                    PrimitiveType primitiveType,
                                    const std::vector<uint32_t> &indices,
-                                   Type drawElemetsBufferType)
+                                   DrawElementsIndexType drawElemetsIndexType)
 {
     assert(m_->mesh);
     auto firstCount = addVertices(vertices);
 
     auto drawElemetsBuffer = std::make_shared<DrawElementsBuffer>(primitiveType,
                                                                   static_cast<uint32_t>(indices.size()),
-                                                                  drawElemetsBufferType,
+                                                                  drawElemetsIndexType,
                                                                   firstCount.first);
     for (uint32_t i = 0u; i < static_cast<uint32_t>(indices.size()); ++i)
         AbstractPainterPrivate::setIndexToBuffer(drawElemetsBuffer, i, indices[i]);
@@ -233,6 +218,10 @@ MeshPainter::MeshPainter(std::shared_ptr<Mesh> mesh)
 {
 }
 
+MeshPainter::~MeshPainter()
+{
+}
+
 void MeshPainter::drawTriangle()
 {
     drawElements({{VertexAttribute::Position, s_triangleVertices},
@@ -240,7 +229,7 @@ void MeshPainter::drawTriangle()
                   {VertexAttribute::TexCoord, s_triangleTexCoords}},
                  PrimitiveType::Triangles,
                  s_triangleIndices,
-                 toType<decltype(s_triangleIndices)::value_type>());
+                 DrawElementsIndexType::Uint32);
 }
 
 void MeshPainter::drawTetrahedron()
@@ -250,7 +239,7 @@ void MeshPainter::drawTetrahedron()
                   {VertexAttribute::TexCoord, s_tetrahedronTexCoords}},
                  PrimitiveType::Triangles,
                  s_tetrahedronIndices,
-                 toType<decltype(s_tetrahedronIndices)::value_type>());
+                 DrawElementsIndexType::Uint32);
 }
 
 void MeshPainter::drawCube()
@@ -260,7 +249,7 @@ void MeshPainter::drawCube()
                   {VertexAttribute::TexCoord, s_cubeTexCoords}},
                  PrimitiveType::Triangles,
                  s_cubeIndices,
-                 toType<decltype(s_cubeIndices)::value_type>());
+                 DrawElementsIndexType::Uint32);
 }
 
 void MeshPainter::drawBoundingBox()
@@ -268,7 +257,7 @@ void MeshPainter::drawBoundingBox()
     drawElements({{VertexAttribute::Position, s_boundingBoxVertices}},
                  PrimitiveType::Lines,
                  s_boundingBoxIndices,
-                 toType<decltype(s_boundingBoxIndices)::value_type>());
+                 DrawElementsIndexType::Uint32);
 }
 
 void MeshPainter::drawMonkey()
@@ -278,7 +267,7 @@ void MeshPainter::drawMonkey()
                   {VertexAttribute::TexCoord, s_monkeyTexCoords}},
                  PrimitiveType::Triangles,
                  s_monkeyIndices,
-                 toType<decltype(s_monkeyIndices)::value_type>());
+                 DrawElementsIndexType::Uint32);
 }
 
 void MeshPainter::drawTeapot()
@@ -288,7 +277,7 @@ void MeshPainter::drawTeapot()
                   {VertexAttribute::TexCoord, s_teapotTexCoords}},
                  PrimitiveType::Triangles,
                  s_teapotIndices,
-                 toType<decltype(s_teapotIndices)::value_type>());
+                 DrawElementsIndexType::Uint32);
 }
 
 void MeshPainter::drawSphere(uint32_t segs)
@@ -338,7 +327,7 @@ void MeshPainter::drawSphere(uint32_t segs)
                   {VertexAttribute::TexCoord, texCoords}},
                  PrimitiveType::Triangles,
                  indices,
-                 toType<decltype(indices)::value_type>());
+                 DrawElementsIndexType::Uint32);
 }
 
 void MeshPainter::drawCamera()
@@ -346,7 +335,13 @@ void MeshPainter::drawCamera()
     drawElements({{VertexAttribute::Position, s_cameraVertices}},
                  PrimitiveType::Lines,
                  s_cameraIndices,
-                 toType<decltype(s_cameraIndices)::value_type>());
+                 DrawElementsIndexType::Uint32);
+}
+
+void MeshPainter::drawScreenQuad()
+{
+    drawArrays({{VertexAttribute::Position, s_screenQuadVertices}},
+                 PrimitiveType::TriangleStrip);
 }
 
 

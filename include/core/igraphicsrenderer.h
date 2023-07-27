@@ -1,4 +1,4 @@
-#ifndef IGRAPHICSRENDERER_H
+﻿#ifndef IGRAPHICSRENDERER_H
 #define IGRAPHICSRENDERER_H
 
 #include <memory>
@@ -13,10 +13,10 @@
 #include <utils/glm/mat2x2.hpp>
 #include <utils/glm/mat3x3.hpp>
 #include <utils/glm/mat4x4.hpp>
+#include <utils/mesh.h>
 
 #include <utils/forwarddecl.h>
 #include <utils/enumclass.h>
-#include <utils/types.h>
 
 #include <core/forwarddecl.h>
 #include <core/inamedobject.h>
@@ -25,258 +25,335 @@ namespace simplex
 {
 namespace core
 {
+namespace graphics
+{
 
-class IGraphicsRenderer : public INamedObject
+ENUMCLASS(PixelInternalFormat, uint16_t,
+          Undefined,
+          R8, R8_SNORM, R16, R16_SNORM,
+          RG8, RG8_SNORM, RG16, RG16_SNORM,
+          R3_G3_B2, RGB4, RGB5, RGB8, RGB8_SNORM, RGB10, RGB12, RGB16, RGB16_SNORM, RGBA2,
+          RGBA4, RGB5_A1, RGBA8, RGBA8_SNORM, RGB10_A2, RGB10_A2UI, RGBA12, RGBA16, RGBA16_SNORM,
+          SRGB8, SRGB8_ALPHA8,
+          R16F, RG16F, RGB16F, RGBA16F,
+          R32F, RG32F, RGB32F, RGBA32F,
+          R11F_G11F_B10F, RGB9_E5,
+          R8I, R8UI, R16I, R16UI, R32I, R32UI,
+          RG8I, RG8UI, RG16I, RG16UI, RG32I, RG32UI,
+          RGB8I, RGB8UI, RGB16I, RGB16UI, RGB32I, RGB32UI,
+          RGBA8I, RGBA8UI, RGBA16I, RGBA16UI, RGBA32I, RGBA32UI,
+          Depth16, Depth24, Depth32F, Stencil8, Depth24Stencil8, Dept32FStencil8)
+
+ENUMCLASS(TextureType, uint16_t,
+          Type1D,
+          Type2D,
+          Type3D,
+          TypeCube,
+          Type1DArray,
+          Type2DArray,
+          TypeCubeArray,
+          TypeRect)
+
+ENUMCLASS(TextureWrapMode, uint16_t,
+          ClampToEdge,
+          ClampToBorder,
+          MirroredRepeat,
+          Repeat,
+          MirrorClampToEdge)
+
+ENUMCLASS(TextureFiltering, uint16_t,
+          Point,
+          Linear,
+          Bilinear,
+          Trilinear)
+
+ENUMCLASS(FrameBufferAttachment, uint16_t,
+          Color0,
+          Color1,
+          Color2,
+          Color3,
+          Depth,
+          Stencil,
+          DepthStencil)
+
+union FrameBufferClearColorValue
+{
+    glm::vec4 floatColor;
+    glm::i32vec4 intColor;
+    glm::u32vec4 uintColor;
+};
+
+ENUMCLASS(FrameBufferClearColorType, uint16_t,
+          Single,
+          Int32,
+          Uint32)
+
+using FrameBufferClearColor = std::pair<FrameBufferClearColorType, FrameBufferClearColorValue>;
+
+ENUMCLASS(UniformId, uint16_t,
+          Undefined,
+          Viewport,
+          ModelMatrix,
+          NormalMatrix,
+          ViewMatrix,
+          ViewMatrixInverse,
+          ProjectionMatrix,
+          ProjectionMatrixInverse,
+          ViewProjectionMatrix,
+          ViewProjectionMatrixInverse,
+          ModelViewMatrix,
+          NormalViewMatrix,
+          ModelViewProjectionMatrix,
+          ViewPosition,
+          ViewXDirection,
+          ViewYDirection,
+          ViewZDirection,
+          GBufferColor0Map,
+          GBufferColor1Map,
+          GBufferDepthMap)
+
+ENUMCLASS(UniformType, uint16_t,
+          Undefined,
+          Single,
+          SingleVec2,
+          SingleVec3,
+          SingleVec4,
+          SingleMat2,
+          SingleMat3,
+          SingleMat4,
+          Double,
+          DoubleVec2,
+          DoubleVec3,
+          DoubleVec4,
+          DoubleMat2,
+          DoubleMat3,
+          DoubleMat4,
+          Int32,
+          Int32Vec2,
+          Int32Vec3,
+          Int32Vec4,
+          Uint32,
+          Uint32Vec2,
+          Uint32Vec3,
+          Uint32Vec4,
+          Sampler1D,
+          Sampler2D,
+          Sampler3D,
+          SamplerCube,
+          Sampler1DArray,
+          Sampler2DArray,
+          SamplerCubeArray,
+          SamplerRect)
+
+struct UniformInfo
+{
+    UniformId id;
+    uint16_t index;
+    int32_t location;
+    UniformType type;
+};
+
+struct AttributeInfo
+{
+    utils::VertexAttribute id;
+    uint16_t index;
+    int32_t location;
+    uint16_t numComponents;
+    utils::VertexComponentType componentType;
+};
+
+ENUMCLASS(FaceType, uint16_t,
+          Front, Back, FrontAndBack)
+
+ENUMCLASS(DepthFunc, uint16_t,
+          Never, Less, Equal, LessOrEqual, Greater, NotEqual, GreatOrEqual, Always)
+
+ENUMCLASS(StencilFunc, uint16_t,
+          Never, Less, Equal, LessOrEqual, Greater, NotEqual, GreatOrEqual, Always)
+
+static constexpr FrameBufferAttachment FrameBufferColorAttachment(uint16_t i) {
+    return castToFrameBufferAttachment(castFromFrameBufferAttachment(FrameBufferAttachment::Color0) + i);
+}
+
+static constexpr uint16_t FrameBufferColorAttachmentIndex(FrameBufferAttachment a) {
+    return castFromFrameBufferAttachment(a) - castFromFrameBufferAttachment(FrameBufferAttachment::Color0);
+}
+
+static constexpr uint16_t FrameBufferColorAttachmentsCount() {
+    return FrameBufferColorAttachmentIndex(FrameBufferAttachment::Depth);
+}
+
+static constexpr bool IsFrameBufferColorAttachment(FrameBufferAttachment a) {
+    return FrameBufferColorAttachmentIndex(a) < FrameBufferColorAttachmentsCount();
+}
+
+class IBuffer
 {
 public:
-
-    class Buffer
-    {
+    class MappedData {
     public:
-        class MappedData {
-        public:
-            virtual ~MappedData() = default; // mapped data should be unmapped in destructor's implementation
-            virtual const uint8_t *get() const = 0;
-            virtual uint8_t *get() = 0;
-        };
-
-        virtual ~Buffer() = default;
-
-        virtual size_t size() const = 0;
-        virtual void resize(size_t size, const void *data) = 0;
-
-        ENUMCLASS(MapAccess, uint8_t, ReadOnly, WriteOnly, ReadWrite)
-        virtual std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const = 0;
-        virtual std::unique_ptr<MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) = 0;
+        virtual ~MappedData() = default; // mapped data should be unmapped in destructor's implementation
+        virtual const uint8_t *get() const = 0;
+        virtual uint8_t *get() = 0;
     };
 
-    class VertexArray
+    virtual ~IBuffer() = default;
+
+    virtual size_t size() const = 0;
+    virtual void resize(size_t size, const void *data) = 0;
+
+    ENUMCLASS(MapAccess, uint8_t, ReadOnly, WriteOnly, ReadWrite)
+    virtual std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const = 0;
+    virtual std::unique_ptr<MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) = 0;
+};
+
+class IVertexArray
+{
+public:
+    virtual ~IVertexArray() = default;
+
+    virtual uint32_t attachVertexBuffer(std::shared_ptr<IBuffer> buffer, size_t offset, uint32_t stride) = 0; // returns bindingIndex
+    virtual void detachVertexBuffer(uint32_t bindingIndex) = 0;
+    virtual std::shared_ptr<const IBuffer> vertexBuffer(uint32_t bindingIndex) const = 0;
+    virtual size_t vertexBufferOffset(uint32_t bindingIndex) const = 0;
+    virtual uint32_t vertexBufferStride(uint32_t bindingIndex) const = 0;
+
+    virtual void declareVertexAttribute(utils::VertexAttribute,
+                                        uint32_t bindingIndex,
+                                        uint32_t numComponents,
+                                        utils::VertexComponentType type,
+                                        uint32_t relativeOffset) = 0;
+    virtual void undeclareVertexAttribute(utils::VertexAttribute) = 0;
+    virtual uint32_t vertexAttributeBindingIndex(utils::VertexAttribute) const = 0;
+    virtual uint32_t vertexAttributeNumComponents(utils::VertexAttribute) const = 0;
+    virtual utils::VertexComponentType vertexAttributeComponentType(utils::VertexAttribute) const = 0;
+    virtual uint32_t vertexAttributeRelativeOffset(utils::VertexAttribute) const = 0;
+
+    virtual void attachIndexBuffer(std::shared_ptr<IBuffer> buffer) = 0;
+    virtual void detachIndexBuffer() = 0;
+    virtual std::shared_ptr<const IBuffer> indexBuffer() const = 0;
+
+    virtual void addPrimitiveSet(std::shared_ptr<utils::PrimitiveSet>) = 0;
+    virtual void removePrimitiveSet(std::shared_ptr<utils::PrimitiveSet>) = 0;
+    virtual const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> &primitiveSets() const = 0;
+};
+
+class ISurface
+{
+public:
+    virtual ~ISurface() = default;
+
+    virtual glm::uvec2 size() const = 0;
+    virtual PixelInternalFormat internalFormat() const = 0;
+    virtual bool hasAlpha() const = 0;
+};
+
+class ITexture : public ISurface
+{
+public:
+    virtual TextureType type() const = 0;
+
+    virtual glm::uvec3 mipmapSize(uint32_t level = 0) const = 0;
+    virtual uint32_t numMipmapLevels() const = 0;
+
+    virtual void setSubImage(uint32_t level,
+                             const glm::uvec3 &offset,
+                             const glm::uvec3 &size,
+                             uint32_t numComponents,
+                             utils::PixelComponentType type,
+                             const void *data) = 0;
+
+    virtual void generateMipmaps() = 0;
+    virtual void setBorderColor(const glm::vec4&) = 0;
+    virtual void setWrapMode(TextureWrapMode) = 0;
+    virtual void setFiltering(TextureFiltering) = 0;
+
+};
+
+class IRenderBuffer : public ISurface
+{
+public:
+};
+
+class IFrameBuffer
+{
+public:
+    struct AttachmentInfo
     {
-    public:
-        virtual ~VertexArray() = default;
+        AttachmentInfo(std::shared_ptr<ISurface> _renderSurface = nullptr, uint32_t _level = 0u, uint32_t _layer = 0u)
+            : renderSurface(_renderSurface), level(_level), layer(_layer)
+        {}
 
-        virtual uint32_t attachVertexBuffer(std::shared_ptr<Buffer> buffer, size_t offset, uint32_t stride) = 0; // returns bindingIndex
-        virtual void detachVertexBuffer(uint32_t bindingIndex) = 0;
-        virtual std::shared_ptr<const Buffer> vertexBuffer(uint32_t bindingIndex) const = 0;
-        virtual size_t vertexBufferOffset(uint32_t bindingIndex) const = 0;
-        virtual uint32_t vertexBufferStride(uint32_t bindingIndex) const = 0;
-
-        virtual void declareVertexAttribute(utils::VertexAttribute, uint32_t bindingIndex, uint32_t numComponents, utils::Type type, uint32_t relativeOffset) = 0;
-        virtual void undeclareVertexAttribute(utils::VertexAttribute) = 0;
-        virtual uint32_t vertexAttributeBindingIndex(utils::VertexAttribute) const = 0;
-        virtual uint32_t vertexAttributeNumComponents(utils::VertexAttribute) const = 0;
-        virtual utils::Type vertexAttributeType(utils::VertexAttribute) const = 0;
-        virtual uint32_t vertexAttributeRelativeOffset(utils::VertexAttribute) const = 0;
-
-        virtual void attachIndexBuffer(std::shared_ptr<Buffer> buffer) = 0;
-        virtual void detachIndexBuffer() = 0;
-        virtual std::shared_ptr<const Buffer> indexBuffer() const = 0;
-
-        virtual void addPrimitiveSet(std::shared_ptr<utils::PrimitiveSet>) = 0;
-        virtual void removePrimitiveSet(std::shared_ptr<utils::PrimitiveSet>) = 0;
-        virtual const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> primitiveSets() const = 0;
+        std::shared_ptr<ISurface> renderSurface;
+        uint32_t level;
+        uint32_t layer;
     };
 
-    class RenderSurface
-    {
-    public:
-        ENUMCLASS(InternalFormat, uint32_t,
-                  Undefined,
-                  R8, R8_SNORM, R16, R16_SNORM,
-                  RG8, RG8_SNORM, RG16, RG16_SNORM,
-                  R3_G3_B2, RGB4, RGB5, RGB8, RGB8_SNORM, RGB10, RGB12, RGB16, RGB16_SNORM, RGBA2,
-                  RGBA4, RGB5_A1, RGBA8, RGBA8_SNORM, RGB10_A2, RGB10_A2UI, RGBA12, RGBA16, RGBA16_SNORM,
-                  SRGB8, SRGB8_ALPHA8,
-                  R16F, RG16F, RGB16F, RGBA16F,
-                  R32F, RG32F, RGB32F, RGBA32F,
-                  R11F_G11F_B10F, RGB9_E5,
-                  R8I, R8UI, R16I, R16UI, R32I, R32UI,
-                  RG8I, RG8UI, RG16I, RG16UI, RG32I, RG32UI,
-                  RGB8I, RGB8UI, RGB16I, RGB16UI, RGB32I, RGB32UI,
-                  RGBA8I, RGBA8UI, RGBA16I, RGBA16UI, RGBA32I, RGBA32UI,
-                  Depth16, Depth24, Depth32F, Stencil8, Depth24Stencil8, Dept32FStencil8)
+    using Attachments = std::unordered_map<FrameBufferAttachment, AttachmentInfo>;
 
-        virtual ~RenderSurface() = default;
+    virtual ~IFrameBuffer() = default;
 
-        virtual glm::uvec2 size() const = 0;
-        virtual InternalFormat internalFormat() const = 0;
-    };
+    virtual bool isComplete() const = 0;
 
-    class Texture : public RenderSurface
-    {
-    public:
-        ENUMCLASS(WrapMode, uint32_t,
-                  ClampToEdge,
-                  ClampToBorder,
-                  MirroredRepeat,
-                  Repeat,
-                  MirrorClampToEdge)
+    virtual const Attachments &attachments() const = 0;
+    virtual bool attachment(FrameBufferAttachment, AttachmentInfo&) const = 0;
+    virtual void attach(FrameBufferAttachment, std::shared_ptr<ISurface>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
+    virtual void detach(FrameBufferAttachment) = 0;
 
-        ENUMCLASS(Filtering, uint32_t,
-                  Point,
-                  Linear,
-                  Bilinear,
-                  Trilinear)
+    virtual const FrameBufferClearColor &clearColor(uint32_t) const = 0;
+    virtual void setClearColor(uint32_t, const glm::vec4&) = 0;
+    virtual void setClearColor(uint32_t, const glm::i32vec4&) = 0;
+    virtual void setClearColor(uint32_t, const glm::u32vec4&) = 0;
 
-        virtual glm::uvec3 mipmapSize(uint32_t level = 0) const = 0;
-        virtual uint32_t numMipmapLevels() const = 0;
+    virtual float clearDepth() const = 0;
+    virtual int32_t clearStencil() const = 0;
+    virtual void setClearDepthStencil(float, int32_t) = 0;
 
-        virtual void setSubImage(uint32_t level,
-                                 const glm::uvec3 &offset,
-                                 const glm::uvec3 &size,
-                                 uint32_t numComponents,
-                                 utils::Type type,
-                                 const void *data) = 0;
+    virtual const std::unordered_set<FrameBufferAttachment> &clearMask() const = 0;
+    virtual void setClearMask(const std::unordered_set<FrameBufferAttachment>&) = 0;
 
-        virtual void generateMipmaps() = 0;
-        virtual void setBorderColor(const glm::vec4&) = 0;
-        virtual void setWrapMode(WrapMode) = 0;
-        virtual void setFiltering(Filtering) = 0;
+    virtual void setDrawBuffers(const std::vector<FrameBufferAttachment>&) = 0;
+};
 
-    };
+class IRenderProgram
+{
+public:
+    virtual ~IRenderProgram() = default;
 
-    class RenderBuffer : public RenderSurface
-    {
-    public:
-    };
+    virtual int32_t attributeLocationByName(const std::string&) const = 0;
+    virtual int32_t uniformLocationByName(const std::string&) const = 0;
 
-    class FrameBuffer
-    {
-    public:
-        ENUMCLASS(Attachment, uint32_t,
-                  Color0,
-                  Color1,
-                  Color2,
-                  Color3,
-                  Depth,
-                  Stencil,
-                  DepthStencil)
+    virtual const std::vector<AttributeInfo> &attributesInfo() const = 0;
+    virtual const std::vector<UniformInfo> &uniformsInfo() const = 0;
 
-        static constexpr Attachment ColorAttachment(uint32_t i) { return castToAttachment(castFromAttachment(Attachment::Color0) + i); }
-        static constexpr uint32_t ColorAttachmentIndex(Attachment a) { return castFromAttachment(a) - castFromAttachment(Attachment::Color0); }
-        static constexpr uint32_t ColorAttachmentsCount() { return ColorAttachmentIndex(Attachment::Depth); }
+    virtual std::string attributeNameByIndex(uint16_t) const = 0;
+    virtual std::string uniformNameByIndex(uint16_t) const = 0;
 
-        struct AttachmentInfo
-        {
-            std::shared_ptr<RenderSurface> renderSurface;
-            uint32_t level;
-            uint32_t layer;
-        };
+    static UniformType uniformTypeByTextureType(TextureType);
 
-        using Attachments = std::unordered_map<Attachment, AttachmentInfo>;
+protected:
+    static utils::VertexAttribute vertexAttributeByName(const std::string&);
+    static UniformId UniformIdByName(const std::string&);
 
-        virtual ~FrameBuffer() = default;
+    static UniformType uniformTypeByUniformId(UniformId);
+};
 
-        virtual bool isComplete() const = 0;
+class IRenderer : public INamedObject
+{
+public:
+    virtual std::shared_ptr<IFrameBuffer> defaultFrameBuffer() = 0;
+    virtual std::shared_ptr<const IFrameBuffer> defaultFrameBuffer() const = 0;
 
-        virtual const Attachments &attachments() const = 0;
-        virtual void attach(Attachment, std::shared_ptr<RenderSurface>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
-        virtual void detach(Attachment) = 0;
-
-        union ClearColorValue
-        {
-            glm::vec4 floatColor;
-            glm::i32vec4 intColor;
-            glm::u32vec4 uintColor;
-        };
-        using ClearColor = std::pair<utils::Type, ClearColorValue>;
-
-        virtual const ClearColor &clearColor(uint32_t) const = 0;
-        virtual void setClearColor(uint32_t, const glm::vec4&) = 0;
-        virtual void setClearColor(uint32_t, const glm::i32vec4&) = 0;
-        virtual void setClearColor(uint32_t, const glm::u32vec4&) = 0;
-
-        virtual float clearDepth() const = 0;
-        virtual int32_t clearStencil() const = 0;
-        virtual void setClearDepthStencil(float, int32_t) = 0;
-    };
-
-    class RenderProgram
-    {
-    public:
-        ENUMCLASS(UniformId, uint16_t,
-                  Viewport,
-                  ModelMatrix,
-                  NormalMatrix,
-                  ViewMatrix,
-                  ViewMatrixInverse,
-                  ProjectionMatrix,
-                  ProjectionMatrixInverse,
-                  ViewProjectionMatrix,
-                  ViewProjectionMatrixInverse,
-                  ModelViewMatrix,
-                  NormalViewMatrix,
-                  ModelViewProjectionMatrix,
-                  ViewPosition,
-                  ViewXDirection,
-                  ViewYDirection,
-                  ViewZDirection)
-
-        struct UniformInfo
-        {
-            UniformId id;
-            uint16_t index;
-            int32_t location;
-            utils::Type type;
-        };
-
-        struct AttributeInfo
-        {
-            utils::VertexAttribute id;
-            uint16_t index;
-            int32_t location;
-            utils::Type type;
-        };
-
-        virtual ~RenderProgram() = default;
-
-        virtual const std::vector<AttributeInfo> &attributesInfo() const = 0;
-        virtual const std::vector<UniformInfo> &uniformsInfo() const = 0;
-
-        virtual std::string attributeNameByIndex(uint16_t) const = 0;
-        virtual std::string uniformNameByIndex(uint16_t) const = 0;
-
-        virtual void setUniform(int32_t, float) = 0;
-        virtual void setUniform(int32_t, const glm::vec2&) = 0;
-        virtual void setUniform(int32_t, const glm::vec3&) = 0;
-        virtual void setUniform(int32_t, const glm::vec4&) = 0;
-
-        virtual void setUniform(int32_t, int32_t) = 0;
-        virtual void setUniform(int32_t, const glm::ivec2&) = 0;
-        virtual void setUniform(int32_t, const glm::ivec3&) = 0;
-        virtual void setUniform(int32_t, const glm::ivec4&) = 0;
-
-        virtual void setUniform(int32_t, uint32_t) = 0;
-        virtual void setUniform(int32_t, const glm::uvec2&) = 0;
-        virtual void setUniform(int32_t, const glm::uvec3&) = 0;
-        virtual void setUniform(int32_t, const glm::uvec4&) = 0;
-
-        virtual void setUniform(int32_t, const glm::mat2&) = 0;
-        virtual void setUniform(int32_t, const glm::mat3&) = 0;
-        virtual void setUniform(int32_t, const glm::mat4&) = 0;
-
-        virtual void setUniform(int32_t, std::shared_ptr<const Texture>) = 0;
-
-    protected:
-        static utils::VertexAttribute vertexAttributeByName(const std::string&);
-        static UniformId UniformIdByName(const std::string&);
-
-        static utils::Type typeByUniformId(UniformId);
-    };
-
-
-    virtual std::shared_ptr<FrameBuffer> defaultFrameBuffer() = 0;
-    virtual std::shared_ptr<const FrameBuffer> defaultFrameBuffer() const = 0;
-
-    virtual std::shared_ptr<RenderProgram> createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const = 0;
-    virtual std::shared_ptr<Buffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
-    virtual std::shared_ptr<VertexArray> createVertexArray(std::shared_ptr<utils::Mesh> = nullptr, bool uniteBuffers = true) const = 0;
-    virtual std::shared_ptr<Texture> createTexture2DEmpty(uint32_t width, uint32_t height, RenderSurface::InternalFormat, uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<Texture> createTexture2D(std::shared_ptr<utils::Image>,
-                                                     RenderSurface::InternalFormat = RenderSurface::InternalFormat::Undefined,
-                                                     uint32_t numLevels = 0, bool genMipmaps = true) const = 0;
-    virtual std::shared_ptr<RenderBuffer> createRenderBuffer(uint32_t width, uint32_t height, RenderSurface::InternalFormat) const = 0;
-    virtual std::shared_ptr<FrameBuffer> createFrameBuffer() const = 0;
+    virtual std::shared_ptr<IRenderProgram> createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const = 0;
+    virtual std::shared_ptr<IBuffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
+    virtual std::shared_ptr<IVertexArray> createVertexArray(std::shared_ptr<utils::Mesh> = nullptr, bool uniteBuffers = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture2DEmpty(uint32_t width, uint32_t height, PixelInternalFormat, uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture2D(std::shared_ptr<utils::Image>,
+                                                      PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                      uint32_t numLevels = 0, bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureRectEmpty(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat) const = 0;
+    virtual std::shared_ptr<IRenderBuffer> createRenderBuffer(uint32_t width, uint32_t height, PixelInternalFormat) const = 0;
+    virtual std::shared_ptr<IFrameBuffer> createFrameBuffer() const = 0;
 
     virtual void resize(uint32_t, uint32_t) = 0;
     virtual const glm::uvec2 &viewportSize() const = 0;
@@ -286,7 +363,24 @@ public:
     virtual void render(const RenderInfo&) = 0;
 };
 
-inline utils::VertexAttribute IGraphicsRenderer::RenderProgram::vertexAttributeByName(const std::string &name)
+inline UniformType IRenderProgram::uniformTypeByTextureType(TextureType type)
+{
+    static const std::unordered_map<TextureType, UniformType> s_table {
+        { TextureType::Type1D, UniformType::Sampler1D },
+        { TextureType::Type2D, UniformType::Sampler2D },
+        { TextureType::Type3D, UniformType::Sampler3D },
+        { TextureType::TypeCube, UniformType::SamplerCube },
+        { TextureType::Type1DArray, UniformType::Sampler1DArray },
+        { TextureType::Type2DArray, UniformType::Sampler2DArray },
+        { TextureType::TypeCubeArray, UniformType::SamplerCubeArray },
+        { TextureType::TypeRect, UniformType::SamplerRect },
+    };
+
+    auto it = s_table.find(type);
+    return (it == s_table.end()) ? UniformType::Undefined : it->second;
+}
+
+inline utils::VertexAttribute IRenderProgram::vertexAttributeByName(const std::string &name)
 {
     static const std::unordered_map<std::string, utils::VertexAttribute> s_table {
         { "a_position", utils::VertexAttribute::Position },
@@ -302,7 +396,7 @@ inline utils::VertexAttribute IGraphicsRenderer::RenderProgram::vertexAttributeB
     return (it == s_table.end()) ? utils::VertexAttribute::Count : it->second;
 }
 
-inline IGraphicsRenderer::RenderProgram::UniformId IGraphicsRenderer::RenderProgram::UniformIdByName(const std::string &name)
+inline UniformId IRenderProgram::UniformIdByName(const std::string &name)
 {
     static const std::unordered_map<std::string, UniformId> s_table {
         { "u_viewport", UniformId::Viewport },
@@ -321,37 +415,44 @@ inline IGraphicsRenderer::RenderProgram::UniformId IGraphicsRenderer::RenderProg
         { "u_viewXDirection", UniformId::ViewXDirection },
         { "u_viewYDirection", UniformId::ViewYDirection },
         { "u_viewZDirection", UniformId::ViewZDirection },
+        { "u_gBufferColor0Map", UniformId::GBufferColor0Map },
+        { "u_gBufferColor1Map", UniformId::GBufferColor1Map },
+        { "u_gBufferDepthMap", UniformId::GBufferDepthMap },
     };
 
     auto it = s_table.find(name);
-    return (it == s_table.end()) ? UniformId::Count : it->second;
+    return (it == s_table.end()) ? UniformId::Undefined : it->second;
 }
 
-inline utils::Type IGraphicsRenderer::RenderProgram::typeByUniformId(UniformId uniformId)
+inline UniformType IRenderProgram::uniformTypeByUniformId(UniformId uniformId)
 {
-    static const std::array<utils::Type, numElementsUniformId() + 1u> s_table {
-        utils::Type::Uint32Vec2,
-        utils::Type::SingleMat4,
-        utils::Type::SingleMat4,
-        utils::Type::SingleMat4,
-        utils::Type::SingleMat4,
-        utils::Type::SingleMat4,
-        utils::Type::SingleMat4,
-        utils::Type::SingleMat4,
-        utils::Type::SingleMat4,
-        utils::Type::SingleMat4,
-        utils::Type::SingleMat4,
-        utils::Type::SingleMat4,
-        utils::Type::SingleVec3,
-        utils::Type::SingleVec3,
-        utils::Type::SingleVec3,
-        utils::Type::SingleVec3,
-        utils::Type::Undefined
+    static const std::array<UniformType, numElementsUniformId()> s_table {
+        UniformType::Undefined,
+        UniformType::Uint32Vec2,
+        UniformType::SingleMat4,
+        UniformType::SingleMat3,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat3,
+        UniformType::SingleMat4,
+        UniformType::SingleVec3,
+        UniformType::SingleVec3,
+        UniformType::SingleVec3,
+        UniformType::SingleVec3,
+        UniformType::SamplerRect,
+        UniformType::SamplerRect,
+        UniformType::SamplerRect,
     };
 
     return s_table[castFromUniformId(uniformId)];
 }
 
+}
 }
 }
 

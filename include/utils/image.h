@@ -2,16 +2,19 @@
 #define UTILS_IMAGE_H
 
 #include <memory>
-#include <string>
+#include <filesystem>
 
 #include <utils/utilsglobal.h>
 #include <utils/noncopyble.h>
-#include <utils/types.h>
+#include <utils/enumclass.h>
 
 namespace simplex
 {
 namespace utils
 {
+
+ENUMCLASS(PixelComponentType, uint16_t,
+          Undefined, Single, Uint8, Uint16)
 
 class UTILS_SHARED_EXPORT Image
 {
@@ -23,16 +26,16 @@ public:
     uint32_t width() const;
     uint32_t height() const;
     uint32_t numComponents() const;
-    Type type() const;
+    PixelComponentType type() const;
     const void *data() const;
 
-    static std::shared_ptr<Image> loadImage(const std::string&);
+    static std::shared_ptr<Image> loadImage(const std::filesystem::path&);
 
 private:
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_numComponents;
-    Type m_type;
+    PixelComponentType m_type;
     void *m_data;
 
 };

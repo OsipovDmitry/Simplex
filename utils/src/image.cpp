@@ -1,5 +1,9 @@
 #include <utils/image.h>
 
+#ifdef _WIN32
+#define STBI_WINDOWS_UTF8
+#endif
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
@@ -12,7 +16,7 @@ Image::Image()
     : m_width(0u)
     , m_height(0u)
     , m_numComponents(0u)
-    , m_type(Type::Undefined)
+    , m_type(PixelComponentType::Undefined)
     , m_data(nullptr)
 {
 }
@@ -37,7 +41,7 @@ uint32_t Image::numComponents() const
     return m_numComponents;
 }
 
-Type Image::type() const
+PixelComponentType Image::type() const
 {
     return m_type;
 }
@@ -47,26 +51,28 @@ const void *Image::data() const
     return m_data;
 }
 
-std::shared_ptr<Image> Image::loadImage(const std::string &filename)
+std::shared_ptr<Image> Image::loadImage(const std::filesystem::path &filename)
 {
     int w, h, n;
     void *d;
-    Type t;
+    PixelComponentType t;
 
-    if (stbi_is_hdr(filename.c_str()))
+    const auto filenameUtf8 = filename.string();
+
+    if (stbi_is_hdr(filenameUtf8.c_str()))
     {
-        d = stbi_loadf(filename.c_str(), &w, &h, &n, 0);
-        t = Type::Single;
+        d = stbi_loadf(filenameUtf8.c_str(), &w, &h, &n, 0);
+        t = PixelComponentType::Single;
     }
-    else if (stbi_is_16_bit(filename.c_str()))
+    else if (stbi_is_16_bit(filenameUtf8.c_str()))
     {
-        d = stbi_load_16(filename.c_str(), &w, &h, &n, 0);
-        t = Type::Uint16;
+        d = stbi_load_16(filenameUtf8.c_str(), &w, &h, &n, 0);
+        t = PixelComponentType::Uint16;
     }
     else
     {
-        d = stbi_load(filename.c_str(), &w, &h, &n, 0);
-        t = Type::Uint8;
+        d = stbi_load(filenameUtf8.c_str(), &w, &h, &n, 0);
+        t = PixelComponentType::Uint8;
     }
 
     if (!d)

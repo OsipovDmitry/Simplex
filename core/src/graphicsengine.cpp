@@ -4,6 +4,7 @@
 #include <utils/mesh.h>
 #include <utils/meshpainter.h>
 #include <utils/frustum.h>
+#include <utils/shader.h>
 
 #include <core/igraphicsrenderer.h>
 #include <core/renderinfo.h>
@@ -11,98 +12,108 @@
 #include <core/scene.h>
 #include <core/scenerootnode.h>
 #include <core/cameranode.h>
-#include <core/viewport.h>
+#include <core/rendersurface.h>
 #include <core/drawablenode.h>
-#include <core/coloreddrawable.h>
+#include <core/standarddrawable.h>
 #include <core/nodevisitor.h>
 #include <core/collectorvisitor.h>
+#include <core/renderprogramsmanager.h>
+#include <core/rendersurface.h>
 
 #include "graphicsengineprivate.h"
-#include "cameranodeprivate.h"
-#include "coloreddrawableprivate.h"
-#include "textureddrawableprivate.h"
+#include "scenerootnodeprivate.h"
 #include "nodeupdatevisitor.h"
 #include "znearfarnodevisitor.h"
 #include "drawablenoderenderer.h"
+
+
+#include "drawablebaseprivate.h"
+static int renderType = 0;
 
 namespace simplex
 {
 namespace core
 {
 
-const char colorVertexShaderSource[] {
-    "#version 450\n"
-    "layout(location = 0) in vec3 a_position;\n"
-    "uniform mat4 u_modelViewProjectionMatrix;\n"
-    "void main() {\n"
-    "   gl_Position = u_modelViewProjectionMatrix * vec4(a_position, 1.0f);\n"
-    "}"
-};
-const char colorFragmentShaderSource[] {
-    "#version 450\n"
-    "uniform vec4 u_color;\n"
-    "layout(location = 0) out vec4 color;\n"
-    "void main() {\n"
-    "  color = u_color;\n"
-    "}"
-};
+const float s_minZNear = 0.5f;
+const float s_maxZFar = 100000.0f;
 
-const std::string textureVertexShaderSource = {
-    "#version 450\n"
-    "layout(location = 0) in vec3 a_position;\n"
-    "layout(location = 1) in vec3 a_normal;\n"
-    "layout(location = 2) in vec2 a_texCoord;\n"
-    "layout(location = 6) in vec3 a_color;\n"
-    "uniform mat4 u_modelViewProjectionMatrix;\n"
-    "uniform mat4 u_normalMatrix;\n"
-    "out vec3 normal;\n"
-    "out vec2 texCoord;\n"
-    "out vec4 color;\n"
-    "void main() {\n"
-    "   normal = vec3(u_normalMatrix * vec4(a_normal, 1.0f));\n"
-    "   texCoord = a_texCoord;\n"
-    "   color = vec4(a_color, 1.0f);\n"
-    "   gl_Position = u_modelViewProjectionMatrix * vec4(a_position.xyz, 1.0f);\n"
-    "}"
+const std::array<std::string, utils::numElementsVertexAttribute()> s_vertexAttributesLocations {
+    std::string("POSITION_ATTRIBUTE"),
+    std::string("NORMAL_ATTRIBUTE"),
+    std::string("TEX_COORDS_ATTRIBUTE"),
+    std::string("BONES_IDS_ATTRIBUTE"),
+    std::string("BONES_WEIGHTS_ATTRIBUTE"),
+    std::string("TANGENT_ATTRIBUTE"),
+    std::string("COLOR_ATTRIBUTE")
 };
-const std::string textureFragmentShaderSource = {
-    "#version 450\n"
-    "uniform sampler2D u_texture;\n"
-    "in vec3 normal;"
-    "in vec2 texCoord;\n"
-    "in vec4 color;\n"
-    "layout(location = 0) out vec4 ocolor;\n"
-    "void main() {\n"
-    "  vec3 n = normalize(normal);\n"
-    "  vec3 l = normalize(vec3(0.3f, 1.0f, 0.7f));\n"
-    "  float d = max(0.4f, dot(n, l));\n"
-    "  ocolor = d * texture(u_texture, texCoord);\n"
-    "}"
-};
+const std::string s_hasBaseColorMap = "HAS_BASE_COLOR_MAP";
+const std::string s_hasMetalnessMap = "HAS_METALNESS_MAP";
+const std::string s_hasRoughnessMap = "HAS_ROUGHNESS_MAP";
+const std::string s_hasNormalMap = "HAS_NORMAL_MAP";
 
-float GraphicsEngine::s_minZNear = 0.5f;
-float GraphicsEngine::s_maxZFat = 100000.0f;
+const std::filesystem::path s_deferredGeometryPassVertexShader = "D:/res/shaders/textured.vert";
+const std::filesystem::path s_deferredGeometryPassFragmentShader = "D:/res/shaders/textured.frag";
 
-GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<IGraphicsRenderer> renderer)
-    : m_(std::make_unique<GraphicsEnginePrivate>(name, renderer))
+const std::filesystem::path s_finalPassVertexShader = "D:/res/shaders/final.vert";
+const std::filesystem::path s_finalPassFragmentShader = "D:/res/shaders/final.frag";
+
+class DefaultRenderSurface : public RenderSurface
 {
-    auto boundingBoxMesh = std::make_shared<utils::Mesh>();
-    boundingBoxMesh->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
-    utils::MeshPainter(boundingBoxMesh).drawBoundingBox();
+public:
+    DefaultRenderSurface(std::shared_ptr<graphics::IRenderer> renderer)
+        : RenderSurface(renderer, renderer->defaultFrameBuffer())
+    {
+    }
+protected:
+    void doResize(const glm::uvec2&) override
+    {
+    }
+};
 
-    NodePrivate::boundingBoxVertexArray() = renderer->createVertexArray(boundingBoxMesh);
+GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<graphics::IRenderer> renderer)
+    : m_(std::make_unique<GraphicsEnginePrivate>(name))
+{
+    m_->renderer() = renderer;
 
-    auto cameraMesh = std::make_shared<utils::Mesh>();
-    cameraMesh->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
-    utils::MeshPainter painter(cameraMesh);
-    painter.setVertexTransform(glm::scale(glm::mat4(1.f), glm::vec3(3.f)));
-    painter.drawCamera();
+    auto renderProgramsManager = std::make_shared<RenderProgramsManager>(renderer);
+    m_->renderProgramsManager() = renderProgramsManager;
 
-    CameraNodePrivate::cameraVertexArray() = renderer->createVertexArray(cameraMesh);
-    CameraNodePrivate::defaultFrameBuffer() = renderer->defaultFrameBuffer();
+    auto defaultRenderSurface = std::make_shared<DefaultRenderSurface>(renderer);
+    m_->defaultRenderSurface() = defaultRenderSurface;
 
-    ColoredDrawablePrivate::coloredRenderProgram() = renderer->createRenderProgram(colorVertexShaderSource, colorFragmentShaderSource);
-    TexturedDrawablePrivate::texturedRenderProgram() = renderer->createRenderProgram(textureVertexShaderSource, textureFragmentShaderSource);
+    auto screenQuadMeshPainter = utils::MeshPainter(
+                utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}}));
+    screenQuadMeshPainter.drawScreenQuad();
+    auto screenQuadVertexArray = renderer->createVertexArray(screenQuadMeshPainter.mesh());
+
+    m_->screenQuadFinalDrawable() = std::make_shared<DrawableBase>(renderProgramsManager->loadOrGet(
+                                                                       s_finalPassVertexShader,
+                                                                       s_finalPassFragmentShader,
+                                                                       {{s_vertexAttributesLocations[0], "0"}}),
+                                                                   screenQuadVertexArray);
+
+//    auto boundingBoxMesh = std::make_shared<utils::Mesh>();
+//    boundingBoxMesh->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
+//    utils::MeshPainter(boundingBoxMesh).drawBoundingBox();
+//    auto boundingBoxVertexArray = renderer->createVertexArray(boundingBoxMesh);
+
+//    m_->nodeBoundingBoxDrawable() = std::make_shared<StandardDrawable>(boundingBoxVertexArray);
+//    m_->nodeBoundingBoxDrawable()->setColor(glm::vec4(.8f, .8f, .8f, 1.f));
+
+//    m_->drawableNodeLocalBoundingBoxDrawable() = std::make_shared<StandardDrawable>(boundingBoxVertexArray);
+//    m_->drawableNodeLocalBoundingBoxDrawable()->setColor(glm::vec4(.8f, .2f, .2f, 1.f));
+
+//    m_->cameraNodeFrustumDrawable() = std::make_shared<StandardDrawable>(boundingBoxVertexArray);
+//    m_->cameraNodeFrustumDrawable()->setColor(glm::vec4(.2f, .8f, .2f, 1.f));
+
+//    utils::MeshPainter cameraPainter(std::make_shared<utils::Mesh>());
+//    cameraPainter.mesh()->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
+//    cameraPainter.setVertexTransform(glm::scale(glm::mat4(1.f), glm::vec3(3.f)));
+//    cameraPainter.drawCamera();
+
+//    m_->cameraNodeCameraDrawable() = std::make_shared<StandardDrawable>(renderer->createVertexArray(cameraPainter.mesh()));
+//    m_->cameraNodeCameraDrawable()->setColor(glm::vec4(.2f, .2f, .8f, 1.f));
 
     LOG_INFO << "Engine \"" << GraphicsEngine::name() << "\" has been created";
 }
@@ -119,13 +130,13 @@ const std::string &GraphicsEngine::name() const
 
 void GraphicsEngine::update(uint64_t time, uint32_t dt)
 {
+    auto renderProgram = m_->screenQuadFinalDrawable()->renderProgram();
+    m_->screenQuadFinalDrawable()->m().uniforms()[renderProgram->uniformLocationByName("i")] = std::make_shared<Uniform<int32_t>>(renderType);
+
+
     auto renderer = m_->renderer();
 
-    const auto &viewportSize = renderer->viewportSize();
-    float aspectRatio = static_cast<float>(viewportSize.x) / static_cast<float>(viewportSize.y);
-
-    const auto viewportHalfSize = glm::max(glm::uvec2(1u, 1u), viewportSize / 2u);
-    const auto viewportQuarterSize = glm::max(glm::uvec2(1u, 1u), viewportHalfSize / 2u);
+    const auto &screenSize = renderer->viewportSize();
 
     auto sceneList = scenes();
     std::stable_sort(sceneList.begin(), sceneList.end(), utils::SortedObject::Comparator());
@@ -143,17 +154,6 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
         rootNode->accept(cameraNodeCollector);
         std::stable_sort(cameraNodeCollector.nodes().begin(), cameraNodeCollector.nodes().end(), utils::SortedObject::Comparator());
 
-        std::vector<std::array<float, 2>> cameraZPlanes(cameraNodeCollector.nodes().size());
-        for (size_t i = 0; i < cameraNodeCollector.nodes().size(); ++i)
-        {
-            const auto &camera = cameraNodeCollector.nodes()[i];
-
-            ZNearFarNodeVisitor zNearFarNodeVisitor(utils::OpenFrustum(camera->projectionMatrix(aspectRatio, 0.f, 1.f) *
-                                                                       camera->globalTransform().inverted()));
-            rootNode->accept(zNearFarNodeVisitor);
-            cameraZPlanes[i] = zNearFarNodeVisitor.zNearFar();
-        }
-
         for (size_t i = 0; i < cameraNodeCollector.nodes().size(); ++i)
         {
             const auto &camera = cameraNodeCollector.nodes()[i];
@@ -161,41 +161,25 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             if (!camera->isRenderingEnabled())
                 continue;
 
-            auto zNear = glm::max(s_minZNear, cameraZPlanes[i][0]);
-            auto zFar = glm::min(s_maxZFat, cameraZPlanes[i][1]);
+            camera->resizeRenderSurfaces(screenSize);
+
+            auto gSurface = camera->gSurface();
+            const auto &gSurfaceViewportSize = gSurface->viewportSize();
+            float aspectRatio = static_cast<float>(gSurfaceViewportSize.x) / static_cast<float>(gSurfaceViewportSize.y);
+
+            ZNearFarNodeVisitor zNearFarNodeVisitor(utils::OpenFrustum(camera->projectionMatrix(aspectRatio, 0.f, 1.f) *
+                                                                       camera->globalTransform().inverted()));
+            rootNode->accept(zNearFarNodeVisitor);
+            auto zNear = glm::max(s_minZNear, zNearFarNodeVisitor.zNearFar()[0]);
+            auto zFar = glm::min(s_maxZFar, zNearFarNodeVisitor.zNearFar()[1]);
 
             RenderInfo renderInfo;
-
-            renderInfo.setFrameBuffer(camera->frameBuffer());
             renderInfo.setViewMatrix(camera->globalTransform().inverted());
             renderInfo.setProjectionMatrix(camera->projectionMatrix(aspectRatio, zNear, zFar));
-
-            switch (camera->viewport()->sizePolicy())
-            {
-            case Viewport::SizePolicy::Defined: {
-                renderInfo.setViewport(camera->viewport()->size());
-                break;
-            }
-            case Viewport::SizePolicy::Screen: {
-                renderInfo.setViewport(glm::uvec4(0u, 0u, viewportSize));
-                break;
-            }
-            case Viewport::SizePolicy::HalfScreen: {
-                renderInfo.setViewport(glm::uvec4(0u, 0u, viewportHalfSize));
-                break;
-            }
-            case Viewport::SizePolicy::QuarterScreen: {
-                renderInfo.setViewport(glm::uvec4(0u, 0u, viewportQuarterSize));
-                break;
-            }
-            default: {
-                renderInfo.setViewport(glm::uvec4(0u, 0u, 1u, 1u));
-                break;
-            }
-            }
+            renderInfo.setFrameBuffer(gSurface->frameBuffer());
+            renderInfo.setViewport(glm::uvec4(0u, 0u, gSurfaceViewportSize));
 
             renderer->clearRenderData();
-
             if (false)
             {
                 for (size_t j = 0; j < cameraNodeCollector.nodes().size(); ++j)
@@ -203,17 +187,27 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
                     if (i == j) continue;
 
                     const auto &anotherCamera = cameraNodeCollector.nodes()[j];
-
-                    renderer->addRenderData(anotherCamera->globalTransform(), anotherCamera->m().cameraDrawable());
-                    renderer->addRenderData(anotherCamera->globalTransform() *
-                                            glm::inverse(anotherCamera->projectionMatrix(aspectRatio, cameraZPlanes[j][0], cameraZPlanes[j][1])),
-                                            anotherCamera->m().frustumDrawable());
+                    renderer->addRenderData(anotherCamera->globalTransform(), m_->cameraNodeCameraDrawable());
                 }
             }
-
-            DrawableNodeRenderer drawableNodeRenderer(renderer, utils::Frustum(renderInfo.projectionMatrix() * renderInfo.viewMatrix()));
+            DrawableNodeRenderer drawableNodeRenderer(renderer,
+                                                      utils::Frustum(renderInfo.projectionMatrix() * renderInfo.viewMatrix()),
+                                                      m_->nodeBoundingBoxDrawable(),
+                                                      m_->drawableNodeLocalBoundingBoxDrawable());
             rootNode->accept(drawableNodeRenderer);
+            gSurface->frameBuffer()->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0, core::graphics::FrameBufferAttachment::Color1});
+            renderer->render(renderInfo);
 
+            auto renderSurface = camera->renderSurface();
+
+            renderInfo.setFrameBuffer(renderSurface->frameBuffer());
+            renderInfo.setViewport(glm::uvec4(0u, 0u, renderSurface->viewportSize()));
+            renderInfo.setGBufferMaps(gSurface->colorBuffer0(), gSurface->colorBuffer1(), gSurface->depthBuffer());
+            renderInfo.setDepthTest(false);
+
+            renderer->clearRenderData();
+            renderer->addRenderData(glm::mat4x4(1.f), m_->screenQuadFinalDrawable());
+            renderSurface->frameBuffer()->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
             renderer->render(renderInfo);
         }
     }
@@ -221,9 +215,19 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
     renderer->clearRenderData();
 }
 
-std::shared_ptr<IGraphicsRenderer> GraphicsEngine::graphicsRenderer() const
+std::shared_ptr<graphics::IRenderer> GraphicsEngine::graphicsRenderer() const
 {
     return m_->renderer();
+}
+
+std::shared_ptr<RenderProgramsManager> GraphicsEngine::renderProgramsManager() const
+{
+    return m_->renderProgramsManager();
+}
+
+std::shared_ptr<RenderSurface> GraphicsEngine::defaultRenderSurface() const
+{
+    return m_->defaultRenderSurface();
 }
 
 const std::vector<std::shared_ptr<Scene>> &GraphicsEngine::scenes() const
@@ -231,21 +235,64 @@ const std::vector<std::shared_ptr<Scene>> &GraphicsEngine::scenes() const
     return m_->scenes();
 }
 
-void GraphicsEngine::addScene(std::shared_ptr<Scene> scene)
+std::shared_ptr<Scene> GraphicsEngine::addNewScene(const std::string &name)
 {
-    if (auto it = std::find(m_->scenes().begin(), m_->scenes().end(), scene); it != m_->scenes().end())
-    {
-        LOG_ERROR << "Engine \"" << name() << "\" already has scene \"" + scene->name() + "\"";
-        return;
-    }
-
+    auto scene = std::shared_ptr<Scene>(new Scene(name));
+    scene->sceneRootNode()->m().scene() = scene;
     m_->scenes().push_back(scene);
+
+    return scene;
 }
 
 void GraphicsEngine::removeScene(std::shared_ptr<Scene> scene)
 {
     if (auto it = std::find(m_->scenes().begin(), m_->scenes().end(), scene); it != m_->scenes().end())
         m_->scenes().erase(it);
+}
+
+std::shared_ptr<StandardDrawable> GraphicsEngine::createStandardDrawable(std::shared_ptr<graphics::IVertexArray> vao,
+                                                                         const glm::vec4& baseColor,
+                                                                         float metalness,
+                                                                         float roughness,
+                                                                         std::shared_ptr<const graphics::ITexture> baseColorMap,
+                                                                         std::shared_ptr<const graphics::ITexture> metalnessMap,
+                                                                         std::shared_ptr<const graphics::ITexture> roughnessMap,
+                                                                         std::shared_ptr<const graphics::ITexture> normalMap)
+{
+    utils::ShaderDefines defines;
+
+    for (uint16_t i = 0; i < utils::numElementsVertexAttribute(); ++i)
+    {
+        if (vao->vertexAttributeBindingIndex(utils::castToVertexAttribute(i)) != static_cast<uint32_t>(-1))
+            defines.insert({s_vertexAttributesLocations[i], std::to_string(i)});
+    }
+
+    if (baseColorMap)
+        defines.insert({s_hasBaseColorMap, ""});
+
+    if (metalnessMap)
+        defines.insert({s_hasMetalnessMap, ""});
+
+    if (roughnessMap)
+        defines.insert({s_hasRoughnessMap, ""});
+
+    if (normalMap)
+        defines.insert({s_hasNormalMap, ""});
+
+    auto renderProgram = m_->renderProgramsManager()->loadOrGet(s_deferredGeometryPassVertexShader,
+                                                                s_deferredGeometryPassFragmentShader,
+                                                                defines);
+
+    return std::shared_ptr<StandardDrawable>(new StandardDrawable(
+                                                 renderProgram, vao,
+                                                 baseColor, metalness, roughness,
+                                                 baseColorMap, metalnessMap, roughnessMap, normalMap
+                                                 ));
+}
+
+void GraphicsEngine::setF(int i)
+{
+    renderType = i;
 }
 
 }

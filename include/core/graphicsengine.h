@@ -5,7 +5,7 @@
 #include <vector>
 
 #include <utils/noncopyble.h>
-#include <utils/pimpl.h>
+#include <utils/glm/vec4.hpp>
 
 #include <core/coreglobal.h>
 #include <core/forwarddecl.h>
@@ -20,26 +20,36 @@ class GraphicsEnginePrivate;
 class CORE_SHARED_EXPORT GraphicsEngine : public IEngine
 {
     NONCOPYBLE(GraphicsEngine)
-    PIMPL(GraphicsEngine)
 
 public:
-    GraphicsEngine(const std::string&, std::shared_ptr<IGraphicsRenderer>);
+    GraphicsEngine(const std::string&, std::shared_ptr<graphics::IRenderer>);
     ~GraphicsEngine() override;
 
     const std::string &name() const override;
     void update(uint64_t time, uint32_t dt) override;
 
-    std::shared_ptr<IGraphicsRenderer> graphicsRenderer() const;
+    std::shared_ptr<graphics::IRenderer> graphicsRenderer() const;
+    std::shared_ptr<RenderProgramsManager> renderProgramsManager() const;
+    std::shared_ptr<RenderSurface> defaultRenderSurface() const;
 
     const std::vector<std::shared_ptr<Scene>> &scenes() const;
-    void addScene(std::shared_ptr<Scene>);
+    std::shared_ptr<Scene> addNewScene(const std::string&);
     void removeScene(std::shared_ptr<Scene>);
+
+    std::shared_ptr<StandardDrawable> createStandardDrawable(std::shared_ptr<graphics::IVertexArray>,
+                                                             const glm::vec4& baseColor,
+                                                             float metalness,
+                                                             float roughness,
+                                                             std::shared_ptr<const graphics::ITexture> baseColorMap,
+                                                             std::shared_ptr<const graphics::ITexture> metalnessMap,
+                                                             std::shared_ptr<const graphics::ITexture> roughnessMap,
+                                                             std::shared_ptr<const graphics::ITexture> normalMap);
+
+    void setF(int);
 
 private:
     std::unique_ptr<GraphicsEnginePrivate> m_;
 
-    static float s_minZNear;
-    static float s_maxZFat;
 };
 
 }

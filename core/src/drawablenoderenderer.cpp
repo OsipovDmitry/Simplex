@@ -2,20 +2,24 @@
 
 #include <core/node.h>
 #include <core/drawablenode.h>
-#include <core/coloreddrawable.h>
+#include <core/igraphicsrenderer.h>
+#include <core/standarddrawable.h>
 
 #include "drawablenoderenderer.h"
-#include "nodeprivate.h"
-#include "drawablenodeprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-DrawableNodeRenderer::DrawableNodeRenderer(std::shared_ptr<IGraphicsRenderer> renderer, const utils::Frustum &frustum)
+DrawableNodeRenderer::DrawableNodeRenderer(std::shared_ptr<graphics::IRenderer> renderer,
+                                           const utils::Frustum &frustum,
+                                           std::shared_ptr<StandardDrawable> nodeBoundingBoxDrawable,
+                                           std::shared_ptr<StandardDrawable> drawableNodeLocalBoundingBoxDrawable)
     : FrustumCullingVisitor(frustum)
     , m_renderer(renderer)
+    , m_nodeBoundingBoxDrawable(nodeBoundingBoxDrawable)
+    , m_drawableNodeLocalBoundingBoxDrawable(drawableNodeLocalBoundingBoxDrawable)
 {}
 
 bool DrawableNodeRenderer::visit(std::shared_ptr<Node> node)
@@ -29,7 +33,7 @@ bool DrawableNodeRenderer::visit(std::shared_ptr<Node> node)
         m_renderer->addRenderData(node->globalTransform() *
                                   glm::translate(glm::mat4(1.f), nodeBoundingBox.center()) *
                                   glm::scale(glm::mat4(1.f), nodeBoundingBox.halfSize()),
-                                  node->m().boundingBoxDrawable());
+                                  m_nodeBoundingBoxDrawable);
     }
 
     if (auto drawableNode = node->asDrawableNode(); drawableNode)
@@ -42,11 +46,10 @@ bool DrawableNodeRenderer::visit(std::shared_ptr<Node> node)
 
             if (false)
             {
-
                 m_renderer->addRenderData(drawableNode->globalTransform() *
                                           glm::translate(glm::mat4(1.f), drawableNodeLocalBoundingBox.center()) *
                                           glm::scale(glm::mat4(1.f), drawableNodeLocalBoundingBox.halfSize()),
-                                          drawableNode->m().localBoundingBoxDrawable());
+                                          m_drawableNodeLocalBoundingBoxDrawable);
             }
         }
     }

@@ -1,9 +1,9 @@
 #include <cstring>
 #include <cassert>
 #include <algorithm>
+#include <array>
 
 #include <utils/mesh.h>
-#include <utils/typeinfo.h>
 
 namespace simplex
 {
@@ -52,13 +52,15 @@ const uint8_t *Buffer::data() const
     return m_data;
 }
 
-VertexBuffer::VertexBuffer(uint32_t numVertices, uint32_t numComponents, Type type)
-    : Buffer(numVertices * numComponents * TypeInfo::size(type))
+VertexBuffer::VertexBuffer(uint32_t numVertices, uint32_t numComponents, VertexComponentType type)
+    : Buffer(0u)
     , m_numComponents(numComponents)
     , m_type(type)
 {
     assert(m_numComponents <= 4u);
-    assert(TypeInfo::isScalar(m_type));
+    assert(m_type != VertexComponentType::Undefined);
+
+    setNumVertices(numVertices);
 }
 
 VertexBuffer::~VertexBuffer()
@@ -72,35 +74,57 @@ uint32_t VertexBuffer::numComponents() const
 
 uint32_t VertexBuffer::numVertices() const
 {
-    const uint32_t vertexSize = m_numComponents * TypeInfo::size(m_type);
+    const uint32_t vertexSize = m_numComponents * componentSize();
     return static_cast<uint32_t>(m_sizeInBytes / vertexSize);
 }
 
 void VertexBuffer::setNumVertices(uint32_t numVertices)
 {
-    resize(numVertices * m_numComponents * TypeInfo::size(m_type));
+    resize(numVertices * m_numComponents * componentSize());
 }
 
-Type VertexBuffer::type() const
+VertexComponentType VertexBuffer::componentType() const
 {
     return m_type;
 }
 
+uint32_t VertexBuffer::componentSize() const
+{
+    return componentSize(m_type);
+}
+
 const void *VertexBuffer::vertex(uint32_t index) const
 {
-    return static_cast<const void*>(m_data + m_numComponents * TypeInfo::size(m_type) * index);
+    return static_cast<const void*>(m_data + m_numComponents * componentSize() * index);
 }
 
 void VertexBuffer::setVertex(uint32_t index, const void *data)
 {
-    std::memcpy(m_data + m_numComponents * TypeInfo::size(m_type) * index, data, m_numComponents * TypeInfo::size(m_type));
+    std::memcpy(m_data + m_numComponents * componentSize() * index,
+                data,
+                m_numComponents * componentSize());
 }
 
-DrawElementsBuffer::DrawElementsBuffer(PrimitiveType primitiveType, uint32_t count, Type type, uint32_t baseVertex)
-    : DrawElements(primitiveType, count, type, 0, baseVertex)
-    , Buffer(count * TypeInfo::size(type))
+uint32_t VertexBuffer::componentSize(VertexComponentType type)
 {
-    assert(TypeInfo::isUnsignedIntScalar(m_type));
+    static std::array<uint32_t, numElementsVertexComponentType()> s_table {
+        0u,
+        sizeof(float),
+        sizeof(double),
+        sizeof(int32_t),
+        sizeof(uint32_t)
+    };
+
+    return s_table[utils::castFromVertexComponentType(type)];
+}
+
+DrawElementsBuffer::DrawElementsBuffer(PrimitiveType primitiveType, uint32_t count, DrawElementsIndexType type, uint32_t baseVertex)
+    : DrawElements(primitiveType, count, type, 0, baseVertex)
+    , Buffer(0u)
+{
+    assert(m_type != DrawElementsIndexType::Undefined);
+
+    setNumIndices(m_count);
 }
 
 DrawElementsBuffer::~DrawElementsBuffer()
@@ -125,17 +149,17 @@ uint32_t DrawElementsBuffer::numIndices() const
 void DrawElementsBuffer::setNumIndices(uint32_t numIndices)
 {
     m_count = numIndices;
-    resize(numIndices * TypeInfo::size(m_type));
+    resize(m_count * indexSize());
 }
 
 const void *DrawElementsBuffer::index(uint32_t idx) const
 {
-    return static_cast<const void*>(m_data + TypeInfo::size(m_type) * idx);
+    return static_cast<const void*>(m_data + indexSize() * idx);
 }
 
 void DrawElementsBuffer::setIndex(uint32_t idx, const void *data)
 {
-    std::memcpy(m_data + TypeInfo::size(m_type) * idx, data, TypeInfo::size(m_type));
+    std::memcpy(m_data + indexSize() * idx, data, indexSize());
 }
 
 Mesh::Mesh()
@@ -178,6 +202,14 @@ void Mesh::detachPrimitiveSet(std::shared_ptr<PrimitiveSet> primitiveSet)
 const std::unordered_set<std::shared_ptr<PrimitiveSet> > &Mesh::primitiveSets() const
 {
     return m_primitiveSets;
+}
+
+std::shared_ptr<Mesh> Mesh::createEmptyMesh(const std::unordered_map<VertexAttribute, std::tuple<uint32_t, VertexComponentType>> &decls)
+{
+    auto result = std::make_shared<Mesh>();
+    for (const auto &[attrib, decl] : decls)
+        result->attachVertexBuffer(attrib, std::make_shared<VertexBuffer>(0u, std::get<0>(decl), std::get<1>(decl)));
+    return result;
 }
 
 }

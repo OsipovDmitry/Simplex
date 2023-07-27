@@ -1,7 +1,6 @@
 #include <cassert>
 
 #include <utils/primitiveset.h>
-#include <utils/typeinfo.h>
 
 namespace simplex
 {
@@ -11,6 +10,7 @@ namespace utils
 PrimitiveSet::PrimitiveSet(PrimitiveType primitiveType)
     : m_primitiveType(primitiveType)
 {
+    assert(m_primitiveType != PrimitiveType::Undefined);
 }
 
 std::shared_ptr<PrimitiveSet> PrimitiveSet::asPrimitiveSet()
@@ -75,14 +75,14 @@ uint32_t DrawArrays::count() const
     return m_count;
 }
 
-DrawElements::DrawElements(PrimitiveType pt, uint32_t count, Type type, uint64_t offset, uint32_t baseVertex)
+DrawElements::DrawElements(PrimitiveType pt, uint32_t count, DrawElementsIndexType type, uint64_t offset, uint32_t baseVertex)
     : PrimitiveSet(pt)
     , m_count(count)
     , m_type(type)
     , m_offset(offset)
     , m_baseVertex(baseVertex)
 {
-    assert(TypeInfo::isUnsignedIntScalar(m_type));
+    assert(m_type != DrawElementsIndexType::Undefined);
 }
 
 std::shared_ptr<DrawElements> DrawElements::asDrawElements()
@@ -110,7 +110,7 @@ uint32_t DrawElements::count() const
     return m_count;
 }
 
-Type DrawElements::type() const
+DrawElementsIndexType DrawElements::type() const
 {
     return m_type;
 }
@@ -123,6 +123,23 @@ size_t DrawElements::offset() const
 uint32_t DrawElements::baseVertex() const
 {
     return m_baseVertex;
+}
+
+uint32_t DrawElements::indexSize() const
+{
+    return indexSize(m_type);
+}
+
+uint32_t DrawElements::indexSize(DrawElementsIndexType type)
+{
+    static std::array<uint32_t, numElementsDrawElementsIndexType()> s_table {
+        0u,
+        sizeof(uint8_t),
+        sizeof(uint16_t),
+        sizeof(uint32_t)
+    };
+
+    return s_table[utils::castFromDrawElementsIndexType(type)];
 }
 
 }

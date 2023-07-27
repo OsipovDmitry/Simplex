@@ -13,15 +13,15 @@ namespace core
 class SceneRootNodePrivate : public NodePrivate
 {
 public:
-    SceneRootNodePrivate(const std::string &name, Scene *scene)
+    SceneRootNodePrivate(const std::string &name)
         : NodePrivate(name)
-        , m_scene(scene)
     {}
 
-    Scene *scene() { return m_scene; }
+    std::weak_ptr<Scene> &scene() { return m_scene; }
 
 private:
-    Scene *m_scene;
+    std::weak_ptr<Scene> m_scene;
+
 };
 
 }

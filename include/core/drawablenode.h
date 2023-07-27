@@ -33,10 +33,6 @@ public:
     const utils::BoundingBox &boundingBox() const override;
 
     void recalculateLocalBoundingBox();
-
-private:
-    void initialize();
-
 };
 
 }

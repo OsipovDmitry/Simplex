@@ -24,13 +24,14 @@ public:
 
     void setApplication(std::shared_ptr<core::IApplication>);
 
-    std::shared_ptr<core::IGraphicsRenderer> graphicsRenderer();
-    std::shared_ptr<const core::IGraphicsRenderer> graphicsRenderer() const;
+    std::shared_ptr<core::graphics::IRenderer> graphicsRenderer();
+    std::shared_ptr<const core::graphics::IRenderer> graphicsRenderer() const;
 
 protected:
-    void initializeGL() override;
     void resizeGL(int, int) override;
     void paintGL() override;
+
+    void closeEvent(QCloseEvent*) override;
 
 private:
     std::unique_ptr<QtRenderWidgetPrivate> m_;

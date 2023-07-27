@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <string>
+#include <filesystem>
 
 #include <utils/noncopyble.h>
 #include <utils/enumclass.h>
@@ -57,6 +58,7 @@ public:
 
     Logger &operator <<(const char*);
     Logger &operator <<(const std::string&);
+    Logger &operator <<(const std::filesystem::path&);
     Logger &operator <<(bool);
     Logger &operator <<(float);
     Logger &operator <<(double);

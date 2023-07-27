@@ -15,5 +15,3 @@ SOURCES += \
 
 LIBS += \
     -lutils
-
-RESOURCES +=

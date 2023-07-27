@@ -7,8 +7,6 @@ namespace simplex
 namespace core
 {
 
-std::shared_ptr<IGraphicsRenderer::VertexArray> NodePrivate::s_boundingBoxVertexArray;
-
 NodePrivate::NodePrivate(const std::string &name)
     : m_name(name)
     , m_globalTransfomDirty(true)
@@ -53,11 +51,6 @@ void NodePrivate::doUpdate(uint64_t, uint32_t)
 {
 }
 
-std::shared_ptr<ColoredDrawable> &NodePrivate::boundingBoxDrawable()
-{
-    return m_boundingBoxDrawable;
-}
-
 void NodePrivate::dirtyGlobalTransform(std::shared_ptr<Node> node)
 {
     node->m().isGlobalTransformDirty() = true;
@@ -70,11 +63,6 @@ void NodePrivate::dirtyBoundingBox(std::shared_ptr<Node> node)
     node->m().isBoundingBoxDirty() = true;
     if (auto parent = node->parent(); parent)
         dirtyBoundingBox(parent);
-}
-
-std::shared_ptr<IGraphicsRenderer::VertexArray> &NodePrivate::boundingBoxVertexArray()
-{
-    return s_boundingBoxVertexArray;
 }
 
 }

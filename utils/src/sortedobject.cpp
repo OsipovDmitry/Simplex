@@ -5,6 +5,11 @@ namespace simplex
 namespace utils
 {
 
+SortedObject::SortedObject()
+{
+    setUnsortedIndex();
+}
+
 SortedObject::SortedObject(uint32_t index)
     : m_sortIndex(index)
 {

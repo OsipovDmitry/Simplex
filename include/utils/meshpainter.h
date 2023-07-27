@@ -7,7 +7,6 @@
 
 #include <utils/utilsglobal.h>
 #include <utils/forwarddecl.h>
-#include <utils/types.h>
 #include <utils/glm/vec4.hpp>
 #include <utils/glm/mat4x4.hpp>
 
@@ -20,7 +19,7 @@ class AbstractPainterPrivate;
 class UTILS_SHARED_EXPORT AbstractPainter
 {
 public:
-    AbstractPainter(std::shared_ptr<Mesh> = nullptr);
+    AbstractPainter(std::shared_ptr<Mesh>);
     virtual ~AbstractPainter();
 
     std::shared_ptr<const Mesh> mesh() const;
@@ -43,7 +42,7 @@ public:
     void drawElements(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices,
                       PrimitiveType primitiveType,
                       const std::vector<uint32_t> &indices,
-                      Type drawElemetsBufferType = Type::Uint32);
+                      DrawElementsIndexType drawElemetsBufferType);
 
 protected:
     std::unique_ptr<AbstractPainterPrivate> m_;
@@ -54,7 +53,8 @@ protected:
 class UTILS_SHARED_EXPORT MeshPainter : public AbstractPainter
 {
 public:
-    MeshPainter(std::shared_ptr<Mesh> = nullptr);
+    explicit MeshPainter(std::shared_ptr<Mesh>);
+    ~MeshPainter() override;
 
     void drawTriangle();
     void drawTetrahedron();
@@ -64,6 +64,7 @@ public:
     void drawTeapot();
     void drawSphere(uint32_t = 8u);
     void drawCamera();
+    void drawScreenQuad();
 };
 
 }

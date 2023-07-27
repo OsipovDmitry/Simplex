@@ -128,6 +128,14 @@ Logger &Logger::operator <<(const std::string &value)
     return *this;
 }
 
+
+Logger &Logger::operator <<(const std::filesystem::path &value)
+{
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
+        m_->stringStream() << value;
+    return *this;
+}
+
 Logger &Logger::operator <<(bool value)
 {
     if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())

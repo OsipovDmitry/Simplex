@@ -24,11 +24,12 @@ std::shared_ptr<const SceneRootNode> SceneRootNode::asSceneRootNode() const
 
 std::shared_ptr<Scene> SceneRootNode::scene()
 {
-    return m().scene()->shared_from_this();
+    auto wpScene = m().scene();
+    return wpScene.expired() ? nullptr : wpScene.lock();
 }
 
-SceneRootNode::SceneRootNode(const std::string &name, Scene *scene)
-    : Node(new SceneRootNodePrivate(name, scene))
+SceneRootNode::SceneRootNode(const std::string &name)
+    : Node(std::make_unique<SceneRootNodePrivate>(name))
 {
 }
 

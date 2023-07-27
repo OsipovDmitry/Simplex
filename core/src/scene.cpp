@@ -8,8 +8,10 @@ namespace simplex
 namespace core
 {
 
+const std::string SceneRootNodeName = "SceneRootNode";
+
 Scene::Scene(const std::string &name)
-    : m_(std::make_unique<ScenePrivate>(name, std::shared_ptr<SceneRootNode>(new SceneRootNode("SceneRootNode", this))))
+    : m_(std::make_unique<ScenePrivate>(name, std::shared_ptr<SceneRootNode>(new SceneRootNode(SceneRootNodeName))))
 {
 }
 
