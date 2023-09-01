@@ -61,9 +61,9 @@ public:
         return true;
     }
 
-    int relationDegree(std::shared_ptr<const T> grandParent) const
+    int32_t relationDegree(std::shared_ptr<const T> grandParent) const
     {
-        int degree = 0;
+        int32_t degree = 0;
         auto thisNode = this;
         while (thisNode && thisNode != grandParent.get())
             thisNode = thisNode->m_parent;

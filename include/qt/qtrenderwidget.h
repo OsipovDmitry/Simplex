@@ -22,7 +22,9 @@ public:
     QtRenderWidget();
     ~QtRenderWidget() override;
 
-    void setApplication(std::shared_ptr<core::IApplication>);
+    void setApplication(std::weak_ptr<core::IApplication>);
+    std::weak_ptr<core::IApplication> application();
+    std::weak_ptr<const core::IApplication> application() const;
 
     std::shared_ptr<core::graphics::IRenderer> graphicsRenderer();
     std::shared_ptr<const core::graphics::IRenderer> graphicsRenderer() const;

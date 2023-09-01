@@ -4,6 +4,10 @@
 #include <utils/boundingbox.h>
 #include <utils/primitiveset.h>
 
+#include <core/igraphicsrenderer.h>
+#include <core/idrawable.h>
+#include <core/uniform.h>
+
 #include "drawablebaseprivate.h"
 
 namespace simplex
@@ -49,8 +53,8 @@ static void readDataToVec(const uint8_t* data,
         readDataToType<T>(data + i * typeSize, type, result[static_cast<int>(i)]);
 }
 
-DrawableBase::DrawableBase(std::shared_ptr<graphics::IRenderProgram> renderProgram, std::shared_ptr<graphics::IVertexArray> vertexArray)
-    : DrawableBase(std::make_unique<DrawableBasePrivate>(renderProgram, vertexArray))
+DrawableBase::DrawableBase(std::shared_ptr<graphics::IVertexArray> vertexArray)
+    : DrawableBase(std::make_unique<DrawableBasePrivate>(vertexArray))
 {
 }
 
@@ -135,9 +139,10 @@ utils::BoundingBox DrawableBase::calculateBoundingBox()
     return result;
 }
 
-std::shared_ptr<graphics::IRenderProgram> DrawableBase::renderProgram()
+bool DrawableBase::isTransparent() const
 {
-    return m_->renderProgram();
+    return false;
+    //return m_->vertexArray()->vertexAttributeNumComponents(utils::VertexAttribute::Color) == 4u;
 }
 
 std::shared_ptr<graphics::IVertexArray> DrawableBase::vertexArray()
@@ -145,68 +150,39 @@ std::shared_ptr<graphics::IVertexArray> DrawableBase::vertexArray()
     return m_->vertexArray();
 }
 
-std::shared_ptr<const AbstractUniform> DrawableBase::uniform(const graphics::UniformInfo &uniformInfo) const
+const PAbstratcUniform DrawableBase::uniform(graphics::UniformId id) const
 {
-    std::shared_ptr<const AbstractUniform> result;
+    auto it = m_->uniforms().find(id);
+    return it != m_->uniforms().end() ? it->second : nullptr;
+}
 
-    if (auto it = m_->uniforms().find(uniformInfo.location); it != m_->uniforms().end())
-        result = it->second;
-    else
-    {
-        auto uniformName = m_->renderProgram()->uniformNameByIndex(uniformInfo.index);
-        LOG_ERROR << "Undefined uniform name \"" << uniformName << "\" in render program";
-    }
+PAbstratcUniform &DrawableBase::getOrCreateUniform(graphics::UniformId id)
+{
+    auto it = m_->uniforms().find(id);
+    return it != m_->uniforms().end() ? it->second : (m_->uniforms()[id] = std::shared_ptr<AbstractUniform>());
+}
 
-    return result;
+const PAbstratcUniform DrawableBase::userUniform(const std::string& name) const
+{
+    auto it = m_->userUniforms().find(name);
+    return it != m_->userUniforms().end() ? it->second : nullptr;
+}
+
+PAbstratcUniform &DrawableBase::getOrCreateUserUniform(const std::string& name)
+{
+    auto it = m_->userUniforms().find(name);
+    return it != m_->userUniforms().end() ? it->second : (m_->userUniforms()[name] = std::shared_ptr<AbstractUniform>());
+}
+
+const graphics::PBufferRange DrawableBase::SSBO(graphics::SSBOId id) const
+{
+    auto it = m_->SSBOs().find(id);
+    return it != m_->SSBOs().end() ? it->second : nullptr;
 }
 
 DrawableBase::DrawableBase(std::unique_ptr<DrawableBasePrivate> drawableBasePrivate)
     : m_(std::move(drawableBasePrivate))
 {
-    initialize();
-}
-
-void DrawableBase::addUniform(int32_t location, std::shared_ptr<AbstractUniform> uniform)
-{
-    m_->uniforms().insert({location, uniform});
-}
-
-void DrawableBase::removeUniform(int32_t location)
-{
-    m_->uniforms().erase(location);
-}
-
-std::shared_ptr<AbstractUniform> DrawableBase::uniform(int32_t location) const
-{
-    auto it = m_->uniforms().find(location);
-    return (it != m_->uniforms().end()) ? it->second : nullptr;
-}
-
-void DrawableBase::initialize()
-{
-    auto vao = m_->vertexArray();
-    auto rp = m_->renderProgram();
-
-    assert(vao);
-    assert(rp);
-
-    for (const auto &attributeInfo : rp->attributesInfo())
-    {
-        auto bindingIndex = vao->vertexAttributeBindingIndex(attributeInfo.id);
-        if (bindingIndex == static_cast<uint32_t>(-1))
-        {
-            LOG_ERROR << "Vertex array does not have vertex attribute \"" <<
-                         rp->attributeNameByIndex(attributeInfo.index) <<
-                         "\"";
-        }
-        else if ((attributeInfo.numComponents != vao->vertexAttributeNumComponents(attributeInfo.id)) ||
-                 (attributeInfo.componentType != vao->vertexAttributeComponentType(attributeInfo.id)))
-        {
-            LOG_ERROR << "Attributes of vertex array and render program have different types (" <<
-                         rp->attributeNameByIndex(attributeInfo.index) <<
-                         ")";
-        }
-    }
 }
 
 }

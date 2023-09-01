@@ -9,9 +9,7 @@ NodeVisitor::NodeVisitor()
 {
 }
 
-NodeVisitor::~NodeVisitor()
-{
-}
+NodeVisitor::~NodeVisitor() = default;
 
 bool NodeVisitor::visit(std::shared_ptr<Node>)
 {

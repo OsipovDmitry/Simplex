@@ -1,5 +1,6 @@
 #include <core/nodevisitor.h>
 #include <core/node.h>
+#include <core/scenerootnode.h>
 
 #include "nodeprivate.h"
 
@@ -20,6 +21,24 @@ Node::~Node()
 const std::string &Node::name() const
 {
     return m_->name();
+}
+
+std::shared_ptr<const Scene> Node::scene() const
+{
+    return const_cast<Node*>(this)->scene();
+}
+
+std::shared_ptr<Scene> Node::scene()
+{
+    auto p = asNode();
+    for (auto parentNode = p->parent(); parentNode; parentNode = parentNode->parent())
+        p = parentNode;
+
+    std::shared_ptr<Scene> result = nullptr;
+    if (auto sceneRootNode = p->asSceneRootNode(); sceneRootNode)
+        result = sceneRootNode->scene();
+
+    return result;
 }
 
 std::shared_ptr<Node> Node::asNode()

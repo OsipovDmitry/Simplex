@@ -29,7 +29,8 @@ public:
     static GLenum FrameBufferAttachment2GL(core::graphics::FrameBufferAttachment);
     static GLenum TextureWrapMode2GL(core::graphics::TextureWrapMode);
     static GLbitfield BufferMapAccess2GL(core::graphics::IBuffer::MapAccess);
-    static uint16_t GL2PixelNumComponents(GLenum); // for shader vertex attribute
+    static GLenum ImageDataAccess2GL(core::graphics::IImage::DataAccess);
+    static uint16_t GL2VertexNumComponents(GLenum); // for shader vertex attribute
     static utils::VertexComponentType GL2VertexComponentType(GLenum); // for shader vertex attribute
     static GLenum UniformType2GL(core::graphics::UniformType);
     static core::graphics::UniformType GL2UniformType(GLenum);
@@ -70,6 +71,24 @@ private:
 
 
     friend class MappedData_4_5;
+};
+
+class BufferRange_4_5 : public core::graphics::IBufferRange
+{
+public:
+    BufferRange_4_5(std::shared_ptr<core::graphics::IBuffer>, size_t, size_t);
+    ~BufferRange_4_5() override;
+
+    std::shared_ptr<const core::graphics::IBuffer> buffer() const override;
+    std::shared_ptr<core::graphics::IBuffer> buffer() override;
+
+    size_t offset() const override;
+    size_t size() const override;
+
+private:
+    std::shared_ptr<core::graphics::IBuffer> m_buffer;
+    size_t m_offset;
+    size_t m_size;
 };
 
 class VertexArray_4_5 : public core::graphics::IVertexArray
@@ -138,6 +157,8 @@ public:
     void setWrapMode(core::graphics::TextureWrapMode) override;
     void setFiltering(core::graphics::TextureFiltering) override;
 
+    GLenum GLinternalFormat() const;
+
 protected:
     GLuint m_id = 0;
 };
@@ -175,6 +196,25 @@ public:
                      uint32_t numComponents,
                      utils::PixelComponentType type,
                      const void *data) override;
+};
+
+class Image_4_5 : public core::graphics::IImage
+{
+public:
+    Image_4_5(std::shared_ptr<core::graphics::ITexture>, DataAccess, uint32_t);
+    ~Image_4_5() override;
+
+    std::shared_ptr<const core::graphics::ITexture> texture() const override;
+    std::shared_ptr<core::graphics::ITexture> texture() override;
+
+    DataAccess access() const override;
+
+    uint32_t mipmapLevel() const override;
+
+protected:
+    std::shared_ptr<core::graphics::ITexture> m_texture;
+    uint32_t m_level;
+    DataAccess m_access;
 };
 
 class RenderBuffer_4_5 : public core::graphics::IRenderBuffer
@@ -274,25 +314,30 @@ public:
     ~RenderProgram_4_5() override;
 
     GLuint id() const;
-    bool compile(std::string&);
+    bool preBuild(std::string&);
+    bool postBuild(std::string&);
 
     int32_t attributeLocationByName(const std::string&) const override;
     int32_t uniformLocationByName(const std::string&) const override;
 
     const std::vector<core::graphics::AttributeInfo> &attributesInfo() const override;
     const std::vector<core::graphics::UniformInfo> &uniformsInfo() const override;
+    const std::vector<core::graphics::SSBOInfo> &SSBOsInfo() const override;
 
     std::string attributeNameByIndex(uint16_t) const override;
     std::string uniformNameByIndex(uint16_t) const override;
+    std::string SSBONameByIndex(uint16_t) const override;
 
 private:
     GLuint m_id = 0;
 
     std::vector<core::graphics::AttributeInfo> m_attributesInfo;
     std::vector<core::graphics::UniformInfo> m_uniformsInfo;
+    std::vector<core::graphics::SSBOInfo> m_SSBOsInfo;
 
     GLint m_attributeNameMaxLength;
     GLint m_uniformNameMaxLength;
+    GLint m_SSBONameMaxLength;
 };
 
 
@@ -308,10 +353,18 @@ public:
     std::shared_ptr<core::graphics::IFrameBuffer> defaultFrameBuffer() override;
     std::shared_ptr<const core::graphics::IFrameBuffer> defaultFrameBuffer() const override;
 
-    std::shared_ptr<core::graphics::IRenderProgram> createRenderProgram(const std::string &vertexShader,
-                                                                        const std::string &fragmentShader) const override;
+    void blitFrameBuffer(std::shared_ptr<const core::graphics::IFrameBuffer> src,
+                         std::shared_ptr<core::graphics::IFrameBuffer> dst,
+                         uint32_t srcX, uint32_t srcY, uint32_t srcWidth, uint32_t srcHeight,
+                         uint32_t dstX, uint32_t dstY, uint32_t dstWidth, uint32_t dstHeight,
+                         bool colorMsk, bool depthMask, bool stencilMask,
+                         bool linearFilter = false) override;
+
     std::shared_ptr<core::graphics::IBuffer> createBuffer(size_t = 0u,
                                                           const void* = nullptr) const override;
+    std::shared_ptr<core::graphics::IBufferRange> createBufferRange(std::shared_ptr<core::graphics::IBuffer>,
+                                                                    size_t,
+                                                                    size_t = static_cast<size_t>(-1)) const override;
     std::shared_ptr<core::graphics::IVertexArray> createVertexArray(std::shared_ptr<utils::Mesh> = nullptr,
                                                                     bool uniteVertexBuffers = true) const override;
     std::shared_ptr<core::graphics::ITexture> createTexture2DEmpty(uint32_t width,
@@ -325,10 +378,15 @@ public:
     std::shared_ptr<core::graphics::ITexture> createTextureRectEmpty(uint32_t width,
                                                                    uint32_t height,
                                                                    core::graphics::PixelInternalFormat) const override;
+    std::shared_ptr<core::graphics::IImage> createImage(std::shared_ptr<core::graphics::ITexture>,
+                                                    core::graphics::IImage::DataAccess,
+                                                    uint32_t level = 0u) const override;
     std::shared_ptr<core::graphics::IRenderBuffer> createRenderBuffer(uint32_t width,
                                                                       uint32_t height,
                                                                       core::graphics::PixelInternalFormat) const override;
     std::shared_ptr<core::graphics::IFrameBuffer> createFrameBuffer() const override;
+    std::shared_ptr<core::graphics::IRenderProgram> createRenderProgram(const std::string &vertexShader,
+                                                                        const std::string &fragmentShader) const override;
 
     void resize(uint32_t, uint32_t) override;
     const glm::uvec2 &viewportSize() const override;
@@ -337,7 +395,11 @@ public:
     void addRenderData(const glm::mat4&, std::shared_ptr<core::IDrawable>) override;
     void render(const core::RenderInfo&) override;
 
-    int32_t bindTexture(std::shared_ptr<const core::graphics::ITexture>);
+    int32_t bindTexture(const core::graphics::PTexture&);
+    int32_t bindImage(const core::graphics::PImage&);
+    void bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PBufferRange&);
+    uint32_t bindSSBO(const core::graphics::PBufferRange&);
+    void bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PBufferRange&);
 
     static std::shared_ptr<QtOpenGL_4_5_Renderer> create(QOpenGLContext*, GLuint);
     static std::shared_ptr<QtOpenGL_4_5_Renderer> instance(QOpenGLContext* = nullptr);
@@ -346,7 +408,7 @@ private:
     QtOpenGL_4_5_Renderer(QOpenGLContext*, GLuint);
     void makeDefaultFrameBuffer(GLuint);
 
-    void setupUniform(GLuint, GLint, std::shared_ptr<const core::AbstractUniform>);
+    void setupUniform(GLuint rpId, GLint loc, std::shared_ptr<const core::AbstractUniform>);
     void setupUniforms(std::shared_ptr<core::IDrawable>, const core::RenderInfo&, const glm::mat4&);
 
     std::shared_ptr<DefaultFrameBuffer_4_5> m_defaultFrameBuffer;
@@ -354,6 +416,8 @@ private:
     std::list<std::pair<glm::mat4, std::shared_ptr<core::IDrawable>>> m_renderData;
     glm::uvec2 m_viewportSize;
     int32_t m_textureUnit;
+    int32_t m_imageUnit;
+    uint32_t m_bufferUnit;
 
     static std::unordered_map<QOpenGLContext*, std::weak_ptr<QtOpenGL_4_5_Renderer>> s_instances;
 };

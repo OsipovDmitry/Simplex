@@ -3,13 +3,15 @@
 #include <QVBoxLayout>
 #include <QSplitter>
 #include <QPointer>
-#include <QListWidget>
 #include <QTimer>
+#include <QKeyEvent>
 
 #include <iostream>
 
 #include <utils/logger.h>
 #include <utils/shader.h>
+#include <utils/transform.h>
+#include <utils/glm/gtc/constants.hpp>
 
 #include <core/graphicsengine.h>
 #include <core/scene.h>
@@ -20,6 +22,7 @@
 
 #include <qt/qtrenderwidget.h>
 
+#include "main.h"
 #include "testapplication.h"
 
 class LoggerOutput : public simplex::utils::Logger::Output
@@ -41,65 +44,195 @@ private:
     QPointer<QTextEdit> m_textEdit;
 };
 
+MainWidget::MainWidget()
+    : QWidget(nullptr)
+    , m_renderTypeListWidget(new QListWidget())
+    , m_renderWidget(new simplex::qt::QtRenderWidget())
+{
+    setWindowTitle("Simplex 3D Engine");
+
+    m_renderTypeListWidget->addItem("Base color");
+    m_renderTypeListWidget->addItem("Metalness");
+    m_renderTypeListWidget->addItem("Roughness");
+    m_renderTypeListWidget->addItem("Normals");
+    m_renderTypeListWidget->addItem("Depth");
+    m_renderTypeListWidget->addItem("OIT indices");
+    m_renderTypeListWidget->addItem("OIT color");
+    m_renderTypeListWidget->addItem("OIT fragments count");
+    m_renderTypeListWidget->addItem("Final color");
+    QObject::connect(m_renderTypeListWidget, &QListWidget::currentRowChanged, this, &MainWidget::renderTypeChanged);
+
+    auto splitter = new QSplitter(Qt::Horizontal);
+    splitter->addWidget(m_renderWidget);
+    splitter->addWidget(m_renderTypeListWidget);
+    splitter->setStretchFactor(0, 2);
+    splitter->setStretchFactor(1, 1);
+
+    auto layout = new QVBoxLayout();
+    layout->addWidget(splitter);
+    setLayout(layout);
+
+    auto timer = new QTimer(this);
+    timer->setInterval(16);
+    QObject::connect(timer, &QTimer::timeout, this, &MainWidget::onTimeout);
+    timer->start();
+}
+
+QListWidget *MainWidget::renderTypeListWidget()
+{
+    return m_renderTypeListWidget;
+}
+
+simplex::qt::QtRenderWidget *MainWidget::renderWidget()
+{
+    return m_renderWidget;
+}
+
+void MainWidget::onTimeout()
+{
+    m_renderWidget->setFocus();
+
+    if (m_renderWidget->application().expired())
+        return;
+
+    if (m_isUpPressed)
+        m_cameraAngles.x += 0.03f;
+
+    if (m_isDownPressed)
+        m_cameraAngles.x -= 0.03f;
+
+    if (m_isLeftPressed)
+        m_cameraAngles.y += 0.03f;
+
+    if (m_isRightPressed)
+        m_cameraAngles.y -= 0.03f;
+
+    m_cameraAngles.x = glm::max(m_cameraAngles.x, -glm::half_pi<float>());
+    m_cameraAngles.x = glm::min(m_cameraAngles.x, +glm::half_pi<float>());
+    m_cameraAngles.y = glm::mod(m_cameraAngles.y, glm::two_pi<float>());
+
+    auto cameraRotation = simplex::utils::Transform::fromRotation(glm::quat(glm::vec3(m_cameraAngles, 0.0f)));
+    auto cameraFowrardDir = cameraRotation * glm::vec3(0.0f, 0.0f, -1.0f);
+    auto cameraRightDir = cameraRotation * glm::vec3(1.0f, 0.0f, 0.0f);
+
+    if (m_isWPressed)
+        m_cameraPosition += cameraFowrardDir * 0.1f;
+
+    if (m_isSPressed)
+        m_cameraPosition -= cameraFowrardDir * 0.1f;
+
+    if (m_isDPressed)
+        m_cameraPosition += cameraRightDir * 0.1f;
+
+    if (m_isAPressed)
+        m_cameraPosition -= cameraRightDir * 0.1f;
+
+    auto cameraTranslation = simplex::utils::Transform::fromTranslation(m_cameraPosition);
+    auto cameraTransform = cameraTranslation * cameraRotation;
+
+    auto app = m_renderWidget->application().lock();
+    if (auto testApplication = std::dynamic_pointer_cast<TestApplication>(app); testApplication)
+    {
+        const auto &scenes = testApplication->graphicsEngine()->scenes();
+        assert(!scenes.empty());
+
+        simplex::core::CollectorVisitor<simplex::core::CameraNode> cameraCollector;
+        scenes.front()->sceneRootNode()->accept(cameraCollector);
+        assert(!cameraCollector.nodes().empty());
+
+        cameraCollector.nodes().front()->setTransform(cameraTransform);
+    }
+
+    m_renderWidget->update();
+}
+
+void MainWidget::keyPressEvent(QKeyEvent *event)
+{
+    switch (event->key())
+    {
+    case Qt::Key::Key_W:
+        m_isWPressed = true;
+        break;
+    case Qt::Key::Key_S:
+        m_isSPressed = true;
+        break;
+    case Qt::Key::Key_A:
+        m_isAPressed = true;
+        break;
+    case Qt::Key::Key_D:
+        m_isDPressed = true;
+        break;
+    case Qt::Key::Key_Up:
+        m_isUpPressed = true;
+        break;
+    case Qt::Key::Key_Down:
+        m_isDownPressed = true;
+        break;
+    case Qt::Key::Key_Left:
+        m_isLeftPressed = true;
+        break;
+    case Qt::Key::Key_Right:
+        m_isRightPressed = true;
+        break;
+    default:
+        break;
+    }
+
+    event->accept();
+}
+
+void MainWidget::keyReleaseEvent(QKeyEvent *event)
+{
+    switch (event->key())
+    {
+    case Qt::Key::Key_W:
+        m_isWPressed = false;
+        break;
+    case Qt::Key::Key_S:
+        m_isSPressed = false;
+        break;
+    case Qt::Key::Key_A:
+        m_isAPressed = false;
+        break;
+    case Qt::Key::Key_D:
+        m_isDPressed = false;
+        break;
+    case Qt::Key::Key_Up:
+        m_isUpPressed = false;
+        break;
+    case Qt::Key::Key_Down:
+        m_isDownPressed = false;
+        break;
+    case Qt::Key::Key_Left:
+        m_isLeftPressed = false;
+        break;
+    case Qt::Key::Key_Right:
+        m_isRightPressed = false;
+        break;
+    default:
+        break;
+    }
+
+    event->accept();
+}
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-//    auto textEdit = new QTextEdit;
-//    textEdit->setReadOnly(true);
-//    simplex::utils::Logger::setOutput(std::make_shared<LoggerOutput>(textEdit));
+    auto mainWidget = new MainWidget();
+    mainWidget->showMaximized();
 
+    auto testApplication = std::make_shared<TestApplication>(mainWidget->renderWidget()->graphicsRenderer());
+    mainWidget->renderWidget()->setApplication(testApplication);
 
-    auto listWidget = new QListWidget;
-    listWidget->addItem("Base color");
-    listWidget->addItem("Metalness");
-    listWidget->addItem("Roughness");
-    listWidget->addItem("Normals");
-    listWidget->addItem("Depth");
-
-    auto renderWidget = new simplex::qt::QtRenderWidget;
-
-    auto splitter = new QSplitter(Qt::Horizontal);
-    splitter->addWidget(renderWidget);
-    splitter->addWidget(listWidget);
-    splitter->setStretchFactor(0, 2);
-    splitter->setStretchFactor(1, 1);
-
-//    auto widget = new QSplitter(Qt::Vertical);
-//    widget->addWidget(splitter);
-//    widget->addWidget(textEdit);
-//    widget->setStretchFactor(0, 3);
-//    widget->setStretchFactor(1, 1);
-
-    splitter->setWindowTitle("Simplex 3D Engine");
-    splitter->showMaximized();
-
-    auto testApplication = std::make_shared<TestApplication>(renderWidget->graphicsRenderer());
-    renderWidget->setApplication(testApplication);
-
-//    auto sceneRootNode = testApplication->graphicsEngine()->scenes().begin()->get()->sceneRootNode();
-
-//    simplex::core::CollectorVisitor<simplex::core::CameraNode> cameraNodeCollector;
-//    sceneRootNode->accept(cameraNodeCollector);
-
-//    for (auto &camera : cameraNodeCollector.nodes())
-//    {
-//        listWidget->addItem(QString::fromStdString(camera->name()));
-//    }
-    QObject::connect(listWidget, &QListWidget::currentRowChanged, [renderWidget, testApplication](int row) {
+    QObject::connect(mainWidget, &MainWidget::renderTypeChanged, [testApplication](int row) {
         testApplication->graphicsEngine()->setF(row);
-        renderWidget->update();
     });
-    listWidget->setCurrentRow(0);
-
-    auto timer = new QTimer(renderWidget);
-    timer->setInterval(16);
-    QObject::connect(timer, &QTimer::timeout, [renderWidget](){ renderWidget->update(); });
-    timer->start();
+    mainWidget->renderTypeListWidget()->setCurrentRow(0);
 
     auto result = QApplication::exec();
 
-    delete timer;
-    delete splitter;
+    delete mainWidget;
     return result;
 }

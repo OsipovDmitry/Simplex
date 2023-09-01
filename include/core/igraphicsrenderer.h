@@ -110,7 +110,16 @@ ENUMCLASS(UniformId, uint16_t,
           ViewZDirection,
           GBufferColor0Map,
           GBufferColor1Map,
-          GBufferDepthMap)
+          GBufferDepthMap,
+          OITIndicesImage,
+          OITNodesCounter,
+          BaseColor,
+          Metalness,
+          Roughness,
+          BaseColorMap,
+          MetalnessMap,
+          RoughnessMap,
+          NormalMap)
 
 ENUMCLASS(UniformType, uint16_t,
           Undefined,
@@ -143,7 +152,62 @@ ENUMCLASS(UniformType, uint16_t,
           Sampler1DArray,
           Sampler2DArray,
           SamplerCubeArray,
-          SamplerRect)
+          SamplerRect,
+          IntSampler1D,
+          IntSampler2D,
+          IntSampler3D,
+          IntSamplerCube,
+          IntSampler1DArray,
+          IntSampler2DArray,
+          IntSamplerCubeArray,
+          IntSamplerRect,
+          UintSampler1D,
+          UintSampler2D,
+          UintSampler3D,
+          UintSamplerCube,
+          UintSampler1DArray,
+          UintSampler2DArray,
+          UintSamplerCubeArray,
+          UintSamplerRect,
+          Image1D,
+          Image2D,
+          Image3D,
+          ImageCube,
+          Image1DArray,
+          Image2DArray,
+          ImageCubeArray,
+          ImageRect,
+          IntImage1D,
+          IntImage2D,
+          IntImage3D,
+          IntImageCube,
+          IntImage1DArray,
+          IntImage2DArray,
+          IntImageCubeArray,
+          IntImageRect,
+          UintImage1D,
+          UintImage2D,
+          UintImage3D,
+          UintImageCube,
+          UintImage1DArray,
+          UintImage2DArray,
+          UintImageCubeArray,
+          UintImageRect,
+          AtomicCounterUint)
+
+ENUMCLASS(SSBOId, uint16_t,
+          Undefined,
+          BonesBuffer,
+          OITNodes)
+
+struct AttributeInfo
+{
+    utils::VertexAttribute id;
+    uint16_t index;
+    int32_t location;
+    uint16_t numComponents;
+    utils::VertexComponentType componentType;
+};
 
 struct UniformInfo
 {
@@ -153,13 +217,10 @@ struct UniformInfo
     UniformType type;
 };
 
-struct AttributeInfo
+struct SSBOInfo
 {
-    utils::VertexAttribute id;
+    SSBOId id;
     uint16_t index;
-    int32_t location;
-    uint16_t numComponents;
-    utils::VertexComponentType componentType;
 };
 
 ENUMCLASS(FaceType, uint16_t,
@@ -180,7 +241,7 @@ static constexpr uint16_t FrameBufferColorAttachmentIndex(FrameBufferAttachment 
 }
 
 static constexpr uint16_t FrameBufferColorAttachmentsCount() {
-    return FrameBufferColorAttachmentIndex(FrameBufferAttachment::Depth);
+    return FrameBufferColorAttachmentIndex(FrameBufferAttachment::Depth) - FrameBufferColorAttachmentIndex(FrameBufferAttachment::Color0);
 }
 
 static constexpr bool IsFrameBufferColorAttachment(FrameBufferAttachment a) {
@@ -205,6 +266,18 @@ public:
     ENUMCLASS(MapAccess, uint8_t, ReadOnly, WriteOnly, ReadWrite)
     virtual std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const = 0;
     virtual std::unique_ptr<MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) = 0;
+};
+
+class IBufferRange
+{
+public:
+    virtual ~IBufferRange() = default;
+
+    virtual std::shared_ptr<const IBuffer> buffer() const = 0;
+    virtual std::shared_ptr<IBuffer> buffer() = 0;
+
+    virtual size_t offset() const = 0;
+    virtual size_t size() const = 0;
 };
 
 class IVertexArray
@@ -270,6 +343,20 @@ public:
 
 };
 
+class IImage
+{
+public:
+    virtual ~IImage() = default;
+
+    virtual std::shared_ptr<const ITexture> texture() const = 0;
+    virtual std::shared_ptr<ITexture> texture() = 0;
+
+    ENUMCLASS(DataAccess, uint8_t, ReadOnly, WriteOnly, ReadWrite)
+    virtual DataAccess access() const = 0;
+
+    virtual uint32_t mipmapLevel() const = 0;
+};
+
 class IRenderBuffer : public ISurface
 {
 public:
@@ -325,17 +412,21 @@ public:
 
     virtual const std::vector<AttributeInfo> &attributesInfo() const = 0;
     virtual const std::vector<UniformInfo> &uniformsInfo() const = 0;
+    virtual const std::vector<SSBOInfo> &SSBOsInfo() const = 0;
 
     virtual std::string attributeNameByIndex(uint16_t) const = 0;
     virtual std::string uniformNameByIndex(uint16_t) const = 0;
+    virtual std::string SSBONameByIndex(uint16_t) const = 0;
 
+    static UniformType uniformTypeByUniformId(UniformId);
     static UniformType uniformTypeByTextureType(TextureType);
+    static UniformType uniformTypeByImageTextureType(TextureType);
+    static utils::VertexComponentType attributeVertexComponentTypeByAttributeId(utils::VertexAttribute);
 
 protected:
     static utils::VertexAttribute vertexAttributeByName(const std::string&);
     static UniformId UniformIdByName(const std::string&);
-
-    static UniformType uniformTypeByUniformId(UniformId);
+    static SSBOId SSBOIdByName(const std::string&);
 };
 
 class IRenderer : public INamedObject
@@ -344,16 +435,27 @@ public:
     virtual std::shared_ptr<IFrameBuffer> defaultFrameBuffer() = 0;
     virtual std::shared_ptr<const IFrameBuffer> defaultFrameBuffer() const = 0;
 
-    virtual std::shared_ptr<IRenderProgram> createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const = 0;
+    virtual void blitFrameBuffer(std::shared_ptr<const IFrameBuffer> src,
+                                 std::shared_ptr<IFrameBuffer> dst,
+                                 uint32_t srcX, uint32_t srcY, uint32_t srcWidth, uint32_t srcHeight,
+                                 uint32_t dstX, uint32_t dstY, uint32_t dstWidth, uint32_t dstHeight,
+                                 bool colorMsk, bool depthMask, bool stencilMask,
+                                 bool linearFilter = false) = 0;
+
     virtual std::shared_ptr<IBuffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
+    virtual std::shared_ptr<IBufferRange> createBufferRange(std::shared_ptr<IBuffer>, size_t, size_t = static_cast<size_t>(-1)) const = 0;
     virtual std::shared_ptr<IVertexArray> createVertexArray(std::shared_ptr<utils::Mesh> = nullptr, bool uniteBuffers = true) const = 0;
     virtual std::shared_ptr<ITexture> createTexture2DEmpty(uint32_t width, uint32_t height, PixelInternalFormat, uint32_t numLevels = 1) const = 0;
     virtual std::shared_ptr<ITexture> createTexture2D(std::shared_ptr<utils::Image>,
                                                       PixelInternalFormat = PixelInternalFormat::Undefined,
                                                       uint32_t numLevels = 0, bool genMipmaps = true) const = 0;
     virtual std::shared_ptr<ITexture> createTextureRectEmpty(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat) const = 0;
+    virtual std::shared_ptr<IImage> createImage(std::shared_ptr<ITexture>,
+                                                IImage::DataAccess,
+                                                uint32_t level = 0u) const = 0;
     virtual std::shared_ptr<IRenderBuffer> createRenderBuffer(uint32_t width, uint32_t height, PixelInternalFormat) const = 0;
     virtual std::shared_ptr<IFrameBuffer> createFrameBuffer() const = 0;
+    virtual std::shared_ptr<IRenderProgram> createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const = 0;
 
     virtual void resize(uint32_t, uint32_t) = 0;
     virtual const glm::uvec2 &viewportSize() const = 0;
@@ -363,21 +465,90 @@ public:
     virtual void render(const RenderInfo&) = 0;
 };
 
-inline UniformType IRenderProgram::uniformTypeByTextureType(TextureType type)
+inline UniformType IRenderProgram::uniformTypeByUniformId(UniformId uniformId)
 {
-    static const std::unordered_map<TextureType, UniformType> s_table {
-        { TextureType::Type1D, UniformType::Sampler1D },
-        { TextureType::Type2D, UniformType::Sampler2D },
-        { TextureType::Type3D, UniformType::Sampler3D },
-        { TextureType::TypeCube, UniformType::SamplerCube },
-        { TextureType::Type1DArray, UniformType::Sampler1DArray },
-        { TextureType::Type2DArray, UniformType::Sampler2DArray },
-        { TextureType::TypeCubeArray, UniformType::SamplerCubeArray },
-        { TextureType::TypeRect, UniformType::SamplerRect },
+    static const std::array<UniformType, numElementsUniformId()> s_table {
+        UniformType::Undefined,
+        UniformType::Uint32Vec2,
+        UniformType::SingleMat4,
+        UniformType::SingleMat3,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat4,
+        UniformType::SingleMat3,
+        UniformType::SingleMat4,
+        UniformType::SingleVec3,
+        UniformType::SingleVec3,
+        UniformType::SingleVec3,
+        UniformType::SingleVec3,
+        UniformType::SamplerRect,
+        UniformType::SamplerRect,
+        UniformType::SamplerRect,
+        UniformType::UintImageRect,
+        UniformType::AtomicCounterUint,
+        UniformType::SingleVec4,
+        UniformType::Single,
+        UniformType::Single,
+        UniformType::Sampler2D,
+        UniformType::Sampler2D,
+        UniformType::Sampler2D,
+        UniformType::Sampler2D
     };
 
-    auto it = s_table.find(type);
-    return (it == s_table.end()) ? UniformType::Undefined : it->second;
+    return s_table[castFromUniformId(uniformId)];
+}
+
+inline UniformType IRenderProgram::uniformTypeByTextureType(TextureType textureType)
+{
+    static const std::unordered_map<TextureType, UniformType> s_table {
+            { TextureType::Type1D, UniformType::Sampler1D },
+            { TextureType::Type2D, UniformType::Sampler2D },
+            { TextureType::Type3D, UniformType::Sampler3D },
+            { TextureType::TypeCube, UniformType::SamplerCube },
+            { TextureType::Type1DArray, UniformType::Sampler1DArray },
+            { TextureType::Type2DArray, UniformType::Sampler2DArray },
+            { TextureType::TypeCubeArray, UniformType::SamplerCubeArray },
+            { TextureType::TypeRect, UniformType::SamplerRect },
+        };
+
+        auto it = s_table.find(textureType);
+        return (it == s_table.end()) ? UniformType::Undefined : it->second;
+}
+
+inline UniformType IRenderProgram::uniformTypeByImageTextureType(TextureType textureType)
+{
+    static const std::unordered_map<TextureType, UniformType> s_table {
+            { TextureType::Type1D, UniformType::Image1D },
+            { TextureType::Type2D, UniformType::Image2D },
+            { TextureType::Type3D, UniformType::Image3D },
+            { TextureType::TypeCube, UniformType::ImageCube },
+            { TextureType::Type1DArray, UniformType::Image1DArray },
+            { TextureType::Type2DArray, UniformType::Image2DArray },
+            { TextureType::TypeCubeArray, UniformType::ImageCubeArray },
+            { TextureType::TypeRect, UniformType::ImageRect },
+        };
+
+        auto it = s_table.find(textureType);
+        return (it == s_table.end()) ? UniformType::Undefined : it->second;
+}
+
+inline utils::VertexComponentType IRenderProgram::attributeVertexComponentTypeByAttributeId(utils::VertexAttribute vertexAttribute)
+{
+    static const std::array<utils::VertexComponentType, utils::numElementsVertexAttribute()> s_table {
+        utils::VertexComponentType::Single,
+        utils::VertexComponentType::Single,
+        utils::VertexComponentType::Single,
+        utils::VertexComponentType::Uint32,
+        utils::VertexComponentType::Single,
+        utils::VertexComponentType::Single,
+        utils::VertexComponentType::Single
+    };
+
+    return s_table[utils::castFromVertexAttribute(vertexAttribute)];
 }
 
 inline utils::VertexAttribute IRenderProgram::vertexAttributeByName(const std::string &name)
@@ -418,38 +589,30 @@ inline UniformId IRenderProgram::UniformIdByName(const std::string &name)
         { "u_gBufferColor0Map", UniformId::GBufferColor0Map },
         { "u_gBufferColor1Map", UniformId::GBufferColor1Map },
         { "u_gBufferDepthMap", UniformId::GBufferDepthMap },
+        { "u_OITIndicesImage", UniformId::OITIndicesImage },
+        { "ssbo_OITNodesCounter", UniformId::OITNodesCounter },
+        { "u_baseColor", UniformId::BaseColor },
+        { "u_metalness", UniformId::Metalness },
+        { "u_roughness", UniformId::Roughness },
+        { "u_baseColorMap", UniformId::BaseColorMap },
+        { "u_metalnessMap", UniformId::MetalnessMap },
+        { "u_roughnessMap", UniformId::RoughnessMap },
+        { "u_normalMap", UniformId::NormalMap }
     };
 
     auto it = s_table.find(name);
     return (it == s_table.end()) ? UniformId::Undefined : it->second;
 }
 
-inline UniformType IRenderProgram::uniformTypeByUniformId(UniformId uniformId)
+inline SSBOId IRenderProgram::SSBOIdByName(const std::string &name)
 {
-    static const std::array<UniformType, numElementsUniformId()> s_table {
-        UniformType::Undefined,
-        UniformType::Uint32Vec2,
-        UniformType::SingleMat4,
-        UniformType::SingleMat3,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat3,
-        UniformType::SingleMat4,
-        UniformType::SingleVec3,
-        UniformType::SingleVec3,
-        UniformType::SingleVec3,
-        UniformType::SingleVec3,
-        UniformType::SamplerRect,
-        UniformType::SamplerRect,
-        UniformType::SamplerRect,
+    static const std::unordered_map<std::string, SSBOId> s_table {
+        { "ssbo_bonesBuffer", SSBOId::BonesBuffer },
+        { "ssbo_OITNodes", SSBOId::OITNodes }
     };
 
-    return s_table[castFromUniformId(uniformId)];
+    auto it = s_table.find(name);
+    return (it == s_table.end()) ? SSBOId::Undefined : it->second;
 }
 
 }

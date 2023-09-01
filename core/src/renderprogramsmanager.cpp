@@ -35,7 +35,7 @@ std::shared_ptr<graphics::IRenderProgram> RenderProgramsManager::loadOrGet(const
     auto fShader = utils::Shader::loadShader(fShaderFileName, defines);
 
     auto renderProgram = m_->renderer()->createRenderProgram(*vShader, *fShader);
-    m_->resources().insert({name, renderProgram});
+    m_->resources()[name] = renderProgram;
 
     return renderProgram;
 }

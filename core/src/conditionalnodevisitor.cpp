@@ -8,7 +8,7 @@ namespace core
 {
 
 ConditionalNodeVisitor::ConditionalNodeVisitor(std::shared_ptr<AbstractCondition> condition)
-    : m_(std::make_unique<ConditionalNodeVisitorPrivate>(condition))
+    : ConditionalNodeVisitor(new ConditionalNodeVisitorPrivate(condition))
 {
 }
 

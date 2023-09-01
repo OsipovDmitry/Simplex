@@ -169,7 +169,7 @@ Mesh::Mesh()
 void Mesh::attachVertexBuffer(VertexAttribute vertexAttribute, std::shared_ptr<VertexBuffer> vertexBuffer)
 {
     assert(vertexBuffer);
-    m_vertexBuffers.insert({vertexAttribute, vertexBuffer});
+    m_vertexBuffers[vertexAttribute] = vertexBuffer;
 }
 
 void Mesh::detachVertexBuffer(VertexAttribute vertexAttribute)
@@ -199,9 +199,41 @@ void Mesh::detachPrimitiveSet(std::shared_ptr<PrimitiveSet> primitiveSet)
     m_primitiveSets.erase(primitiveSet);
 }
 
-const std::unordered_set<std::shared_ptr<PrimitiveSet> > &Mesh::primitiveSets() const
+const std::unordered_set<std::shared_ptr<PrimitiveSet>> &Mesh::primitiveSets() const
 {
     return m_primitiveSets;
+}
+
+void Mesh::calculateTangents()
+{
+//    for (const auto &primitiveSet : m_primitiveSets)
+//    {
+//        if (primitiveSet->primitiveType() != PrimitiveType::Triangles)
+//            continue;
+
+//        std::array<uint32_t, 3> indices;
+
+//        if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
+//        {
+//            auto first = drawArrays->first();
+//            auto trisCount = drawArrays->count() / 3;
+//            for (uint32_t i = 0; i < trisCount; ++i)
+//            {
+//                indices[0u] = first + 3u*i + 0;
+//                indices[1u] = first + 3u*i + 1;
+//                indices[2u] = first + 3u*i + 2;
+//            }
+//            //
+//        }
+//        else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
+//        {
+//            if (auto drawElementsBuffer = drawElements->asDrawElementsBuffer(); drawElementsBuffer)
+//            {
+
+//            }
+//        }
+
+//    }
 }
 
 std::shared_ptr<Mesh> Mesh::createEmptyMesh(const std::unordered_map<VertexAttribute, std::tuple<uint32_t, VertexComponentType>> &decls)

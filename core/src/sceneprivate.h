@@ -14,18 +14,22 @@ namespace core
 class ScenePrivate
 {
 public:
-    ScenePrivate(const std::string &name, std::shared_ptr<SceneRootNode> node)
+    ScenePrivate(std::weak_ptr<GraphicsEngine> graphicsEngine, const std::string &name, std::shared_ptr<SceneRootNode> node)
         : m_name(name)
+        , m_graphicsEngine(graphicsEngine)
         , m_sceneRootNode(node)
     {
     }
 
     const std::string &name() const { return m_name; }
 
+
+    std::weak_ptr<GraphicsEngine> graphicsEngine() { return m_graphicsEngine; }
     std::shared_ptr<SceneRootNode> sceneRootNode() { return m_sceneRootNode; }
 
 private:
     std::string m_name;
+    std::weak_ptr<GraphicsEngine> m_graphicsEngine;
     std::shared_ptr<SceneRootNode> m_sceneRootNode;
 
 };

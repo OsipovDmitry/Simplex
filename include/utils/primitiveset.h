@@ -86,10 +86,10 @@ public:
     static uint32_t indexSize(DrawElementsIndexType);
 
 protected:
-    uint32_t m_count;
-    DrawElementsIndexType m_type;
     size_t m_offset;
+    uint32_t m_count;
     uint32_t m_baseVertex;
+    DrawElementsIndexType m_type;
 };
 
 }

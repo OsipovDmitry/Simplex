@@ -24,11 +24,14 @@ public:
 
     const std::string &name() const override;
 
+    std::weak_ptr<const GraphicsEngine> graphicsEngine() const;
+    std::weak_ptr<GraphicsEngine> graphicsEngine();
+
     std::shared_ptr<const SceneRootNode> sceneRootNode() const;
     std::shared_ptr<SceneRootNode> sceneRootNode();
 
 private:
-    Scene(const std::string&);
+    Scene(std::weak_ptr<GraphicsEngine>, const std::string&);
 
     std::unique_ptr<ScenePrivate> m_;
 

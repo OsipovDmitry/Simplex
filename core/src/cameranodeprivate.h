@@ -21,16 +21,25 @@ public:
     std::shared_ptr<utils::AbstractClipSpace> &clipSpace();
     bool &isRenderingEnabled();
 
-    std::shared_ptr<RenderSurface> &renderSurface();
-    std::shared_ptr<GSurface> &gSurface();
+    glm::uvec2 &viewportSize();
+    std::shared_ptr<graphics::IFrameBuffer> &GFrameBuffer();
+    std::shared_ptr<graphics::IFrameBuffer> &OITFrameBuffer();
+    std::shared_ptr<graphics::IFrameBuffer> &OITClearIndicesFrameBuffer();
+    std::shared_ptr<graphics::IFrameBuffer> &OITSortNodesFrameBuffer();
+    std::shared_ptr<graphics::IFrameBuffer> &finalFrameBuffer();
+    std::shared_ptr<graphics::IImage> &OITIndicesImage();
 
 private:
     std::shared_ptr<utils::AbstractClipSpace> m_clipSpace;
     bool m_isRenderingEnabled;
 
-    std::shared_ptr<RenderSurface> m_renderSurface;
-    std::shared_ptr<GSurface> m_gSurface;
-
+    glm::uvec2 m_viewportSize;
+    std::shared_ptr<graphics::IFrameBuffer> m_GFrameBuffer;
+    std::shared_ptr<graphics::IFrameBuffer> m_OITFrameBuffer;
+    std::shared_ptr<graphics::IFrameBuffer> m_OITClearIndicesFrameBuffer;
+    std::shared_ptr<graphics::IFrameBuffer> m_OITSortNodesFrameBuffer;
+    std::shared_ptr<graphics::IFrameBuffer> m_finalFrameBuffer;
+    std::shared_ptr<graphics::IImage> m_OITIndicesImage;
 };
 
 }

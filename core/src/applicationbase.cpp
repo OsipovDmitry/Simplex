@@ -41,7 +41,7 @@ bool ApplicationBase::registerEngine(std::shared_ptr<IEngine> value)
         return false;
     }
 
-    m_->engines().insert({value->name(), value});
+    m_->engines()[value->name()] = value;
     LOG_INFO << "Engine \"" << value->name() << "\" has been registered to application \"" << name() << "\"";
 
     return true;

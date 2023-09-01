@@ -35,10 +35,22 @@ QtRenderWidget::~QtRenderWidget()
     LOG_INFO << "QtRenderWidget has been destroyed";
 }
 
-void QtRenderWidget::setApplication(std::shared_ptr<core::IApplication> application)
+void QtRenderWidget::setApplication(std::weak_ptr<core::IApplication> application)
 {
+    assert(!application.expired());
+
     m_->application() = application;
-    LOG_INFO << "Application \"" + application->name() + "\" has been set to QtRenderWidget";
+    LOG_INFO << "Application \"" + application.lock()->name() + "\" has been set to QtRenderWidget";
+}
+
+std::weak_ptr<core::IApplication> QtRenderWidget::application()
+{
+    return m_->application();
+}
+
+std::weak_ptr<const core::IApplication> QtRenderWidget::application() const
+{
+    return const_cast<QtRenderWidget*>(this)->application();
 }
 
 std::shared_ptr<core::graphics::IRenderer> QtRenderWidget::graphicsRenderer()

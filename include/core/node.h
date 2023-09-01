@@ -27,6 +27,9 @@ public:
 
     const std::string &name() const override;
 
+    std::shared_ptr<const Scene> scene() const;
+    std::shared_ptr<Scene> scene();
+
     const utils::Transform &globalTransform() const;
     const utils::Transform &transform() const;
     void setTransform(const utils::Transform&);

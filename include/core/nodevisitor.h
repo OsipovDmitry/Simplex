@@ -18,6 +18,7 @@ class NodeVisitor
 public:
     NodeVisitor();
     virtual ~NodeVisitor();
+
     virtual bool visit(std::shared_ptr<Node>);
 
 };
