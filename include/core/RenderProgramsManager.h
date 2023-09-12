@@ -1,6 +1,7 @@
 #ifndef CORE_RENDERPROGRAMSMANAGER_H
 #define CORE_RENDERPROGRAMSMANAGER_H
 
+#include "core/igraphicsrenderer.h"
 #include <memory>
 #include <filesystem>
 
@@ -23,9 +24,25 @@ public:
     RenderProgramsManager(std::shared_ptr<graphics::IRenderer>);
     ~RenderProgramsManager();
 
-    std::shared_ptr<graphics::IRenderProgram> loadOrGet(const std::filesystem::path&,
-                                                        const std::filesystem::path&,
-                                                        const utils::ShaderDefines& = {});
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetRenderProgram(const std::filesystem::path&,
+                                                                     const std::filesystem::path&,
+                                                                     const utils::ShaderDefines&,
+                                                                     const std::string& = "autogen");
+
+    std::shared_ptr<graphics::IComputeProgram> loadOrGetComputeProgram(const std::filesystem::path&,
+                                                                       const utils::ShaderDefines&,
+                                                                       const std::string& = "autogen");
+
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetOpaqueGeometryPassRenderProgram(const utils::VertexAttributesSet&,
+                                                                                       const graphics::PBRComponentsSet&);
+
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetTransparentGeometryPassRenderProgram(const utils::VertexAttributesSet&,
+                                                                                            const graphics::PBRComponentsSet&);
+
+    std::shared_ptr<graphics::IComputeProgram> loadOrGetOITClearPassComputeProgram();
+    std::shared_ptr<graphics::IComputeProgram> loadOrGetOITSortNodesPassComputeProgram();
+
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetFinalPassRenderProgram(const utils::VertexAttributesSet&);
 
 private:
     std::unique_ptr<RenderProgramsManagerPrivate> m_;

@@ -7,6 +7,7 @@
 #include <utils/mesh.h>
 
 #include "triangledata.h"
+#include "planedata.h"
 #include "tetrahedrondata.h"
 #include "cubedata.h"
 #include "boundingboxdata.h"
@@ -89,9 +90,9 @@ AbstractPainter::AbstractPainter(std::shared_ptr<Mesh> mesh)
 
     setDefaultValue(VertexAttribute::Position, glm::vec4(0.f, 0.f, 0.f, 1.f));
     setDefaultValue(VertexAttribute::Normal, glm::vec4(0.f, 0.f, 1.f, 0.f));
-    setDefaultValue(VertexAttribute::TexCoord, glm::vec4(0.f, 0.f, 0.f, 1.f));
+    setDefaultValue(VertexAttribute::TexCoords, glm::vec4(0.f, 0.f, 0.f, 1.f));
     setDefaultValue(VertexAttribute::Tangent, glm::vec4(1.f, 0.f, 0.f, 1.f));
-    setDefaultValue(VertexAttribute::Color, glm::vec4(.7f, .7f, .7f, 1.f));
+    setDefaultValue(VertexAttribute::Color, glm::vec4(1.f, 1.f, 1.f, 1.f));
 
     setVertexTransform(glm::mat4(1.f));
     setTexCoordTransform(glm::mat4(1.f));
@@ -144,12 +145,12 @@ void AbstractPainter::setVertexTransform(const glm::mat4 &vertexTransform)
 
 const glm::mat4 &AbstractPainter::texCoordTransform() const
 {
-    return m_->transforms[VertexAttribute::TexCoord];
+    return m_->transforms[VertexAttribute::TexCoords];
 }
 
 void AbstractPainter::setTexCoordTransform(const glm::mat4 &texCoordTransform)
 {
-    m_->transforms[VertexAttribute::TexCoord] = texCoordTransform;
+    m_->transforms[VertexAttribute::TexCoords] = texCoordTransform;
 }
 
 void AbstractPainter::drawArrays(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices, PrimitiveType primitiveType)
@@ -226,9 +227,19 @@ void MeshPainter::drawTriangle()
 {
     drawElements({{VertexAttribute::Position, s_triangleVertices},
                   {VertexAttribute::Normal, s_triangleNormals},
-                  {VertexAttribute::TexCoord, s_triangleTexCoords}},
+                  {VertexAttribute::TexCoords, s_triangleTexCoords}},
                  PrimitiveType::Triangles,
                  s_triangleIndices,
+                 DrawElementsIndexType::Uint32);
+}
+
+void MeshPainter::drawPlane()
+{
+    drawElements({{VertexAttribute::Position, s_planeVertices},
+                  {VertexAttribute::Normal, s_planeNormals},
+                  {VertexAttribute::TexCoords, s_planeTexCoords}},
+                 PrimitiveType::Triangles,
+                 s_planeIndices,
                  DrawElementsIndexType::Uint32);
 }
 
@@ -236,7 +247,7 @@ void MeshPainter::drawTetrahedron()
 {
     drawElements({{VertexAttribute::Position, s_tetrahedronVertices},
                   {VertexAttribute::Normal, s_tetrahedronNormals},
-                  {VertexAttribute::TexCoord, s_tetrahedronTexCoords}},
+                  {VertexAttribute::TexCoords, s_tetrahedronTexCoords}},
                  PrimitiveType::Triangles,
                  s_tetrahedronIndices,
                  DrawElementsIndexType::Uint32);
@@ -246,7 +257,7 @@ void MeshPainter::drawCube()
 {
     drawElements({{VertexAttribute::Position, s_cubeVertices},
                   {VertexAttribute::Normal, s_cubeNormals},
-                  {VertexAttribute::TexCoord, s_cubeTexCoords}},
+                  {VertexAttribute::TexCoords, s_cubeTexCoords}},
                  PrimitiveType::Triangles,
                  s_cubeIndices,
                  DrawElementsIndexType::Uint32);
@@ -264,7 +275,7 @@ void MeshPainter::drawMonkey()
 {
     drawElements({{VertexAttribute::Position, s_monkeyVertices},
                   {VertexAttribute::Normal, s_monkeyNormals},
-                  {VertexAttribute::TexCoord, s_monkeyTexCoords}},
+                  {VertexAttribute::TexCoords, s_monkeyTexCoords}},
                  PrimitiveType::Triangles,
                  s_monkeyIndices,
                  DrawElementsIndexType::Uint32);
@@ -274,7 +285,7 @@ void MeshPainter::drawTeapot()
 {
     drawElements({{VertexAttribute::Position, s_teapotVertices},
                   {VertexAttribute::Normal, s_teapotNormals},
-                  {VertexAttribute::TexCoord, s_teapotTexCoords}},
+                  {VertexAttribute::TexCoords, s_teapotTexCoords}},
                  PrimitiveType::Triangles,
                  s_teapotIndices,
                  DrawElementsIndexType::Uint32);
@@ -324,7 +335,7 @@ void MeshPainter::drawSphere(uint32_t segs)
 
     drawElements({{VertexAttribute::Position, vertices},
                   {VertexAttribute::Normal, normals},
-                  {VertexAttribute::TexCoord, texCoords}},
+                  {VertexAttribute::TexCoords, texCoords}},
                  PrimitiveType::Triangles,
                  indices,
                  DrawElementsIndexType::Uint32);

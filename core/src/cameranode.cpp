@@ -16,8 +16,9 @@ namespace core
 CameraNode::CameraNode(const std::string &name)
     : Node(std::make_unique<CameraNodePrivate>(name))
 {
-    setPerspectiveProjection(glm::half_pi<float>());
     setRenderingEnabled(true);
+    setPerspectiveProjection(glm::half_pi<float>());
+    setCullPlanesLimits(glm::vec2(.5f, std::numeric_limits<float>::max()));
 }
 
 CameraNode::~CameraNode()
@@ -93,23 +94,6 @@ void CameraNode::resize(const glm::uvec2 &value)
         OITFrameBuffer->setDrawBuffers({});
     }
 
-    auto &OITClearIndicesFrameBuffer = mPrivate.OITClearIndicesFrameBuffer();
-    if (!OITClearIndicesFrameBuffer)
-    {
-        OITClearIndicesFrameBuffer = graphicsRenderer->createFrameBuffer();
-        OITClearIndicesFrameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Color0});
-        OITClearIndicesFrameBuffer->setClearColor(0u, glm::uvec4(static_cast<uint32_t>(-1)));
-        OITClearIndicesFrameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
-    }
-
-    auto &OITSortNodesFrameBuffer = mPrivate.OITSortNodesFrameBuffer();
-    if (!OITSortNodesFrameBuffer)
-    {
-        OITSortNodesFrameBuffer = graphicsRenderer->createFrameBuffer();
-        OITSortNodesFrameBuffer->setClearMask({});
-        OITSortNodesFrameBuffer->setDrawBuffers({});
-    }
-
     auto &finalFrameBuffer = mPrivate.finalFrameBuffer();
     if (!finalFrameBuffer)
     {
@@ -132,7 +116,7 @@ void CameraNode::resize(const glm::uvec2 &value)
         GFrameBuffer->attach(core::graphics::FrameBufferAttachment::Color1,
                              graphicsRenderer->createTextureRectEmpty(viewportSize.x,
                                                                       viewportSize.y,
-                                                                      core::graphics::PixelInternalFormat::RGB10_A2));
+                                                                      core::graphics::PixelInternalFormat::RGBA8));
 
         auto gDepthStencil = graphicsRenderer->createTextureRectEmpty(viewportSize.x,
                                                                       viewportSize.y,
@@ -142,9 +126,8 @@ void CameraNode::resize(const glm::uvec2 &value)
         OITFrameBuffer->attach(core::graphics::FrameBufferAttachment::DepthStencil, gDepthStencil);
 
         auto oitIndicesTexture = graphicsRenderer->createTextureRectEmpty(viewportSize.x,
-                                                                        viewportSize.y,
-                                                                        core::graphics::PixelInternalFormat::R32UI);
-        OITClearIndicesFrameBuffer->attach(core::graphics::FrameBufferAttachment::Color0, oitIndicesTexture);
+                                                                          viewportSize.y,
+                                                                          core::graphics::PixelInternalFormat::R32UI);
         mPrivate.OITIndicesImage() = graphicsRenderer->createImage(oitIndicesTexture, graphics::IImage::DataAccess::ReadWrite);
 
         finalFrameBuffer->attach(core::graphics::FrameBufferAttachment::Color0,
@@ -152,12 +135,23 @@ void CameraNode::resize(const glm::uvec2 &value)
                                                                           viewportSize.y,
                                                                           core::graphics::PixelInternalFormat::RGBA8));
     }
-
 }
 
 const glm::uvec2 &CameraNode::viewportSize() const
 {
     return m().viewportSize();
+}
+
+const glm::vec2 &CameraNode::cullPlanesLimits() const
+{
+    return m().cullPlanesLimits();
+}
+
+void CameraNode::setCullPlanesLimits(const glm::vec2 &values)
+{
+    assert(values[0] > 0.f);
+    assert(values[1] > values[0]);
+    m().cullPlanesLimits() = values;
 }
 
 std::shared_ptr<graphics::IFrameBuffer> CameraNode::GFrameBuffer()
@@ -189,16 +183,6 @@ graphics::PTexture CameraNode::GFrameBufferDepthStencilMap() const
 std::shared_ptr<graphics::IFrameBuffer> CameraNode::OITFrameBuffer()
 {
     return m().OITFrameBuffer();
-}
-
-std::shared_ptr<graphics::IFrameBuffer> CameraNode::OITClearIndicesFrameBuffer()
-{
-    return m().OITClearIndicesFrameBuffer();
-}
-
-std::shared_ptr<graphics::IFrameBuffer> CameraNode::OITSortModesFrameBuffer()
-{
-    return m().OITSortNodesFrameBuffer();
 }
 
 std::shared_ptr<graphics::IImage> CameraNode::OITIndicesImage()

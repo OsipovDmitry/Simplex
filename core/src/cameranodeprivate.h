@@ -22,10 +22,9 @@ public:
     bool &isRenderingEnabled();
 
     glm::uvec2 &viewportSize();
+    glm::vec2 &cullPlanesLimits();
     std::shared_ptr<graphics::IFrameBuffer> &GFrameBuffer();
     std::shared_ptr<graphics::IFrameBuffer> &OITFrameBuffer();
-    std::shared_ptr<graphics::IFrameBuffer> &OITClearIndicesFrameBuffer();
-    std::shared_ptr<graphics::IFrameBuffer> &OITSortNodesFrameBuffer();
     std::shared_ptr<graphics::IFrameBuffer> &finalFrameBuffer();
     std::shared_ptr<graphics::IImage> &OITIndicesImage();
 
@@ -34,10 +33,9 @@ private:
     bool m_isRenderingEnabled;
 
     glm::uvec2 m_viewportSize;
+    glm::vec2 m_cullPlanesLimits;
     std::shared_ptr<graphics::IFrameBuffer> m_GFrameBuffer;
     std::shared_ptr<graphics::IFrameBuffer> m_OITFrameBuffer;
-    std::shared_ptr<graphics::IFrameBuffer> m_OITClearIndicesFrameBuffer;
-    std::shared_ptr<graphics::IFrameBuffer> m_OITSortNodesFrameBuffer;
     std::shared_ptr<graphics::IFrameBuffer> m_finalFrameBuffer;
     std::shared_ptr<graphics::IImage> m_OITIndicesImage;
 };

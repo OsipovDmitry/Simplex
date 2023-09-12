@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <memory>
+#include <unordered_set>
 
 namespace simplex
 {
@@ -24,6 +25,8 @@ enum class SSBOId : uint16_t;
 struct AttributeInfo;
 struct UniformInfo;
 struct SSBOInfo;
+enum class PBRComponent : uint16_t;
+using PBRComponentsSet = std::unordered_set<PBRComponent>;
 enum class FaceType : uint16_t;
 enum class DepthFunc : uint16_t;
 enum class StencilFunc : uint16_t;
@@ -38,7 +41,9 @@ class IImage;
 using PImage = std::shared_ptr<const IImage>;
 class IRenderBuffer;
 class IFrameBuffer;
+class IProgram;
 class IRenderProgram;
+class IComputeProgram;
 class IRenderer;
 }
 
@@ -68,6 +73,10 @@ class Node;
 class SceneRootNode;
 class CameraNode;
 class DrawableNode;
+class LightNode;
+class PointLightNode;
+class SpotLightNode;
+class DirectionalLightNode;
 
 class NodeVisitor;
 class ConditionalNodeVisitor;

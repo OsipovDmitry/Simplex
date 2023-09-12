@@ -35,54 +35,76 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
     auto graphicsEngineInstance = std::make_shared<simplex::core::GraphicsEngine>(GraphicsEngineName, graphicsRenderer);
     registerEngine(graphicsEngineInstance);
 
+    utils::MeshPainter planePainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
+                                                                  {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
+                                                                  {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
+                                                                }));
+    planePainter.setVertexTransform(glm::rotate(glm::mat4x4(1.f), glm::half_pi<float>(), glm::vec3(1.f, 0.f, 0.f)) *
+                                    glm::scale(glm::mat4x4(1.f), glm::vec3(10.f)));
+    planePainter.setTexCoordTransform(glm::scale(glm::mat4x4(1.f), glm::vec3(10.f)));
+    planePainter.drawPlane();
+    auto planeDrawable = std::make_shared<core::StandardDrawable>(
+                graphicsRenderer->createVertexArray(planePainter.mesh()),
+                glm::vec4(glm::vec3(1.f), 1.f), 1.f, 1.f,
+                graphicsRenderer->createTexture2D(utils::Image::loadImage("D:/res/textures/brick.jpg")),
+                nullptr,
+                nullptr,
+                nullptr);
 
     utils::MeshPainter teapotPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
                                                                  {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
-                                                                 {utils::VertexAttribute::TexCoord, {2u, utils::VertexComponentType::Single}}
+                                                                 {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
                                                                 }));
-    teapotPainter.drawCube();
-    auto teapotVao = graphicsRenderer->createVertexArray(teapotPainter.mesh());
+    teapotPainter.drawTeapot();
+    auto teapotDrawable = std::make_shared<core::StandardDrawable>(
+                graphicsRenderer->createVertexArray(teapotPainter.mesh()),
+                glm::vec4(glm::vec3(1.f), 0.2f), 1.f, 1.f,
+                graphicsRenderer->createTexture2D(utils::Image::loadImage("D:/res/textures/glass0.jpg")),
+                nullptr,
+                nullptr,
+                nullptr);
 
+    utils::MeshPainter boxPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
+                                                                 {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
+                                                                 {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
+                                                                }));
+    boxPainter.setVertexTransform(glm::scale(glm::mat4x4(1.f), glm::vec3(0.6f, 1.0f, 0.1f)));
+    boxPainter.drawCube();
+    auto boxDrawable = std::make_shared<core::StandardDrawable>(
+                graphicsRenderer->createVertexArray(boxPainter.mesh()),
+                glm::vec4(glm::vec3(1.f), 0.3f), 1.f, 1.f,
+                graphicsRenderer->createTexture2D(utils::Image::loadImage("D:/res/textures/glass1.jpg")),
+                nullptr,
+                nullptr,
+                nullptr);
 
-    std::vector<std::shared_ptr<core::IDrawable>> drawables(4);
-    for (size_t i = 0; i < drawables.size(); ++i)
-    {
-        std::shared_ptr<core::graphics::ITexture> bc, m, r, n;
+    utils::MeshPainter tetraPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
+                                                                 {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
+                                                                 {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
+                                                                }));
+    tetraPainter.setVertexTransform(glm::scale(glm::mat4x4(1.f), glm::vec3(0.8f)));
+    tetraPainter.drawTetrahedron();
+    auto tetraDrawable = std::make_shared<core::StandardDrawable>(
+                graphicsRenderer->createVertexArray(tetraPainter.mesh()),
+                glm::vec4(glm::vec3(1.f), 0.3f), 1.f, 1.f,
+                graphicsRenderer->createTexture2D(utils::Image::loadImage("D:/res/textures/glass2.jpg")),
+                nullptr,
+                nullptr,
+                nullptr);
 
-        if (auto img = utils::Image::loadImage("D:/res/textures/tex" + std::to_string(i) + "/bc.jpg"); img)
-        {
-            bc = graphicsRenderer->createTexture2D(img);
-            bc->setWrapMode(core::graphics::TextureWrapMode::Repeat);
-            bc->setFiltering(core::graphics::TextureFiltering::Trilinear);
-        }
-
-        if (auto img = utils::Image::loadImage("D:/res/textures/tex" + std::to_string(i) + "/m.jpg"); img)
-        {
-            m = graphicsRenderer->createTexture2D(img);
-            m->setWrapMode(core::graphics::TextureWrapMode::Repeat);
-            m->setFiltering(core::graphics::TextureFiltering::Trilinear);
-        }
-
-        if (auto img = utils::Image::loadImage("D:/res/textures/tex" + std::to_string(i) + "/r.jpg"); img)
-        {
-            r = graphicsRenderer->createTexture2D(img);
-            r->setWrapMode(core::graphics::TextureWrapMode::Repeat);
-            r->setFiltering(core::graphics::TextureFiltering::Trilinear);
-        }
-
-        if (auto img = utils::Image::loadImage("D:/res/textures/tex" + std::to_string(i) + "/n.jpg"); img)
-        {
-            n = graphicsRenderer->createTexture2D(img);
-            n->setWrapMode(core::graphics::TextureWrapMode::Repeat);
-            n->setFiltering(core::graphics::TextureFiltering::Trilinear);
-        }
-
-
-        drawables[i] = std::make_shared<core::StandardDrawable>(
-                    teapotVao,
-                    glm::vec4(1.f), 1.f, 1.f,
-                    bc, m, r, n);
-    }
+    utils::MeshPainter monkeyPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
+                                                                 {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
+                                                                 {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
+                                                                }));
+    monkeyPainter.setVertexTransform(glm::scale(glm::mat4x4(1.f), glm::vec3(0.4f)));
+    monkeyPainter.drawSphere(32);
+    auto monkeyDrawable = std::make_shared<core::StandardDrawable>(
+                graphicsRenderer->createVertexArray(monkeyPainter.mesh()),
+                glm::vec4(glm::vec3(1.f), 0.4f), 1.f, 1.f,
+                graphicsRenderer->createTexture2D(utils::Image::loadImage("D:/res/textures/glass3.jpg")),
+                nullptr,
+                nullptr,
+                nullptr);
 
     auto scene0 = graphicsEngineInstance->addNewScene(SceneName);
 
@@ -92,30 +114,30 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
                               utils::Transform::fromRotation(glm::quat(glm::vec3(-glm::pi<float>()/9.f, glm::quarter_pi<float>(), 0.f))));
     scene0->sceneRootNode()->attach(cameraNode0);
 
-    for (size_t i = 0; i < drawables.size(); ++i)
-    {
-        auto drawableNode = std::make_shared<core::DrawableNode>("");
-        drawableNode->addDrawable(drawables[i]);
-        drawableNode->setTransform(utils::Transform::fromTranslation(glm::vec3(i/2 ? 1.f : -1.f, 0.0f, i%2 ? 1.f : -1.f)));
-        scene0->sceneRootNode()->attach(drawableNode);
-    }
+    auto planeDrawableNode = std::make_shared<core::DrawableNode>("");
+    planeDrawableNode->addDrawable(planeDrawable);
+    scene0->sceneRootNode()->attach(planeDrawableNode);
 
-    for (int32_t x = -9; x <= 10; ++x)
-        for (int32_t z = -9; z <= 10; ++z)
-        {
-            if (glm::distance(glm::vec2(0.5f), glm::vec2(x, z)) < 1.f)
-                continue;
+    auto teapotDrawableNode = std::make_shared<core::DrawableNode>("");
+    teapotDrawableNode->addDrawable(teapotDrawable);
+    scene0->sceneRootNode()->attach(teapotDrawableNode);
 
-            auto drawable = std::make_shared<core::StandardDrawable>(
-                        teapotVao,
-                        glm::vec4(random(.4f, .9f), random(.4f, .9f), random(.4f, .9f), 0.6f), 1.f, 1.f,
-                        nullptr, nullptr, nullptr, nullptr);
+    auto boxDrawableNode = std::make_shared<core::DrawableNode>("");
+    boxDrawableNode->setTransform(utils::Transform::fromTranslation(glm::vec3(0.2f, 0.5f, 0.42f)) *
+                                  utils::Transform::fromRotation(glm::quat(glm::vec3(-0.4f, 0.3f, 0.0f))));
+    boxDrawableNode->addDrawable(boxDrawable);
+    scene0->sceneRootNode()->attach(boxDrawableNode);
 
-            auto drawableNode = std::make_shared<core::DrawableNode>("");
-            drawableNode->addDrawable(drawable);
-            drawableNode->setTransform(utils::Transform::fromTranslation(glm::vec3(x * 2.0f - 1.0f, 0.0f, z * 2.0f - 1.0f)));
-            scene0->sceneRootNode()->attach(drawableNode);
-        }
+    auto tetraDrawableNode = std::make_shared<core::DrawableNode>("");
+    tetraDrawableNode->setTransform(utils::Transform::fromTranslation(glm::vec3(-0.6f, 0.21f, -1.0f)));
+    tetraDrawableNode->addDrawable(tetraDrawable);
+    scene0->sceneRootNode()->attach(tetraDrawableNode);
+
+    auto monkeyDrawableNode = std::make_shared<core::DrawableNode>("");
+    monkeyDrawableNode->setTransform(utils::Transform::fromTranslation(glm::vec3(1.4f, 0.4f, -1.f)));
+    monkeyDrawableNode->addDrawable(monkeyDrawable);
+    scene0->sceneRootNode()->attach(monkeyDrawableNode);
+
 }
 
 std::shared_ptr<core::GraphicsEngine> TestApplication::graphicsEngine()

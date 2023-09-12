@@ -57,9 +57,12 @@ MainWidget::MainWidget()
     m_renderTypeListWidget->addItem("Normals");
     m_renderTypeListWidget->addItem("Depth");
     m_renderTypeListWidget->addItem("OIT indices");
-    m_renderTypeListWidget->addItem("OIT color");
     m_renderTypeListWidget->addItem("OIT fragments count");
     m_renderTypeListWidget->addItem("Final color");
+    m_renderTypeListWidget->addItem("Final metalness");
+    m_renderTypeListWidget->addItem("Final roughness");
+    m_renderTypeListWidget->addItem("Final normals");
+    m_renderTypeListWidget->addItem("Final depth");
     QObject::connect(m_renderTypeListWidget, &QListWidget::currentRowChanged, this, &MainWidget::renderTypeChanged);
 
     auto splitter = new QSplitter(Qt::Horizontal);
@@ -229,7 +232,7 @@ int main(int argc, char *argv[])
     QObject::connect(mainWidget, &MainWidget::renderTypeChanged, [testApplication](int row) {
         testApplication->graphicsEngine()->setF(row);
     });
-    mainWidget->renderTypeListWidget()->setCurrentRow(0);
+    mainWidget->renderTypeListWidget()->setCurrentRow(7);
 
     auto result = QApplication::exec();
 

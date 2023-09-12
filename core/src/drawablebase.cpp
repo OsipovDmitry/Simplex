@@ -47,10 +47,10 @@ static void readDataToVec(const uint8_t* data,
                           uint32_t typeSize,
                           glm::vec<VecLength, T> &result)
 {
-    numComponents = glm::max(numComponents, VecLength);
+    numComponents = glm::min(numComponents, VecLength);
 
     for (uint32_t i = 0u; i < numComponents; ++i)
-        readDataToType<T>(data + i * typeSize, type, result[static_cast<int>(i)]);
+        readDataToType<T>(data + i * typeSize, type, result[static_cast<glm::length_t>(i)]);
 }
 
 DrawableBase::DrawableBase(std::shared_ptr<graphics::IVertexArray> vertexArray)
@@ -85,12 +85,12 @@ utils::BoundingBox DrawableBase::calculateBoundingBox()
 
         for (auto &primitiveSet : vao->primitiveSets())
         {
-            if (auto drawArray = primitiveSet->asDrawArrays(); drawArray)
+            if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
             {
-                auto drawArraysFirst = drawArray->first();
-                auto drawArraysCount = drawArray->count();
+                auto drawArraysFirst = drawArrays->first();
+                auto drawArraysCount = drawArrays->count();
 
-                utils::BoundingBox::PointType p(0.f);
+                utils::BoundingBox::PointType p(static_cast<utils::BoundingBox::value_type>(0));
 
                 for (uint32_t i = 0; i < drawArraysCount; ++i)
                 {
@@ -119,7 +119,7 @@ utils::BoundingBox DrawableBase::calculateBoundingBox()
                                                         drawElementsCount * drawElementsIndexSize);
 
                 uint32_t index;
-                utils::BoundingBox::PointType p(0.f);
+                utils::BoundingBox::PointType p(static_cast<utils::BoundingBox::value_type>(0));
 
                 for (uint32_t i = 0; i < drawElementsCount; ++i)
                 {
@@ -143,6 +143,11 @@ bool DrawableBase::isTransparent() const
 {
     return false;
     //return m_->vertexArray()->vertexAttributeNumComponents(utils::VertexAttribute::Color) == 4u;
+}
+
+graphics::PBRComponentsSet DrawableBase::PBRComponentsSet() const
+{
+    return graphics::PBRComponentsSet{};
 }
 
 std::shared_ptr<graphics::IVertexArray> DrawableBase::vertexArray()

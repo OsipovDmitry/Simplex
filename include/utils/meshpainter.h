@@ -57,6 +57,7 @@ public:
     ~MeshPainter() override;
 
     void drawTriangle();
+    void drawPlane();
     void drawTetrahedron();
     void drawCube();
     void drawBoundingBox();

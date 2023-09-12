@@ -112,6 +112,7 @@ public:
                                 utils::VertexComponentType type,
                                 uint32_t relativeOffset) override;
     void undeclareVertexAttribute(utils::VertexAttribute) override;
+    utils::VertexAttributesSet vertexAttributesSet() const override;
     uint32_t vertexAttributeBindingIndex(utils::VertexAttribute) const override;
     uint32_t vertexAttributeNumComponents(utils::VertexAttribute) const override;
     utils::VertexComponentType vertexAttributeComponentType(utils::VertexAttribute) const override;
@@ -306,41 +307,69 @@ public:
     void setClearMask(const std::unordered_set<core::graphics::FrameBufferAttachment>&) override;
 };
 
-class RenderProgram_4_5 : public core::graphics::IRenderProgram
+class ProgramBase_4_5 : public virtual core::graphics::IProgram
+{
+    NONCOPYBLE(ProgramBase_4_5)
+public:
+    ProgramBase_4_5();
+    ~ProgramBase_4_5() override;
+
+    GLuint id() const;
+    virtual bool preBuild(std::string&);
+    virtual bool postBuild(std::string&);
+
+    int32_t uniformLocationByName(const std::string&) const override;
+
+    const std::vector<core::graphics::UniformInfo> &uniformsInfo() const override;
+    const std::vector<core::graphics::SSBOInfo> &SSBOsInfo() const override;
+
+    std::string uniformNameByIndex(uint16_t) const override;
+    std::string SSBONameByIndex(uint16_t) const override;
+
+protected:
+    GLuint m_id;
+
+    std::vector<core::graphics::UniformInfo> m_uniformsInfo;
+    std::vector<core::graphics::SSBOInfo> m_SSBOsInfo;
+
+    GLint m_uniformNameMaxLength;
+    GLint m_SSBONameMaxLength;
+};
+
+class RenderProgram_4_5 : public core::graphics::IRenderProgram, public ProgramBase_4_5
 {
     NONCOPYBLE(RenderProgram_4_5)
 public:
     RenderProgram_4_5();
     ~RenderProgram_4_5() override;
 
-    GLuint id() const;
-    bool preBuild(std::string&);
-    bool postBuild(std::string&);
+    bool postBuild(std::string&) override;
 
     int32_t attributeLocationByName(const std::string&) const override;
-    int32_t uniformLocationByName(const std::string&) const override;
-
     const std::vector<core::graphics::AttributeInfo> &attributesInfo() const override;
-    const std::vector<core::graphics::UniformInfo> &uniformsInfo() const override;
-    const std::vector<core::graphics::SSBOInfo> &SSBOsInfo() const override;
-
     std::string attributeNameByIndex(uint16_t) const override;
-    std::string uniformNameByIndex(uint16_t) const override;
-    std::string SSBONameByIndex(uint16_t) const override;
 
-private:
-    GLuint m_id = 0;
-
+protected:
     std::vector<core::graphics::AttributeInfo> m_attributesInfo;
-    std::vector<core::graphics::UniformInfo> m_uniformsInfo;
-    std::vector<core::graphics::SSBOInfo> m_SSBOsInfo;
 
     GLint m_attributeNameMaxLength;
-    GLint m_uniformNameMaxLength;
-    GLint m_SSBONameMaxLength;
 };
 
+class ComputeProgram_4_5 : public core::graphics::IComputeProgram, public ProgramBase_4_5
+{
+    NONCOPYBLE(ComputeProgram_4_5)
+public:
+    ComputeProgram_4_5();
+    ~ComputeProgram_4_5() override;
 
+    bool postBuild(std::string&) override;
+
+    glm::uvec3 workGroupSize() const override;
+
+protected:
+    glm::uvec3 m_workGroupSize;
+
+};
 
 class QtOpenGL_4_5_Renderer : public QOpenGLFunctions_4_5_Core, public core::graphics::IRenderer
 {
@@ -355,8 +384,8 @@ public:
 
     void blitFrameBuffer(std::shared_ptr<const core::graphics::IFrameBuffer> src,
                          std::shared_ptr<core::graphics::IFrameBuffer> dst,
-                         uint32_t srcX, uint32_t srcY, uint32_t srcWidth, uint32_t srcHeight,
-                         uint32_t dstX, uint32_t dstY, uint32_t dstWidth, uint32_t dstHeight,
+                         const glm::uvec4 &srcViewport,
+                         const glm::uvec4 &dstViewport,
                          bool colorMsk, bool depthMask, bool stencilMask,
                          bool linearFilter = false) override;
 
@@ -387,13 +416,17 @@ public:
     std::shared_ptr<core::graphics::IFrameBuffer> createFrameBuffer() const override;
     std::shared_ptr<core::graphics::IRenderProgram> createRenderProgram(const std::string &vertexShader,
                                                                         const std::string &fragmentShader) const override;
+    std::shared_ptr<core::graphics::IComputeProgram> createComputeProgram(const std::string &computeShader) const override;
 
     void resize(uint32_t, uint32_t) override;
     const glm::uvec2 &viewportSize() const override;
 
     void clearRenderData() override;
-    void addRenderData(const glm::mat4&, std::shared_ptr<core::IDrawable>) override;
-    void render(const core::RenderInfo&) override;
+    void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
+                       const std::shared_ptr<core::IDrawable>&,
+                       const glm::mat4x4& = glm::mat4x4(1.f)) override;
+    void render(const std::shared_ptr<core::graphics::IFrameBuffer>&, const core::RenderInfo&, const glm::uvec4&) override;
+    void compute(const std::shared_ptr<core::graphics::IComputeProgram>&, const core::RenderInfo&, const glm::uvec3&) override;
 
     int32_t bindTexture(const core::graphics::PTexture&);
     int32_t bindImage(const core::graphics::PImage&);
@@ -408,12 +441,18 @@ private:
     QtOpenGL_4_5_Renderer(QOpenGLContext*, GLuint);
     void makeDefaultFrameBuffer(GLuint);
 
-    void setupUniform(GLuint rpId, GLint loc, std::shared_ptr<const core::AbstractUniform>);
-    void setupUniforms(std::shared_ptr<core::IDrawable>, const core::RenderInfo&, const glm::mat4&);
+    void setupUniform(GLuint rpId, GLint loc, const core::PAbstratcUniform&);
+    void setupUniforms(const std::shared_ptr<ProgramBase_4_5>&,
+                       const std::shared_ptr<core::IDrawable>&,
+                       const core::RenderInfo&,
+                       const glm::mat4&);
+
+    bool createProgram(std::shared_ptr<ProgramBase_4_5>,
+                       const std::vector<std::pair<GLenum, std::reference_wrapper<const std::string>>>&) const;
 
     std::shared_ptr<DefaultFrameBuffer_4_5> m_defaultFrameBuffer;
 
-    std::list<std::pair<glm::mat4, std::shared_ptr<core::IDrawable>>> m_renderData;
+    std::list<std::tuple<glm::mat4, std::shared_ptr<RenderProgram_4_5>, std::shared_ptr<core::IDrawable>>> m_renderData;
     glm::uvec2 m_viewportSize;
     int32_t m_textureUnit;
     int32_t m_imageUnit;

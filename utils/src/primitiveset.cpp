@@ -77,10 +77,10 @@ uint32_t DrawArrays::count() const
 
 DrawElements::DrawElements(PrimitiveType pt, uint32_t count, DrawElementsIndexType type, uint64_t offset, uint32_t baseVertex)
     : PrimitiveSet(pt)
-    , m_count(count)
-    , m_type(type)
     , m_offset(offset)
+    , m_count(count)
     , m_baseVertex(baseVertex)
+    , m_type(type)
 {
     assert(m_type != DrawElementsIndexType::Undefined);
 }

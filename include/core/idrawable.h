@@ -18,6 +18,7 @@ public:
 
     virtual utils::BoundingBox calculateBoundingBox() = 0;
     virtual bool isTransparent() const = 0;
+    virtual graphics::PBRComponentsSet PBRComponentsSet() const = 0;
 
     virtual std::shared_ptr<graphics::IVertexArray> vertexArray() = 0;
 

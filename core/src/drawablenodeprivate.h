@@ -1,9 +1,6 @@
 #ifndef CORE_DRAWABLENODEPRIVATE_H
 #define CORE_DRAWABLENODEPRIVATE_H
 
-#include <unordered_set>
-#include <memory>
-
 #include <core/forwarddecl.h>
 
 #include "nodeprivate.h"
@@ -17,6 +14,7 @@ class DrawableNodePrivate : public NodePrivate
 {
 public:
     DrawableNodePrivate(const std::string &name);
+    ~DrawableNodePrivate() override;
 
     bool &isLocalBoundingBoxDirty();
     utils::BoundingBox &localBoundingBox();

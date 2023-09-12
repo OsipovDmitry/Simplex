@@ -27,6 +27,7 @@ public:
     ~StandardDrawable() override;
 
     bool isTransparent() const override;
+    graphics::PBRComponentsSet PBRComponentsSet() const override;
 
     const glm::vec4 &baseColor() const;
     void setBaseColor(const glm::vec4&);

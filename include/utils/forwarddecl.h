@@ -2,6 +2,7 @@
 #define UTILS_FORWARDDECL_H
 
 #include <cstdint>
+#include <unordered_set>
 #include <unordered_map>
 #include <string>
 
@@ -23,6 +24,8 @@ class DrawElements;
 
 enum class VertexComponentType : uint16_t;
 enum class VertexAttribute : uint16_t;
+using VertexAttributesSet = std::unordered_set<VertexAttribute>;
+
 class Buffer;
 class VertexBuffer;
 class DrawElementsBuffer;

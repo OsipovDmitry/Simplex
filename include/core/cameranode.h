@@ -34,14 +34,15 @@ public:
     void resize(const glm::uvec2&);
     const glm::uvec2 &viewportSize() const;
 
+    const glm::vec2 &cullPlanesLimits() const;
+    void setCullPlanesLimits(const glm::vec2&);
+
     std::shared_ptr<graphics::IFrameBuffer> GFrameBuffer();
     graphics::PTexture GFrameBufferColorMap0() const;
     graphics::PTexture GFrameBufferColorMap1() const;
     graphics::PTexture GFrameBufferDepthStencilMap() const;
 
     std::shared_ptr<graphics::IFrameBuffer> OITFrameBuffer();
-    std::shared_ptr<graphics::IFrameBuffer> OITClearIndicesFrameBuffer();
-    std::shared_ptr<graphics::IFrameBuffer> OITSortModesFrameBuffer();
     std::shared_ptr<graphics::IImage> OITIndicesImage();
 
     std::shared_ptr<graphics::IFrameBuffer> finalFrameBuffer();

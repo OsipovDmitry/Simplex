@@ -24,6 +24,7 @@ public:
 
     utils::BoundingBox calculateBoundingBox() override;
     bool isTransparent() const override;
+    graphics::PBRComponentsSet PBRComponentsSet() const override;
 
     std::shared_ptr<graphics::IVertexArray> vertexArray() override;
 

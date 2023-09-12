@@ -28,6 +28,11 @@ glm::uvec2 &CameraNodePrivate::viewportSize()
     return m_viewportSize;
 }
 
+glm::vec2 &CameraNodePrivate::cullPlanesLimits()
+{
+    return m_cullPlanesLimits;
+}
+
 std::shared_ptr<graphics::IFrameBuffer> &CameraNodePrivate::GFrameBuffer()
 {
     return m_GFrameBuffer;
@@ -36,16 +41,6 @@ std::shared_ptr<graphics::IFrameBuffer> &CameraNodePrivate::GFrameBuffer()
 std::shared_ptr<graphics::IFrameBuffer> &CameraNodePrivate::OITFrameBuffer()
 {
     return m_OITFrameBuffer;
-}
-
-std::shared_ptr<graphics::IFrameBuffer> &CameraNodePrivate::OITClearIndicesFrameBuffer()
-{
-    return m_OITClearIndicesFrameBuffer;
-}
-
-std::shared_ptr<graphics::IFrameBuffer> &CameraNodePrivate::OITSortNodesFrameBuffer()
-{
-    return m_OITSortNodesFrameBuffer;
 }
 
 std::shared_ptr<graphics::IFrameBuffer> &CameraNodePrivate::finalFrameBuffer()

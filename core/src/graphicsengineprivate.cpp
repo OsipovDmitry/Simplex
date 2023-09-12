@@ -25,59 +25,19 @@ std::shared_ptr<RenderProgramsManager> &GraphicsEnginePrivate::renderProgramsMan
     return m_renderProgramsManager;
 }
 
-std::shared_ptr<graphics::IRenderProgram> &GraphicsEnginePrivate::deferredOpaqueGeometryPassRenderProgram()
+std::shared_ptr<graphics::IComputeProgram> &GraphicsEnginePrivate::OITClearComputeProgram()
 {
-    return m_deferredOpaqueGeometryPassRenderProgram;
+    return m_OITClearComputeProgram;
 }
 
-std::shared_ptr<graphics::IRenderProgram> &GraphicsEnginePrivate::deferredTransparentGeometryPassRenderProgram()
+std::shared_ptr<graphics::IComputeProgram> &GraphicsEnginePrivate::OITSortNodesComputeProgram()
 {
-    return m_deferredTransparentGeometryPassRenderProgram;
-}
-
-std::shared_ptr<graphics::IRenderProgram> &GraphicsEnginePrivate::OITSortNodesRenderProgram()
-{
-    return m_OITSortNodesRenderProgram;
+    return m_OITSortNodesComputeProgram;
 }
 
 std::shared_ptr<graphics::IRenderProgram> &GraphicsEnginePrivate::finalRenderProgram()
 {
     return m_finalRenderProgram;
-}
-
-glm::vec4 &GraphicsEnginePrivate::defaultVertexPosition()
-{
-    return m_defaultVertexPosition;
-}
-
-glm::vec4 &GraphicsEnginePrivate::defaultVertexNormal()
-{
-    return m_defaultVertexNormal;
-}
-
-glm::vec4 &GraphicsEnginePrivate::defaultVertexTexCoord()
-{
-    return m_defaultVertexTexCoord;
-}
-
-glm::uvec4 &GraphicsEnginePrivate::defaultVertexBonesIDs()
-{
-    return m_defaultVertexBonesIDs;
-}
-
-glm::vec4 &GraphicsEnginePrivate::defaultVertexBonesWeights()
-{
-    return m_defaultVertexBonesWeights;
-}
-
-glm::vec4 &GraphicsEnginePrivate::defaultVertexTangent()
-{
-    return m_defaultVertexTangent;
-}
-
-glm::vec4 &GraphicsEnginePrivate::defaultVertexColor()
-{
-    return m_defaultVertexColor;
 }
 
 glm::vec4 &GraphicsEnginePrivate::defaultBaseColor()
@@ -95,31 +55,6 @@ float &GraphicsEnginePrivate::defaultRoughness()
     return m_defaultRoughness;
 }
 
-std::shared_ptr<graphics::ITexture> &GraphicsEnginePrivate::defaultBaseColorMap()
-{
-    return m_defaultBaseColorMap;
-}
-
-std::shared_ptr<graphics::ITexture> &GraphicsEnginePrivate::defaultMetalnessMap()
-{
-    return m_defaultMetalnessMap;
-}
-
-std::shared_ptr<graphics::ITexture> &GraphicsEnginePrivate::defaultRoughnessMap()
-{
-    return m_defaultRoughnessMap;
-}
-
-std::shared_ptr<graphics::ITexture> &GraphicsEnginePrivate::defaultNormalMap()
-{
-    return m_defaultNormalMap;
-}
-
-std::shared_ptr<graphics::IBufferRange> &GraphicsEnginePrivate::defaultBonesBuffer()
-{
-    return m_defaultBonesBuffer;
-}
-
 std::shared_ptr<graphics::IBufferRange> &GraphicsEnginePrivate::OITNodesBuffer()
 {
     return m_OITNodesBuffer;
@@ -135,9 +70,9 @@ std::vector<std::shared_ptr<Scene>> &GraphicsEnginePrivate::scenes()
     return m_scenes;
 }
 
-std::shared_ptr<DrawableBase> &GraphicsEnginePrivate::screenQuadFinalDrawable()
+std::shared_ptr<DrawableBase> &GraphicsEnginePrivate::screenQuadDrawable()
 {
-    return m_screenQuadFinalDrawable;
+    return m_screenQuadDrawable;
 }
 
 std::shared_ptr<StandardDrawable> &GraphicsEnginePrivate::nodeBoundingBoxDrawable()

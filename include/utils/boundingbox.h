@@ -27,7 +27,7 @@ public:
 
     using PointType = glm::vec<L, T>;
 
-    BoundingBoxT() : m_minPoint(std::numeric_limits<float>::max()), m_maxPoint(-std::numeric_limits<float>::max()) {}
+    BoundingBoxT() : m_minPoint(std::numeric_limits<float>::max()), m_maxPoint(std::numeric_limits<float>::lowest()) {}
     BoundingBoxT(const PointType &minP, const PointType &maxP) : m_minPoint(minP), m_maxPoint(maxP) {}
 
     bool isEmpty() const {

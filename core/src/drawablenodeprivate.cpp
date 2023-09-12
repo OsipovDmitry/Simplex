@@ -12,6 +12,8 @@ DrawableNodePrivate::DrawableNodePrivate(const std::string &name)
     , m_localBoundingBoxDirty(true)
 {}
 
+DrawableNodePrivate::~DrawableNodePrivate() = default;
+
 bool &DrawableNodePrivate::isLocalBoundingBoxDirty()
 {
     return m_localBoundingBoxDirty;

@@ -92,7 +92,6 @@ using FrameBufferClearColor = std::pair<FrameBufferClearColorType, FrameBufferCl
 
 ENUMCLASS(UniformId, uint16_t,
           Undefined,
-          Viewport,
           ModelMatrix,
           NormalMatrix,
           ViewMatrix,
@@ -153,22 +152,6 @@ ENUMCLASS(UniformType, uint16_t,
           Sampler2DArray,
           SamplerCubeArray,
           SamplerRect,
-          IntSampler1D,
-          IntSampler2D,
-          IntSampler3D,
-          IntSamplerCube,
-          IntSampler1DArray,
-          IntSampler2DArray,
-          IntSamplerCubeArray,
-          IntSamplerRect,
-          UintSampler1D,
-          UintSampler2D,
-          UintSampler3D,
-          UintSamplerCube,
-          UintSampler1DArray,
-          UintSampler2DArray,
-          UintSamplerCubeArray,
-          UintSamplerRect,
           Image1D,
           Image2D,
           Image3D,
@@ -177,22 +160,6 @@ ENUMCLASS(UniformType, uint16_t,
           Image2DArray,
           ImageCubeArray,
           ImageRect,
-          IntImage1D,
-          IntImage2D,
-          IntImage3D,
-          IntImageCube,
-          IntImage1DArray,
-          IntImage2DArray,
-          IntImageCubeArray,
-          IntImageRect,
-          UintImage1D,
-          UintImage2D,
-          UintImage3D,
-          UintImageCube,
-          UintImage1DArray,
-          UintImage2DArray,
-          UintImageCubeArray,
-          UintImageRect,
           AtomicCounterUint)
 
 ENUMCLASS(SSBOId, uint16_t,
@@ -222,6 +189,15 @@ struct SSBOInfo
     SSBOId id;
     uint16_t index;
 };
+
+ENUMCLASS(PBRComponent, uint16_t,
+          BaseColor,
+          Metalness,
+          Roughness,
+          BaseColorMap,
+          MetalnessMap,
+          RoughnessMap,
+          NormalMap)
 
 ENUMCLASS(FaceType, uint16_t,
           Front, Back, FrontAndBack)
@@ -297,6 +273,7 @@ public:
                                         utils::VertexComponentType type,
                                         uint32_t relativeOffset) = 0;
     virtual void undeclareVertexAttribute(utils::VertexAttribute) = 0;
+    virtual utils::VertexAttributesSet vertexAttributesSet() const = 0;
     virtual uint32_t vertexAttributeBindingIndex(utils::VertexAttribute) const = 0;
     virtual uint32_t vertexAttributeNumComponents(utils::VertexAttribute) const = 0;
     virtual utils::VertexComponentType vertexAttributeComponentType(utils::VertexAttribute) const = 0;
@@ -402,31 +379,42 @@ public:
     virtual void setDrawBuffers(const std::vector<FrameBufferAttachment>&) = 0;
 };
 
-class IRenderProgram
+class IProgram
 {
 public:
-    virtual ~IRenderProgram() = default;
+    virtual ~IProgram() = default;
 
-    virtual int32_t attributeLocationByName(const std::string&) const = 0;
     virtual int32_t uniformLocationByName(const std::string&) const = 0;
 
-    virtual const std::vector<AttributeInfo> &attributesInfo() const = 0;
     virtual const std::vector<UniformInfo> &uniformsInfo() const = 0;
     virtual const std::vector<SSBOInfo> &SSBOsInfo() const = 0;
 
-    virtual std::string attributeNameByIndex(uint16_t) const = 0;
     virtual std::string uniformNameByIndex(uint16_t) const = 0;
     virtual std::string SSBONameByIndex(uint16_t) const = 0;
 
     static UniformType uniformTypeByUniformId(UniformId);
     static UniformType uniformTypeByTextureType(TextureType);
     static UniformType uniformTypeByImageTextureType(TextureType);
-    static utils::VertexComponentType attributeVertexComponentTypeByAttributeId(utils::VertexAttribute);
 
-protected:
-    static utils::VertexAttribute vertexAttributeByName(const std::string&);
     static UniformId UniformIdByName(const std::string&);
     static SSBOId SSBOIdByName(const std::string&);
+};
+
+class IRenderProgram : public virtual IProgram
+{
+public:
+    virtual int32_t attributeLocationByName(const std::string&) const = 0;
+    virtual const std::vector<AttributeInfo> &attributesInfo() const = 0;
+    virtual std::string attributeNameByIndex(uint16_t) const = 0;
+
+    static utils::VertexComponentType attributeVertexComponentTypeByAttributeId(utils::VertexAttribute);
+    static utils::VertexAttribute vertexAttributeByName(const std::string&);
+};
+
+class IComputeProgram : public virtual IProgram
+{
+public:
+    virtual glm::uvec3 workGroupSize() const = 0;
 };
 
 class IRenderer : public INamedObject
@@ -437,8 +425,8 @@ public:
 
     virtual void blitFrameBuffer(std::shared_ptr<const IFrameBuffer> src,
                                  std::shared_ptr<IFrameBuffer> dst,
-                                 uint32_t srcX, uint32_t srcY, uint32_t srcWidth, uint32_t srcHeight,
-                                 uint32_t dstX, uint32_t dstY, uint32_t dstWidth, uint32_t dstHeight,
+                                 const glm::uvec4 &srcViewport,
+                                 const glm::uvec4 &dstViewport,
                                  bool colorMsk, bool depthMask, bool stencilMask,
                                  bool linearFilter = false) = 0;
 
@@ -456,20 +444,23 @@ public:
     virtual std::shared_ptr<IRenderBuffer> createRenderBuffer(uint32_t width, uint32_t height, PixelInternalFormat) const = 0;
     virtual std::shared_ptr<IFrameBuffer> createFrameBuffer() const = 0;
     virtual std::shared_ptr<IRenderProgram> createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const = 0;
+    virtual std::shared_ptr<IComputeProgram> createComputeProgram(const std::string &computeShader) const = 0;
 
     virtual void resize(uint32_t, uint32_t) = 0;
     virtual const glm::uvec2 &viewportSize() const = 0;
 
     virtual void clearRenderData() = 0;
-    virtual void addRenderData(const glm::mat4&, std::shared_ptr<IDrawable>) = 0;
-    virtual void render(const RenderInfo&) = 0;
+    virtual void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
+                               const std::shared_ptr<IDrawable>&,
+                               const glm::mat4x4& = glm::mat4x4(1.f)) = 0;
+    virtual void render(const std::shared_ptr<IFrameBuffer>&, const RenderInfo&, const glm::uvec4&) = 0;
+    virtual void compute(const std::shared_ptr<IComputeProgram>&, const RenderInfo&, const glm::uvec3&) = 0;
 };
 
-inline UniformType IRenderProgram::uniformTypeByUniformId(UniformId uniformId)
+inline UniformType IProgram::uniformTypeByUniformId(UniformId uniformId)
 {
     static const std::array<UniformType, numElementsUniformId()> s_table {
         UniformType::Undefined,
-        UniformType::Uint32Vec2,
         UniformType::SingleMat4,
         UniformType::SingleMat3,
         UniformType::SingleMat4,
@@ -488,7 +479,7 @@ inline UniformType IRenderProgram::uniformTypeByUniformId(UniformId uniformId)
         UniformType::SamplerRect,
         UniformType::SamplerRect,
         UniformType::SamplerRect,
-        UniformType::UintImageRect,
+        UniformType::ImageRect,
         UniformType::AtomicCounterUint,
         UniformType::SingleVec4,
         UniformType::Single,
@@ -502,7 +493,7 @@ inline UniformType IRenderProgram::uniformTypeByUniformId(UniformId uniformId)
     return s_table[castFromUniformId(uniformId)];
 }
 
-inline UniformType IRenderProgram::uniformTypeByTextureType(TextureType textureType)
+inline UniformType IProgram::uniformTypeByTextureType(TextureType textureType)
 {
     static const std::unordered_map<TextureType, UniformType> s_table {
             { TextureType::Type1D, UniformType::Sampler1D },
@@ -519,7 +510,7 @@ inline UniformType IRenderProgram::uniformTypeByTextureType(TextureType textureT
         return (it == s_table.end()) ? UniformType::Undefined : it->second;
 }
 
-inline UniformType IRenderProgram::uniformTypeByImageTextureType(TextureType textureType)
+inline UniformType IProgram::uniformTypeByImageTextureType(TextureType textureType)
 {
     static const std::unordered_map<TextureType, UniformType> s_table {
             { TextureType::Type1D, UniformType::Image1D },
@@ -556,8 +547,8 @@ inline utils::VertexAttribute IRenderProgram::vertexAttributeByName(const std::s
     static const std::unordered_map<std::string, utils::VertexAttribute> s_table {
         { "a_position", utils::VertexAttribute::Position },
         { "a_normal", utils::VertexAttribute::Normal },
-        { "a_texCoord", utils::VertexAttribute::TexCoord },
-        { "a_boneIDs", utils::VertexAttribute::BonesIDs },
+        { "a_texCoord", utils::VertexAttribute::TexCoords },
+        { "a_bonesIDs", utils::VertexAttribute::BonesIDs },
         { "a_bonesWeights", utils::VertexAttribute::BonesWeights },
         { "a_tangent", utils::VertexAttribute::Tangent },
         { "a_color", utils::VertexAttribute::Color },
@@ -567,10 +558,9 @@ inline utils::VertexAttribute IRenderProgram::vertexAttributeByName(const std::s
     return (it == s_table.end()) ? utils::VertexAttribute::Count : it->second;
 }
 
-inline UniformId IRenderProgram::UniformIdByName(const std::string &name)
+inline UniformId IProgram::UniformIdByName(const std::string &name)
 {
     static const std::unordered_map<std::string, UniformId> s_table {
-        { "u_viewport", UniformId::Viewport },
         { "u_modelMatrix", UniformId::ModelMatrix },
         { "u_normalMatrix", UniformId::NormalMatrix },
         { "u_viewMatrix", UniformId::ViewMatrix },
@@ -604,7 +594,7 @@ inline UniformId IRenderProgram::UniformIdByName(const std::string &name)
     return (it == s_table.end()) ? UniformId::Undefined : it->second;
 }
 
-inline SSBOId IRenderProgram::SSBOIdByName(const std::string &name)
+inline SSBOId IProgram::SSBOIdByName(const std::string &name)
 {
     static const std::unordered_map<std::string, SSBOId> s_table {
         { "ssbo_bonesBuffer", SSBOId::BonesBuffer },

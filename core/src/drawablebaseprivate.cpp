@@ -9,8 +9,7 @@ DrawableBasePrivate::DrawableBasePrivate(std::shared_ptr<graphics::IVertexArray>
     : m_vertexArray(vao)
 {}
 
-DrawableBasePrivate::~DrawableBasePrivate()
-{}
+DrawableBasePrivate::~DrawableBasePrivate() = default;
 
 std::shared_ptr<graphics::IVertexArray> &DrawableBasePrivate::vertexArray()
 {

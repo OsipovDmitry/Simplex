@@ -26,7 +26,7 @@ private:
 };
 
 ZNearFarNodeVisitorCondition::ZNearFarNodeVisitorCondition(const utils::OpenFrustum &openFrustumWithZeroNearPlane)
-    : m_zNearFar({ std::numeric_limits<float>::max(), -std::numeric_limits<float>::max() })
+    : m_zNearFar({ std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest() })
     , m_openFrustum(openFrustumWithZeroNearPlane)
 {
 }

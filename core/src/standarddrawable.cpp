@@ -39,6 +39,8 @@ StandardDrawable::StandardDrawable(std::shared_ptr<graphics::IVertexArray> vao,
         getOrCreateUniform(graphics::UniformId::NormalMap) = makeUniform<graphics::PTexture>(normalMap);
 }
 
+StandardDrawable::~StandardDrawable() = default;
+
 bool StandardDrawable::isTransparent() const
 {
     auto result = DrawableBase::isTransparent();
@@ -51,7 +53,28 @@ bool StandardDrawable::isTransparent() const
     return result;
 }
 
-StandardDrawable::~StandardDrawable() = default;
+graphics::PBRComponentsSet StandardDrawable::PBRComponentsSet() const
+{
+    auto result = DrawableBase::PBRComponentsSet();
+
+    result.insert(graphics::PBRComponent::BaseColor);
+    result.insert(graphics::PBRComponent::Metalness);
+    result.insert(graphics::PBRComponent::Roughness);
+
+    if (baseColorMap())
+        result.insert(graphics::PBRComponent::BaseColorMap);
+
+    if (metalnessMap())
+        result.insert(graphics::PBRComponent::MetalnessMap);
+
+    if (roughnessMap())
+        result.insert(graphics::PBRComponent::RoughnessMap);
+
+    if (normalMap())
+        result.insert(graphics::PBRComponent::NormalMap);
+
+    return result;
+}
 
 const glm::vec4 &StandardDrawable::baseColor() const
 {

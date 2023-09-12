@@ -18,7 +18,6 @@ public:
 private:
     uint64_t m_time;
     uint32_t m_dt;
-
 };
 
 } // namespace
