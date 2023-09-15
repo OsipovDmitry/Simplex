@@ -7,8 +7,8 @@
 
 #include <utils/utilsglobal.h>
 #include <utils/forwarddecl.h>
+#include <utils/transform.h>
 #include <utils/glm/vec4.hpp>
-#include <utils/glm/mat4x4.hpp>
 
 namespace simplex
 {
@@ -29,12 +29,12 @@ public:
     const glm::vec4 &defaultValue(VertexAttribute) const;
     void setDefaultValue(VertexAttribute, const glm::vec4&);
 
-    const glm::mat4 &vertexTransform() const;
-    const glm::mat4 &normalTransform() const;
-    void setVertexTransform(const glm::mat4&);
+    const Transform &vertexTransform() const;
+    const Transform &normalTransform() const;
+    void setVertexTransform(const Transform&);
 
-    const glm::mat4 &texCoordTransform() const;
-    void setTexCoordTransform(const glm::mat4&);
+    const Transform &texCoordTransform() const;
+    void setTexCoordsTransform(const Transform&);
 
     void drawArrays(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices,
                     PrimitiveType primitiveType);
@@ -46,8 +46,6 @@ public:
 
 protected:
     std::unique_ptr<AbstractPainterPrivate> m_;
-
-    std::pair<uint32_t, uint32_t> addVertices(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices);
 };
 
 class UTILS_SHARED_EXPORT MeshPainter : public AbstractPainter
@@ -56,16 +54,18 @@ public:
     explicit MeshPainter(std::shared_ptr<Mesh>);
     ~MeshPainter() override;
 
-    void drawTriangle();
-    void drawPlane();
-    void drawTetrahedron();
-    void drawCube();
-    void drawBoundingBox();
-    void drawMonkey();
-    void drawTeapot();
-    void drawSphere(uint32_t = 8u);
-    void drawCamera();
-    void drawScreenQuad();
+    MeshPainter &drawTriangle();
+    MeshPainter &drawPlane();
+    MeshPainter &drawTetrahedron();
+    MeshPainter &drawCube(const glm::vec3& = glm::vec3(1.f));
+    MeshPainter &drawSuzanne();
+    MeshPainter &drawBunny();
+    MeshPainter &drawTeapot();
+    MeshPainter &drawSphere(uint32_t = 8u);
+    MeshPainter &drawCone(uint32_t = 8u);
+    MeshPainter &drawCamera();
+    MeshPainter &drawBoundingBox();
+    MeshPainter &drawScreenQuad();
 };
 
 }

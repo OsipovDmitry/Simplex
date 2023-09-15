@@ -22,12 +22,13 @@ public:
     explicit Shader();
     ~Shader();
 
-    operator const std::string &() const;
+    const std::string &data() const;
 
     static const std::string &version();
     static void setVersion(const std::string&);
 
-    static std::shared_ptr<Shader> loadShader(const std::filesystem::path&, const ShaderDefines& = {});
+    static std::shared_ptr<Shader> loadFromData(const std::string&);
+    static std::shared_ptr<Shader> loadFromFile(const std::filesystem::path&, const ShaderDefines& = {});
 
 private:
     std::string m_data;

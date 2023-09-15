@@ -92,6 +92,11 @@ protected:
     DrawElementsIndexType m_type;
 };
 
+template<typename T> inline DrawElementsIndexType toDrawElementsIndexType() { return DrawElementsIndexType::Undefined; }
+template<> inline DrawElementsIndexType toDrawElementsIndexType<uint8_t>() { return DrawElementsIndexType::Uint8; }
+template<> inline DrawElementsIndexType toDrawElementsIndexType<uint16_t>() { return DrawElementsIndexType::Uint16; }
+template<> inline DrawElementsIndexType toDrawElementsIndexType<uint32_t>() { return DrawElementsIndexType::Uint32; }
+
 }
 }
 

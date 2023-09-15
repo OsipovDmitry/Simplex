@@ -1,5 +1,5 @@
-#ifndef UTILS_MONKEYDATA_H
-#define UTILS_MONKEYDATA_H
+#ifndef UTILS_SUZANNEYDATA_H
+#define UTILS_SUZANNEYDATA_H
 
 #include <vector>
 
@@ -10,7 +10,7 @@ namespace simplex
 namespace utils
 {
 
-static const std::vector<glm::vec4> s_monkeyVertices {
+static const std::vector<glm::vec4> s_suzanneVertices {
     {0.234375f, 0.121094f, 0.378906f, 1.000000f},
     {0.250000f, 0.046875f, 0.343750f, 1.000000f},
     {0.281250f, 0.121094f, 0.335938f, 1.000000f},
@@ -2882,7 +2882,7 @@ static const std::vector<glm::vec4> s_monkeyVertices {
     {-0.296875f, -0.062500f, -0.082031f, 1.000000f},
 };
 
-static const std::vector<glm::vec4> s_monkeyNormals {
+static const std::vector<glm::vec4> s_suzanneNormals {
     {0.661707f, -0.202628f, 0.721862f, 0.000000f},
     {0.661707f, -0.202628f, 0.721862f, 0.000000f},
     {0.661707f, -0.202628f, 0.721862f, 0.000000f},
@@ -5754,7 +5754,7 @@ static const std::vector<glm::vec4> s_monkeyNormals {
     {0.360377f, -0.828294f, -0.429020f, 0.000000f},
 };
 
-static const std::vector<glm::vec4> s_monkeyTexCoords {
+static const std::vector<glm::vec4> s_suzanneTexCoords {
     {0.890955f, 0.590063f, 0.000000f, 1.000000f},
     {0.860081f, 0.560115f, 0.000000f, 1.000000f},
     {0.904571f, 0.559404f, 0.000000f, 1.000000f},
@@ -8626,7 +8626,7 @@ static const std::vector<glm::vec4> s_monkeyTexCoords {
     {0.369913f, 0.610196f, 0.000000f, 1.000000f},
 };
 
-static const std::vector<uint32_t> s_monkeyIndices {
+static const std::vector<uint32_t> s_suzanneIndices {
     0u, 1u, 2u,
     3u, 4u, 5u,
     6u, 7u, 8u,
@@ -9599,4 +9599,4 @@ static const std::vector<uint32_t> s_monkeyIndices {
 }
 }
 
-#endif // UTILS_MONKEYDATA_H
+#endif // UTILS_SUZANNEYDATA_H

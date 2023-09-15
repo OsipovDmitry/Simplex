@@ -8,6 +8,7 @@
 #include <utils/glm/vec4.hpp>
 
 #include <core/forwarddecl.h>
+#include <core/lightnode.h>
 
 namespace simplex
 {
@@ -22,7 +23,8 @@ public:
     std::string &name();
 
     std::shared_ptr<graphics::IRenderer> &renderer();
-    std::shared_ptr<RenderProgramsManager> &renderProgramsManager();
+    std::shared_ptr<TexturesManager> &texturesManager();
+    std::shared_ptr<ProgramsManager> &programsManager();
 
     std::shared_ptr<graphics::IComputeProgram> &OITClearComputeProgram();
     std::shared_ptr<graphics::IComputeProgram> &OITSortNodesComputeProgram();
@@ -38,6 +40,8 @@ public:
 
     std::vector<std::shared_ptr<Scene>> &scenes();
 
+    std::array<std::shared_ptr<DrawableBase>, numElementsLightNodeType()> &lightAreaDrawables();
+
     std::shared_ptr<DrawableBase> &screenQuadDrawable();
     std::shared_ptr<StandardDrawable> &nodeBoundingBoxDrawable();
     std::shared_ptr<StandardDrawable> &cameraNodeCameraDrawable();
@@ -48,7 +52,8 @@ private:
     std::string m_name;
 
     std::shared_ptr<graphics::IRenderer> m_renderer;
-    std::shared_ptr<RenderProgramsManager> m_renderProgramsManager;
+    std::shared_ptr<TexturesManager> m_texturesManager;
+    std::shared_ptr<ProgramsManager> m_programsManager;
 
     std::shared_ptr<graphics::IRenderProgram> m_deferredOpaqueGeometryPassRenderProgram;
     std::shared_ptr<graphics::IRenderProgram> m_deferredTransparentGeometryPassRenderProgram;
@@ -64,6 +69,8 @@ private:
     std::shared_ptr<core::graphics::IBufferRange> m_OITNodesCounter;
 
     std::vector<std::shared_ptr<Scene>> m_scenes;
+
+    std::array<std::shared_ptr<DrawableBase>, numElementsLightNodeType()> m_lightAreaDrawables;
 
     std::shared_ptr<DrawableBase> m_screenQuadDrawable;
     std::shared_ptr<StandardDrawable> m_nodeBoundingBoxDrawable;

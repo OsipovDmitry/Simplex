@@ -3,6 +3,7 @@
 
 #include <utils/glm/vec3.hpp>
 #include <utils/pimpl.h>
+#include <utils/enumclass.h>
 
 #include <core/forwarddecl.h>
 #include <core/node.h>
@@ -12,12 +13,22 @@ namespace simplex
 namespace core
 {
 
+ENUMCLASS(LightNodeType, uint16_t,
+          Point,
+          Spot,
+          Directional);
+
 class LightNodePrivate;
 class CORE_SHARED_EXPORT LightNode : public Node
 {
     PIMPL(LightNode)
 public:
     ~LightNode() override;
+
+    virtual LightNodeType type() const = 0;
+
+    std::shared_ptr<LightNode> asLightNode() override;
+    std::shared_ptr<const LightNode> asLightNode() const override;
 
     virtual std::shared_ptr<PointLightNode> asPointLightNode();
     virtual std::shared_ptr<const PointLightNode> asPointLightNode() const;
@@ -27,6 +38,9 @@ public:
 
     virtual std::shared_ptr<DirectionalLightNode> asDirectionalLightNode();
     virtual std::shared_ptr<const DirectionalLightNode> asDirectionalLightNode() const;
+
+    bool isLightingEnabled() const;
+    void setLightingEnabled(bool);
 
     const glm::vec3 &color() const;
     void setColor(const glm::vec3&);

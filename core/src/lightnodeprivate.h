@@ -17,9 +17,11 @@ public:
     ~LightNodePrivate() override;
 
     glm::vec3 &color();
+    bool &isLightingEnabled();
 
 private:
     glm::vec3 m_color;
+    bool m_isLightingEnabled;
 
 };
 

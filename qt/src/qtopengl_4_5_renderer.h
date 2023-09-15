@@ -414,9 +414,9 @@ public:
                                                                       uint32_t height,
                                                                       core::graphics::PixelInternalFormat) const override;
     std::shared_ptr<core::graphics::IFrameBuffer> createFrameBuffer() const override;
-    std::shared_ptr<core::graphics::IRenderProgram> createRenderProgram(const std::string &vertexShader,
-                                                                        const std::string &fragmentShader) const override;
-    std::shared_ptr<core::graphics::IComputeProgram> createComputeProgram(const std::string &computeShader) const override;
+    std::shared_ptr<core::graphics::IRenderProgram> createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
+                                                                        const std::shared_ptr<utils::Shader> &fragmentShader) const override;
+    std::shared_ptr<core::graphics::IComputeProgram> createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const override;
 
     void resize(uint32_t, uint32_t) override;
     const glm::uvec2 &viewportSize() const override;

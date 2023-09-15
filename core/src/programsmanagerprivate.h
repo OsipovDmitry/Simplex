@@ -1,5 +1,5 @@
-#ifndef CORE_RENDERPROGRAMSMANAGERPRIVATE_H
-#define CORE_RENDERPROGRAMSMANAGERPRIVATE_H
+#ifndef CORE_PROGRAMSMANAGERPRIVATE_H
+#define CORE_PROGRAMSMANAGERPRIVATE_H
 
 #include <memory>
 #include <unordered_map>
@@ -15,13 +15,13 @@ namespace simplex
 namespace core
 {
 
-class RenderProgramsManagerPrivate
+class ProgramsManagerPrivate
 {
 public:
     using VertexAttributesKey = std::bitset<32>;
 
-    RenderProgramsManagerPrivate(std::shared_ptr<graphics::IRenderer>);
-    ~RenderProgramsManagerPrivate();
+    ProgramsManagerPrivate(std::shared_ptr<graphics::IRenderer>);
+    ~ProgramsManagerPrivate();
 
     std::shared_ptr<graphics::IRenderer> &renderer();
     std::unordered_map<std::string, std::shared_ptr<graphics::IProgram>> &resources();
@@ -79,4 +79,4 @@ private:
 }
 }
 
-#endif // CORE_RENDERPROGRAMSMANAGERPRIVATE_H
+#endif // CORE_PROGRAMSMANAGERPRIVATE_H

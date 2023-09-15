@@ -17,5 +17,10 @@ glm::vec3 &LightNodePrivate::color()
     return m_color;
 }
 
+bool &LightNodePrivate::isLightingEnabled()
+{
+    return m_isLightingEnabled;
+}
+
 }
 }

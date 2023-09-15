@@ -1,7 +1,6 @@
-#ifndef CORE_RENDERPROGRAMSMANAGER_H
-#define CORE_RENDERPROGRAMSMANAGER_H
+#ifndef CORE_PROGRAMSMANAGER_H
+#define CORE_PROGRAMSMANAGER_H
 
-#include "core/igraphicsrenderer.h"
 #include <memory>
 #include <filesystem>
 
@@ -16,13 +15,13 @@ namespace simplex
 namespace core
 {
 
-class RenderProgramsManagerPrivate;
-class CORE_SHARED_EXPORT RenderProgramsManager
+class ProgramsManagerPrivate;
+class CORE_SHARED_EXPORT ProgramsManager
 {
-    NONCOPYBLE(RenderProgramsManager)
+    NONCOPYBLE(ProgramsManager)
 public:
-    RenderProgramsManager(std::shared_ptr<graphics::IRenderer>);
-    ~RenderProgramsManager();
+    ProgramsManager(std::shared_ptr<graphics::IRenderer>);
+    ~ProgramsManager();
 
     std::shared_ptr<graphics::IRenderProgram> loadOrGetRenderProgram(const std::filesystem::path&,
                                                                      const std::filesystem::path&,
@@ -45,10 +44,10 @@ public:
     std::shared_ptr<graphics::IRenderProgram> loadOrGetFinalPassRenderProgram(const utils::VertexAttributesSet&);
 
 private:
-    std::unique_ptr<RenderProgramsManagerPrivate> m_;
+    std::unique_ptr<ProgramsManagerPrivate> m_;
 };
 
 }
 }
 
-#endif // CORE_RENDERPROGRAMSMANAGER_H
+#endif // CORE_PROGRAMSMANAGER_H

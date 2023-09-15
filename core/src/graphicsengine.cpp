@@ -19,7 +19,8 @@
 #include <core/standarddrawable.h>
 #include <core/nodevisitor.h>
 #include <core/collectorvisitor.h>
-#include <core/renderprogramsmanager.h>
+#include <core/texturesmanager.h>
+#include <core/programsmanager.h>
 
 #include "graphicsengineprivate.h"
 #include "scenerootnodeprivate.h"
@@ -40,18 +41,21 @@ GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<graphics
 {
     m_->renderer() = renderer;
 
-    auto renderProgramsManager = std::make_shared<RenderProgramsManager>(renderer);
-    m_->renderProgramsManager() = renderProgramsManager;
+    auto texturesManager = std::make_shared<TexturesManager>(renderer);
+    m_->texturesManager() = texturesManager;
+
+    auto programsManager = std::make_shared<ProgramsManager>(renderer);
+    m_->programsManager() = programsManager;
 
     auto screenQuadMeshPainter = utils::MeshPainter(
                 utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}}));
     screenQuadMeshPainter.drawScreenQuad();
     m_->screenQuadDrawable() = std::make_shared<DrawableBase>(renderer->createVertexArray(screenQuadMeshPainter.mesh()));
 
-    m_->OITClearComputeProgram() = renderProgramsManager->loadOrGetOITClearPassComputeProgram();
-    m_->OITSortNodesComputeProgram() = renderProgramsManager->loadOrGetOITSortNodesPassComputeProgram();
+    m_->OITClearComputeProgram() = programsManager->loadOrGetOITClearPassComputeProgram();
+    m_->OITSortNodesComputeProgram() = programsManager->loadOrGetOITSortNodesPassComputeProgram();
 
-    m_->finalRenderProgram() = renderProgramsManager->loadOrGetFinalPassRenderProgram(
+    m_->finalRenderProgram() = programsManager->loadOrGetFinalPassRenderProgram(
                 m_->screenQuadDrawable()->vertexArray()->vertexAttributesSet());
 
     m_->defaultBaseColor() = glm::vec4(1.f, 1.f, 1.f, 1.f);
@@ -65,6 +69,20 @@ GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<graphics
     m_->OITNodesBuffer() = renderer->createBufferRange(OITNodesBuffer, 0u);
     m_->OITNodesCounter() = renderer->createBufferRange(renderer->createBuffer(sizeof(uint32_t)), 0u);
 
+    utils::MeshPainter pointLightAreaMeshPainter(
+                utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}}}));
+    m_->lightAreaDrawables()[castFromLightNodeType(LightNodeType::Point)] = std::make_shared<DrawableBase>(
+                renderer->createVertexArray(pointLightAreaMeshPainter.drawSphere(8u).mesh()));
+
+    utils::MeshPainter spotLightAreaMeshPainter(
+                utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}}}));
+    m_->lightAreaDrawables()[castFromLightNodeType(LightNodeType::Spot)] = std::make_shared<DrawableBase>(
+                renderer->createVertexArray(spotLightAreaMeshPainter.drawCone(8u).mesh()));
+
+    utils::MeshPainter directionalLightAreaMeshPainter(
+                utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}}}));
+    m_->lightAreaDrawables()[castFromLightNodeType(LightNodeType::Directional)] = std::make_shared<DrawableBase>(
+                renderer->createVertexArray(directionalLightAreaMeshPainter.drawCube().mesh()));
 
 //    auto boundingBoxMesh = std::make_shared<utils::Mesh>();
 //    boundingBoxMesh->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
@@ -121,17 +139,22 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
         // update lights and shadows
         CollectorVisitor<LightNode> lightNodeCollector;
         rootNode->accept(lightNodeCollector);
-        // ...
+
+        for (const auto &light : lightNodeCollector.nodes())
+        {
+            if (!light->isLightingEnabled())
+                continue;
+
+            // update shadow map
+        }
 
         // render
         CollectorVisitor<CameraNode> cameraNodeCollector;
         rootNode->accept(cameraNodeCollector);
         std::stable_sort(cameraNodeCollector.nodes().begin(), cameraNodeCollector.nodes().end(), utils::SortedObject::Comparator());
 
-        for (size_t i = 0; i < cameraNodeCollector.nodes().size(); ++i)
+        for (const auto &camera : cameraNodeCollector.nodes())
         {
-            const auto &camera = cameraNodeCollector.nodes()[i];
-
             if (!camera->isRenderingEnabled())
                 continue;
 
@@ -145,8 +168,8 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             ZNearFarNodeVisitor zNearFarNodeVisitor(utils::OpenFrustum(camera->projectionMatrix(aspectRatio, 0.f, 1.f) *
                                                                        camera->globalTransform().inverted()));
             rootNode->accept(zNearFarNodeVisitor);
-            auto zNear = glm::max(cameraCullPlanesLimits[0], zNearFarNodeVisitor.zNearFar()[0]);
-            auto zFar = glm::min(cameraCullPlanesLimits[1], zNearFarNodeVisitor.zNearFar()[1]);
+            auto zNear = glm::max(cameraCullPlanesLimits[0], zNearFarNodeVisitor.zNearFar()[0] * 0.95f);
+            auto zFar = glm::min(cameraCullPlanesLimits[1], zNearFarNodeVisitor.zNearFar()[1] * 1.05f);
 
             auto cameraProjectionMatrix = camera->projectionMatrix(aspectRatio, zNear, zFar);
             auto cameraViewMatrix = camera->globalTransform().inverted();
@@ -167,6 +190,7 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             renderInfo.setOITIndicesImage(camera->OITIndicesImage());
 
             // render opaque geometry
+            renderInfo.setFaceCulling(true);
             renderInfo.setDepthTest(true);
             renderInfo.setDepthMask(true);
             renderInfo.setColorMasks(true);
@@ -175,7 +199,7 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             for (const auto &drawableNode : drawableNodeVisitor.drawableNodes())
                 for (const auto &drawable : drawableNode->drawables())
                     if (!drawable->isTransparent())
-                        renderer->addRenderData(m_->renderProgramsManager()->loadOrGetOpaqueGeometryPassRenderProgram(
+                        renderer->addRenderData(m_->programsManager()->loadOrGetOpaqueGeometryPassRenderProgram(
                                                     drawable->vertexArray()->vertexAttributesSet(),
                                                     drawable->PBRComponentsSet()),
                                                 drawable,
@@ -193,6 +217,7 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             renderer->compute(m_->OITClearComputeProgram(), renderInfo, glm::uvec3(cameraViewportSize, 1u));
 
             // render transparent geometry
+            renderInfo.setFaceCulling(false);
             renderInfo.setDepthTest(true);
             renderInfo.setDepthMask(false);
             renderInfo.setColorMasks(false);
@@ -201,7 +226,7 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             for (const auto &drawableNode : drawableNodeVisitor.drawableNodes())
                 for (const auto &drawable : drawableNode->drawables())
                     if (drawable->isTransparent())
-                        renderer->addRenderData(m_->renderProgramsManager()->loadOrGetTransparentGeometryPassRenderProgram(
+                        renderer->addRenderData(m_->programsManager()->loadOrGetTransparentGeometryPassRenderProgram(
                                                     drawable->vertexArray()->vertexAttributesSet(),
                                                     drawable->PBRComponentsSet()),
                                                 drawable,
@@ -211,7 +236,11 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             // sort OIT nodes
             renderer->compute(m_->OITSortNodesComputeProgram(), renderInfo, glm::uvec3(cameraViewportSize, 1u));
 
+            // render lights areas
+
+
             // render final
+            renderInfo.setFaceCulling(false);
             renderInfo.setDepthTest(false);
             renderInfo.setColorMasks(true);
 
@@ -235,9 +264,14 @@ std::shared_ptr<graphics::IRenderer> GraphicsEngine::graphicsRenderer() const
     return m_->renderer();
 }
 
-std::shared_ptr<RenderProgramsManager> GraphicsEngine::renderProgramsManager() const
+std::shared_ptr<TexturesManager> GraphicsEngine::texturesManager() const
 {
-    return m_->renderProgramsManager();
+    return m_->texturesManager();
+}
+
+std::shared_ptr<ProgramsManager> GraphicsEngine::programsManager() const
+{
+    return m_->programsManager();
 }
 
 const std::vector<std::shared_ptr<Scene>> &GraphicsEngine::scenes() const

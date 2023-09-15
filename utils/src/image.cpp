@@ -64,7 +64,7 @@ const void *Image::data() const
     return m_data;
 }
 
-std::shared_ptr<Image> Image::createImage(uint32_t w, uint32_t h, uint32_t n, PixelComponentType t, const void *d)
+std::shared_ptr<Image> Image::loadFromData(uint32_t w, uint32_t h, uint32_t n, PixelComponentType t, const void *d)
 {
     assert(w > 0);
     assert(h > 0);
@@ -86,7 +86,7 @@ std::shared_ptr<Image> Image::createImage(uint32_t w, uint32_t h, uint32_t n, Pi
     return result;
 }
 
-std::shared_ptr<Image> Image::loadImage(const std::filesystem::path &filename)
+std::shared_ptr<Image> Image::loadFromFile(const std::filesystem::path &filename)
 {
     int w, h, n;
     void *d;

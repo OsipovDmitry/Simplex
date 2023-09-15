@@ -5,92 +5,10 @@
 
 #include <utils/mesh.h>
 
-#include "tangentspace.h"
-
 namespace simplex
 {
 namespace utils
 {
-
-template<typename V>
-inline void calculateTangentSpaceImpl(const std::shared_ptr<DrawArrays> &drawArrays,
-                               const VertexBuffer &vertices,
-                               const VertexBuffer &texCoords,
-                               VertexBuffer &tangents,
-                               VertexBuffer &binormals)
-{
-    calculateTangentSpace(drawArrays,
-                          vertices.numComponents(),
-                          reinterpret_cast<const V*>(vertices.data()),
-                          texCoords.numComponents(),
-                          reinterpret_cast<const V*>(texCoords.data()),
-                          tangents.numComponents(),
-                          reinterpret_cast<V*>(tangents.data()),
-                          binormals.numComponents(),
-                          reinterpret_cast<V*>(binormals.data()));
-}
-
-template<typename V, typename I>
-inline void calculateTangentSpaceImpl(const std::shared_ptr<DrawElements> &drawElements,
-                               const VertexBuffer &vertices,
-                               const VertexBuffer &texCoords,
-                               const Buffer &indices,
-                               VertexBuffer &tangents,
-                               VertexBuffer &binormals)
-{
-    calculateTangentSpace(drawElements,
-                          vertices.numComponents(),
-                          reinterpret_cast<const V*>(vertices.data()),
-                          texCoords.numComponents(),
-                          reinterpret_cast<const V*>(texCoords.data()),
-                          reinterpret_cast<const I*>(indices.data()),
-                          tangents.numComponents(),
-                          reinterpret_cast<V*>(tangents.data()),
-                          binormals.numComponents(),
-                          reinterpret_cast<V*>(binormals.data()));
-}
-
-template<typename V>
-inline void calculateTangentSpaceImpl(const std::shared_ptr<DrawElementsBuffer> &drawElementsBuffer,
-                               const VertexBuffer &vertices,
-                               const VertexBuffer &texCoords,
-                               VertexBuffer &tangents,
-                               VertexBuffer &binormals)
-{
-    switch (drawElementsBuffer->type())
-    {
-    case DrawElementsIndexType::Uint8:
-        calculateTangentSpaceImpl<V, uint8_t>(drawElementsBuffer, vertices, texCoords, *drawElementsBuffer, tangents, binormals);
-        break;
-    case DrawElementsIndexType::Uint16:
-        calculateTangentSpaceImpl<V, uint16_t>(drawElementsBuffer, vertices, texCoords, *drawElementsBuffer, tangents, binormals);
-        break;
-    case DrawElementsIndexType::Uint32:
-        calculateTangentSpaceImpl<V, uint32_t>(drawElementsBuffer, vertices, texCoords, *drawElementsBuffer, tangents, binormals);
-        break;
-    default:
-        assert(false);
-        break;
-    }
-}
-
-template<typename V>
-inline void orthogonalizeTangentSpaceImpl(uint32_t numVertices,
-                                   const VertexBuffer &tangents,
-                                   const VertexBuffer &binormals,
-                                   const VertexBuffer &normals,
-                                   VertexBuffer &result)
-{
-    orthogonalizeTangentSpace(numVertices,
-                              tangents.numComponents(),
-                              reinterpret_cast<const V*>(tangents.data()),
-                              binormals.numComponents(),
-                              reinterpret_cast<const V*>(binormals.data()),
-                              normals.numComponents(),
-                              reinterpret_cast<const V*>(normals.data()),
-                              result.numComponents(),
-                              reinterpret_cast<V*>(result.data()));
-}
 
 Buffer::Buffer(size_t sizeInBytes)
     : m_data(nullptr)
@@ -284,86 +202,6 @@ void Mesh::detachPrimitiveSet(std::shared_ptr<PrimitiveSet> primitiveSet)
 const std::unordered_set<std::shared_ptr<PrimitiveSet>> &Mesh::primitiveSets() const
 {
     return m_primitiveSets;
-}
-
-void Mesh::calculateTangents()
-{
-    assert(m_vertexBuffers.count(VertexAttribute::Position));
-    assert(m_vertexBuffers.count(VertexAttribute::TexCoords));
-    assert(m_vertexBuffers.count(VertexAttribute::Normal));
-
-    const auto& vertices = m_vertexBuffers.at(VertexAttribute::Position);
-    const auto& texCoords = m_vertexBuffers.at(VertexAttribute::TexCoords);
-    const auto& normals = m_vertexBuffers.at(VertexAttribute::Normal);
-
-    const auto numVertices = vertices->numVertices();
-    assert(numVertices == texCoords->numVertices());
-    assert(numVertices == normals->numVertices());
-
-    const auto vertexComponentType = vertices->componentType();
-    assert(vertexComponentType == texCoords->componentType());
-    assert(vertexComponentType == normals->componentType());
-
-    auto tangents = std::make_shared<VertexBuffer>(numVertices, 4u, vertexComponentType);
-    attachVertexBuffer(VertexAttribute::Tangent, tangents);
-
-    auto t = std::make_shared<VertexBuffer>(numVertices, 3u, vertexComponentType);
-    std::memset(t->data(), 0, t->sizeInBytes());
-
-    auto b = std::make_shared<VertexBuffer>(numVertices, 3u, vertexComponentType);
-    std::memset(b->data(), 0, t->sizeInBytes());
-
-    for (const auto &primitiveSet : m_primitiveSets)
-    {
-        if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
-        {
-            switch (vertexComponentType)
-            {
-            case VertexComponentType::Single:
-                calculateTangentSpaceImpl<float>(drawArrays, *vertices, *texCoords, *t, *b);
-                break;
-            case VertexComponentType::Double:
-                calculateTangentSpaceImpl<double>(drawArrays, *vertices, *texCoords, *t, *b);
-                break;
-            default:
-                assert(false);
-                break;
-            }
-
-
-        }
-        else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
-        {
-            if (auto drawElementsBuffer = drawElements->asDrawElementsBuffer(); drawElementsBuffer)
-            {
-                switch (vertexComponentType)
-                {
-                case VertexComponentType::Single:
-                    calculateTangentSpaceImpl<float>(drawElementsBuffer, *vertices, *texCoords, *t, *b);
-                    break;
-                case VertexComponentType::Double:
-                    calculateTangentSpaceImpl<double>(drawElementsBuffer, *vertices, *texCoords, *t, *b);
-                    break;
-                default:
-                    assert(false);
-                    break;
-                }
-            }
-        }
-    }
-
-    switch (vertexComponentType)
-    {
-    case VertexComponentType::Single:
-        orthogonalizeTangentSpaceImpl<float>(numVertices, *t, *b, *normals, *tangents);
-        break;
-    case VertexComponentType::Double:
-        orthogonalizeTangentSpaceImpl<double>(numVertices, *t, *b, *normals, *tangents);
-        break;
-    default:
-        assert(false);
-        break;
-    }
 }
 
 std::shared_ptr<Mesh> Mesh::createEmptyMesh(const std::unordered_map<VertexAttribute, std::tuple<uint32_t, VertexComponentType>> &decls)

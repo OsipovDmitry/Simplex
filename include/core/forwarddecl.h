@@ -73,6 +73,7 @@ class Node;
 class SceneRootNode;
 class CameraNode;
 class DrawableNode;
+enum class LightNodeType : uint16_t;
 class LightNode;
 class PointLightNode;
 class SpotLightNode;
@@ -83,7 +84,8 @@ class ConditionalNodeVisitor;
 class FrustumCullingNodeVisitor;
 template <typename NodeClass> class CollectorVisitor;
 
-class RenderProgramsManager;
+class TexturesManager;
+class ProgramsManager;
 
 }
 }

@@ -103,8 +103,6 @@ public:
     void detachPrimitiveSet(std::shared_ptr<PrimitiveSet>);
     const std::unordered_set<std::shared_ptr<PrimitiveSet>> &primitiveSets() const;
 
-    void calculateTangents();
-
     static std::shared_ptr<Mesh> createEmptyMesh(const std::unordered_map<VertexAttribute, std::tuple<uint32_t, VertexComponentType>>&);
 
 private:

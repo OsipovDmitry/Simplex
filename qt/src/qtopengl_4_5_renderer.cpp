@@ -7,6 +7,7 @@
 #include <utils/logger.h>
 #include <utils/mesh.h>
 #include <utils/image.h>
+#include <utils/shader.h>
 
 #include <core/renderinfo.h>
 #include <core/idrawable.h>
@@ -1957,30 +1958,35 @@ std::shared_ptr<core::graphics::IFrameBuffer> QtOpenGL_4_5_Renderer::createFrame
     return std::make_shared<FrameBuffer_4_5>();
 }
 
-void QtOpenGL_4_5_Renderer::resize(uint32_t width, uint32_t height)
+std::shared_ptr<core::graphics::IRenderProgram> QtOpenGL_4_5_Renderer::createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
+                                                                                           const std::shared_ptr<utils::Shader> &fragmentShader) const
 {
-    m_viewportSize.x = width;
-    m_viewportSize.y = height;
-}
+    assert(vertexShader);
+    assert(fragmentShader);
 
-std::shared_ptr<core::graphics::IRenderProgram> QtOpenGL_4_5_Renderer::createRenderProgram(const std::string &vertexShader,
-                                                                                           const std::string &fragmentShader) const
-{
     auto renderProgram = std::make_shared<RenderProgram_4_5>();
     return createProgram(renderProgram,
-                         {std::make_pair(GL_VERTEX_SHADER, std::cref(vertexShader)),
-                          std::make_pair(GL_FRAGMENT_SHADER, std::cref(fragmentShader))}) ?
+                         {std::make_pair(GL_VERTEX_SHADER, std::cref(vertexShader->data())),
+                          std::make_pair(GL_FRAGMENT_SHADER, std::cref(fragmentShader->data()))}) ?
                 renderProgram :
                 nullptr;
 }
 
-std::shared_ptr<core::graphics::IComputeProgram> QtOpenGL_4_5_Renderer::createComputeProgram(const std::string &computeShader) const
+std::shared_ptr<core::graphics::IComputeProgram> QtOpenGL_4_5_Renderer::createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const
 {
+    assert(computeShader);
+
     auto computerProgram = std::make_shared<ComputeProgram_4_5>();
     return createProgram(computerProgram,
-                         {std::make_pair(GL_COMPUTE_SHADER, std::cref(computeShader))}) ?
+                         {std::make_pair(GL_COMPUTE_SHADER, std::cref(computeShader->data()))}) ?
                 computerProgram :
                 nullptr;
+}
+
+void QtOpenGL_4_5_Renderer::resize(uint32_t width, uint32_t height)
+{
+    m_viewportSize.x = width;
+    m_viewportSize.y = height;
 }
 
 const glm::uvec2 &QtOpenGL_4_5_Renderer::viewportSize() const

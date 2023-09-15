@@ -11,6 +11,16 @@ namespace core
 
 LightNode::~LightNode() = default;
 
+std::shared_ptr<LightNode> LightNode::asLightNode()
+{
+    return std::dynamic_pointer_cast<LightNode>(shared_from_this());
+}
+
+std::shared_ptr<const LightNode> LightNode::asLightNode() const
+{
+    return std::dynamic_pointer_cast<const LightNode>(shared_from_this());
+}
+
 std::shared_ptr<PointLightNode> LightNode::asPointLightNode()
 {
     return nullptr;
@@ -41,6 +51,16 @@ std::shared_ptr<const DirectionalLightNode> LightNode::asDirectionalLightNode() 
     return nullptr;
 }
 
+bool LightNode::isLightingEnabled() const
+{
+    return m().isLightingEnabled();
+}
+
+void LightNode::setLightingEnabled(bool value)
+{
+    m().isLightingEnabled() = value;
+}
+
 const glm::vec3 &LightNode::color() const
 {
     return m().color();
@@ -54,6 +74,8 @@ void LightNode::setColor(const glm::vec3 &value)
 LightNode::LightNode(std::unique_ptr<LightNodePrivate> lightNodePrivate)
     : Node(std::move(lightNodePrivate))
 {
+    setColor(glm::vec3(1.f));
+    setLightingEnabled(true);
 }
 
 bool LightNode::canAttach(std::shared_ptr<Node>)

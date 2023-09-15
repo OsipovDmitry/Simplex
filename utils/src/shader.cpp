@@ -16,11 +16,9 @@ Shader::Shader()
 {
 }
 
-Shader::~Shader()
-{
-}
+Shader::~Shader() = default;
 
-Shader::operator const std::string &() const
+const std::string &Shader::data() const
 {
     return m_data;
 }
@@ -35,7 +33,14 @@ void Shader::setVersion(const std::string &value)
     s_version = value;
 }
 
-std::shared_ptr<Shader> Shader::loadShader(const std::filesystem::path &filename, const ShaderDefines &defines)
+std::shared_ptr<Shader> Shader::loadFromData(const std::string &data)
+{
+    auto result = std::make_shared<Shader>();
+    result->m_data = data;
+    return result;
+}
+
+std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filename, const ShaderDefines &defines)
 {
     static auto readFile = [](const std::filesystem::path &filename, std::string &data) -> bool
     {

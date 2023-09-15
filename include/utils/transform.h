@@ -76,7 +76,7 @@ public:
                glm::scale(glm::mat<4, 4, T>(1.0), glm::vec<3, T>(scale));
     }
 
-    static TransformT<L, T> fromScale(float value) { return TransformT<L, T>(value, QuatType(1.f, 0.f, 0.f, 0.f), PointType(0.0)); }
+    static TransformT<L, T> fromScale(float value) { return TransformT<L, T>(value, QuatType(1.0, 0.0, 0.0, 0.0), PointType(0.0)); }
     static TransformT<L, T> fromRotation(const QuatType &value) { return TransformT<L, T>(1.0, value, PointType(0.0)); }
     static TransformT<L, T> fromTranslation(const PointType &value) { return TransformT<L, T>(1.0, QuatType(1.0, 0.0, 0.0, 0.0), value); }
 };

@@ -29,8 +29,8 @@ public:
     PixelComponentType type() const;
     const void *data() const;
 
-    static std::shared_ptr<Image> createImage(uint32_t, uint32_t, uint32_t, PixelComponentType, const void*);
-    static std::shared_ptr<Image> loadImage(const std::filesystem::path&);
+    static std::shared_ptr<Image> loadFromData(uint32_t, uint32_t, uint32_t, PixelComponentType, const void*);
+    static std::shared_ptr<Image> loadFromFile(const std::filesystem::path&);
 
 private:
     uint32_t m_width;

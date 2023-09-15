@@ -81,6 +81,16 @@ std::shared_ptr<const DrawableNode> Node::asDrawableNode() const
     return nullptr;
 }
 
+std::shared_ptr<LightNode> Node::asLightNode()
+{
+    return nullptr;
+}
+
+std::shared_ptr<const LightNode> Node::asLightNode() const
+{
+    return nullptr;
+}
+
 const utils::Transform &Node::transform() const
 {
     return m_->transform();

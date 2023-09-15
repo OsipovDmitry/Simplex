@@ -436,15 +436,17 @@ public:
     virtual std::shared_ptr<ITexture> createTexture2DEmpty(uint32_t width, uint32_t height, PixelInternalFormat, uint32_t numLevels = 1) const = 0;
     virtual std::shared_ptr<ITexture> createTexture2D(std::shared_ptr<utils::Image>,
                                                       PixelInternalFormat = PixelInternalFormat::Undefined,
-                                                      uint32_t numLevels = 0, bool genMipmaps = true) const = 0;
+                                                      uint32_t numLevels = 0,
+                                                      bool genMipmaps = true) const = 0;
     virtual std::shared_ptr<ITexture> createTextureRectEmpty(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat) const = 0;
     virtual std::shared_ptr<IImage> createImage(std::shared_ptr<ITexture>,
                                                 IImage::DataAccess,
                                                 uint32_t level = 0u) const = 0;
     virtual std::shared_ptr<IRenderBuffer> createRenderBuffer(uint32_t width, uint32_t height, PixelInternalFormat) const = 0;
     virtual std::shared_ptr<IFrameBuffer> createFrameBuffer() const = 0;
-    virtual std::shared_ptr<IRenderProgram> createRenderProgram(const std::string &vertexShader, const std::string &fragmentShader) const = 0;
-    virtual std::shared_ptr<IComputeProgram> createComputeProgram(const std::string &computeShader) const = 0;
+    virtual std::shared_ptr<IRenderProgram> createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
+                                                                const std::shared_ptr<utils::Shader> &fragmentShader) const = 0;
+    virtual std::shared_ptr<IComputeProgram> createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const = 0;
 
     virtual void resize(uint32_t, uint32_t) = 0;
     virtual const glm::uvec2 &viewportSize() const = 0;

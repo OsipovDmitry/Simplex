@@ -48,6 +48,9 @@ public:
     virtual std::shared_ptr<DrawableNode> asDrawableNode();
     virtual std::shared_ptr<const DrawableNode> asDrawableNode() const;
 
+    virtual std::shared_ptr<LightNode> asLightNode();
+    virtual std::shared_ptr<const LightNode> asLightNode() const;
+
     virtual const utils::BoundingBox &boundingBox() const;
 
 protected:
