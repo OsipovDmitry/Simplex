@@ -13,6 +13,8 @@ namespace simplex
 namespace utils
 {
 
+class Settings;
+
 enum class PixelComponentType : uint16_t;
 class Image;
 

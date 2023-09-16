@@ -137,11 +137,9 @@ void MainWidget::onTimeout()
     if (auto testApplication = std::dynamic_pointer_cast<TestApplication>(app); testApplication)
     {
         const auto &scenes = testApplication->graphicsEngine()->scenes();
-        assert(!scenes.empty());
 
         simplex::core::CollectorVisitor<simplex::core::CameraNode> cameraCollector;
         scenes.front()->sceneRootNode()->accept(cameraCollector);
-        assert(!cameraCollector.nodes().empty());
 
         cameraCollector.nodes().front()->setTransform(cameraTransform);
     }

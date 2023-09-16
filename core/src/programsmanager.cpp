@@ -35,10 +35,7 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetRenderProgra
     {
         auto renderProgram = std::dynamic_pointer_cast<graphics::IRenderProgram>(it->second);
         if (!renderProgram)
-        {
-            LOG_ERROR << "Program with name \"" << name << "\" was created in a different type";
-            assert(false);
-        }
+            LOG_CRITICAL << "Program with name \"" << name << "\" was created in a different type";
 
         return renderProgram;
     }
@@ -68,10 +65,7 @@ std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetComputeProg
     {
         auto computeProgram = std::dynamic_pointer_cast<graphics::IComputeProgram>(it->second);
         if (!computeProgram)
-        {
-            LOG_ERROR << "Program with name \"" << name << "\" was created in a different type";
-            assert(false);
-        }
+            LOG_CRITICAL << "Program with name \"" << name << "\" was created in a different type";
 
         return computeProgram;
     }

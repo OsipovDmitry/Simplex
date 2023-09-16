@@ -1,8 +1,8 @@
-#include <cassert>
 #include <array>
 
 #include <utils/glm/gtc/matrix_inverse.hpp>
 #include <utils/glm/gtc/type_ptr.hpp>
+#include <utils/logger.h>
 #include <utils/meshpainter.h>
 #include <utils/mesh.h>
 
@@ -67,7 +67,7 @@ inline void calculateNormalImpl(const std::shared_ptr<DrawElementsBuffer> &drawE
         calculateNormalImpl<V, uint32_t>(drawElementsBuffer, vertices, *drawElementsBuffer, normals);
         break;
     default:
-        assert(false);
+        LOG_ERROR << "Undefined draw elements buffer type";
         break;
     }
 }
@@ -141,7 +141,7 @@ inline void calculateTangentSpaceImpl(const std::shared_ptr<DrawElementsBuffer> 
         calculateTangentSpaceImpl<V, uint32_t>(drawElementsBuffer, vertices, texCoords, *drawElementsBuffer, tangents, binormals);
         break;
     default:
-        assert(false);
+        LOG_ERROR << "Undefined draw elements buffer type";
         break;
     }
 }
@@ -226,7 +226,11 @@ public:
         const auto &vertexBuffer = mesh->vertexBuffers();
         const auto &primitiveSets = mesh->primitiveSets();
 
-        assert(vertexBuffer.count(VertexAttribute::Position));
+        if (!vertexBuffer.count(VertexAttribute::Position))
+        {
+            LOG_ERROR << "Mesh doesn't have Position vertex buffer";
+            return;
+        }
 
         const auto& vertices = vertexBuffer.at(VertexAttribute::Position);
         const auto numVertices = vertices->numVertices();
@@ -251,7 +255,7 @@ public:
                     calculateNormalImpl<double>(drawArrays, *vertices, *n);
                     break;
                 default:
-                    assert(false);
+                    LOG_ERROR << "Vertex component type must be floating point";
                     break;
                 }
             }
@@ -268,7 +272,7 @@ public:
                         calculateNormalImpl<double>(drawElementsBuffer, *vertices, *n);
                         break;
                     default:
-                        assert(false);
+                        LOG_ERROR << "Vertex component type must be floating point";
                         break;
                     }
                 }
@@ -284,7 +288,7 @@ public:
             normalizeImpl<double>(numVertices, *n, *normals);
             break;
         default:
-            assert(false);
+            LOG_ERROR << "Vertex component type must be floating point";
             break;
         }
     }
@@ -294,21 +298,53 @@ public:
         const auto &vertexBuffer = mesh->vertexBuffers();
         const auto &primitiveSets = mesh->primitiveSets();
 
-        assert(vertexBuffer.count(VertexAttribute::Position));
-        assert(vertexBuffer.count(VertexAttribute::TexCoords));
-        assert(vertexBuffer.count(VertexAttribute::Normal));
+        if (!vertexBuffer.count(VertexAttribute::Position))
+        {
+            LOG_ERROR << "Mesh doesn't have Position vertex buffer";
+            return;
+        }
+
+        if (!vertexBuffer.count(VertexAttribute::TexCoords))
+        {
+            LOG_ERROR << "Mesh doesn't have TexCoords vertex buffer";
+            return;
+        }
+
+        if (!vertexBuffer.count(VertexAttribute::Normal))
+        {
+            LOG_ERROR << "Mesh doesn't have Normal vertex buffer";
+            return;
+        }
 
         const auto& vertices = vertexBuffer.at(VertexAttribute::Position);
         const auto& texCoords = vertexBuffer.at(VertexAttribute::TexCoords);
         const auto& normals = vertexBuffer.at(VertexAttribute::Normal);
 
         const auto numVertices = vertices->numVertices();
-        assert(numVertices == texCoords->numVertices());
-        assert(numVertices == normals->numVertices());
+        if (numVertices != texCoords->numVertices())
+        {
+            LOG_ERROR << "Buffers have different sizes";
+            return;
+        }
+
+        if (numVertices != normals->numVertices())
+        {
+            LOG_ERROR << "Buffers have different sizes";
+            return;
+        }
 
         const auto vertexComponentType = vertices->componentType();
-        assert(vertexComponentType == texCoords->componentType());
-        assert(vertexComponentType == normals->componentType());
+        if (vertexComponentType != texCoords->componentType())
+        {
+            LOG_ERROR << "Buffers have different component types";
+            return;
+        }
+
+        if (vertexComponentType != normals->componentType())
+        {
+            LOG_ERROR << "Buffers have different component types";
+            return;
+        }
 
         auto tangents = std::make_shared<VertexBuffer>(numVertices, 4u, vertexComponentType);
         mesh->attachVertexBuffer(VertexAttribute::Tangent, tangents);
@@ -332,7 +368,7 @@ public:
                     calculateTangentSpaceImpl<double>(drawArrays, *vertices, *texCoords, *t, *b);
                     break;
                 default:
-                    assert(false);
+                    LOG_ERROR << "Vertex component type must be floating point";
                     break;
                 }
             }
@@ -349,7 +385,7 @@ public:
                         calculateTangentSpaceImpl<double>(drawElementsBuffer, *vertices, *texCoords, *t, *b);
                         break;
                     default:
-                        assert(false);
+                        LOG_ERROR << "Vertex component type must be floating point";
                         break;
                     }
                 }
@@ -365,7 +401,7 @@ public:
             orthogonalizeTangentSpaceImpl<double>(numVertices, *t, *b, *normals, *tangents);
             break;
         default:
-            assert(false);
+            LOG_ERROR << "Vertex component type must be floating point";
             break;
         }
     }
@@ -381,7 +417,8 @@ public:
 
             if (auto bufferIt = vertices.find(attrib); bufferIt != vertices.end())
             {
-                assert(bufferIt->second.size() == addedVerticesCount);
+                if (bufferIt->second.size() != addedVerticesCount)
+                    LOG_CRITICAL << "Buffer have different size";
 
                 if (auto transformIt = transforms.find(attrib); transformIt != transforms.end())
                 {
@@ -486,7 +523,9 @@ void AbstractPainter::setTexCoordsTransform(const Transform &texCoordsTransform)
 
 void AbstractPainter::drawArrays(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices, PrimitiveType primitiveType)
 {
-    assert(m_->mesh);
+    if (!m_->mesh)
+        LOG_CRITICAL << "Mesh can't be nullptr";
+
     auto firstCount = m_->addVertices(vertices);
     m_->mesh->attachPrimitiveSet(std::make_shared<DrawArrays>(primitiveType, firstCount.first, firstCount.second));
 }
@@ -496,7 +535,9 @@ void AbstractPainter::drawElements(const std::unordered_map<VertexAttribute, con
                                    const std::vector<uint32_t> &indices,
                                    DrawElementsIndexType drawElemetsIndexType)
 {
-    assert(m_->mesh);
+    if (!m_->mesh)
+        LOG_CRITICAL << "Mesh can't be nullptr";
+
     auto firstCount = m_->addVertices(vertices);
 
     auto drawElemetsBuffer = std::make_shared<DrawElementsBuffer>(primitiveType,

@@ -1,3 +1,5 @@
+#include <utils/logger.h>
+
 #include <core/renderinfo.h>
 
 #include "renderinfoprivate.h"
@@ -172,13 +174,17 @@ void RenderInfo::setFaceCulling(bool value, graphics::FaceType type)
 
 bool RenderInfo::colorMask(uint16_t index) const
 {
-    assert(index < graphics::FrameBufferColorAttachmentsCount());
+    if (index >= graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << graphics::FrameBufferColorAttachmentsCount();
+
     return m_->colorMasks()[index];
 }
 
 void RenderInfo::setColorMask(uint16_t index, bool value)
 {
-    assert(index < graphics::FrameBufferColorAttachmentsCount());
+    if (index >= graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << graphics::FrameBufferColorAttachmentsCount();
+
     m_->colorMasks()[index] = value;
 }
 

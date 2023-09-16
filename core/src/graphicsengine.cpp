@@ -238,7 +238,6 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
 
             // render lights areas
 
-
             // render final
             renderInfo.setFaceCulling(false);
             renderInfo.setDepthTest(false);

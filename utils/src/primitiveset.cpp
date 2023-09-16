@@ -1,5 +1,4 @@
-#include <cassert>
-
+#include <utils/logger.h>
 #include <utils/primitiveset.h>
 
 namespace simplex
@@ -10,7 +9,8 @@ namespace utils
 PrimitiveSet::PrimitiveSet(PrimitiveType primitiveType)
     : m_primitiveType(primitiveType)
 {
-    assert(m_primitiveType != PrimitiveType::Undefined);
+    if (m_primitiveType == PrimitiveType::Undefined)
+        LOG_CRITICAL << "Undefined primitive type";
 }
 
 std::shared_ptr<PrimitiveSet> PrimitiveSet::asPrimitiveSet()
@@ -82,7 +82,8 @@ DrawElements::DrawElements(PrimitiveType pt, uint32_t count, DrawElementsIndexTy
     , m_baseVertex(baseVertex)
     , m_type(type)
 {
-    assert(m_type != DrawElementsIndexType::Undefined);
+    if (m_type == DrawElementsIndexType::Undefined)
+        LOG_CRITICAL << "Undefined draw elements index type";
 }
 
 std::shared_ptr<DrawElements> DrawElements::asDrawElements()

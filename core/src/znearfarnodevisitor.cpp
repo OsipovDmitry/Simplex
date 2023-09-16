@@ -76,8 +76,6 @@ ZNearFarNodeVisitor::~ZNearFarNodeVisitor()
 const std::array<float, 2> &ZNearFarNodeVisitor::zNearFar() const
 {
     auto cond = std::dynamic_pointer_cast<const ZNearFarNodeVisitorCondition>(condition());
-    assert(cond);
-
     return cond->zNearFar();
 }
 

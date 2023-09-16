@@ -1,3 +1,5 @@
+#include <utils/logger.h>
+
 #include <core/pointlightnode.h>
 
 #include "pointlightnodeprivate.h"
@@ -37,8 +39,11 @@ const glm::vec2 &PointLightNode::radiuses() const
 
 void PointLightNode::setRadiuses(const glm::vec2 &value)
 {
-    assert(value[0] >= 0.f);
-    assert(value[1] > value[0]);
+    if (value[0] < 0.f)
+        LOG_CRITICAL << "minRadius must be greater or equal than 0.0";
+
+    if (value[1] <= value[0])
+        LOG_CRITICAL << "maxRadius must be greater than minRadius";
 
     m().radiuses() = value;
 }

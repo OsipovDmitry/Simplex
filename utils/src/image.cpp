@@ -1,5 +1,6 @@
 #include <cstring>
 
+#include <utils/logger.h>
 #include <utils/image.h>
 
 #ifdef _WIN32
@@ -66,10 +67,14 @@ const void *Image::data() const
 
 std::shared_ptr<Image> Image::loadFromData(uint32_t w, uint32_t h, uint32_t n, PixelComponentType t, const void *d)
 {
-    assert(w > 0);
-    assert(h > 0);
-    assert((n > 0) && (n <= 4));
-    assert(t != PixelComponentType::Undefined);
+    if (w * h == 0)
+        LOG_CRITICAL << "Width and height can't be 0";
+
+    if ((n < 1) ||  (n > 4))
+        LOG_CRITICAL << "Num components must be in [1..4]";
+
+    if (t == PixelComponentType::Undefined)
+        LOG_CRITICAL << "Undefined pixel component type";
 
     auto result = std::make_shared<Image>();
     result->m_width = w;

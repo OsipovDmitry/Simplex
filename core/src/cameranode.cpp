@@ -63,13 +63,16 @@ glm::mat4 CameraNode::projectionMatrix(float aspect, float zNear, float zFar) co
 void CameraNode::resize(const glm::uvec2 &value)
 {
     auto parentScene = scene();
-    assert(parentScene);
+    if (!parentScene)
+        return;
 
     auto graphicsEngine = parentScene->graphicsEngine();
-    assert(!graphicsEngine.expired());
+    if (graphicsEngine.expired())
+        return;
 
     auto graphicsRenderer = graphicsEngine.lock()->graphicsRenderer();
-    assert(graphicsRenderer);
+    if (!graphicsRenderer)
+        return;
 
     auto &mPrivate = m();
 
@@ -149,8 +152,12 @@ const glm::vec2 &CameraNode::cullPlanesLimits() const
 
 void CameraNode::setCullPlanesLimits(const glm::vec2 &values)
 {
-    assert(values[0] > 0.f);
-    assert(values[1] > values[0]);
+    if (values[0] <= 0.f)
+        LOG_CRITICAL << "Znear must be greater than 0.0";
+
+    if (values[1] <= values[0])
+        LOG_CRITICAL << "Zfar must be greater than Znear";
+
     m().cullPlanesLimits() = values;
 }
 

@@ -639,7 +639,8 @@ GLuint VertexArray_4_5::id() const
 uint32_t VertexArray_4_5::attachVertexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer, size_t offset, uint32_t stride)
 {
     auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
-    assert(buffer_4_5);
+    if (!buffer_4_5)
+        LOG_CRITICAL << "Buffer can't be nullptr";
 
     auto bindingIndex = static_cast<uint32_t>(-1);
 
@@ -694,11 +695,14 @@ void VertexArray_4_5::declareVertexAttribute(utils::VertexAttribute attrib,
                                              utils::VertexComponentType type,
                                              uint32_t relativeOffset)
 {
-    assert(numComponents <= 4);
-    assert(type != utils::VertexComponentType::Undefined);
+    if (numComponents > 4)
+        LOG_CRITICAL << "Num components must be lest or equal than 4";
+
+    if (type == utils::VertexComponentType::Undefined)
+        LOG_CRITICAL << "Undefined vertex component type";
 
     if (type != core::graphics::IRenderProgram::attributeVertexComponentTypeByAttributeId(attrib))
-        LOG_WARNING << "Vertex attribute has wrong component type";
+        LOG_CRITICAL << "Vertex attribute has wrong component type";
 
     m_vertexDeclarations[attrib] = std::make_tuple(bindingIndex, numComponents, type, relativeOffset);
 
@@ -785,7 +789,8 @@ uint32_t VertexArray_4_5::vertexAttributeRelativeOffset(utils::VertexAttribute a
 void VertexArray_4_5::attachIndexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer)
 {
     auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
-    assert(buffer_4_5);
+    if (!buffer_4_5)
+        LOG_CRITICAL << "Buffer can't be nullptr";
 
     m_indexBuffer = buffer_4_5;
 
@@ -808,7 +813,9 @@ std::shared_ptr<const core::graphics::IBuffer> VertexArray_4_5::indexBuffer() co
 
 void VertexArray_4_5::addPrimitiveSet(std::shared_ptr<utils::PrimitiveSet> primitiveSet)
 {
-    assert(primitiveSet);
+    if (!primitiveSet)
+        LOG_CRITICAL << "Primitive set can't be nullptr";
+
     m_primitiveSets.insert(primitiveSet);
 }
 
@@ -965,8 +972,11 @@ core::graphics::TextureType Texture2D_4_5::type() const
 
 void Texture2D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
 {
-    assert((numComponents >= 1) && (numComponents <= 4));
-    assert(type != utils::PixelComponentType::Undefined);
+    if ((numComponents < 1) || (numComponents > 4))
+        LOG_CRITICAL << "Num components must be in [1..4]";
+
+    if (type == utils::PixelComponentType::Undefined)
+        LOG_CRITICAL << "Undefined pixel component type";
 
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glTextureSubImage2D(m_id,
@@ -1001,9 +1011,14 @@ core::graphics::TextureType TextureRect_4_5::type() const
 
 void TextureRect_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
 {
-    assert(level == 0);
-    assert((numComponents >= 1) && (numComponents <= 4));
-    assert(type != utils::PixelComponentType::Undefined);
+    if (level != 0)
+        LOG_CRITICAL << "Level must be 0 for TextureRect";
+
+    if ((numComponents < 1) || (numComponents > 4))
+        LOG_CRITICAL << "Num components must be in [1..4]";
+
+    if (type == utils::PixelComponentType::Undefined)
+        LOG_CRITICAL << "Undefined pixel component type";
 
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     renderer->glTextureSubImage2D(m_id,
@@ -1144,13 +1159,17 @@ bool FrameBufferBase_4_5::attachment(core::graphics::FrameBufferAttachment value
 
 const core::graphics::FrameBufferClearColor &FrameBufferBase_4_5::clearColor(uint32_t index) const
 {
-    assert(index < core::graphics::FrameBufferColorAttachmentsCount());
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     return m_clearColor[index];
 }
 
 void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::vec4 &value)
 {
-    assert(index < core::graphics::FrameBufferColorAttachmentsCount());
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     core::graphics::FrameBufferClearColorValue clearColorValue;
     clearColorValue.floatColor = value;
     m_clearColor[index] = { core::graphics::FrameBufferClearColorType::Single, clearColorValue};
@@ -1158,7 +1177,9 @@ void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::vec4 &value)
 
 void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::i32vec4 &value)
 {
-    assert(index < core::graphics::FrameBufferColorAttachmentsCount());
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     core::graphics::FrameBufferClearColorValue clearColorValue;
     clearColorValue.intColor = value;
     m_clearColor[index] = { core::graphics::FrameBufferClearColorType::Int32, clearColorValue };
@@ -1166,7 +1187,9 @@ void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::i32vec4 &valu
 
 void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::u32vec4 &value)
 {
-    assert(index < core::graphics::FrameBufferColorAttachmentsCount());
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     core::graphics::FrameBufferClearColorValue clearColorValue;
     clearColorValue.uintColor = value;
     m_clearColor[index] = { core::graphics::FrameBufferClearColorType::Uint32, clearColorValue };
@@ -1203,7 +1226,9 @@ void FrameBufferBase_4_5::setDrawBuffers(const std::vector<core::graphics::Frame
     std::vector<GLenum> buffers;
     for (const auto &attachment : attachments)
     {
-        assert(core::graphics::IsFrameBufferColorAttachment(attachment));
+        if (!core::graphics::IsFrameBufferColorAttachment(attachment))
+            LOG_CRITICAL << "Not color attachment can be draw buffer";
+
         buffers.push_back(GL_COLOR_ATTACHMENT0 + core::graphics::FrameBufferColorAttachmentIndex(attachment));
     }
 
@@ -1726,8 +1751,12 @@ glm::uvec3 ComputeProgram_4_5::workGroupSize() const
 QtOpenGL_4_5_Renderer::~QtOpenGL_4_5_Renderer()
 {
     auto context = owningContext();
-    assert(context);
-    assert(s_instances.count(context));
+    if (!context)
+        LOG_CRITICAL << "Context is nullptr";
+
+    if(!s_instances.count(context))
+        LOG_CRITICAL << "Context is not founded";
+
     s_instances.erase(context);
 
     LOG_INFO << "GraphicsRenderer \"" << QtOpenGL_4_5_Renderer::name() << "\" has been destroyed";
@@ -1757,10 +1786,13 @@ void QtOpenGL_4_5_Renderer::blitFrameBuffer(std::shared_ptr<const core::graphics
                                             bool linearFilter)
 {
     auto srcFramebuffer = std::dynamic_pointer_cast<const FrameBufferBase_4_5>(src);
-    assert(srcFramebuffer);
+    if (!srcFramebuffer)
+        LOG_CRITICAL << "Source framebuffer can't be nullptr";
 
     auto dstFramebuffer = std::dynamic_pointer_cast<FrameBufferBase_4_5>(dst);
-    assert(dstFramebuffer);
+
+    if (!srcFramebuffer)
+        LOG_CRITICAL << "Destination framebuffer can't be nullptr";
 
     GLbitfield mask = 0;
     if (colorMsk)
@@ -1807,7 +1839,9 @@ std::shared_ptr<core::graphics::IVertexArray> QtOpenGL_4_5_Renderer::createVerte
             uint32_t stride = 0u;
             for (auto const &[attrib, buffer] : mesh->vertexBuffers())
             {
-                assert(numVertices == buffer->numVertices());
+                if (numVertices != buffer->numVertices())
+                    LOG_CRITICAL << "Buffers have different size";
+
                 totalSize += buffer->sizeInBytes();
                 stride += buffer->numComponents() * buffer->componentSize();
             }
@@ -1830,7 +1864,9 @@ std::shared_ptr<core::graphics::IVertexArray> QtOpenGL_4_5_Renderer::createVerte
         {
             for (auto const &[attrib, buffer] : mesh->vertexBuffers())
             {
-                assert(numVertices == buffer->numVertices());
+                if (numVertices != buffer->numVertices())
+                    LOG_CRITICAL << "Buffers have different size";
+
                 auto bindingIndex = vertexArray->attachVertexBuffer(createBuffer(buffer->sizeInBytes(), buffer->data()),
                                                                     0u,
                                                                     buffer->numComponents() * buffer->componentSize());
@@ -1888,8 +1924,11 @@ std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture2D
                                                                                       core::graphics::PixelInternalFormat internalFormat,
                                                                                       uint32_t numLevels) const
 {
-    assert(width * height);
-    assert(internalFormat != core::graphics::PixelInternalFormat::Undefined);
+    if (width * height == 0u)
+        LOG_CRITICAL << "Width and height can't be 0";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        LOG_CRITICAL << "Undefined pixel internal format";
 
     auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec2(width, height)));
     if (numLevels == 0u)
@@ -1908,7 +1947,8 @@ std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture2D
                                                                                  uint32_t numLevels,
                                                                                  bool genMipmaps) const
 {
-    assert(image);
+    if (!image)
+        LOG_CRITICAL << "Image can't be nullptr";
 
     if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
         internalFormat = Conversions::PixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(image->numComponents(), image->type());
@@ -1926,8 +1966,11 @@ std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTextureRe
                                                                                         uint32_t height,
                                                                                         core::graphics::PixelInternalFormat internalFormat) const
 {
-    assert(width * height);
-    assert(internalFormat != core::graphics::PixelInternalFormat::Undefined);
+    if (width * height == 0u)
+        LOG_CRITICAL << "Width and height can't be 0";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        LOG_CRITICAL << "Undefined pixel internal format";
 
     auto result = std::make_shared<TextureRect_4_5>(width, height, internalFormat);
     result->setWrapMode(core::graphics::TextureWrapMode::ClampToEdge);
@@ -1940,8 +1983,11 @@ std::shared_ptr<core::graphics::IImage> QtOpenGL_4_5_Renderer::createImage(std::
                                                                            core::graphics::IImage::DataAccess access,
                                                                            uint32_t level) const
 {
-    assert(texture);
-    assert(level < texture->numMipmapLevels());
+    if (!texture)
+        LOG_CRITICAL << "Texture can't be nullptr";
+
+    if (level >= texture->numMipmapLevels())
+        LOG_CRITICAL << "Level must be less than texture levels count";
 
     return std::make_shared<Image_4_5>(texture, access, level);
 }
@@ -1961,8 +2007,11 @@ std::shared_ptr<core::graphics::IFrameBuffer> QtOpenGL_4_5_Renderer::createFrame
 std::shared_ptr<core::graphics::IRenderProgram> QtOpenGL_4_5_Renderer::createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
                                                                                            const std::shared_ptr<utils::Shader> &fragmentShader) const
 {
-    assert(vertexShader);
-    assert(fragmentShader);
+    if (!vertexShader)
+        LOG_CRITICAL << "Vertex shader can't be nullptr";
+
+    if (!fragmentShader)
+        LOG_CRITICAL << "Fragment shader can't be nullptr";
 
     auto renderProgram = std::make_shared<RenderProgram_4_5>();
     return createProgram(renderProgram,
@@ -1974,7 +2023,8 @@ std::shared_ptr<core::graphics::IRenderProgram> QtOpenGL_4_5_Renderer::createRen
 
 std::shared_ptr<core::graphics::IComputeProgram> QtOpenGL_4_5_Renderer::createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const
 {
-    assert(computeShader);
+    if (!computeShader)
+        LOG_CRITICAL << "Compute shader can't be nullptr";
 
     auto computerProgram = std::make_shared<ComputeProgram_4_5>();
     return createProgram(computerProgram,
@@ -2004,8 +2054,12 @@ void QtOpenGL_4_5_Renderer::addRenderData(const std::shared_ptr<core::graphics::
                                           const glm::mat4 &transform)
 {
     auto renderProgram_4_5 = std::dynamic_pointer_cast<RenderProgram_4_5>(renderProgram);
-    assert(renderProgram_4_5);
-    assert(drawable);
+    if (!renderProgram_4_5)
+        LOG_CRITICAL << "Render program can't be nullptr";
+
+    if (!drawable)
+        LOG_CRITICAL << "Drawable can't be nullptr";
+
     m_renderData.push_back({transform, renderProgram_4_5, drawable});
 }
 
@@ -2044,7 +2098,9 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
 //        glDisable(GL_STENCIL_TEST);
 
     auto frameBuffer_4_5 = std::dynamic_pointer_cast<FrameBufferBase_4_5>(frameBuffer);
-    assert(frameBuffer_4_5);
+    if (!frameBuffer_4_5)
+        LOG_CRITICAL << "Framebuffer can't be nullptr";
+
     glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer_4_5->id());
     frameBuffer_4_5->clear();
 
@@ -2056,12 +2112,15 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
     for (auto &renderData : m_renderData)
     {
         auto &drawable = std::get<2>(renderData);
+
         auto vao_4_5 = std::dynamic_pointer_cast<VertexArray_4_5>(drawable->vertexArray());
-        assert(vao_4_5);
+        if (!vao_4_5)
+            LOG_CRITICAL << "VAO can't be nullptr";
         glBindVertexArray(vao_4_5->id());
 
         auto renderProgram_4_5 = std::get<1>(renderData);
-        assert(renderProgram_4_5);
+        if (!renderProgram_4_5)
+            LOG_CRITICAL << "Render program can't be nullptr";
         glUseProgram(renderProgram_4_5->id());
         setupUniforms(renderProgram_4_5, drawable, renderInfo, std::get<0>(renderData));
 
@@ -2090,12 +2149,13 @@ void QtOpenGL_4_5_Renderer::compute(const std::shared_ptr<core::graphics::ICompu
                                     const core::RenderInfo &renderInfo,
                                     const glm::uvec3 &numInvocations)
 {
-    auto renderProgram_4_5 = std::dynamic_pointer_cast<ComputeProgram_4_5>(computeProgram);
-    assert(renderProgram_4_5);
-    glUseProgram(renderProgram_4_5->id());
-    setupUniforms(renderProgram_4_5, nullptr, renderInfo, glm::mat4x4(1.0f));
+    auto computeProgram_4_5 = std::dynamic_pointer_cast<ComputeProgram_4_5>(computeProgram);
+    if (!computeProgram_4_5)
+        LOG_CRITICAL << "Compute program can't be nullptr";
+    glUseProgram(computeProgram_4_5->id());
+    setupUniforms(computeProgram_4_5, nullptr, renderInfo, glm::mat4x4(1.0f));
 
-    auto numWorkGroups = glm::uvec3(glm::ceil(glm::vec3(numInvocations) / glm::vec3(renderProgram_4_5->workGroupSize())) + glm::vec3(.5f));
+    auto numWorkGroups = glm::uvec3(glm::ceil(glm::vec3(numInvocations) / glm::vec3(computeProgram->workGroupSize())) + glm::vec3(.5f));
     glDispatchCompute(numWorkGroups.x, numWorkGroups.y, numWorkGroups.z);
 
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
@@ -2104,7 +2164,8 @@ void QtOpenGL_4_5_Renderer::compute(const std::shared_ptr<core::graphics::ICompu
 int32_t QtOpenGL_4_5_Renderer::bindTexture(const core::graphics::PTexture &texture)
 {
     auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(texture);
-    assert(textureBase);
+    if (!textureBase)
+        LOG_CRITICAL << "Texture can't be nullptr";
 
     glBindTextureUnit(static_cast<GLuint>(m_textureUnit), textureBase->id());
     return m_textureUnit++;
@@ -2113,7 +2174,8 @@ int32_t QtOpenGL_4_5_Renderer::bindTexture(const core::graphics::PTexture &textu
 int32_t QtOpenGL_4_5_Renderer::bindImage(const core::graphics::PImage &image)
 {
     auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(image->texture());
-    assert(textureBase);
+    if (!textureBase)
+        LOG_CRITICAL << "Image's texture can't be nullptr";
 
     glBindImageTexture(static_cast<GLuint>(m_imageUnit),
                        textureBase->id(),
@@ -2129,7 +2191,8 @@ int32_t QtOpenGL_4_5_Renderer::bindImage(const core::graphics::PImage &image)
 void QtOpenGL_4_5_Renderer::bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PBufferRange &bufferRange)
 {
     auto buffer = std::dynamic_pointer_cast<const Buffer_4_5>(bufferRange->buffer());
-    assert(buffer);
+    if (!buffer)
+        LOG_CRITICAL << "Buffer can't be nullptr";
 
     auto size = bufferRange->size();
     if (size == static_cast<size_t>(-1))
@@ -2187,10 +2250,7 @@ QtOpenGL_4_5_Renderer::QtOpenGL_4_5_Renderer(QOpenGLContext *context, GLuint def
 {
     setOwningContext(context);
     if (!initializeOpenGLFunctions())
-    {
         LOG_CRITICAL << "Can't initialize QOpenGLFunctions";
-        assert(false);
-    }
 
     makeDefaultFrameBuffer(defaultFbo);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -2238,7 +2298,8 @@ void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
                                          GLint loc,
                                          const core::PAbstratcUniform &uniform)
 {
-    assert(uniform);
+    if (!uniform)
+        LOG_CRITICAL << "Uniform can't be nullptr";
 
     switch (uniform->type())
     {
@@ -2479,16 +2540,10 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
         }
 
         if (!uniform)
-        {
-            LOG_ERROR << "Undefined uniform name \"" << program->uniformNameByIndex(uniformInfo.index) << "\" in render program";
-            assert(false);
-        }
+            LOG_CRITICAL << "Undefined uniform name \"" << program->uniformNameByIndex(uniformInfo.index) << "\" in render program";
 
         if (uniformInfo.type != uniform->type())
-        {
-            LOG_ERROR << "Uniform \"" << program->uniformNameByIndex(uniformInfo.index) << "\" has wrong type";
-            assert(false);
-        }
+            LOG_CRITICAL << "Uniform \"" << program->uniformNameByIndex(uniformInfo.index) << "\" has wrong type";
 
         setupUniform(programId, uniformInfo.location, uniform);
     }
@@ -2513,12 +2568,9 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
         }
 
         if (!bufferRange)
-        {
-            LOG_ERROR << "Undefined SSBO name \""
-                      << program->SSBONameByIndex(ssboInfo.index)
-                      << "\" in render program";
-            assert(false);
-        }
+            LOG_CRITICAL << "Undefined SSBO name \""
+                         << program->SSBONameByIndex(ssboInfo.index)
+                         << "\" in render program";
 
         glShaderStorageBlockBinding(programId, ssboInfo.index, bindSSBO(bufferRange));
     }
@@ -2536,7 +2588,8 @@ bool QtOpenGL_4_5_Renderer::createProgram(std::shared_ptr<ProgramBase_4_5> progr
         {GL_FRAGMENT_SHADER, "Fragment"}
     };
 
-    assert(program);
+    if (!program)
+        LOG_CRITICAL << "Program can't be nullptr";
 
     auto renderer = QtOpenGL_4_5_Renderer::instance();
 

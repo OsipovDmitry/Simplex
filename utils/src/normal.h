@@ -3,6 +3,7 @@
 
 #include <vector>
 
+#include <utils/logger.h>
 #include <utils/glm/matrix.hpp>
 #include <utils/glm/gtc/type_ptr.hpp>
 #include <utils/glm/gtx/normal.hpp>
@@ -41,10 +42,14 @@ inline void calculateNormal(const std::shared_ptr<DrawArrays> &drawArrays,
                             uint32_t normalsNumComponents,
                             V *normals)
 {
-    assert(drawArrays->primitiveType() == PrimitiveType::Triangles);
+    if (drawArrays->primitiveType() != PrimitiveType::Triangles)
+        LOG_CRITICAL << "Primitive type must be Triangle";
 
-    assert(verticesNumComponents >= 3);
-    assert(normalsNumComponents >= 3);
+    if (verticesNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
+
+    if (normalsNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawArraysFirst = drawArrays->first();
     const auto drawArraysCount = drawArrays->count();
@@ -72,10 +77,14 @@ inline void calculateNormal(const std::shared_ptr<DrawElements> &drawElements,
                                   uint32_t normalsNumComponents,
                                   V *normals)
 {
-    assert(drawElements->primitiveType() == PrimitiveType::Triangles);
+    if (drawElements->primitiveType() != PrimitiveType::Triangles)
+        LOG_CRITICAL << "Primitive type must be Triangle";
 
-    assert(verticesNumComponents >= 3);
-    assert(normalsNumComponents >= 3);
+    if (verticesNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
+
+    if (normalsNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawElementsCount = drawElements->count();
     const auto drawElementsBaseVertex = drawElements->baseVertex();
@@ -104,8 +113,11 @@ inline void normalize(uint32_t numVertices,
                       V *result)
 
 {
-    assert(normalsNumComponents >= 3);
-    assert(resultNumComponents >= 3);
+    if (normalsNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
+
+    if (resultNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     for (uint32_t i = 0u; i < numVertices; ++i)
     {
@@ -161,12 +173,20 @@ inline void calculateTangentSpace(const std::shared_ptr<DrawArrays> &drawArrays,
                                   uint32_t binormalsNumComponents,
                                   V *binormals)
 {
-    assert(drawArrays->primitiveType() == PrimitiveType::Triangles);
+    if (drawArrays->primitiveType() != PrimitiveType::Triangles)
+        LOG_CRITICAL << "Primitive type must be Triangle";
 
-    assert(verticesNumComponents >= 3);
-    assert(texCoordsNumComponents >= 2);
-    assert(tangentsNumComponents >= 3);
-    assert(binormalsNumComponents >= 3);
+    if (verticesNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
+
+    if (texCoordsNumComponents < 2)
+        LOG_CRITICAL << "Num components must be greater or equal than 2";
+
+    if (tangentsNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
+
+    if (binormalsNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawArraysFirst = drawArrays->first();
     const auto drawArraysCount = drawArrays->count();
@@ -202,12 +222,20 @@ inline void calculateTangentSpace(const std::shared_ptr<DrawElements> &drawEleme
                                   uint32_t binormalsNumComponents,
                                   V *binormals)
 {
-    assert(drawElements->primitiveType() == PrimitiveType::Triangles);
+    if (drawElements->primitiveType() != PrimitiveType::Triangles)
+        LOG_CRITICAL << "Primitive type must be Triangle";
 
-    assert(verticesNumComponents >= 3);
-    assert(texCoordsNumComponents >= 2);
-    assert(tangentsNumComponents >= 3);
-    assert(binormalsNumComponents >= 3);
+    if (verticesNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
+
+    if (texCoordsNumComponents < 2)
+        LOG_CRITICAL << "Num components must be greater or equal than 2";
+
+    if (tangentsNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
+
+    if (binormalsNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawElementsCount = drawElements->count();
     const auto drawElementsBaseVertex = drawElements->baseVertex();
@@ -244,10 +272,17 @@ inline void orthogonalizeTangentSpace(uint32_t numVertices,
                                       V *result)
 
 {
-    assert(tangentsNumComponents >= 3);
-    assert(binormalsNumComponents >= 3);
-    assert(normalsNumComponents >= 3);
-    assert(resultNumComponents >= 4);
+    if (tangentsNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
+
+    if (binormalsNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 2";
+
+    if (normalsNumComponents < 3)
+        LOG_CRITICAL << "Num components must be greater or equal than 3";
+
+    if (resultNumComponents < 4)
+        LOG_CRITICAL << "Num components must be greater or equal than 4";
 
     for (uint32_t i = 0u; i < numVertices; ++i)
     {

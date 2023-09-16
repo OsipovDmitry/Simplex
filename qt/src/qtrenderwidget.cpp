@@ -37,7 +37,8 @@ QtRenderWidget::~QtRenderWidget()
 
 void QtRenderWidget::setApplication(std::weak_ptr<core::IApplication> application)
 {
-    assert(!application.expired());
+    if (application.expired())
+        LOG_CRITICAL << "Application can't be nullptr";
 
     m_->application() = application;
     LOG_INFO << "Application \"" + application.lock()->name() + "\" has been set to QtRenderWidget";

@@ -1,8 +1,8 @@
 #include <cstring>
-#include <cassert>
 #include <algorithm>
 #include <array>
 
+#include <utils/logger.h>
 #include <utils/mesh.h>
 
 namespace simplex
@@ -57,8 +57,11 @@ VertexBuffer::VertexBuffer(uint32_t numVertices, uint32_t numComponents, VertexC
     , m_numComponents(numComponents)
     , m_type(type)
 {
-    assert(m_numComponents <= 4u);
-    assert(m_type != VertexComponentType::Undefined);
+    if (m_numComponents < 1 || m_numComponents >  4u)
+        LOG_CRITICAL << "Num components must be in [1..4]";
+
+    if (m_type == VertexComponentType::Undefined)
+        LOG_CRITICAL << "Undefined vertex component type";
 
     setNumVertices(numVertices);
 }
@@ -122,7 +125,8 @@ DrawElementsBuffer::DrawElementsBuffer(PrimitiveType primitiveType, uint32_t cou
     : DrawElements(primitiveType, count, type, 0, baseVertex)
     , Buffer(0u)
 {
-    assert(m_type != DrawElementsIndexType::Undefined);
+    if (m_type == DrawElementsIndexType::Undefined)
+        LOG_CRITICAL << "Undefined draw elements index type";
 
     setNumIndices(m_count);
 }
@@ -168,7 +172,9 @@ Mesh::Mesh()
 
 void Mesh::attachVertexBuffer(VertexAttribute vertexAttribute, std::shared_ptr<VertexBuffer> vertexBuffer)
 {
-    assert(vertexBuffer);
+    if (!vertexBuffer)
+        LOG_CRITICAL << "Vertex buffer can't be nullptr";
+
     m_vertexBuffers[vertexAttribute] = vertexBuffer;
 }
 
@@ -184,13 +190,17 @@ const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer>> &Mesh::
 
 void Mesh::attachPrimitiveSet(std::shared_ptr<DrawArrays> primitiveSet)
 {
-    assert(primitiveSet);
+    if (!primitiveSet)
+        LOG_CRITICAL << "Primitive set can't be nullptr";
+
     m_primitiveSets.insert(primitiveSet);
 }
 
 void Mesh::attachPrimitiveSet(std::shared_ptr<DrawElementsBuffer> primitiveSet)
 {
-    assert(primitiveSet);
+    if (!primitiveSet)
+        LOG_CRITICAL << "Primitive set can't be nullptr";
+
     m_primitiveSets.insert(primitiveSet);
 }
 

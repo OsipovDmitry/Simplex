@@ -47,6 +47,8 @@ class IComputeProgram;
 class IRenderer;
 }
 
+class Settings;
+
 class INamedObject;
 class IApplication;
 class IEngine;

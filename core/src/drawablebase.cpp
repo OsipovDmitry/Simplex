@@ -65,73 +65,78 @@ DrawableBase::~DrawableBase()
 utils::BoundingBox DrawableBase::calculateBoundingBox()
 {
     utils::BoundingBox result;
+
     auto vao = m_->vertexArray();
+    if (!vao)
+        return result;
 
-    if (auto bindingIndex = vao->vertexAttributeBindingIndex(utils::VertexAttribute::Position);
-            bindingIndex != static_cast<uint32_t>(-1))
+    auto bindingIndex = vao->vertexAttributeBindingIndex(utils::VertexAttribute::Position);
+    if (bindingIndex == static_cast<uint32_t>(-1))
+        return result;
+
+    auto vertexBuffer = vao->vertexBuffer(bindingIndex);
+    if (!vertexBuffer)
+        return result;
+
+    auto vertexBufferOffset = vao->vertexBufferOffset(bindingIndex);
+    auto vertexBufferStride = vao->vertexBufferStride(bindingIndex);
+
+    auto vertexAttributeNumComponents = vao->vertexAttributeNumComponents(utils::VertexAttribute::Position);
+    auto vertexAttributeType = vao->vertexAttributeComponentType(utils::VertexAttribute::Position);
+    auto vertexAttributeRelativeOffset = vao->vertexAttributeRelativeOffset(utils::VertexAttribute::Position);
+    auto vertexAttributeComponentSize = utils::VertexBuffer::componentSize(vertexAttributeType);
+
+    auto vertexBufferData = vertexBuffer->map(graphics::IBuffer::MapAccess::ReadOnly, vertexBufferOffset);
+
+    for (auto &primitiveSet : vao->primitiveSets())
     {
-        auto vertexBuffer = vao->vertexBuffer(bindingIndex);
-        assert(vertexBuffer);
-
-        auto vertexBufferOffset = vao->vertexBufferOffset(bindingIndex);
-        auto vertexBufferStride = vao->vertexBufferStride(bindingIndex);
-
-        auto vertexAttributeNumComponents = vao->vertexAttributeNumComponents(utils::VertexAttribute::Position);
-        auto vertexAttributeType = vao->vertexAttributeComponentType(utils::VertexAttribute::Position);
-        auto vertexAttributeRelativeOffset = vao->vertexAttributeRelativeOffset(utils::VertexAttribute::Position);
-        auto vertexAttributeComponentSize = utils::VertexBuffer::componentSize(vertexAttributeType);
-
-        auto vertexBufferData = vertexBuffer->map(graphics::IBuffer::MapAccess::ReadOnly, vertexBufferOffset);
-
-        for (auto &primitiveSet : vao->primitiveSets())
+        if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
         {
-            if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
+            auto drawArraysFirst = drawArrays->first();
+            auto drawArraysCount = drawArrays->count();
+
+            utils::BoundingBox::PointType p(static_cast<utils::BoundingBox::value_type>(0));
+
+            for (uint32_t i = 0; i < drawArraysCount; ++i)
             {
-                auto drawArraysFirst = drawArrays->first();
-                auto drawArraysCount = drawArrays->count();
-
-                utils::BoundingBox::PointType p(static_cast<utils::BoundingBox::value_type>(0));
-
-                for (uint32_t i = 0; i < drawArraysCount; ++i)
-                {
-                    readDataToVec<utils::BoundingBox::length(), utils::BoundingBox::value_type>(
-                                vertexBufferData->get() + (i + drawArraysFirst) * vertexBufferStride + vertexAttributeRelativeOffset,
-                                vertexAttributeNumComponents,
-                                vertexAttributeType,
-                                vertexAttributeComponentSize,
-                                p);
-                    result += p;
-                }
+                readDataToVec<utils::BoundingBox::length(), utils::BoundingBox::value_type>(
+                            vertexBufferData->get() + (i + drawArraysFirst) * vertexBufferStride + vertexAttributeRelativeOffset,
+                            vertexAttributeNumComponents,
+                            vertexAttributeType,
+                            vertexAttributeComponentSize,
+                            p);
+                result += p;
             }
-            else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
+        }
+        else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
+        {
+            auto drawElementsCount = drawElements->count();
+            auto drawElementsType = drawElements->type();
+            auto drawElementsOffset = drawElements->offset();
+            auto drawElementsBaseVertex = drawElements->baseVertex();
+            auto drawElementsIndexSize = utils::DrawElements::indexSize(drawElementsType);
+
+            auto indexBuffer = vao->indexBuffer();
+            if (!indexBuffer)
+                continue;
+
+            auto indexBufferData = indexBuffer->map(graphics::IBuffer::MapAccess::ReadOnly,
+                                                    drawElementsOffset,
+                                                    drawElementsCount * drawElementsIndexSize);
+
+            uint32_t index;
+            utils::BoundingBox::PointType p(static_cast<utils::BoundingBox::value_type>(0));
+
+            for (uint32_t i = 0; i < drawElementsCount; ++i)
             {
-                auto drawElementsCount = drawElements->count();
-                auto drawElementsType = drawElements->type();
-                auto drawElementsOffset = drawElements->offset();
-                auto drawElementsBaseVertex = drawElements->baseVertex();
-                auto drawElementsIndexSize = utils::DrawElements::indexSize(drawElementsType);
-
-                auto indexBuffer = vao->indexBuffer();
-                assert(indexBuffer);
-
-                auto indexBufferData = indexBuffer->map(graphics::IBuffer::MapAccess::ReadOnly,
-                                                        drawElementsOffset,
-                                                        drawElementsCount * drawElementsIndexSize);
-
-                uint32_t index;
-                utils::BoundingBox::PointType p(static_cast<utils::BoundingBox::value_type>(0));
-
-                for (uint32_t i = 0; i < drawElementsCount; ++i)
-                {
-                    readDataToType<uint32_t>(indexBufferData->get() + i * drawElementsIndexSize, drawElementsType, index);
-                    readDataToVec<utils::BoundingBox::length(), utils::BoundingBox::value_type>(
-                                vertexBufferData->get() + (index + drawElementsBaseVertex) * vertexBufferStride + vertexAttributeRelativeOffset,
-                                vertexAttributeNumComponents,
-                                vertexAttributeType,
-                                vertexAttributeComponentSize,
-                                p);
-                    result += p;
-                }
+                readDataToType<uint32_t>(indexBufferData->get() + i * drawElementsIndexSize, drawElementsType, index);
+                readDataToVec<utils::BoundingBox::length(), utils::BoundingBox::value_type>(
+                            vertexBufferData->get() + (index + drawElementsBaseVertex) * vertexBufferStride + vertexAttributeRelativeOffset,
+                            vertexAttributeNumComponents,
+                            vertexAttributeType,
+                            vertexAttributeComponentSize,
+                            p);
+                result += p;
             }
         }
     }

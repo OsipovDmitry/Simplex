@@ -57,8 +57,6 @@ const std::deque<std::shared_ptr<Node> > &FrustumCullingNodeVisitor::nodes() con
 const utils::Frustum &FrustumCullingNodeVisitor::transformedFrustum() const
 {
     auto cond = std::dynamic_pointer_cast<const FrustumCullingCondition>(condition());
-    assert(cond);
-
     return cond->transformedFrustum();
 }
 

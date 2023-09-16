@@ -2,6 +2,7 @@
 #include <fstream>
 #include <array>
 #include <ctime>
+#include <cassert>
 
 #include <utils/logger.h>
 
@@ -26,11 +27,8 @@ public:
     const std::string &file() const { return m_file; }
     int line() const { return m_line; }
 
-    static void setLoggerOutput(std::shared_ptr<Logger::Output> output) { s_output = output; }
-    static std::shared_ptr<Logger::Output> loggerOutput() { return s_output; }
-
-    static void setLoggerMinMessageLevel(Logger::MessageLevel value) { s_minMessageLevel = value; }
-    static Logger::MessageLevel loggerMinMessageLevel() { return s_minMessageLevel; }
+    static std::shared_ptr<Logger::Output> &loggerOutput() { return s_output; }
+    static Logger::MessageLevel &loggerMinMessageLevel() { return s_minMessageLevel; }
 
     static std::string currentDateTimeString() {
         std::time_t time = std::time(nullptr);
@@ -92,11 +90,14 @@ Logger::~Logger()
                 m_->stringStream().str()
         );
     }
+
+    if (m_->messageLevel() == MessageLevel::Critical)
+        assert(false);
 }
 
 void Logger::setOutput(std::shared_ptr<Output> output)
 {
-    LoggerPrivate::setLoggerOutput(output);
+    LoggerPrivate::loggerOutput() = output;
 }
 
 std::shared_ptr<Logger::Output> Logger::output()
@@ -106,7 +107,7 @@ std::shared_ptr<Logger::Output> Logger::output()
 
 void Logger::setMinMessageLevel(MessageLevel value)
 {
-    LoggerPrivate::setLoggerMinMessageLevel(value);
+    LoggerPrivate::loggerMinMessageLevel() = value;
 }
 
 Logger::MessageLevel Logger::minMessageLevel()
@@ -217,9 +218,7 @@ Logger::Output::Output()
 {
 }
 
-Logger::Output::~Output()
-{
-}
+Logger::Output::~Output() = default;
 
 Logger::FileOutput::FileOutput(const std::string &fileOutputPrefix)
     : Output()

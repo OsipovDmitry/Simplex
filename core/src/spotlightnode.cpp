@@ -1,3 +1,5 @@
+#include <utils/logger.h>
+
 #include <core/spotlightnode.h>
 
 #include "spotlightnodeprivate.h"
@@ -38,8 +40,11 @@ const glm::vec2 &SpotLightNode::radiuses() const
 
 void SpotLightNode::setRadiuses(const glm::vec2 &value)
 {
-    assert(value[0] >= 0.f);
-    assert(value[0] < value[1]);
+    if (value[0] < 0.f)
+        LOG_CRITICAL << "minRadius must be greater or equal than 0.0";
+
+    if (value[1] <= value[0])
+        LOG_CRITICAL << "maxRadius must be greater than minRadius";
 
     m().radiuses() = value;
 }
@@ -51,9 +56,14 @@ const glm::vec2 &SpotLightNode::halfAngles() const
 
 void SpotLightNode::setHalfAngles(const glm::vec2 &value)
 {
-    assert(value[0] >= 0.f);
-    assert(value[0] < value[1]);
-    assert(value[1] < glm::half_pi<float>());
+    if (value[0] < 0.f)
+        LOG_CRITICAL << "Min angle must be greater than 0.0";
+
+    if (value[0] >= value[1])
+        LOG_CRITICAL << "Max angle must be greater than min angle";
+
+    if (value[1] >= glm::half_pi<float>())
+        LOG_CRITICAL << "Max angle must be less than pi/2";
 
     m().halfAngles() = value;
 }
