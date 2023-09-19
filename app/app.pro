@@ -9,6 +9,9 @@ HEADERS += \
 SOURCES += \
     $$files("src/*.cpp", true)
 
+FORMS += \
+    $$files("src/*.ui", true)
+
 LIBS += \
     -lutils \
     -lcore \

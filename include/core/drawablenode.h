@@ -27,9 +27,9 @@ public:
 
     utils::BoundingBox doBoundingBox() const override;
 
-    const std::unordered_set<std::shared_ptr<IDrawable>> &drawables() const;
-    void addDrawable(std::shared_ptr<IDrawable>);
-    void removeDrawable(std::shared_ptr<IDrawable>);
+    const std::unordered_set<std::shared_ptr<Drawable>> &drawables() const;
+    void addDrawable(std::shared_ptr<Drawable>);
+    void removeDrawable(std::shared_ptr<Drawable>);
 
     virtual const utils::BoundingBox &localBoundingBox() const;
 

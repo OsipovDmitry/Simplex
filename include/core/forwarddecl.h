@@ -32,13 +32,13 @@ enum class DepthFunc : uint16_t;
 enum class StencilFunc : uint16_t;
 class IBuffer;
 class IBufferRange;
-using PBufferRange = std::shared_ptr<const IBufferRange>;
+using PConstBufferRange = std::shared_ptr<const IBufferRange>;
 class IVertexArray;
 class ISurface;
 class ITexture;
-using PTexture = std::shared_ptr<const ITexture>;
+using PConstTexture = std::shared_ptr<const ITexture>;
 class IImage;
-using PImage = std::shared_ptr<const IImage>;
+using PConstImage = std::shared_ptr<const IImage>;
 class IRenderBuffer;
 class IFrameBuffer;
 class IProgram;
@@ -65,14 +65,14 @@ class ApplicationBase;
 class GraphicsEngine;
 
 class AbstractUniform;
-using PAbstratcUniform = std::shared_ptr<AbstractUniform>;
+using PAbstractUniform = std::shared_ptr<AbstractUniform>;
+using PConstAbstractUniform = std::shared_ptr<const AbstractUniform>;
 
 template <typename T> class Uniform;
 template<typename T>
 using PUniform = std::shared_ptr<Uniform<T>>;
 
-class IDrawable;
-class DrawableBase;
+class Drawable;
 class StandardDrawable;
 
 class Scene;

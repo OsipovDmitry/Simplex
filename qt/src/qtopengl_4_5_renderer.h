@@ -112,7 +112,6 @@ public:
                                 utils::VertexComponentType type,
                                 uint32_t relativeOffset) override;
     void undeclareVertexAttribute(utils::VertexAttribute) override;
-    utils::VertexAttributesSet vertexAttributesSet() const override;
     uint32_t vertexAttributeBindingIndex(utils::VertexAttribute) const override;
     uint32_t vertexAttributeNumComponents(utils::VertexAttribute) const override;
     utils::VertexComponentType vertexAttributeComponentType(utils::VertexAttribute) const override;
@@ -423,16 +422,16 @@ public:
 
     void clearRenderData() override;
     void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
-                       const std::shared_ptr<const core::IDrawable>&,
+                       const std::shared_ptr<const core::Drawable>&,
                        const glm::mat4x4& = glm::mat4x4(1.f)) override;
     void render(const std::shared_ptr<core::graphics::IFrameBuffer>&, const core::RenderInfo&, const glm::uvec4&) override;
     void compute(const std::shared_ptr<core::graphics::IComputeProgram>&, const core::RenderInfo&, const glm::uvec3&) override;
 
-    int32_t bindTexture(const core::graphics::PTexture&);
-    int32_t bindImage(const core::graphics::PImage&);
-    void bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PBufferRange&);
-    uint32_t bindSSBO(const core::graphics::PBufferRange&);
-    void bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PBufferRange&);
+    int32_t bindTexture(const core::graphics::PConstTexture&);
+    int32_t bindImage(const core::graphics::PConstImage&);
+    void bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBufferRange&);
+    uint32_t bindSSBO(const core::graphics::PConstBufferRange&);
+    void bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBufferRange&);
 
     static std::shared_ptr<QtOpenGL_4_5_Renderer> create(QOpenGLContext*, GLuint);
     static std::shared_ptr<QtOpenGL_4_5_Renderer> instance(QOpenGLContext* = nullptr);
@@ -441,18 +440,23 @@ private:
     QtOpenGL_4_5_Renderer(QOpenGLContext*, GLuint);
     void makeDefaultFrameBuffer(GLuint);
 
-    void setupUniform(GLuint rpId, GLint loc, const core::PAbstratcUniform&);
+    void setupVertexAttributes(const std::shared_ptr<RenderProgram_4_5>&,
+                               const std::shared_ptr<const VertexArray_4_5>&);
+    void setupUniform(GLuint rpId, GLint loc, const core::PConstAbstractUniform&);
     void setupUniforms(const std::shared_ptr<ProgramBase_4_5>&,
-                       const std::shared_ptr<const core::IDrawable>&,
+                       const std::shared_ptr<const core::Drawable>&,
                        const core::RenderInfo&,
                        const glm::mat4&);
+    void setupSSBOs(const std::shared_ptr<ProgramBase_4_5>&,
+                    const std::shared_ptr<const core::Drawable>&,
+                    const core::RenderInfo&);
 
     bool createProgram(std::shared_ptr<ProgramBase_4_5>,
                        const std::vector<std::pair<GLenum, std::reference_wrapper<const std::string>>>&) const;
 
     std::shared_ptr<DefaultFrameBuffer_4_5> m_defaultFrameBuffer;
 
-    std::deque<std::tuple<glm::mat4x4, std::shared_ptr<RenderProgram_4_5>, std::shared_ptr<const core::IDrawable>>> m_renderData;
+    std::deque<std::tuple<glm::mat4x4, std::shared_ptr<RenderProgram_4_5>, std::shared_ptr<const core::Drawable>>> m_renderData;
     glm::uvec2 m_viewportSize;
     int32_t m_textureUnit;
     int32_t m_imageUnit;

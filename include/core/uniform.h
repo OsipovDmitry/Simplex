@@ -39,26 +39,26 @@ public:
 };
 
 template<>
-class Uniform<graphics::PTexture> : public UniformBase<graphics::PTexture>
+class Uniform<graphics::PConstTexture> : public UniformBase<graphics::PConstTexture>
 {
 public:
-    Uniform(const graphics::PTexture &value) : UniformBase<graphics::PTexture>(value) {}
+    Uniform(const graphics::PConstTexture &value) : UniformBase<graphics::PConstTexture>(value) {}
     graphics::UniformType type() const override { return graphics::IRenderProgram::uniformTypeByTextureType(m_data->type()); }
 };
 
 template<>
-class Uniform<graphics::PImage> : public UniformBase<graphics::PImage>
+class Uniform<graphics::PConstImage> : public UniformBase<graphics::PConstImage>
 {
 public:
-    Uniform(const graphics::PImage &value) : UniformBase<graphics::PImage>(value) {}
+    Uniform(const graphics::PConstImage &value) : UniformBase<graphics::PConstImage>(value) {}
     graphics::UniformType type() const override { return graphics::IRenderProgram::uniformTypeByImageTextureType(m_data->texture()->type()); }
 };
 
 template<>
-class Uniform<graphics::PBufferRange> : public UniformBase<graphics::PBufferRange>
+class Uniform<graphics::PConstBufferRange> : public UniformBase<graphics::PConstBufferRange>
 {
 public:
-    Uniform(const graphics::PBufferRange &value) : UniformBase<graphics::PBufferRange>(value) {}
+    Uniform(const graphics::PConstBufferRange &value) : UniformBase<graphics::PConstBufferRange>(value) {}
     graphics::UniformType type() const override { return core::graphics::UniformType::AtomicCounterUint; }
 };
 

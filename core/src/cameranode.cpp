@@ -166,21 +166,21 @@ std::shared_ptr<graphics::IFrameBuffer> CameraNode::GFrameBuffer()
     return m().GFrameBuffer();
 }
 
-graphics::PTexture CameraNode::GFrameBufferColorMap0() const
+graphics::PConstTexture CameraNode::GFrameBufferColorMap0() const
 {
     graphics::IFrameBuffer::AttachmentInfo info;
     m().GFrameBuffer()->attachment(core::graphics::FrameBufferAttachment::Color0, info);
     return std::dynamic_pointer_cast<graphics::ITexture>(info.renderSurface);
 }
 
-graphics::PTexture CameraNode::GFrameBufferColorMap1() const
+graphics::PConstTexture CameraNode::GFrameBufferColorMap1() const
 {
     graphics::IFrameBuffer::AttachmentInfo info;
     m().GFrameBuffer()->attachment(core::graphics::FrameBufferAttachment::Color1, info);
     return std::dynamic_pointer_cast<graphics::ITexture>(info.renderSurface);
 }
 
-graphics::PTexture CameraNode::GFrameBufferDepthStencilMap() const
+graphics::PConstTexture CameraNode::GFrameBufferDepthStencilMap() const
 {
     graphics::IFrameBuffer::AttachmentInfo info;
     m().GFrameBuffer()->attachment(core::graphics::FrameBufferAttachment::DepthStencil, info);
@@ -202,7 +202,7 @@ std::shared_ptr<graphics::IFrameBuffer> CameraNode::finalFrameBuffer()
     return m().finalFrameBuffer();
 }
 
-graphics::PTexture CameraNode::finalFrameBufferColorMap() const
+graphics::PConstTexture CameraNode::finalFrameBufferColorMap() const
 {
     graphics::IFrameBuffer::AttachmentInfo info;
     m().finalFrameBuffer()->attachment(core::graphics::FrameBufferAttachment::Color0, info);

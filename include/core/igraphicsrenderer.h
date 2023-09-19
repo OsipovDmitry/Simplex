@@ -276,7 +276,6 @@ public:
                                         utils::VertexComponentType type,
                                         uint32_t relativeOffset) = 0;
     virtual void undeclareVertexAttribute(utils::VertexAttribute) = 0;
-    virtual utils::VertexAttributesSet vertexAttributesSet() const = 0;
     virtual uint32_t vertexAttributeBindingIndex(utils::VertexAttribute) const = 0;
     virtual uint32_t vertexAttributeNumComponents(utils::VertexAttribute) const = 0;
     virtual utils::VertexComponentType vertexAttributeComponentType(utils::VertexAttribute) const = 0;
@@ -395,12 +394,13 @@ public:
     virtual std::string uniformNameByIndex(uint16_t) const = 0;
     virtual std::string SSBONameByIndex(uint16_t) const = 0;
 
-    static UniformType uniformTypeByUniformId(UniformId);
     static UniformType uniformTypeByTextureType(TextureType);
     static UniformType uniformTypeByImageTextureType(TextureType);
 
     static UniformId UniformIdByName(const std::string&);
     static SSBOId SSBOIdByName(const std::string&);
+
+    static UniformId uniformIdByPBRComponent(PBRComponent);
 };
 
 class IRenderProgram : public virtual IProgram
@@ -456,50 +456,11 @@ public:
 
     virtual void clearRenderData() = 0;
     virtual void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
-                               const std::shared_ptr<const IDrawable>&,
+                               const std::shared_ptr<const Drawable>&,
                                const glm::mat4x4& = glm::mat4x4(1.f)) = 0;
     virtual void render(const std::shared_ptr<IFrameBuffer>&, const RenderInfo&, const glm::uvec4&) = 0;
     virtual void compute(const std::shared_ptr<IComputeProgram>&, const RenderInfo&, const glm::uvec3&) = 0;
 };
-
-inline UniformType IProgram::uniformTypeByUniformId(UniformId uniformId)
-{
-    static const std::array<UniformType, numElementsUniformId()> s_table {
-        UniformType::Undefined,
-        UniformType::SingleMat4,
-        UniformType::SingleMat3,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat4,
-        UniformType::SingleMat3,
-        UniformType::SingleMat4,
-        UniformType::SingleVec3,
-        UniformType::SingleVec3,
-        UniformType::SingleVec3,
-        UniformType::SingleVec3,
-        UniformType::SamplerRect,
-        UniformType::SamplerRect,
-        UniformType::SamplerRect,
-        UniformType::ImageRect,
-        UniformType::AtomicCounterUint,
-        UniformType::SingleVec4,
-        UniformType::Single,
-        UniformType::Single,
-        UniformType::Sampler2D,
-        UniformType::Sampler2D,
-        UniformType::Sampler2D,
-        UniformType::Sampler2D,
-        UniformType::SingleVec3,
-        UniformType::SingleVec2,
-        UniformType::SingleVec2,
-    };
-
-    return s_table[castFromUniformId(uniformId)];
-}
 
 inline UniformType IProgram::uniformTypeByTextureType(TextureType textureType)
 {
@@ -614,6 +575,22 @@ inline SSBOId IProgram::SSBOIdByName(const std::string &name)
 
     auto it = s_table.find(name);
     return (it == s_table.end()) ? SSBOId::Undefined : it->second;
+}
+
+inline UniformId IProgram::uniformIdByPBRComponent(PBRComponent value)
+{
+    static const std::unordered_map<PBRComponent, UniformId> s_table {
+        { PBRComponent::BaseColor, UniformId::BaseColor },
+        { PBRComponent::Metalness, UniformId::Metalness },
+        { PBRComponent::Roughness, UniformId::Roughness },
+        { PBRComponent::BaseColorMap, UniformId::BaseColorMap },
+        { PBRComponent::MetalnessMap, UniformId::MetalnessMap },
+        { PBRComponent::RoughnessMap, UniformId::RoughnessMap },
+        { PBRComponent::NormalMap, UniformId::NormalMap },
+    };
+
+    auto it = s_table.find(value);
+    return (it == s_table.end()) ? UniformId::Undefined : it->second;
 }
 
 }

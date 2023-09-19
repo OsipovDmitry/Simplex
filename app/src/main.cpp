@@ -22,6 +22,7 @@
 
 #include <qt/qtrenderwidget.h>
 
+#include "mainwidget.h"
 #include "main.h"
 #include "testapplication.h"
 
@@ -44,7 +45,7 @@ private:
     QPointer<QTextEdit> m_textEdit;
 };
 
-MainWidget::MainWidget()
+TempMainWidget::TempMainWidget()
     : QWidget(nullptr)
     , m_renderTypeListWidget(new QListWidget())
     , m_renderWidget(new simplex::qt::QtRenderWidget())
@@ -63,7 +64,7 @@ MainWidget::MainWidget()
     m_renderTypeListWidget->addItem("Final roughness");
     m_renderTypeListWidget->addItem("Final normals");
     m_renderTypeListWidget->addItem("Final depth");
-    QObject::connect(m_renderTypeListWidget, &QListWidget::currentRowChanged, this, &MainWidget::renderTypeChanged);
+    QObject::connect(m_renderTypeListWidget, &QListWidget::currentRowChanged, this, &TempMainWidget::renderTypeChanged);
 
     auto splitter = new QSplitter(Qt::Horizontal);
     splitter->addWidget(m_renderWidget);
@@ -77,21 +78,21 @@ MainWidget::MainWidget()
 
     auto timer = new QTimer(this);
     timer->setInterval(16);
-    QObject::connect(timer, &QTimer::timeout, this, &MainWidget::onTimeout);
+    QObject::connect(timer, &QTimer::timeout, this, &TempMainWidget::onTimeout);
     timer->start();
 }
 
-QListWidget *MainWidget::renderTypeListWidget()
+QListWidget *TempMainWidget::renderTypeListWidget()
 {
     return m_renderTypeListWidget;
 }
 
-simplex::qt::QtRenderWidget *MainWidget::renderWidget()
+simplex::qt::QtRenderWidget *TempMainWidget::renderWidget()
 {
     return m_renderWidget;
 }
 
-void MainWidget::onTimeout()
+void TempMainWidget::onTimeout()
 {
     m_renderWidget->setFocus();
 
@@ -147,7 +148,7 @@ void MainWidget::onTimeout()
     m_renderWidget->update();
 }
 
-void MainWidget::keyPressEvent(QKeyEvent *event)
+void TempMainWidget::keyPressEvent(QKeyEvent *event)
 {
     switch (event->key())
     {
@@ -193,7 +194,7 @@ void MainWidget::keyPressEvent(QKeyEvent *event)
     event->accept();
 }
 
-void MainWidget::keyReleaseEvent(QKeyEvent *event)
+void TempMainWidget::keyReleaseEvent(QKeyEvent *event)
 {
     switch (event->key())
     {
@@ -229,22 +230,28 @@ void MainWidget::keyReleaseEvent(QKeyEvent *event)
 }
 
 int main(int argc, char *argv[])
-{
+{   
     QApplication a(argc, argv);
 
-    auto mainWidget = new MainWidget();
-    mainWidget->showMaximized();
+    auto tempMainWidget = new TempMainWidget();
+    tempMainWidget->showMaximized();
 
-    auto testApplication = std::make_shared<TestApplication>(mainWidget->renderWidget()->graphicsRenderer());
-    mainWidget->renderWidget()->setApplication(testApplication);
+    auto testApplication = std::make_shared<TestApplication>(tempMainWidget->renderWidget()->graphicsRenderer());
+    tempMainWidget->renderWidget()->setApplication(testApplication);
 
-    QObject::connect(mainWidget, &MainWidget::renderTypeChanged, [testApplication](int row) {
+    QObject::connect(tempMainWidget, &TempMainWidget::renderTypeChanged, [testApplication](int row) {
         testApplication->graphicsEngine()->setF(row);
     });
-    mainWidget->renderTypeListWidget()->setCurrentRow(7);
+    tempMainWidget->renderTypeListWidget()->setCurrentRow(7);
 
     auto result = QApplication::exec();
 
-    delete mainWidget;
+    delete tempMainWidget;
+
+//    auto mainWidget = new MainWidget();
+//    mainWidget->showMaximized();
+//    auto result = QApplication::exec();
+//    delete mainWidget;
+
     return result;
 }

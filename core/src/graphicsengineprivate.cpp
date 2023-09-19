@@ -95,7 +95,7 @@ std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::directionalLight
     return m_directionalLightAreaVertexArray;
 }
 
-std::shared_ptr<DrawableBase> &GraphicsEnginePrivate::screenQuadDrawable()
+std::shared_ptr<Drawable> &GraphicsEnginePrivate::screenQuadDrawable()
 {
     return m_screenQuadDrawable;
 }

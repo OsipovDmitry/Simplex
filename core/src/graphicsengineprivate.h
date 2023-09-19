@@ -46,7 +46,7 @@ public:
     std::shared_ptr<graphics::IVertexArray> &spotLightAreaVertexArray();
     std::shared_ptr<graphics::IVertexArray> &directionalLightAreaVertexArray();
 
-    std::shared_ptr<DrawableBase> &screenQuadDrawable();
+    std::shared_ptr<Drawable> &screenQuadDrawable();
     std::shared_ptr<StandardDrawable> &nodeBoundingBoxDrawable();
     std::shared_ptr<StandardDrawable> &cameraNodeCameraDrawable();
     std::shared_ptr<StandardDrawable> &cameraNodeFrustumDrawable();
@@ -80,7 +80,7 @@ private:
     std::shared_ptr<graphics::IVertexArray> m_spotLightAreaVertexArray;
     std::shared_ptr<graphics::IVertexArray> m_directionalLightAreaVertexArray;
 
-    std::shared_ptr<DrawableBase> m_screenQuadDrawable;
+    std::shared_ptr<Drawable> m_screenQuadDrawable;
     std::shared_ptr<StandardDrawable> m_nodeBoundingBoxDrawable;
     std::shared_ptr<StandardDrawable> m_cameraNodeCameraDrawable;
     std::shared_ptr<StandardDrawable> m_cameraNodeFrustumDrawable;

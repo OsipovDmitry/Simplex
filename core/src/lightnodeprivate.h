@@ -18,14 +18,14 @@ public:
 
     bool &isLightingEnabled();
 
-    std::shared_ptr<DrawableBase> &areaDrawable();
+    std::shared_ptr<Drawable> &areaDrawable();
 
     bool &isAreaMatrixDirty();
     glm::mat4x4 &areaMatrix();
 
 private:
     bool m_isLightingEnabled;
-    std::shared_ptr<DrawableBase> m_areaDrawable;
+    std::shared_ptr<Drawable> m_areaDrawable;
     bool m_isAreaMatrixDirty;
     glm::mat4x4 m_areaMatrix;
 

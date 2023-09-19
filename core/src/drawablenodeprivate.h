@@ -19,10 +19,10 @@ public:
     bool &isLocalBoundingBoxDirty();
     utils::BoundingBox &localBoundingBox();
 
-    std::unordered_set<std::shared_ptr<IDrawable>> &drawables();
+    std::unordered_set<std::shared_ptr<Drawable>> &drawables();
 
 private:
-    std::unordered_set<std::shared_ptr<IDrawable>> m_drawables;
+    std::unordered_set<std::shared_ptr<Drawable>> m_drawables;
     utils::BoundingBox m_localBoundingBox;
     bool m_localBoundingBoxDirty;
 };

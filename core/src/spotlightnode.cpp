@@ -4,7 +4,7 @@
 #include <core/uniform.h>
 #include <core/scene.h>
 #include <core/spotlightnode.h>
-#include <core/drawablebase.h>
+#include <core/drawable.h>
 
 #include "spotlightnodeprivate.h"
 
@@ -19,7 +19,7 @@ SpotLightNode::SpotLightNode(const std::string &name)
     if (SpotLightNodePrivate::lightAreaVertexArray().expired())
         LOG_CRITICAL << "Point light area vertex array is expired";
 
-    auto drawable = std::make_shared<DrawableBase>(SpotLightNodePrivate::lightAreaVertexArray().lock());
+    auto drawable = std::make_shared<Drawable>(SpotLightNodePrivate::lightAreaVertexArray().lock());
     drawable->getOrCreateUniform(graphics::UniformId::LightColor) = makeUniform(glm::vec3(1.f));
     drawable->getOrCreateUniform(graphics::UniformId::LightRadiuses) = makeUniform(glm::vec2(1.f, 2.f));
     drawable->getOrCreateUniform(graphics::UniformId::LightHalfAngles) = makeUniform(glm::vec2(.5f * glm::quarter_pi<float>(),

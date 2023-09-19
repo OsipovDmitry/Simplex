@@ -28,7 +28,7 @@ public:
     void setLightingEnabled(bool);
 
     const glm::mat4x4 &areaMatrix() const;
-    std::shared_ptr<const DrawableBase> areaDrawable() const;
+    std::shared_ptr<const Drawable> areaDrawable() const;
 
 protected:
     LightNode(std::unique_ptr<LightNodePrivate>);

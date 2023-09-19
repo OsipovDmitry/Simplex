@@ -15,11 +15,11 @@ class QtRenderWidget;
 }
 }
 
-class MainWidget : public QWidget
+class TempMainWidget : public QWidget
 {
     Q_OBJECT
 public:
-    MainWidget();
+    TempMainWidget();
 
     QListWidget *renderTypeListWidget();
     simplex::qt::QtRenderWidget *renderWidget();

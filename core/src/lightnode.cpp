@@ -42,7 +42,7 @@ const glm::mat4x4 &LightNode::areaMatrix() const
     return mPrivate.areaMatrix();
 }
 
-std::shared_ptr<const DrawableBase> LightNode::areaDrawable() const
+std::shared_ptr<const Drawable> LightNode::areaDrawable() const
 {
     return m().areaDrawable();
 }

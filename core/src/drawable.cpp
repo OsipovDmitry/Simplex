@@ -1,14 +1,12 @@
-#include <core/drawablebase.h>
-
 #include <utils/logger.h>
 #include <utils/boundingbox.h>
 #include <utils/primitiveset.h>
 
 #include <core/igraphicsrenderer.h>
-#include <core/idrawable.h>
+#include <core/drawable.h>
 #include <core/uniform.h>
 
-#include "drawablebaseprivate.h"
+#include "drawableprivate.h"
 
 namespace simplex
 {
@@ -53,16 +51,16 @@ static void readDataToVec(const uint8_t* data,
         readDataToType<T>(data + i * typeSize, type, result[static_cast<glm::length_t>(i)]);
 }
 
-DrawableBase::DrawableBase(std::shared_ptr<graphics::IVertexArray> vertexArray)
-    : DrawableBase(std::make_unique<DrawableBasePrivate>(vertexArray))
+Drawable::Drawable(const std::shared_ptr<graphics::IVertexArray> &vertexArray)
+    : Drawable(std::make_unique<DrawablePrivate>(vertexArray))
 {
 }
 
-DrawableBase::~DrawableBase()
+Drawable::~Drawable()
 {
 }
 
-utils::BoundingBox DrawableBase::calculateBoundingBox()
+utils::BoundingBox Drawable::calculateBoundingBox() const
 {
     utils::BoundingBox result;
 
@@ -144,53 +142,90 @@ utils::BoundingBox DrawableBase::calculateBoundingBox()
     return result;
 }
 
-bool DrawableBase::isTransparent() const
+bool Drawable::isTransparent() const
 {
     return false;
     //return m_->vertexArray()->vertexAttributeNumComponents(utils::VertexAttribute::Color) == 4u;
 }
 
-graphics::PBRComponentsSet DrawableBase::PBRComponentsSet() const
+std::shared_ptr<const graphics::IVertexArray> Drawable::vertexArray() const
 {
-    return graphics::PBRComponentsSet{};
+    return const_cast<Drawable*>(this)->vertexArray();
 }
 
-std::shared_ptr<const graphics::IVertexArray> DrawableBase::vertexArray() const
+std::shared_ptr<graphics::IVertexArray> Drawable::vertexArray()
 {
     return m_->vertexArray();
 }
 
-const PAbstratcUniform DrawableBase::uniform(graphics::UniformId id) const
+PConstAbstractUniform Drawable::uniform(graphics::UniformId id) const
+{
+    return const_cast<Drawable*>(this)->uniform(id);
+}
+
+PAbstractUniform Drawable::uniform(graphics::UniformId id)
 {
     auto it = m_->uniforms().find(id);
     return it != m_->uniforms().end() ? it->second : nullptr;
 }
 
-PAbstratcUniform &DrawableBase::getOrCreateUniform(graphics::UniformId id)
+PAbstractUniform &Drawable::getOrCreateUniform(graphics::UniformId id)
 {
     auto it = m_->uniforms().find(id);
     return it != m_->uniforms().end() ? it->second : (m_->uniforms()[id] = std::shared_ptr<AbstractUniform>());
 }
 
-const PAbstratcUniform DrawableBase::userUniform(const std::string& name) const
+PConstAbstractUniform Drawable::userUniform(const std::string& name) const
+{
+    return const_cast<Drawable*>(this)->userUniform(name);
+}
+
+PAbstractUniform Drawable::userUniform(const std::string& name)
 {
     auto it = m_->userUniforms().find(name);
     return it != m_->userUniforms().end() ? it->second : nullptr;
 }
 
-PAbstratcUniform &DrawableBase::getOrCreateUserUniform(const std::string& name)
+PAbstractUniform &Drawable::getOrCreateUserUniform(const std::string& name)
 {
     auto it = m_->userUniforms().find(name);
     return it != m_->userUniforms().end() ? it->second : (m_->userUniforms()[name] = std::shared_ptr<AbstractUniform>());
 }
 
-const graphics::PBufferRange DrawableBase::SSBO(graphics::SSBOId id) const
+graphics::PConstBufferRange Drawable::SSBO(graphics::SSBOId id) const
 {
     auto it = m_->SSBOs().find(id);
     return it != m_->SSBOs().end() ? it->second : nullptr;
 }
 
-DrawableBase::DrawableBase(std::unique_ptr<DrawableBasePrivate> drawableBasePrivate)
+utils::VertexAttributesSet Drawable::vertexAttrubitesSet(const std::shared_ptr<const Drawable> &drawable)
+{
+    utils::VertexAttributesSet result;
+
+    auto vao = drawable->vertexArray();
+    for (uint16_t i = 0u; i < utils::numElementsVertexAttribute(); ++i)
+        if (auto attrib = utils::castToVertexAttribute(i); vao->vertexAttributeBindingIndex(attrib) != static_cast<uint32_t>(-1))
+            result.insert(attrib);
+
+    return result;
+}
+
+graphics::PBRComponentsSet Drawable::PBRComponentsSet(const std::shared_ptr<const Drawable> &drawable)
+{
+    graphics::PBRComponentsSet result;
+
+    for (uint16_t i = 0u; i < graphics::numElementsPBRComponent(); ++i)
+    {
+        auto pbrComponent = graphics::castToPBRComponent(i);
+        if (auto uniformId = graphics::IProgram::uniformIdByPBRComponent(pbrComponent);
+                (uniformId != graphics::UniformId::Undefined) && drawable->uniform(uniformId))
+            result.insert(pbrComponent);
+    }
+
+    return result;
+}
+
+Drawable::Drawable(std::unique_ptr<DrawablePrivate> drawableBasePrivate)
     : m_(std::move(drawableBasePrivate))
 {
 }

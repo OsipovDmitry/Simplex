@@ -22,7 +22,7 @@ utils::BoundingBox &DrawableNodePrivate::localBoundingBox()
     return m_localBoundingBox;
 }
 
-std::unordered_set<std::shared_ptr<IDrawable>> &DrawableNodePrivate::drawables()
+std::unordered_set<std::shared_ptr<Drawable> > &DrawableNodePrivate::drawables()
 {
     return m_drawables;
 }

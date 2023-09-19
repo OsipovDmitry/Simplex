@@ -47,96 +47,61 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
                                                                 }));
     planePainter.setVertexTransform(utils::Transform(10.f, glm::quat(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f))));
     planePainter.setTexCoordsTransform(utils::Transform::fromScale(4.f));
-    planePainter.drawPlane();
-    auto planeDrawable = std::make_shared<core::StandardDrawable>(
-                graphicsRenderer->createVertexArray(planePainter.mesh()),
-                glm::vec4(glm::vec3(1.f), 1.f), 1.f, 1.f,
-                texturesManager->loadOrGetTexture("D:/res/textures/brick/bc.jpg"),
-                nullptr,
-                nullptr,
-                texturesManager->loadOrGetTexture("D:/res/textures/brick/n.jpg"));
+    auto planeDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(planePainter.drawPlane().mesh()));
+    planeDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/brick/bc.jpg"));
+    planeDrawable->setNormalMap(texturesManager->loadOrGetTexture("D:/res/textures/brick/n.jpg"));
 
     utils::MeshPainter teapotPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
                                                                    {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
                                                                    {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
                                                                 }));
-    teapotPainter.drawTeapot();
-    auto teapotDrawable = std::make_shared<core::StandardDrawable>(
-                graphicsRenderer->createVertexArray(teapotPainter.mesh()),
-                glm::vec4(glm::vec3(1.f), 0.2f), 1.f, 1.f,
-                texturesManager->loadOrGetTexture("D:/res/textures/glass0.jpg"),
-                nullptr,
-                nullptr,
-                nullptr);
+    auto teapotDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(teapotPainter.drawTeapot().mesh()));
+    teapotDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.2f));
+    teapotDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass0.jpg"));
 
     utils::MeshPainter boxPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
                                                                 {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
                                                                 {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
                                                                 }));
-    boxPainter.drawCube(glm::vec3(0.6f, 1.0f, 0.1f));
-    auto boxDrawable = std::make_shared<core::StandardDrawable>(
-                graphicsRenderer->createVertexArray(boxPainter.mesh()),
-                glm::vec4(glm::vec3(1.f), 0.3f), 1.f, 1.f,
-                texturesManager->loadOrGetTexture("D:/res/textures/glass1.jpg"),
-                nullptr,
-                nullptr,
-                nullptr);
+    auto boxDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(boxPainter.drawCube(glm::vec3(0.6f, 1.0f, 0.1f)).mesh()));
+    boxDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.3f));
+    boxDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass1.jpg"));
 
     utils::MeshPainter tetraPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
                                                                   {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
                                                                   {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
                                                                 }));
     tetraPainter.setVertexTransform(utils::Transform::fromScale(0.8f));
-    tetraPainter.drawTetrahedron();
-    auto tetraDrawable = std::make_shared<core::StandardDrawable>(
-                graphicsRenderer->createVertexArray(tetraPainter.mesh()),
-                glm::vec4(glm::vec3(1.f), 0.3f), 1.f, 1.f,
-                texturesManager->loadOrGetTexture("D:/res/textures/glass2.jpg"),
-                nullptr,
-                nullptr,
-                nullptr);
+    auto tetraDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(tetraPainter.drawTetrahedron().mesh()));
+    tetraDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.3f));
+    tetraDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass2.jpg"));
 
     utils::MeshPainter spherePainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
                                                                    {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
                                                                    {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
                                                                 }));
     spherePainter.setVertexTransform(utils::Transform::fromScale(0.4f));
-    spherePainter.drawSphere(16);
-    auto sphereDrawable = std::make_shared<core::StandardDrawable>(
-                graphicsRenderer->createVertexArray(spherePainter.mesh()),
-                glm::vec4(glm::vec3(1.f), 0.4f), 1.f, 1.f,
-                texturesManager->loadOrGetTexture("D:/res/textures/glass3.jpg"),
-                nullptr,
-                nullptr,
-                nullptr);
+    auto sphereDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(spherePainter.drawSphere(16).mesh()));
+    sphereDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.4f));
+    sphereDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass3.jpg"));
 
     utils::MeshPainter suzannePainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
                                                                    {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
                                                                    {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
                                                                 }));
     suzannePainter.setVertexTransform(utils::Transform::fromScale(0.8f));
-    suzannePainter.drawSuzanne();
-    auto suzanneDrawable = std::make_shared<core::StandardDrawable>(
-                graphicsRenderer->createVertexArray(suzannePainter.mesh()),
-                glm::vec4(glm::vec3(1.f), 0.4f), 1.f, 1.f,
-                texturesManager->loadOrGetTexture("D:/res/textures/glass4.jpg"),
-                nullptr,
-                nullptr,
-                nullptr);
+    auto suzanneDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(suzannePainter.drawSuzanne().mesh()));
+    suzanneDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.4f));
+    suzanneDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass4.jpg"));
 
     utils::MeshPainter bunnyPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
                                                                   {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
                                                                   {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
                                                                 }));
     bunnyPainter.setVertexTransform(utils::Transform::fromScale(0.8f));
-    bunnyPainter.drawBunny();
-    auto bunnyDrawable = std::make_shared<core::StandardDrawable>(
-                graphicsRenderer->createVertexArray(bunnyPainter.mesh()),
-                glm::vec4(glm::vec3(1.f), 0.4f), 1.f, 1.f,
-                texturesManager->loadOrGetTexture("D:/res/textures/glass2.jpg"),
-                nullptr,
-                nullptr,
-                nullptr);
+    auto bunnyDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(bunnyPainter.drawBunny().mesh()));
+    bunnyDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.4f));
+    bunnyDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass2.jpg"));
 
     auto scene0 = graphicsEngineInstance->addNewScene(SceneName);
 

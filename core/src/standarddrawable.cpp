@@ -12,38 +12,16 @@ namespace simplex
 namespace core
 {
 
-StandardDrawable::StandardDrawable(std::shared_ptr<graphics::IVertexArray> vao,
-                                   const glm::vec4& baseColor,
-                                   float metalness,
-                                   float roughness,
-                                   graphics::PTexture baseColorMap,
-                                   graphics::PTexture metalnessMap,
-                                   graphics::PTexture roughnessMap,
-                                   graphics::PTexture normalMap)
-    : DrawableBase(std::make_unique<StandardDrawablePrivate>(vao))
+StandardDrawable::StandardDrawable(std::shared_ptr<graphics::IVertexArray> vao)
+    : Drawable(std::make_unique<StandardDrawablePrivate>(vao))
 {
-    getOrCreateUniform(graphics::UniformId::BaseColor) = makeUniform(baseColor);
-    getOrCreateUniform(graphics::UniformId::Metalness) = makeUniform(metalness);
-    getOrCreateUniform(graphics::UniformId::Roughness) = makeUniform(roughness);
-
-    if (baseColorMap)
-        getOrCreateUniform(graphics::UniformId::BaseColorMap) = makeUniform(baseColorMap);
-
-    if (metalnessMap)
-        getOrCreateUniform(graphics::UniformId::MetalnessMap) = makeUniform(metalnessMap);
-
-    if (roughnessMap)
-        getOrCreateUniform(graphics::UniformId::RoughnessMap) = makeUniform(roughnessMap);
-
-    if (normalMap)
-        getOrCreateUniform(graphics::UniformId::NormalMap) = makeUniform(normalMap);
 }
 
 StandardDrawable::~StandardDrawable() = default;
 
 bool StandardDrawable::isTransparent() const
 {
-    auto result = DrawableBase::isTransparent();
+    auto result = Drawable::isTransparent();
 
     result = result || (baseColor().a < 1.f - glm::epsilon<float>());
 
@@ -53,81 +31,81 @@ bool StandardDrawable::isTransparent() const
     return result;
 }
 
-graphics::PBRComponentsSet StandardDrawable::PBRComponentsSet() const
-{
-    auto result = DrawableBase::PBRComponentsSet();
-
-    result.insert(graphics::PBRComponent::BaseColor);
-    result.insert(graphics::PBRComponent::Metalness);
-    result.insert(graphics::PBRComponent::Roughness);
-
-    if (baseColorMap())
-        result.insert(graphics::PBRComponent::BaseColorMap);
-
-    if (metalnessMap())
-        result.insert(graphics::PBRComponent::MetalnessMap);
-
-    if (roughnessMap())
-        result.insert(graphics::PBRComponent::RoughnessMap);
-
-    if (normalMap())
-        result.insert(graphics::PBRComponent::NormalMap);
-
-    return result;
-}
-
 const glm::vec4 &StandardDrawable::baseColor() const
 {
-    return uniform_cast<glm::vec4>(uniform(graphics::UniformId::BaseColor))->data();
+    auto uni = uniform_cast<glm::vec4>(uniform(graphics::UniformId::BaseColor));
+    return uni ? uni->data() : StandardDrawablePrivate::defaultBaseColor();
 }
 
 void StandardDrawable::setBaseColor(const glm::vec4 &value)
 {
-    uniform_cast<glm::vec4>(uniform(graphics::UniformId::BaseColor))->data() = value;
+    getOrCreateUniform(graphics::UniformId::BaseColor) = makeUniform(value);
 }
 
 float StandardDrawable::metalness() const
 {
-    return uniform_cast<float>(uniform(graphics::UniformId::Metalness))->data();
+    auto uni = uniform_cast<float>(uniform(graphics::UniformId::Metalness));
+    return uni ? uni->data() : StandardDrawablePrivate::defaultMetalness();
 }
 
 void StandardDrawable::setMetalness(float value)
 {
-    uniform_cast<float>(uniform(graphics::UniformId::Metalness))->data() = value;
+    getOrCreateUniform(graphics::UniformId::Metalness) = makeUniform(value);
 }
 
 float StandardDrawable::roughness() const
 {
-    return uniform_cast<float>(uniform(graphics::UniformId::Roughness))->data();
+    auto uni = uniform_cast<float>(uniform(graphics::UniformId::Roughness));
+    return uni ? uni->data() : StandardDrawablePrivate::defaultRoughness();
 }
 
 void StandardDrawable::setRoughness(float value)
 {
-    uniform_cast<float>(uniform(graphics::UniformId::Roughness))->data() = value;
+    getOrCreateUniform(graphics::UniformId::Roughness) = makeUniform(value);
 }
 
-graphics::PTexture StandardDrawable::baseColorMap() const
+graphics::PConstTexture StandardDrawable::baseColorMap() const
 {
-    auto uni = uniform_cast<graphics::PTexture>(uniform(graphics::UniformId::BaseColorMap));
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(graphics::UniformId::BaseColorMap));
     return uni ? uni->data() : nullptr;
 }
 
-graphics::PTexture StandardDrawable::metalnessMap() const
+void StandardDrawable::setBaseColorMap(const graphics::PConstTexture &value)
 {
-    auto uni = uniform_cast<graphics::PTexture>(uniform(graphics::UniformId::MetalnessMap));
+    getOrCreateUniform(graphics::UniformId::BaseColorMap) = makeUniform(value);
+}
+
+graphics::PConstTexture StandardDrawable::metalnessMap() const
+{
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(graphics::UniformId::MetalnessMap));
     return uni ? uni->data() : nullptr;
 }
 
-graphics::PTexture StandardDrawable::roughnessMap() const
+void StandardDrawable::setMetalnessMap(const graphics::PConstTexture &value)
 {
-    auto uni = uniform_cast<graphics::PTexture>(uniform(graphics::UniformId::RoughnessMap));
+    getOrCreateUniform(graphics::UniformId::MetalnessMap) = makeUniform(value);
+}
+
+graphics::PConstTexture StandardDrawable::roughnessMap() const
+{
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(graphics::UniformId::RoughnessMap));
     return uni ? uni->data() : nullptr;
 }
 
-graphics::PTexture StandardDrawable::normalMap() const
+void StandardDrawable::setRoughnessMap(const graphics::PConstTexture &value)
 {
-    auto uni = uniform_cast<graphics::PTexture>(uniform(graphics::UniformId::NormalMap));
+    getOrCreateUniform(graphics::UniformId::RoughnessMap) = makeUniform(value);
+}
+
+graphics::PConstTexture StandardDrawable::normalMap() const
+{
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(graphics::UniformId::NormalMap));
     return uni ? uni->data() : nullptr;
+}
+
+void StandardDrawable::setNormalMap(const graphics::PConstTexture &value)
+{
+    getOrCreateUniform(graphics::UniformId::NormalMap) = makeUniform(value);
 }
 
 }

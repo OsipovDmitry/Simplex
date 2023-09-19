@@ -38,21 +38,21 @@ public:
     const PUniform<glm::mat4x4> &viewProjectionMatrixUniform() const;
     const PUniform<glm::mat4x4> &viewProjectionMatrixInverseUniform() const;
 
-    const PUniform<graphics::PTexture> &gBufferColor0MapUniform() const;
-    const PUniform<graphics::PTexture> &gBufferColor1MapUniform() const;
-    const PUniform<graphics::PTexture> &gBufferDepthMapUniform() const;
-    void setGBufferMaps(const graphics::PTexture& color0Map,
-                        const graphics::PTexture& color1Map,
-                        const graphics::PTexture& depthMap);
+    const PUniform<graphics::PConstTexture> &gBufferColor0MapUniform() const;
+    const PUniform<graphics::PConstTexture> &gBufferColor1MapUniform() const;
+    const PUniform<graphics::PConstTexture> &gBufferDepthMapUniform() const;
+    void setGBufferMaps(const graphics::PConstTexture& color0Map,
+                        const graphics::PConstTexture& color1Map,
+                        const graphics::PConstTexture& depthMap);
 
-    const graphics::PBufferRange &OITNodesBuffer() const;
-    void setOITNodesBuffer(const graphics::PBufferRange&);
+    const graphics::PConstBufferRange &OITNodesBuffer() const;
+    void setOITNodesBuffer(const graphics::PConstBufferRange&);
 
-    const PUniform<graphics::PBufferRange> &OITNodesCounterUniform() const;
-    void setOITNodesCounter(const graphics::PBufferRange&);
+    const PUniform<graphics::PConstBufferRange> &OITNodesCounterUniform() const;
+    void setOITNodesCounter(const graphics::PConstBufferRange&);
 
-    const PUniform<graphics::PImage> &OITIndicesImageUniform() const;
-    void setOITIndicesImage(const graphics::PImage&);
+    const PUniform<graphics::PConstImage> &OITIndicesImageUniform() const;
+    void setOITIndicesImage(const graphics::PConstImage&);
 
     bool faceCulling() const;
     graphics::FaceType cullFaceType() const;

@@ -83,11 +83,10 @@ GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<graphics
     static const std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, utils::VertexComponentType>> s_screenDrawableVertexDeclaration{
         {utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}}};
 
-    m_->screenQuadDrawable() = std::make_shared<DrawableBase>(
+    m_->screenQuadDrawable() = std::make_shared<Drawable>(
                 renderer->createVertexArray(utils::MeshPainter(
                     utils::Mesh::createEmptyMesh(s_screenDrawableVertexDeclaration)).drawScreenQuad().mesh()));
-    m_->finalRenderProgram() = programsManager->loadOrGetFinalPassRenderProgram(
-                m_->screenQuadDrawable()->vertexArray()->vertexAttributesSet());
+    m_->finalRenderProgram() = programsManager->loadOrGetFinalPassRenderProgram(Drawable::vertexAttrubitesSet(m_->screenQuadDrawable()));
 
 //    auto boundingBoxMesh = std::make_shared<utils::Mesh>();
 //    boundingBoxMesh->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
@@ -221,8 +220,8 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
                     if (!drawable->isTransparent())
                     {
                         renderer->addRenderData(m_->programsManager()->loadOrGetOpaqueGeometryPassRenderProgram(
-                                                    drawable->vertexArray()->vertexAttributesSet(),
-                                                    drawable->PBRComponentsSet()),
+                                                    Drawable::vertexAttrubitesSet(drawable),
+                                                    Drawable::PBRComponentsSet(drawable)),
                                                 drawable,
                                                 drawableNode->globalTransform());
                         ++numOpaqueDrawablesRendered;
@@ -249,8 +248,8 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
                     if (drawable->isTransparent())
                     {
                         renderer->addRenderData(m_->programsManager()->loadOrGetTransparentGeometryPassRenderProgram(
-                                                    drawable->vertexArray()->vertexAttributesSet(),
-                                                    drawable->PBRComponentsSet()),
+                                                    Drawable::vertexAttrubitesSet(drawable),
+                                                    Drawable::PBRComponentsSet(drawable)),
                                                 drawable,
                                                 drawableNode->globalTransform());
                         ++numTransparentDrawablesRendered;
@@ -278,8 +277,7 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
                 const auto &areaMatrix = light->areaMatrix();
                 const auto &drawable = light->areaDrawable();
 
-                renderer->addRenderData(m_->programsManager()->loadOrGetLightPassRenderProgram(
-                                            drawable->vertexArray()->vertexAttributesSet()),
+                renderer->addRenderData(m_->programsManager()->loadOrGetLightPassRenderProgram(Drawable::vertexAttrubitesSet(drawable)),
                                         drawable,
                                         light->globalTransform() * areaMatrix);
             }

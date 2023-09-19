@@ -38,15 +38,15 @@ public:
     void setCullPlanesLimits(const glm::vec2&);
 
     std::shared_ptr<graphics::IFrameBuffer> GFrameBuffer();
-    graphics::PTexture GFrameBufferColorMap0() const;
-    graphics::PTexture GFrameBufferColorMap1() const;
-    graphics::PTexture GFrameBufferDepthStencilMap() const;
+    graphics::PConstTexture GFrameBufferColorMap0() const;
+    graphics::PConstTexture GFrameBufferColorMap1() const;
+    graphics::PConstTexture GFrameBufferDepthStencilMap() const;
 
     std::shared_ptr<graphics::IFrameBuffer> OITFrameBuffer();
     std::shared_ptr<graphics::IImage> OITIndicesImage();
 
     std::shared_ptr<graphics::IFrameBuffer> finalFrameBuffer();
-    graphics::PTexture finalFrameBufferColorMap() const;
+    graphics::PConstTexture finalFrameBufferColorMap() const;
 
 protected:
     bool canAttach(std::shared_ptr<Node>) override;

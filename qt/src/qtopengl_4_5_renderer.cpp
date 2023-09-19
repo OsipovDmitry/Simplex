@@ -10,7 +10,7 @@
 #include <utils/shader.h>
 
 #include <core/renderinfo.h>
-#include <core/idrawable.h>
+#include <core/drawable.h>
 #include <core/uniform.h>
 
 #include "qtopengl_4_5_renderer.h"
@@ -754,14 +754,6 @@ void VertexArray_4_5::undeclareVertexAttribute(utils::VertexAttribute attrib)
     m_vertexDeclarations.erase(attrib);
 }
 
-utils::VertexAttributesSet VertexArray_4_5::vertexAttributesSet() const
-{
-    utils::VertexAttributesSet result;
-    for (auto const& [attrib, decl] : m_vertexDeclarations)
-        result.insert(attrib);
-    return result;
-}
-
 uint32_t VertexArray_4_5::vertexAttributeBindingIndex(utils::VertexAttribute attrib) const
 {
     auto it = m_vertexDeclarations.find(attrib);
@@ -1473,7 +1465,7 @@ bool ProgramBase_4_5::preBuild(std::string &)
     return true;
 }
 
-bool ProgramBase_4_5::postBuild(std::string &log)
+bool ProgramBase_4_5::postBuild(std::string &)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
 
@@ -1549,28 +1541,7 @@ bool ProgramBase_4_5::postBuild(std::string &log)
                                 static_cast<uint16_t>(i) });
     }
 
-    bool result = true;
-
-    if (result)
-    {
-        for (const auto &uniformInfo : m_uniformsInfo)
-            if ((uniformInfo.id != core::graphics::UniformId::Undefined) &&
-                (uniformInfo.type != core::graphics::IProgram::uniformTypeByUniformId(uniformInfo.id)))
-            {
-                renderer->glGetProgramResourceName(m_id,
-                                                   GL_UNIFORM,
-                                                   static_cast<GLuint>(uniformInfo.index),
-                                                   m_uniformNameMaxLength,
-                                                   nullptr,
-                                                   uniformName.data());
-
-                result = false;
-                log = "Uniform variable \"" + std::string(uniformName.data()) + "\" has wrong type";
-                break;
-            }
-    }
-
-    return result;
+    return true;
 }
 
 int32_t ProgramBase_4_5::uniformLocationByName(const std::string &value) const
@@ -1665,31 +1636,10 @@ bool RenderProgram_4_5::postBuild(std::string &log)
                                      static_cast<uint16_t>(i),
                                      values[1],
                                      Conversions::GL2VertexNumComponents(static_cast<GLenum>(values[0])),
-                                     Conversions::GL2VertexComponentType(static_cast<GLenum>(values[0]))});
+                                     Conversions::GL2VertexComponentType(static_cast<GLenum>(values[0])) });
     }
 
-    bool result = ProgramBase_4_5::postBuild(log);
-
-    if (result)
-    {
-        for (const auto attributeInfo : m_attributesInfo)
-            if ((attributeInfo.id != utils::VertexAttribute::Count) &&
-                (attributeInfo.componentType != attributeVertexComponentTypeByAttributeId(attributeInfo.id)))
-            {
-                renderer->glGetProgramResourceName(m_id,
-                                                   GL_PROGRAM_INPUT,
-                                                   static_cast<GLuint>(attributeInfo.index),
-                                                   m_attributeNameMaxLength,
-                                                   nullptr,
-                                                   attributeName.data());
-
-                result = false;
-                log = "Attribute variable \"" + std::string(attributeName.data()) + "\" has wrong component type";
-                break;
-            }
-    }
-
-    return result;
+    return ProgramBase_4_5::postBuild(log);
 }
 
 int32_t RenderProgram_4_5::attributeLocationByName(const std::string &value) const
@@ -2050,7 +2000,7 @@ void QtOpenGL_4_5_Renderer::clearRenderData()
 }
 
 void QtOpenGL_4_5_Renderer::addRenderData(const std::shared_ptr<core::graphics::IRenderProgram> &renderProgram,
-                                          const std::shared_ptr<const core::IDrawable> &drawable,
+                                          const std::shared_ptr<const core::Drawable> &drawable,
                                           const glm::mat4x4 &transform)
 {
     auto renderProgram_4_5 = std::dynamic_pointer_cast<RenderProgram_4_5>(renderProgram);
@@ -2122,7 +2072,9 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
         if (!renderProgram_4_5)
             LOG_CRITICAL << "Render program can't be nullptr";
         glUseProgram(renderProgram_4_5->id());
+        setupVertexAttributes(renderProgram_4_5, vao_4_5);
         setupUniforms(renderProgram_4_5, drawable, renderInfo, std::get<0>(renderData));
+        setupSSBOs(renderProgram_4_5, drawable, renderInfo);
 
         for (auto &primitiveSet : vao_4_5->primitiveSets())
         {
@@ -2154,6 +2106,7 @@ void QtOpenGL_4_5_Renderer::compute(const std::shared_ptr<core::graphics::ICompu
         LOG_CRITICAL << "Compute program can't be nullptr";
     glUseProgram(computeProgram_4_5->id());
     setupUniforms(computeProgram_4_5, nullptr, renderInfo, glm::mat4x4(1.0f));
+    setupSSBOs(computeProgram_4_5, nullptr, renderInfo);
 
     auto numWorkGroups = glm::uvec3(glm::ceil(glm::vec3(numInvocations) / glm::vec3(computeProgram->workGroupSize())) + glm::vec3(.5f));
     glDispatchCompute(numWorkGroups.x, numWorkGroups.y, numWorkGroups.z);
@@ -2161,7 +2114,7 @@ void QtOpenGL_4_5_Renderer::compute(const std::shared_ptr<core::graphics::ICompu
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
-int32_t QtOpenGL_4_5_Renderer::bindTexture(const core::graphics::PTexture &texture)
+int32_t QtOpenGL_4_5_Renderer::bindTexture(const core::graphics::PConstTexture &texture)
 {
     auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(texture);
     if (!textureBase)
@@ -2171,7 +2124,7 @@ int32_t QtOpenGL_4_5_Renderer::bindTexture(const core::graphics::PTexture &textu
     return m_textureUnit++;
 }
 
-int32_t QtOpenGL_4_5_Renderer::bindImage(const core::graphics::PImage &image)
+int32_t QtOpenGL_4_5_Renderer::bindImage(const core::graphics::PConstImage &image)
 {
     auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(image->texture());
     if (!textureBase)
@@ -2188,7 +2141,7 @@ int32_t QtOpenGL_4_5_Renderer::bindImage(const core::graphics::PImage &image)
     return m_imageUnit++;
 }
 
-void QtOpenGL_4_5_Renderer::bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PBufferRange &bufferRange)
+void QtOpenGL_4_5_Renderer::bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBufferRange &bufferRange)
 {
     auto buffer = std::dynamic_pointer_cast<const Buffer_4_5>(bufferRange->buffer());
     if (!buffer)
@@ -2205,13 +2158,13 @@ void QtOpenGL_4_5_Renderer::bindBuffer(GLenum target, GLuint bindingPoint, const
                       static_cast<GLsizeiptr>(size));
 }
 
-uint32_t QtOpenGL_4_5_Renderer::bindSSBO(const core::graphics::PBufferRange &bufferRange)
+uint32_t QtOpenGL_4_5_Renderer::bindSSBO(const core::graphics::PConstBufferRange &bufferRange)
 {
     bindBuffer(GL_SHADER_STORAGE_BUFFER, m_bufferUnit, bufferRange);
     return m_bufferUnit++;
 }
 
-void QtOpenGL_4_5_Renderer::bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PBufferRange &bufferRange)
+void QtOpenGL_4_5_Renderer::bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBufferRange &bufferRange)
 {
     bindBuffer(GL_ATOMIC_COUNTER_BUFFER, bindingPoint, bufferRange);
 }
@@ -2294,9 +2247,25 @@ void QtOpenGL_4_5_Renderer::makeDefaultFrameBuffer(GLuint defaultFbo)
     glNamedFramebufferDrawBuffers(defaultFbo, static_cast<GLsizei>(drawBuffers.size()), drawBuffers.data());
 }
 
+void QtOpenGL_4_5_Renderer::setupVertexAttributes(const std::shared_ptr<RenderProgram_4_5> &renderProgram,
+                                                  const std::shared_ptr<const VertexArray_4_5> &vao)
+{
+    for (const auto &attributeInfo : renderProgram->attributesInfo())
+    {
+        if (attributeInfo.id == utils::VertexAttribute::Count)
+            continue;
+
+        if (attributeInfo.componentType != vao->vertexAttributeComponentType(attributeInfo.id))
+            LOG_CRITICAL << "Vertex attribute \"" << renderProgram->attributeNameByIndex(attributeInfo.index) << "\" has wrong component type";
+
+        if (attributeInfo.numComponents != vao->vertexAttributeNumComponents(attributeInfo.id))
+            LOG_CRITICAL << "Vertex attribute \"" << renderProgram->attributeNameByIndex(attributeInfo.index) << "\" has wrong number of components";
+    }
+}
+
 void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
                                          GLint loc,
-                                         const core::PAbstratcUniform &uniform)
+                                         const core::PConstAbstractUniform &uniform)
 {
     if (!uniform)
         LOG_CRITICAL << "Uniform can't be nullptr";
@@ -2422,7 +2391,7 @@ void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
     case core::graphics::UniformType::SamplerCubeArray:
     case core::graphics::UniformType::SamplerRect:
     {
-        auto textureUniform = core::uniform_cast<core::graphics::PTexture>(uniform)->data();
+        auto textureUniform = core::uniform_cast<core::graphics::PConstTexture>(uniform)->data();
         glProgramUniform1i(rpId, loc, bindTexture(textureUniform));
         break;
     }
@@ -2435,13 +2404,13 @@ void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
     case core::graphics::UniformType::ImageCubeArray:
     case core::graphics::UniformType::ImageRect:
     {
-        auto imageUniform = core::uniform_cast<core::graphics::PImage>(uniform)->data();
+        auto imageUniform = core::uniform_cast<core::graphics::PConstImage>(uniform)->data();
         glProgramUniform1i(rpId, loc, bindImage(imageUniform));
         break;
     }
     case core::graphics::UniformType::AtomicCounterUint:
     {
-        auto atomicCounterUniform = core::uniform_cast<core::graphics::PBufferRange>(uniform)->data();
+        auto atomicCounterUniform = core::uniform_cast<core::graphics::PConstBufferRange>(uniform)->data();
         bindAtomicCounterBuffer(static_cast<GLuint>(loc), atomicCounterUniform);
         break;
     }
@@ -2453,20 +2422,18 @@ void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
 }
 
 void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5> &program,
-                                          const std::shared_ptr<const core::IDrawable> &drawable,
+                                          const std::shared_ptr<const core::Drawable> &drawable,
                                           const core::RenderInfo &renderInfo,
                                           const glm::mat4 &modelMatrix)
 {
     auto programId = program->id();
-
-    core::PAbstratcUniform uniform;
-
     m_textureUnit = 0;
     m_imageUnit = 0;
-    m_bufferUnit = 0;
 
     for (const auto &uniformInfo : program->uniformsInfo())
     {
+        core::PConstAbstractUniform uniform;
+
         switch (uniformInfo.id)
         {
         case core::graphics::UniformId::ModelMatrix:
@@ -2530,45 +2497,51 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
             uniform = renderInfo.OITNodesCounterUniform();
             break;
         case core::graphics::UniformId::Undefined:
-            if (drawable)
-                uniform = drawable->userUniform(program->uniformNameByIndex(uniformInfo.index));
+            uniform = drawable->userUniform(program->uniformNameByIndex(uniformInfo.index));
             break;
         default:
-            if (drawable)
-                uniform = drawable->uniform(uniformInfo.id);
+            uniform = drawable->uniform(uniformInfo.id);
             break;
         }
 
         if (!uniform)
-            LOG_CRITICAL << "Undefined uniform name \"" << program->uniformNameByIndex(uniformInfo.index) << "\"";
+            LOG_CRITICAL << "Uniform \"" << program->uniformNameByIndex(uniformInfo.index) << "\" has not set";
 
         if (uniformInfo.type != uniform->type())
             LOG_CRITICAL << "Uniform \"" << program->uniformNameByIndex(uniformInfo.index) << "\" has wrong type";
 
         setupUniform(programId, uniformInfo.location, uniform);
     }
+}
+
+void QtOpenGL_4_5_Renderer::setupSSBOs(const std::shared_ptr<ProgramBase_4_5> &program,
+                                       const std::shared_ptr<const core::Drawable> &drawable,
+                                       const core::RenderInfo &renderInfo)
+{
+    auto programId = program->id();
+    m_bufferUnit = 0;
 
     for (const auto &ssboInfo : program->SSBOsInfo())
     {
-        core::graphics::PBufferRange bufferRange;
+        core::graphics::PConstBufferRange bufferRange;
 
         switch (ssboInfo.id)
         {
-        case core::graphics::SSBOId::Undefined:
-            bufferRange = drawable->SSBO(ssboInfo.id);
-            break;
-        case core::graphics::SSBOId::BonesBuffer:
-            bufferRange = drawable->SSBO(ssboInfo.id);
-            break;
         case core::graphics::SSBOId::OITNodes:
             bufferRange = renderInfo.OITNodesBuffer();
             break;
+        case core::graphics::SSBOId::Undefined:
+//            if (drawable)
+//                bufferTange = drawable->userSSBO(program->SSBONameByIndex(ssboInfo.index));
+            break;
         default:
+            if (drawable)
+                bufferRange = drawable->SSBO(ssboInfo.id);
             break;
         }
 
         if (!bufferRange)
-            LOG_CRITICAL << "Undefined SSBO name \"" << program->SSBONameByIndex(ssboInfo.index) << "\"";
+            LOG_CRITICAL << "SSBO \"" << program->SSBONameByIndex(ssboInfo.index) << "\" has not set";
 
         glShaderStorageBlockBinding(programId, ssboInfo.index, bindSSBO(bufferRange));
     }

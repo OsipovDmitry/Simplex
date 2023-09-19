@@ -1,5 +1,5 @@
-#include <core/idrawable.h>
 #include <core/drawablenode.h>
+#include <core/drawable.h>
 
 #include "drawablenodeprivate.h"
 #include "nodevisitorhelpers.h"
@@ -33,18 +33,18 @@ utils::BoundingBox DrawableNode::doBoundingBox() const
     return localBoundingBox();
 }
 
-const std::unordered_set<std::shared_ptr<IDrawable>> &DrawableNode::drawables() const
+const std::unordered_set<std::shared_ptr<Drawable>> &DrawableNode::drawables() const
 {
     return m().drawables();
 }
 
-void DrawableNode::addDrawable(std::shared_ptr<IDrawable> drawable)
+void DrawableNode::addDrawable(std::shared_ptr<Drawable> drawable)
 {
     m().drawables().insert(drawable);
     recalculateLocalBoundingBox();
 }
 
-void DrawableNode::removeDrawable(std::shared_ptr<IDrawable> drawable)
+void DrawableNode::removeDrawable(std::shared_ptr<Drawable> drawable)
 {
     m().drawables().erase(drawable);
     recalculateLocalBoundingBox();

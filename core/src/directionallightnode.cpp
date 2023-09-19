@@ -5,7 +5,7 @@
 #include <core/scene.h>
 #include <core/scenerootnode.h>
 #include <core/directionallightnode.h>
-#include <core/drawablebase.h>
+#include <core/drawable.h>
 
 #include "directionallightnodeprivate.h"
 
@@ -20,7 +20,7 @@ DirectionalLightNode::DirectionalLightNode(const std::string &name)
     if (DirectionalLightNodePrivate::lightAreaVertexArray().expired())
         LOG_CRITICAL << "Point light area vertex array is expired";
 
-    auto drawable = std::make_shared<DrawableBase>(DirectionalLightNodePrivate::lightAreaVertexArray().lock());
+    auto drawable = std::make_shared<Drawable>(DirectionalLightNodePrivate::lightAreaVertexArray().lock());
     drawable->getOrCreateUniform(graphics::UniformId::LightColor) = makeUniform(glm::vec3(1.f));
     m().areaDrawable() = drawable;
 }

@@ -29,13 +29,13 @@ public:
     PUniform<glm::vec3> &viewYDirectionUniform() { return m_viewYDirectionUniform; }
     PUniform<glm::vec3> &viewZDirectionUniform() { return m_viewZDirectionUniform; }
 
-    PUniform<graphics::PTexture> &gBufferColor0MapUniform() { return m_gBufferColor0MapUniform; }
-    PUniform<graphics::PTexture> &gBufferColor1MapUniform() { return m_gBufferColor1MapUniform; }
-    PUniform<graphics::PTexture> &gBufferDepthMapUniform() { return m_gBufferDepthMapUniform; }
+    PUniform<graphics::PConstTexture> &gBufferColor0MapUniform() { return m_gBufferColor0MapUniform; }
+    PUniform<graphics::PConstTexture> &gBufferColor1MapUniform() { return m_gBufferColor1MapUniform; }
+    PUniform<graphics::PConstTexture> &gBufferDepthMapUniform() { return m_gBufferDepthMapUniform; }
 
-    graphics::PBufferRange &OITDataBuffer() { return m_OITDataBuffer; }
-    PUniform<graphics::PBufferRange> &OITNodesCounterUniform() { return m_OITNodesCounterUniform; }
-    PUniform<graphics::PImage> &OITIndicesImageUniform() { return m_OITIndicesImageUniform; }
+    graphics::PConstBufferRange &OITDataBuffer() { return m_OITDataBuffer; }
+    PUniform<graphics::PConstBufferRange> &OITNodesCounterUniform() { return m_OITNodesCounterUniform; }
+    PUniform<graphics::PConstImage> &OITIndicesImageUniform() { return m_OITIndicesImageUniform; }
 
     bool &faceCulling() { return m_faceCulling; }
     graphics::FaceType &cullFaceType() { return m_cullFaceType; }
@@ -60,13 +60,13 @@ private:
     PUniform<glm::vec3> m_viewYDirectionUniform;
     PUniform<glm::vec3> m_viewZDirectionUniform;
 
-    PUniform<graphics::PTexture> m_gBufferColor0MapUniform;
-    PUniform<graphics::PTexture> m_gBufferColor1MapUniform;
-    PUniform<graphics::PTexture> m_gBufferDepthMapUniform;
+    PUniform<graphics::PConstTexture> m_gBufferColor0MapUniform;
+    PUniform<graphics::PConstTexture> m_gBufferColor1MapUniform;
+    PUniform<graphics::PConstTexture> m_gBufferDepthMapUniform;
 
-    graphics::PBufferRange m_OITDataBuffer;
-    PUniform<graphics::PBufferRange> m_OITNodesCounterUniform;
-    PUniform<graphics::PImage> m_OITIndicesImageUniform;
+    graphics::PConstBufferRange m_OITDataBuffer;
+    PUniform<graphics::PConstBufferRange> m_OITNodesCounterUniform;
+    PUniform<graphics::PConstImage> m_OITIndicesImageUniform;
 
     bool m_faceCulling;
     graphics::FaceType m_cullFaceType;
