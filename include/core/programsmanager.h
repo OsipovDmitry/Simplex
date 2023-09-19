@@ -41,6 +41,8 @@ public:
     std::shared_ptr<graphics::IComputeProgram> loadOrGetOITClearPassComputeProgram();
     std::shared_ptr<graphics::IComputeProgram> loadOrGetOITSortNodesPassComputeProgram();
 
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetLightPassRenderProgram(const utils::VertexAttributesSet&);
+
     std::shared_ptr<graphics::IRenderProgram> loadOrGetFinalPassRenderProgram(const utils::VertexAttributesSet&);
 
 private:

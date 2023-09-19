@@ -8,7 +8,7 @@
 #include <utils/glm/vec4.hpp>
 
 #include <core/forwarddecl.h>
-#include <core/lightnode.h>
+#include <core/debuginformation.h>
 
 namespace simplex
 {
@@ -21,6 +21,8 @@ public:
     GraphicsEnginePrivate(const std::string&);
 
     std::string &name();
+
+    debug::GraphicsEngineInformation &debugInformation();
 
     std::shared_ptr<graphics::IRenderer> &renderer();
     std::shared_ptr<TexturesManager> &texturesManager();
@@ -40,7 +42,9 @@ public:
 
     std::vector<std::shared_ptr<Scene>> &scenes();
 
-    std::array<std::shared_ptr<DrawableBase>, numElementsLightNodeType()> &lightAreaDrawables();
+    std::shared_ptr<graphics::IVertexArray> &pointLightAreaVertexArray();
+    std::shared_ptr<graphics::IVertexArray> &spotLightAreaVertexArray();
+    std::shared_ptr<graphics::IVertexArray> &directionalLightAreaVertexArray();
 
     std::shared_ptr<DrawableBase> &screenQuadDrawable();
     std::shared_ptr<StandardDrawable> &nodeBoundingBoxDrawable();
@@ -50,6 +54,8 @@ public:
 
 private:
     std::string m_name;
+
+    debug::GraphicsEngineInformation m_debugInformation;
 
     std::shared_ptr<graphics::IRenderer> m_renderer;
     std::shared_ptr<TexturesManager> m_texturesManager;
@@ -70,7 +76,9 @@ private:
 
     std::vector<std::shared_ptr<Scene>> m_scenes;
 
-    std::array<std::shared_ptr<DrawableBase>, numElementsLightNodeType()> m_lightAreaDrawables;
+    std::shared_ptr<graphics::IVertexArray> m_pointLightAreaVertexArray;
+    std::shared_ptr<graphics::IVertexArray> m_spotLightAreaVertexArray;
+    std::shared_ptr<graphics::IVertexArray> m_directionalLightAreaVertexArray;
 
     std::shared_ptr<DrawableBase> m_screenQuadDrawable;
     std::shared_ptr<StandardDrawable> m_nodeBoundingBoxDrawable;

@@ -2,6 +2,7 @@
 #define CORE_LIGHTNODE_H
 
 #include <utils/glm/vec3.hpp>
+#include <utils/glm/mat4x4.hpp>
 #include <utils/pimpl.h>
 #include <utils/enumclass.h>
 
@@ -13,11 +14,6 @@ namespace simplex
 namespace core
 {
 
-ENUMCLASS(LightNodeType, uint16_t,
-          Point,
-          Spot,
-          Directional);
-
 class LightNodePrivate;
 class CORE_SHARED_EXPORT LightNode : public Node
 {
@@ -25,31 +21,22 @@ class CORE_SHARED_EXPORT LightNode : public Node
 public:
     ~LightNode() override;
 
-    virtual LightNodeType type() const = 0;
-
     std::shared_ptr<LightNode> asLightNode() override;
     std::shared_ptr<const LightNode> asLightNode() const override;
-
-    virtual std::shared_ptr<PointLightNode> asPointLightNode();
-    virtual std::shared_ptr<const PointLightNode> asPointLightNode() const;
-
-    virtual std::shared_ptr<SpotLightNode> asSpotLightNode();
-    virtual std::shared_ptr<const SpotLightNode> asSpotLightNode() const;
-
-    virtual std::shared_ptr<DirectionalLightNode> asDirectionalLightNode();
-    virtual std::shared_ptr<const DirectionalLightNode> asDirectionalLightNode() const;
 
     bool isLightingEnabled() const;
     void setLightingEnabled(bool);
 
-    const glm::vec3 &color() const;
-    void setColor(const glm::vec3&);
+    const glm::mat4x4 &areaMatrix() const;
+    std::shared_ptr<const DrawableBase> areaDrawable() const;
 
 protected:
     LightNode(std::unique_ptr<LightNodePrivate>);
 
     bool canAttach(std::shared_ptr<Node>) override;
     bool canDetach(std::shared_ptr<Node>) override;
+
+    virtual glm::mat4x4 doAreaMatrix() const = 0;
 };
 
 }

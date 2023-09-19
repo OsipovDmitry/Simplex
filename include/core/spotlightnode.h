@@ -18,16 +18,17 @@ public:
     SpotLightNode(const std::string&);
     ~SpotLightNode() override;
 
-    LightNodeType type() const override;
-
-    std::shared_ptr<SpotLightNode> asSpotLightNode() override;
-    std::shared_ptr<const SpotLightNode> asSpotLightNode() const override;
+    const glm::vec3 &color() const;
+    void setColor(const glm::vec3&);
 
     const glm::vec2 &radiuses() const;
     void setRadiuses(const glm::vec2&);
 
     const glm::vec2 &halfAngles() const;
     void setHalfAngles(const glm::vec2&);
+
+protected:
+    glm::mat4x4 doAreaMatrix() const override;
 };
 
 }

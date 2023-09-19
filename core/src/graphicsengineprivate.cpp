@@ -15,6 +15,11 @@ std::string &GraphicsEnginePrivate::name()
     return m_name;
 }
 
+debug::GraphicsEngineInformation &GraphicsEnginePrivate::debugInformation()
+{
+    return m_debugInformation;
+}
+
 std::shared_ptr<graphics::IRenderer> &GraphicsEnginePrivate::renderer()
 {
     return m_renderer;
@@ -75,9 +80,19 @@ std::vector<std::shared_ptr<Scene>> &GraphicsEnginePrivate::scenes()
     return m_scenes;
 }
 
-std::array<std::shared_ptr<DrawableBase>, numElementsLightNodeType()> &GraphicsEnginePrivate::lightAreaDrawables()
+std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::pointLightAreaVertexArray()
 {
-    return m_lightAreaDrawables;
+    return m_pointLightAreaVertexArray;
+}
+
+std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::spotLightAreaVertexArray()
+{
+    return m_spotLightAreaVertexArray;
+}
+
+std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::directionalLightAreaVertexArray()
+{
+    return m_directionalLightAreaVertexArray;
 }
 
 std::shared_ptr<DrawableBase> &GraphicsEnginePrivate::screenQuadDrawable()

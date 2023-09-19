@@ -5,6 +5,7 @@
 
 #include <utils/noncopyble.h>
 
+#include <core/coreglobal.h>
 #include <core/forwarddecl.h>
 
 namespace simplex
@@ -12,14 +13,14 @@ namespace simplex
 namespace core
 {
 
-class NodeVisitor
+class CORE_SHARED_EXPORT NodeVisitor
 {
     NONCOPYBLE(NodeVisitor)
 public:
     NodeVisitor();
     virtual ~NodeVisitor();
 
-    virtual bool visit(std::shared_ptr<Node>);
+    virtual bool visit(const std::shared_ptr<Node>&);
 
 };
 

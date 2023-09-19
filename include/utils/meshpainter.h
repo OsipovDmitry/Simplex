@@ -5,10 +5,10 @@
 #include <vector>
 #include <unordered_map>
 
+#include <utils/glm/vec4.hpp>
 #include <utils/utilsglobal.h>
 #include <utils/forwarddecl.h>
 #include <utils/transform.h>
-#include <utils/glm/vec4.hpp>
 
 namespace simplex
 {

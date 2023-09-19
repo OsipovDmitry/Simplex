@@ -18,7 +18,7 @@
 #include <core/scenerootnode.h>
 #include <core/cameranode.h>
 #include <core/nodevisitor.h>
-#include <core/collectorvisitor.h>
+#include <core/nodecollector.h>
 
 #include <qt/qtrenderwidget.h>
 
@@ -138,8 +138,8 @@ void MainWidget::onTimeout()
     {
         const auto &scenes = testApplication->graphicsEngine()->scenes();
 
-        simplex::core::CollectorVisitor<simplex::core::CameraNode> cameraCollector;
-        scenes.front()->sceneRootNode()->accept(cameraCollector);
+        simplex::core::NodeCollector<simplex::core::CameraNode> cameraCollector;
+        scenes.front()->sceneRootNode()->acceptDown(cameraCollector);
 
         cameraCollector.nodes().front()->setTransform(cameraTransform);
     }
@@ -175,6 +175,17 @@ void MainWidget::keyPressEvent(QKeyEvent *event)
     case Qt::Key::Key_Right:
         m_isRightPressed = true;
         break;
+    case Qt::Key::Key_L: {
+        const auto &scenes = std::dynamic_pointer_cast<TestApplication>(m_renderWidget->application().lock())->graphicsEngine()->scenes();
+
+        simplex::core::NodeCollector<simplex::core::CameraNode> cameraCollector;
+        scenes.front()->sceneRootNode()->acceptDown(cameraCollector);
+
+        auto transform = cameraCollector.nodes().front()->transform();
+        LOG_INFO << transform.translation.x << ", " << transform.translation.y << ", " << transform.translation.z;
+        LOG_INFO << transform.rotation.w << ", " << transform.rotation.x << ", " << transform.rotation.y << ", " << transform.rotation.z;
+
+        break; }
     default:
         break;
     }

@@ -155,7 +155,7 @@ graphics::PBRComponentsSet DrawableBase::PBRComponentsSet() const
     return graphics::PBRComponentsSet{};
 }
 
-std::shared_ptr<graphics::IVertexArray> DrawableBase::vertexArray()
+std::shared_ptr<const graphics::IVertexArray> DrawableBase::vertexArray() const
 {
     return m_->vertexArray();
 }

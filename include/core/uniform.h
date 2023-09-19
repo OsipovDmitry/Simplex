@@ -87,7 +87,9 @@ template<> inline graphics::UniformType toUniformType<glm::u32vec4>() { return g
 
 
 template<typename T>
-PUniform<T> makeUniform(const T &value) { return std::make_shared<Uniform<T>>(value); }
+PUniform<T> makeUniform(const T &value) {
+    return std::make_shared<Uniform<typename std::remove_cv<typename std::remove_reference<T>::type>::type>>(value);
+}
 
 template <typename T>
 std::shared_ptr<Uniform<T>> uniform_cast(const std::shared_ptr<AbstractUniform> &uniform)

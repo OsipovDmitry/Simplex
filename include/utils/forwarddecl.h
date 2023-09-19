@@ -43,6 +43,7 @@ class OrthoClipSpace;
 class PerspectiveClipSpace;
 
 class SortedObject;
+struct SortedObjectComparator;
 
 template<glm::length_t L, typename T> struct TransformT;
 using Transform = TransformT<3, float>;

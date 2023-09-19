@@ -14,10 +14,11 @@ public:
     PointLightNodePrivate(const std::string &name);
     ~PointLightNodePrivate() override;
 
-    glm::vec2 &radiuses();
+    static std::weak_ptr<graphics::IVertexArray> &lightAreaVertexArray();
 
 private:
-    glm::vec2 m_radiuses;
+    static std::weak_ptr<graphics::IVertexArray> s_lightAreaVertexArray;
+
 };
 
 }

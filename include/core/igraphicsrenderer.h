@@ -118,7 +118,10 @@ ENUMCLASS(UniformId, uint16_t,
           BaseColorMap,
           MetalnessMap,
           RoughnessMap,
-          NormalMap)
+          NormalMap,
+          LightColor,
+          LightRadiuses,
+          LightHalfAngles)
 
 ENUMCLASS(UniformType, uint16_t,
           Undefined,
@@ -453,7 +456,7 @@ public:
 
     virtual void clearRenderData() = 0;
     virtual void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
-                               const std::shared_ptr<IDrawable>&,
+                               const std::shared_ptr<const IDrawable>&,
                                const glm::mat4x4& = glm::mat4x4(1.f)) = 0;
     virtual void render(const std::shared_ptr<IFrameBuffer>&, const RenderInfo&, const glm::uvec4&) = 0;
     virtual void compute(const std::shared_ptr<IComputeProgram>&, const RenderInfo&, const glm::uvec3&) = 0;
@@ -489,7 +492,10 @@ inline UniformType IProgram::uniformTypeByUniformId(UniformId uniformId)
         UniformType::Sampler2D,
         UniformType::Sampler2D,
         UniformType::Sampler2D,
-        UniformType::Sampler2D
+        UniformType::Sampler2D,
+        UniformType::SingleVec3,
+        UniformType::SingleVec2,
+        UniformType::SingleVec2,
     };
 
     return s_table[castFromUniformId(uniformId)];
@@ -589,7 +595,10 @@ inline UniformId IProgram::UniformIdByName(const std::string &name)
         { "u_baseColorMap", UniformId::BaseColorMap },
         { "u_metalnessMap", UniformId::MetalnessMap },
         { "u_roughnessMap", UniformId::RoughnessMap },
-        { "u_normalMap", UniformId::NormalMap }
+        { "u_normalMap", UniformId::NormalMap },
+        { "u_lightColor", UniformId::LightColor },
+        { "u_lightRadiuses", UniformId::LightRadiuses },
+        { "u_lightHalfAngles", UniformId::LightHalfAngles },
     };
 
     auto it = s_table.find(name);

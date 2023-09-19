@@ -2050,8 +2050,8 @@ void QtOpenGL_4_5_Renderer::clearRenderData()
 }
 
 void QtOpenGL_4_5_Renderer::addRenderData(const std::shared_ptr<core::graphics::IRenderProgram> &renderProgram,
-                                          const std::shared_ptr<core::IDrawable> &drawable,
-                                          const glm::mat4 &transform)
+                                          const std::shared_ptr<const core::IDrawable> &drawable,
+                                          const glm::mat4x4 &transform)
 {
     auto renderProgram_4_5 = std::dynamic_pointer_cast<RenderProgram_4_5>(renderProgram);
     if (!renderProgram_4_5)
@@ -2113,7 +2113,7 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
     {
         auto &drawable = std::get<2>(renderData);
 
-        auto vao_4_5 = std::dynamic_pointer_cast<VertexArray_4_5>(drawable->vertexArray());
+        auto vao_4_5 = std::dynamic_pointer_cast<const VertexArray_4_5>(drawable->vertexArray());
         if (!vao_4_5)
             LOG_CRITICAL << "VAO can't be nullptr";
         glBindVertexArray(vao_4_5->id());
@@ -2453,7 +2453,7 @@ void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
 }
 
 void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5> &program,
-                                          const std::shared_ptr<core::IDrawable> &drawable,
+                                          const std::shared_ptr<const core::IDrawable> &drawable,
                                           const core::RenderInfo &renderInfo,
                                           const glm::mat4 &modelMatrix)
 {
@@ -2540,7 +2540,7 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
         }
 
         if (!uniform)
-            LOG_CRITICAL << "Undefined uniform name \"" << program->uniformNameByIndex(uniformInfo.index) << "\" in render program";
+            LOG_CRITICAL << "Undefined uniform name \"" << program->uniformNameByIndex(uniformInfo.index) << "\"";
 
         if (uniformInfo.type != uniform->type())
             LOG_CRITICAL << "Uniform \"" << program->uniformNameByIndex(uniformInfo.index) << "\" has wrong type";
@@ -2568,9 +2568,7 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
         }
 
         if (!bufferRange)
-            LOG_CRITICAL << "Undefined SSBO name \""
-                         << program->SSBONameByIndex(ssboInfo.index)
-                         << "\" in render program";
+            LOG_CRITICAL << "Undefined SSBO name \"" << program->SSBONameByIndex(ssboInfo.index) << "\"";
 
         glShaderStorageBlockBinding(programId, ssboInfo.index, bindSSBO(bufferRange));
     }

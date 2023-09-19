@@ -7,19 +7,30 @@ namespace core
 
 LightNodePrivate::LightNodePrivate(const std::string &name)
     : NodePrivate(name)
+    , m_isAreaMatrixDirty(true)
 {
 }
 
 LightNodePrivate::~LightNodePrivate() = default;
 
-glm::vec3 &LightNodePrivate::color()
-{
-    return m_color;
-}
-
 bool &LightNodePrivate::isLightingEnabled()
 {
     return m_isLightingEnabled;
+}
+
+std::shared_ptr<DrawableBase> &LightNodePrivate::areaDrawable()
+{
+    return m_areaDrawable;
+}
+
+bool &LightNodePrivate::isAreaMatrixDirty()
+{
+    return m_isAreaMatrixDirty;
+}
+
+glm::mat4x4 &LightNodePrivate::areaMatrix()
+{
+    return m_areaMatrix;
 }
 
 }

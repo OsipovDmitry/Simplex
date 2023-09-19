@@ -723,18 +723,18 @@ MeshPainter &MeshPainter::drawCone(uint32_t segs)
         const auto angleA = glm::two_pi<float>() * fA;
         const auto sinA = glm::sin(angleA);
         const auto cosA = glm::cos(angleA);
-        const auto p = glm::vec3(cosA, sinA, 1.0f);
-        const auto n = glm::normalize(glm::vec3(cosA, sinA, -1.0f));
+        const auto p = glm::vec3(cosA, sinA, -1.0f);
+        const auto n = glm::normalize(glm::vec3(cosA, sinA, 1.0f));
 
         vertices[4u * a + 0u] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
         vertices[4u * a + 1u] = glm::vec4(p, 1.0f);
         vertices[4u * a + 2u] = glm::vec4(p, 1.0f);
-        vertices[4u * a + 3u] = glm::vec4(0.0f, 0.0f, 1.0f, 1.0f);
+        vertices[4u * a + 3u] = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
 
         normals[4u * a + 0u] = glm::vec4(n, 0.0f);
         normals[4u * a + 1u] = glm::vec4(n, 0.0f);
-        normals[4u * a + 2u] = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
-        normals[4u * a + 3u] = glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
+        normals[4u * a + 2u] = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
+        normals[4u * a + 3u] = glm::vec4(0.0f, 0.0f, -1.0f, 0.0f);
 
         texCoords[4u * a + 0u] = glm::vec4(fA, 1.0f, 0.0f, 1.0f);
         texCoords[4u * a + 1u] = glm::vec4(fA, 0.0f, 0.0f, 1.0f);

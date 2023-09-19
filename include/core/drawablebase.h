@@ -2,7 +2,6 @@
 #define CORE_DRAWABLEBASE_H
 
 #include <utils/noncopyble.h>
-#include <utils/pimpl.h>
 
 #include <core/coreglobal.h>
 #include <core/idrawable.h>
@@ -16,7 +15,6 @@ class DrawableBasePrivate;
 class CORE_SHARED_EXPORT DrawableBase : public IDrawable
 {
     NONCOPYBLE(DrawableBase)
-    PIMPL(DrawableBase)
 
 public:
     explicit DrawableBase(std::shared_ptr<graphics::IVertexArray>);
@@ -26,7 +24,7 @@ public:
     bool isTransparent() const override;
     graphics::PBRComponentsSet PBRComponentsSet() const override;
 
-    std::shared_ptr<graphics::IVertexArray> vertexArray() override;
+    std::shared_ptr<const graphics::IVertexArray> vertexArray() const override;
 
     const PAbstratcUniform uniform(graphics::UniformId) const override;
     PAbstratcUniform &getOrCreateUniform(graphics::UniformId) override;

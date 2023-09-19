@@ -21,8 +21,6 @@ public:
 
     std::unordered_set<std::shared_ptr<IDrawable>> &drawables();
 
-    static void dirtyLocalBoundingBox(std::shared_ptr<DrawableNode> node);
-
 private:
     std::unordered_set<std::shared_ptr<IDrawable>> m_drawables;
     utils::BoundingBox m_localBoundingBox;

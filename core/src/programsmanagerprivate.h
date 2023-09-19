@@ -43,10 +43,15 @@ public:
                                                                  utils::ShaderDefines&,
                                                                  VertexAttributesKey&);
 
+    static void prepareDefinesAndKeyForLightPassRenderProgram(const utils::VertexAttributesSet&,
+                                                              utils::ShaderDefines&,
+                                                              VertexAttributesKey&);
+
     static const std::string &opaqueGeometryPassRenderProgramName();
     static const std::string &transparentGeometryPassRenderProgramName();
     static const std::string &OITClearPassComputeProgramName();
     static const std::string &OITSortNodesPassComputeProgramName();
+    static const std::string &lightPassRenderProgramName();
     static const std::string &finalPassRenderProgramName();
 
     static const std::filesystem::path &geometryPassVertexShaderPath();
@@ -54,6 +59,8 @@ public:
     static const std::filesystem::path &transparentGeometryPassFragmnetShaderPath();
     static const std::filesystem::path &OITClearPassComputeShaderPath();
     static const std::filesystem::path &OITSortNodesPassComputeShaderPath();
+    static const std::filesystem::path &lightPassVertexShaderPath();
+    static const std::filesystem::path &lightPassFragmnetShaderPath();
     static const std::filesystem::path &finalPassVertexShaderPath();
     static const std::filesystem::path &finalPassFragmnetShaderPath();
 
@@ -65,6 +72,7 @@ private:
     static const std::string s_transparentGeometryPassRenderProgramName;
     static const std::string s_OITClearPassComputeProgramName;
     static const std::string s_OITSortNodesPassComputeProgramName;
+    static const std::string s_lightPassRenderProgramName;
     static const std::string s_finalPassRenderProgramName;
 
     static const std::filesystem::path s_geometryPassVertexShaderPath;
@@ -72,6 +80,8 @@ private:
     static const std::filesystem::path s_transparentGeometryPassFragmnetShaderPath;
     static const std::filesystem::path s_OITClearPassComputeShaderPath;
     static const std::filesystem::path s_OITSortNodesPassComputeShaderPath;
+    static const std::filesystem::path s_lightPassVertexShaderPath;
+    static const std::filesystem::path s_lightPassFragmnetShaderPath;
     static const std::filesystem::path s_finalPassVertexShaderPath;
     static const std::filesystem::path s_finalPassFragmnetShaderPath;
 };

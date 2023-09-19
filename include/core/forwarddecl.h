@@ -47,6 +47,11 @@ class IComputeProgram;
 class IRenderer;
 }
 
+namespace debug
+{
+class GraphicsEngineInformation;
+}
+
 class Settings;
 
 class INamedObject;
@@ -75,16 +80,13 @@ class Node;
 class SceneRootNode;
 class CameraNode;
 class DrawableNode;
-enum class LightNodeType : uint16_t;
 class LightNode;
 class PointLightNode;
 class SpotLightNode;
 class DirectionalLightNode;
 
 class NodeVisitor;
-class ConditionalNodeVisitor;
-class FrustumCullingNodeVisitor;
-template <typename NodeClass> class CollectorVisitor;
+template <typename NodeClass> class NodeCollector;
 
 class TexturesManager;
 class ProgramsManager;

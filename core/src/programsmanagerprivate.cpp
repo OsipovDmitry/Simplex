@@ -13,6 +13,7 @@ const std::string ProgramsManagerPrivate::s_opaqueGeometryPassRenderProgramName 
 const std::string ProgramsManagerPrivate::s_transparentGeometryPassRenderProgramName = "TransparentGeometryPass";
 const std::string ProgramsManagerPrivate::s_OITClearPassComputeProgramName = "OITClearPass";
 const std::string ProgramsManagerPrivate::s_OITSortNodesPassComputeProgramName = "OITSortNodesPass";
+const std::string ProgramsManagerPrivate::s_lightPassRenderProgramName = "LightPass";
 const std::string ProgramsManagerPrivate::s_finalPassRenderProgramName = "FinalPass";
 
 const std::filesystem::path ProgramsManagerPrivate::s_geometryPassVertexShaderPath = "D:/res/shaders/deferred_geometry_pass.vert";
@@ -20,6 +21,8 @@ const std::filesystem::path ProgramsManagerPrivate::s_opaqueGeometryPassFragmnet
 const std::filesystem::path ProgramsManagerPrivate::s_transparentGeometryPassFragmnetShaderPath = "D:/res/shaders/deferred_transparent_geometry_pass.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_OITClearPassComputeShaderPath = "D:/res/shaders/oit_clear.comp";
 const std::filesystem::path ProgramsManagerPrivate::s_OITSortNodesPassComputeShaderPath = "D:/res/shaders/oit_sort.comp";
+const std::filesystem::path ProgramsManagerPrivate::s_lightPassVertexShaderPath = "D:/res/shaders/deferred_light_pass.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_lightPassFragmnetShaderPath = "D:/res/shaders/deferred_light_pass.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_finalPassVertexShaderPath = "D:/res/shaders/final.vert";
 const std::filesystem::path ProgramsManagerPrivate::s_finalPassFragmnetShaderPath = "D:/res/shaders/final.frag";
 
@@ -107,6 +110,16 @@ void ProgramsManagerPrivate::prepareDefinesAndKeyForGeometryPassRenderProgram(co
     bit = preparePBRComponentsKey(PBRComponentsSet, key, bit);
 }
 
+void ProgramsManagerPrivate::prepareDefinesAndKeyForLightPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
+                                                                           utils::ShaderDefines &defines,
+                                                                           VertexAttributesKey &key)
+{
+    prepareVertexAttributesDefines(attribsSet, defines);
+
+    uint16_t bit = 0u;
+    bit = prepareVertexAttributesKey(attribsSet, key, bit);
+}
+
 const std::string &ProgramsManagerPrivate::opaqueGeometryPassRenderProgramName()
 {
     return s_opaqueGeometryPassRenderProgramName;
@@ -125,6 +138,11 @@ const std::string &ProgramsManagerPrivate::OITClearPassComputeProgramName()
 const std::string &ProgramsManagerPrivate::OITSortNodesPassComputeProgramName()
 {
     return s_OITSortNodesPassComputeProgramName;
+}
+
+const std::string &ProgramsManagerPrivate::lightPassRenderProgramName()
+{
+    return s_lightPassRenderProgramName;
 }
 
 const std::string &ProgramsManagerPrivate::finalPassRenderProgramName()
@@ -155,6 +173,16 @@ const std::filesystem::path &ProgramsManagerPrivate::OITClearPassComputeShaderPa
 const std::filesystem::path &ProgramsManagerPrivate::OITSortNodesPassComputeShaderPath()
 {
     return s_OITSortNodesPassComputeShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::lightPassVertexShaderPath()
+{
+    return s_lightPassVertexShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::lightPassFragmnetShaderPath()
+{
+    return s_lightPassFragmnetShaderPath;
 }
 
 const std::filesystem::path &ProgramsManagerPrivate::finalPassVertexShaderPath()

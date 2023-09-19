@@ -25,7 +25,7 @@ public:
     using value_type = T;
     using PlaneType = PlaneT<3, T>;
 
-    ENUMCLASS(Planes, size_t, Left, Right, Bottom, Top, Near, Far)
+    ENUMCLASS(Planes, uint16_t, Left, Right, Bottom, Top, Near, Far)
 
     FrustumT()
         : planes(numElementsPlanes())
@@ -56,15 +56,12 @@ public:
 template<typename T>
 inline FrustumT<T> operator *(const TransformT<FrustumT<T>::length(), T> &t, const FrustumT<T> &f)
 {
-    FrustumT transformedFrustumT = f;
+    FrustumT transformedFrustum = f;
 
-    for (auto &p : transformedFrustumT.planes)
+    for (auto &p : transformedFrustum.planes)
         p = t * p;
 
-    //    for (auto &v : transformedFrustumT.vertices)
-    //        v = t * v;
-
-    return transformedFrustumT;
+    return transformedFrustum;
 }
 
 template<typename T>

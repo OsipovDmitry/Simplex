@@ -5,6 +5,8 @@ namespace simplex
 namespace core
 {
 
+std::weak_ptr<graphics::IVertexArray> PointLightNodePrivate::s_lightAreaVertexArray;
+
 PointLightNodePrivate::PointLightNodePrivate(const std::string &name)
     : LightNodePrivate(name)
 {
@@ -12,9 +14,9 @@ PointLightNodePrivate::PointLightNodePrivate(const std::string &name)
 
 PointLightNodePrivate::~PointLightNodePrivate() = default;
 
-glm::vec2 &PointLightNodePrivate::radiuses()
+std::weak_ptr<graphics::IVertexArray> &PointLightNodePrivate::lightAreaVertexArray()
 {
-    return m_radiuses;
+    return s_lightAreaVertexArray;
 }
 
 }

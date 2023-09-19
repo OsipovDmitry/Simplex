@@ -16,11 +16,13 @@ public:
     DirectionalLightNode(const std::string&);
     ~DirectionalLightNode() override;
 
-    LightNodeType type() const override;
+    const glm::vec3 &color() const;
+    void setColor(const glm::vec3&);
 
-    std::shared_ptr<DirectionalLightNode> asDirectionalLightNode() override;
-    std::shared_ptr<const DirectionalLightNode> asDirectionalLightNode() const override;
+    void doAfterTransformChanged() override;
 
+protected:
+    glm::mat4x4 doAreaMatrix() const override;
 };
 
 }

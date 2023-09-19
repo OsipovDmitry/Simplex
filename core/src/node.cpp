@@ -3,6 +3,7 @@
 #include <core/scenerootnode.h>
 
 #include "nodeprivate.h"
+#include "nodevisitorhelpers.h"
 
 namespace simplex
 {
@@ -28,8 +29,35 @@ std::shared_ptr<const Scene> Node::scene() const
     return const_cast<Node*>(this)->scene();
 }
 
+//class FindSceneNodeVisitor : public NodeVisitor
+//{
+//public:
+//    FindSceneNodeVisitor()
+//    {}
+//    ~FindSceneNodeVisitor() override = default;
+
+//    bool visit(std::shared_ptr<Node> node) override
+//    {
+//        if (auto sceneRootNode = node->asSceneRootNode(); sceneRootNode)
+//            m_scene = sceneRootNode->scene();
+//        return true;
+//    }
+
+//    const std::shared_ptr<Scene> &scene()
+//    {
+//        return m_scene;
+//    }
+
+//private:
+//    std::shared_ptr<Scene> m_scene;
+//};
+
 std::shared_ptr<Scene> Node::scene()
 {
+//    FindSceneNodeVisitor findSceneNodeVisitor;
+//    acceptUp(findSceneNodeVisitor);
+//    return findSceneNodeVisitor.scene();
+
     auto p = asNode();
     for (auto parentNode = p->parent(); parentNode; parentNode = parentNode->parent())
         p = parentNode;
@@ -91,18 +119,6 @@ std::shared_ptr<const LightNode> Node::asLightNode() const
     return nullptr;
 }
 
-const utils::Transform &Node::transform() const
-{
-    return m_->transform();
-}
-
-void Node::setTransform(const utils::Transform &t)
-{
-    m_->transform() = t;
-    NodePrivate::dirtyGlobalTransform(asNode());
-    NodePrivate::dirtyBoundingBox(asNode());
-}
-
 const utils::Transform &Node::globalTransform() const
 {
     if (m_->isGlobalTransformDirty())
@@ -115,25 +131,70 @@ const utils::Transform &Node::globalTransform() const
     return m_->globalTransform();
 }
 
+const utils::Transform &Node::transform() const
+{
+    return m_->transform();
+}
+
+void Node::setTransform(const utils::Transform &t)
+{
+    m_->transform() = t;
+
+    DirtyGlobalTransformNodeVisitor dirtyGlobalTransformNodeVisitor;
+    acceptDown(dirtyGlobalTransformNodeVisitor);
+
+    DirtyBoundingBoxNodeVisitor dirtyBoundingBoxNodeVisitor;
+    acceptUp(dirtyBoundingBoxNodeVisitor);
+}
+
 const utils::BoundingBox &Node::boundingBox() const
 {
     if (m_->isBoundingBoxDirty())
     {
-        auto &bb = m_->globalBoundingBox();
-        bb = utils::BoundingBox();
+        auto bb = const_cast<Node*>(this)->doBoundingBox();
         for (auto &child : children())
             bb += child->transform() * child->boundingBox();
+
+        m_->boundingBox() = bb;
         m_->isBoundingBoxDirty() = false;
     }
 
-    return m_->globalBoundingBox();
+    return m_->boundingBox();
 }
 
-void Node::accept(NodeVisitor &nodeVisitor)
+void Node::acceptUp(NodeVisitor &nodeVisitor)
+{
+    if (nodeVisitor.visit(asNode()))
+        if (auto p = parent(); p)
+            p->acceptDown(nodeVisitor);
+}
+
+void Node::acceptDown(NodeVisitor &nodeVisitor)
 {
     if (nodeVisitor.visit(asNode()))
         for (auto &child : children())
-            child->accept(nodeVisitor);
+            child->acceptDown(nodeVisitor);
+}
+
+void Node::doUpdate(uint64_t, uint32_t)
+{
+}
+
+utils::BoundingBox Node::doBoundingBox() const
+{
+    return utils::BoundingBox();
+}
+
+void Node::doBeforeTransformChanged()
+{
+    for (const auto &child : children())
+        child->doBeforeTransformChanged();
+}
+
+void Node::doAfterTransformChanged()
+{
+    for (const auto &child : children())
+        child->doAfterTransformChanged();
 }
 
 Node::Node(std::unique_ptr<NodePrivate> nodePrivate)
@@ -143,16 +204,26 @@ Node::Node(std::unique_ptr<NodePrivate> nodePrivate)
 
 void Node::doAttach()
 {
-    NodePrivate::dirtyGlobalTransform(asNode());
+    DirtyGlobalTransformNodeVisitor dirtyGlobalTransformNodeVisitor;
+    acceptDown(dirtyGlobalTransformNodeVisitor);
+
     if (auto p = parent(); p)
-        NodePrivate::dirtyBoundingBox(p);
+    {
+        DirtyBoundingBoxNodeVisitor dirtyBoundingBoxNodeVisitor;
+        p->acceptUp(dirtyBoundingBoxNodeVisitor);
+    }
 }
 
 void Node::doDetach()
 {
-    NodePrivate::dirtyGlobalTransform(asNode());
+    DirtyGlobalTransformNodeVisitor dirtyGlobalTransformNodeVisitor;
+    acceptDown(dirtyGlobalTransformNodeVisitor);
+
     if (auto p = parent(); p)
-        NodePrivate::dirtyBoundingBox(p);
+    {
+        DirtyBoundingBoxNodeVisitor dirtyBoundingBoxNodeVisitor;
+        p->acceptUp(dirtyBoundingBoxNodeVisitor);
+    }
 }
 
 }

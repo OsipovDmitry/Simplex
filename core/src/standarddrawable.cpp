@@ -22,21 +22,21 @@ StandardDrawable::StandardDrawable(std::shared_ptr<graphics::IVertexArray> vao,
                                    graphics::PTexture normalMap)
     : DrawableBase(std::make_unique<StandardDrawablePrivate>(vao))
 {
-    getOrCreateUniform(graphics::UniformId::BaseColor) = makeUniform<glm::vec4>(baseColor);
-    getOrCreateUniform(graphics::UniformId::Metalness) = makeUniform<float>(metalness);
-    getOrCreateUniform(graphics::UniformId::Roughness) = makeUniform<float>(roughness);
+    getOrCreateUniform(graphics::UniformId::BaseColor) = makeUniform(baseColor);
+    getOrCreateUniform(graphics::UniformId::Metalness) = makeUniform(metalness);
+    getOrCreateUniform(graphics::UniformId::Roughness) = makeUniform(roughness);
 
     if (baseColorMap)
-        getOrCreateUniform(graphics::UniformId::BaseColorMap) = makeUniform<graphics::PTexture>(baseColorMap);
+        getOrCreateUniform(graphics::UniformId::BaseColorMap) = makeUniform(baseColorMap);
 
     if (metalnessMap)
-        getOrCreateUniform(graphics::UniformId::MetalnessMap) = makeUniform<graphics::PTexture>(metalnessMap);
+        getOrCreateUniform(graphics::UniformId::MetalnessMap) = makeUniform(metalnessMap);
 
     if (roughnessMap)
-        getOrCreateUniform(graphics::UniformId::RoughnessMap) = makeUniform<graphics::PTexture>(roughnessMap);
+        getOrCreateUniform(graphics::UniformId::RoughnessMap) = makeUniform(roughnessMap);
 
     if (normalMap)
-        getOrCreateUniform(graphics::UniformId::NormalMap) = makeUniform<graphics::PTexture>(normalMap);
+        getOrCreateUniform(graphics::UniformId::NormalMap) = makeUniform(normalMap);
 }
 
 StandardDrawable::~StandardDrawable() = default;

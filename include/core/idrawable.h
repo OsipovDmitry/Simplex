@@ -20,7 +20,7 @@ public:
     virtual bool isTransparent() const = 0;
     virtual graphics::PBRComponentsSet PBRComponentsSet() const = 0;
 
-    virtual std::shared_ptr<graphics::IVertexArray> vertexArray() = 0;
+    virtual std::shared_ptr<const graphics::IVertexArray> vertexArray() const = 0;
 
     virtual const PAbstratcUniform uniform(graphics::UniformId) const = 0;
     virtual PAbstratcUniform &getOrCreateUniform(graphics::UniformId) = 0;

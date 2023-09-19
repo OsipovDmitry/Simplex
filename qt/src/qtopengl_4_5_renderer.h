@@ -2,7 +2,7 @@
 #define QTOPENGL_1_0_RENDERER_H
 
 #include <tuple>
-#include <list>
+#include <deque>
 
 #include <QOpenGLFunctions_4_5_Core>
 
@@ -423,7 +423,7 @@ public:
 
     void clearRenderData() override;
     void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
-                       const std::shared_ptr<core::IDrawable>&,
+                       const std::shared_ptr<const core::IDrawable>&,
                        const glm::mat4x4& = glm::mat4x4(1.f)) override;
     void render(const std::shared_ptr<core::graphics::IFrameBuffer>&, const core::RenderInfo&, const glm::uvec4&) override;
     void compute(const std::shared_ptr<core::graphics::IComputeProgram>&, const core::RenderInfo&, const glm::uvec3&) override;
@@ -443,7 +443,7 @@ private:
 
     void setupUniform(GLuint rpId, GLint loc, const core::PAbstratcUniform&);
     void setupUniforms(const std::shared_ptr<ProgramBase_4_5>&,
-                       const std::shared_ptr<core::IDrawable>&,
+                       const std::shared_ptr<const core::IDrawable>&,
                        const core::RenderInfo&,
                        const glm::mat4&);
 
@@ -452,7 +452,7 @@ private:
 
     std::shared_ptr<DefaultFrameBuffer_4_5> m_defaultFrameBuffer;
 
-    std::list<std::tuple<glm::mat4, std::shared_ptr<RenderProgram_4_5>, std::shared_ptr<core::IDrawable>>> m_renderData;
+    std::deque<std::tuple<glm::mat4x4, std::shared_ptr<RenderProgram_4_5>, std::shared_ptr<const core::IDrawable>>> m_renderData;
     glm::uvec2 m_viewportSize;
     int32_t m_textureUnit;
     int32_t m_imageUnit;

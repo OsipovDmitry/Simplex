@@ -1,5 +1,3 @@
-#include <core/drawablenode.h>
-
 #include "drawablenodeprivate.h"
 
 namespace simplex
@@ -28,13 +26,6 @@ std::unordered_set<std::shared_ptr<IDrawable>> &DrawableNodePrivate::drawables()
 {
     return m_drawables;
 }
-
-void DrawableNodePrivate::dirtyLocalBoundingBox(std::shared_ptr<DrawableNode> node)
-{
-    node->m().m_localBoundingBoxDirty = true;
-    NodePrivate::dirtyBoundingBox(node);
-}
-
 
 }
 }

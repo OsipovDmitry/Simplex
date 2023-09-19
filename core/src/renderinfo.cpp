@@ -61,16 +61,16 @@ const PUniform<glm::vec3> &RenderInfo::viewZDirectionUniform() const
 
 void RenderInfo::setViewMatrix(const glm::mat4 &vm)
 {
-    m_->viewMatrixUniform() = makeUniform<glm::mat4>(vm);
-    m_->viewMatrixInverseUniform() = makeUniform<glm::mat4>(glm::inverse(viewMatrixUniform()->data()));
+    m_->viewMatrixUniform() = makeUniform(vm);
+    m_->viewMatrixInverseUniform() = makeUniform(glm::inverse(viewMatrixUniform()->data()));
 
-    m_->viewProjectionMatrixUniform() = makeUniform<glm::mat4>(projectionMatrixUniform()->data() * viewMatrixUniform()->data());
-    m_->viewProjectionMatrixInverseUniform() = makeUniform<glm::mat4>(glm::inverse(viewProjectionMatrixUniform()->data()));
+    m_->viewProjectionMatrixUniform() = makeUniform(projectionMatrixUniform()->data() * viewMatrixUniform()->data());
+    m_->viewProjectionMatrixInverseUniform() = makeUniform(glm::inverse(viewProjectionMatrixUniform()->data()));
 
-    m_->viewPositionUniform() = makeUniform<glm::vec3>(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 0.f, 0.f, 1.f)));
-    m_->viewXDirectionUniform() = makeUniform<glm::vec3>(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(1.f, 0.f, 0.f, 0.f)));
-    m_->viewYDirectionUniform() = makeUniform<glm::vec3>(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 1.f, 0.f, 0.f)));
-    m_->viewZDirectionUniform() = makeUniform<glm::vec3>(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 0.f, 1.f, 0.f)));
+    m_->viewPositionUniform() = makeUniform(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 0.f, 0.f, 1.f)));
+    m_->viewXDirectionUniform() = makeUniform(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(1.f, 0.f, 0.f, 0.f)));
+    m_->viewYDirectionUniform() = makeUniform(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 1.f, 0.f, 0.f)));
+    m_->viewZDirectionUniform() = makeUniform(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 0.f, 1.f, 0.f)));
 }
 
 const PUniform<glm::mat4> &RenderInfo::projectionMatrixUniform() const
@@ -85,11 +85,11 @@ const PUniform<glm::mat4> &RenderInfo::projectionMatrixInverseUniform() const
 
 void RenderInfo::setProjectionMatrix(const glm::mat4 &pm)
 {
-    m_->projectionMatrixUniform() = makeUniform<glm::mat4>(pm);
-    m_->projectionMatrixInverseUniform() = makeUniform<glm::mat4>(glm::inverse(projectionMatrixUniform()->data()));
+    m_->projectionMatrixUniform() = makeUniform(pm);
+    m_->projectionMatrixInverseUniform() = makeUniform(glm::inverse(projectionMatrixUniform()->data()));
 
-    m_->viewProjectionMatrixUniform() = makeUniform<glm::mat4>(projectionMatrixUniform()->data() * viewMatrixUniform()->data());
-    m_->viewProjectionMatrixInverseUniform() = makeUniform<glm::mat4>(glm::inverse(viewProjectionMatrixUniform()->data()));
+    m_->viewProjectionMatrixUniform() = makeUniform(projectionMatrixUniform()->data() * viewMatrixUniform()->data());
+    m_->viewProjectionMatrixInverseUniform() = makeUniform(glm::inverse(viewProjectionMatrixUniform()->data()));
 }
 
 const PUniform<glm::mat4> &RenderInfo::viewProjectionMatrixUniform() const
@@ -121,9 +121,9 @@ void RenderInfo::setGBufferMaps(const graphics::PTexture &color0Map,
                                 const graphics::PTexture &color1Map,
                                 const graphics::PTexture &depthMap)
 {
-    m_->gBufferColor0MapUniform() = makeUniform<graphics::PTexture>(color0Map);
-    m_->gBufferColor1MapUniform() = makeUniform<graphics::PTexture>(color1Map);
-    m_->gBufferDepthMapUniform() = makeUniform<graphics::PTexture>(depthMap);
+    m_->gBufferColor0MapUniform() = makeUniform(color0Map);
+    m_->gBufferColor1MapUniform() = makeUniform(color1Map);
+    m_->gBufferDepthMapUniform() = makeUniform(depthMap);
 }
 
 const graphics::PBufferRange &RenderInfo::OITNodesBuffer() const
@@ -153,7 +153,7 @@ const PUniform<graphics::PImage> &RenderInfo::OITIndicesImageUniform() const
 
 void RenderInfo::setOITIndicesImage(const graphics::PImage &value)
 {
-    m_->OITIndicesImageUniform() = makeUniform<graphics::PImage>(value);
+    m_->OITIndicesImageUniform() = makeUniform(value);
 }
 
 bool RenderInfo::faceCulling() const

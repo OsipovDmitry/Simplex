@@ -21,36 +21,6 @@ std::shared_ptr<const LightNode> LightNode::asLightNode() const
     return std::dynamic_pointer_cast<const LightNode>(shared_from_this());
 }
 
-std::shared_ptr<PointLightNode> LightNode::asPointLightNode()
-{
-    return nullptr;
-}
-
-std::shared_ptr<const PointLightNode> LightNode::asPointLightNode() const
-{
-    return nullptr;
-}
-
-std::shared_ptr<SpotLightNode> LightNode::asSpotLightNode()
-{
-    return nullptr;
-}
-
-std::shared_ptr<const SpotLightNode> LightNode::asSpotLightNode() const
-{
-    return nullptr;
-}
-
-std::shared_ptr<DirectionalLightNode> LightNode::asDirectionalLightNode()
-{
-    return nullptr;
-}
-
-std::shared_ptr<const DirectionalLightNode> LightNode::asDirectionalLightNode() const
-{
-    return nullptr;
-}
-
 bool LightNode::isLightingEnabled() const
 {
     return m().isLightingEnabled();
@@ -61,20 +31,25 @@ void LightNode::setLightingEnabled(bool value)
     m().isLightingEnabled() = value;
 }
 
-const glm::vec3 &LightNode::color() const
+const glm::mat4x4 &LightNode::areaMatrix() const
 {
-    return m().color();
+    auto &mPrivate = m();
+    if (mPrivate.isAreaMatrixDirty())
+    {
+        mPrivate.areaMatrix() = doAreaMatrix();
+        mPrivate.isAreaMatrixDirty() = false;
+    }
+    return mPrivate.areaMatrix();
 }
 
-void LightNode::setColor(const glm::vec3 &value)
+std::shared_ptr<const DrawableBase> LightNode::areaDrawable() const
 {
-    m().color() = value;
+    return m().areaDrawable();
 }
 
 LightNode::LightNode(std::unique_ptr<LightNodePrivate> lightNodePrivate)
     : Node(std::move(lightNodePrivate))
 {
-    setColor(glm::vec3(1.f));
     setLightingEnabled(true);
 }
 

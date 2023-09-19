@@ -34,7 +34,10 @@ public:
     const utils::Transform &transform() const;
     void setTransform(const utils::Transform&);
 
-    void accept(NodeVisitor&);
+    const utils::BoundingBox &boundingBox() const;
+
+    void acceptUp(NodeVisitor&);
+    void acceptDown(NodeVisitor&);
 
     virtual std::shared_ptr<Node> asNode();
     virtual std::shared_ptr<const Node> asNode() const;
@@ -51,7 +54,10 @@ public:
     virtual std::shared_ptr<LightNode> asLightNode();
     virtual std::shared_ptr<const LightNode> asLightNode() const;
 
-    virtual const utils::BoundingBox &boundingBox() const;
+    virtual void doUpdate(uint64_t, uint32_t);
+    virtual utils::BoundingBox doBoundingBox() const;
+    virtual void doBeforeTransformChanged();
+    virtual void doAfterTransformChanged();
 
 protected:
     Node(std::unique_ptr<NodePrivate>);
@@ -60,7 +66,6 @@ protected:
     void doDetach() override;
 
     std::unique_ptr<NodePrivate> m_;
-
 
 };
 

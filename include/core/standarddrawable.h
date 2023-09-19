@@ -2,6 +2,7 @@
 #define CORE_STANDARDDRAWABLE_H
 
 #include <utils/glm/vec4.hpp>
+#include <utils/pimpl.h>
 
 #include <core/drawablebase.h>
 
@@ -14,7 +15,6 @@ class StandardDrawablePrivate;
 class CORE_SHARED_EXPORT StandardDrawable : public DrawableBase
 {
     PIMPL(StandardDrawable)
-
 public:
     StandardDrawable(std::shared_ptr<graphics::IVertexArray>,
                      const glm::vec4& baseColor,

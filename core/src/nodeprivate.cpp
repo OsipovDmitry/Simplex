@@ -1,5 +1,3 @@
-#include <core/node.h>
-
 #include "nodeprivate.h"
 
 namespace simplex
@@ -42,27 +40,9 @@ utils::Transform &NodePrivate::globalTransform()
     return m_globalTransform;
 }
 
-utils::BoundingBox &NodePrivate::globalBoundingBox()
+utils::BoundingBox &NodePrivate::boundingBox()
 {
     return m_boundingBox;
-}
-
-void NodePrivate::doUpdate(uint64_t, uint32_t)
-{
-}
-
-void NodePrivate::dirtyGlobalTransform(std::shared_ptr<Node> node)
-{
-    node->m().isGlobalTransformDirty() = true;
-    for (auto &child : node->children())
-        dirtyGlobalTransform(child);
-}
-
-void NodePrivate::dirtyBoundingBox(std::shared_ptr<Node> node)
-{
-    node->m().isBoundingBoxDirty() = true;
-    if (auto parent = node->parent(); parent)
-        dirtyBoundingBox(parent);
 }
 
 }

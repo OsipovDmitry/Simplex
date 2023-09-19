@@ -2,6 +2,7 @@
 #include <core/drawablenode.h>
 
 #include "drawablenodeprivate.h"
+#include "nodevisitorhelpers.h"
 
 namespace simplex
 {
@@ -25,6 +26,11 @@ std::shared_ptr<DrawableNode> DrawableNode::asDrawableNode()
 std::shared_ptr<const DrawableNode> DrawableNode::asDrawableNode() const
 {
     return std::dynamic_pointer_cast<const DrawableNode>(shared_from_this());
+}
+
+utils::BoundingBox DrawableNode::doBoundingBox() const
+{
+    return localBoundingBox();
 }
 
 const std::unordered_set<std::shared_ptr<IDrawable>> &DrawableNode::drawables() const
@@ -58,25 +64,12 @@ const utils::BoundingBox &DrawableNode::localBoundingBox() const
     return mPrivate.localBoundingBox();
 }
 
-const utils::BoundingBox &DrawableNode::boundingBox() const
-{
-    auto &mPrivate = m();
-    if (mPrivate.isBoundingBoxDirty())
-    {
-        auto &bb = mPrivate.globalBoundingBox();
-        bb = utils::BoundingBox();
-        bb += localBoundingBox();
-        for (auto &child : children())
-            bb += child->transform() * child->boundingBox();
-        mPrivate.isBoundingBoxDirty() = false;
-    }
-
-    return mPrivate.globalBoundingBox();
-}
-
 void DrawableNode::recalculateLocalBoundingBox()
 {
-    DrawableNodePrivate::dirtyLocalBoundingBox(asDrawableNode());
+    m().isLocalBoundingBoxDirty() = true;
+
+    DirtyBoundingBoxNodeVisitor dirtyBoundingBoxNodeVisitor;
+    acceptUp(dirtyBoundingBoxNodeVisitor);
 }
 
 }

@@ -14,7 +14,11 @@ public:
     DirectionalLightNodePrivate(const std::string &name);
     ~DirectionalLightNodePrivate() override;
 
+    static std::weak_ptr<graphics::IVertexArray> &lightAreaVertexArray();
+
 private:
+    static std::weak_ptr<graphics::IVertexArray> s_lightAreaVertexArray;
+
 };
 
 }

@@ -85,14 +85,14 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetOpaqueGeomet
     utils::ShaderDefines defines;
     ProgramsManagerPrivate::VertexAttributesKey key;
     ProgramsManagerPrivate::prepareDefinesAndKeyForGeometryPassRenderProgram(attribsSet,
-                                                                                   PBRComponentsSet,
-                                                                                   defines,
-                                                                                   key);
+                                                                             PBRComponentsSet,
+                                                                             defines,
+                                                                             key);
 
     return loadOrGetRenderProgram(ProgramsManagerPrivate::geometryPassVertexShaderPath(),
-                     ProgramsManagerPrivate::opaqueGeometryPassFragmnetShaderPath(),
-                     defines,
-                     ProgramsManagerPrivate::opaqueGeometryPassRenderProgramName() + key.to_string());
+                                  ProgramsManagerPrivate::opaqueGeometryPassFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::opaqueGeometryPassRenderProgramName() + key.to_string());
 }
 
 std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetTransparentGeometryPassRenderProgram(
@@ -102,13 +102,13 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetTransparentG
     utils::ShaderDefines defines;
     ProgramsManagerPrivate::VertexAttributesKey key;
     ProgramsManagerPrivate::prepareDefinesAndKeyForGeometryPassRenderProgram(attribsSet,
-                                                                                   PBRComponentsSet,
-                                                                                   defines,
-                                                                                   key);
+                                                                             PBRComponentsSet,
+                                                                             defines,
+                                                                             key);
 
     return loadOrGetRenderProgram(ProgramsManagerPrivate::geometryPassVertexShaderPath(),
-                     ProgramsManagerPrivate::transparentGeometryPassFragmnetShaderPath(),
-                     defines,
+                                  ProgramsManagerPrivate::transparentGeometryPassFragmnetShaderPath(),
+                                  defines,
                                   ProgramsManagerPrivate::transparentGeometryPassRenderProgramName() + key.to_string());
 }
 
@@ -124,6 +124,20 @@ std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetOITSortNode
     return loadOrGetComputeProgram(ProgramsManagerPrivate::OITSortNodesPassComputeShaderPath(),
                                    {},
                                    ProgramsManagerPrivate::OITSortNodesPassComputeProgramName());
+}
+
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetLightPassRenderProgram(const utils::VertexAttributesSet &attribsSet)
+{
+    utils::ShaderDefines defines;
+    ProgramsManagerPrivate::VertexAttributesKey key;
+    ProgramsManagerPrivate::prepareDefinesAndKeyForLightPassRenderProgram(attribsSet,
+                                                                          defines,
+                                                                          key);
+
+    return loadOrGetRenderProgram(ProgramsManagerPrivate::lightPassVertexShaderPath(),
+                                  ProgramsManagerPrivate::lightPassFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::lightPassRenderProgramName() + key.to_string());
 }
 
 std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetFinalPassRenderProgram(const utils::VertexAttributesSet &attribsSet)

@@ -11,10 +11,11 @@
 #include <core/scenerootnode.h>
 #include <core/cameranode.h>
 #include <core/pointlightnode.h>
+#include <core/spotlightnode.h>
+#include <core/directionallightnode.h>
 #include <core/drawablenode.h>
 #include <core/igraphicsrenderer.h>
 #include <core/standarddrawable.h>
-#include <core/frustumcullingnodevisitor.h>
 #include <core/igraphicsrenderer.h>
 #include <core/texturesmanager.h>
 
@@ -145,9 +146,19 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
                               utils::Transform::fromRotation(glm::quat(glm::vec3(-glm::pi<float>()/9.f, glm::quarter_pi<float>(), 0.f))));
     scene0->sceneRootNode()->attach(cameraNode0);
 
-    auto pointLight = std::make_shared<core::PointLightNode>("");
-    pointLight->setTransform(utils::Transform::fromTranslation(glm::vec3(0.f, 2.f, 0.f)));
-    scene0->sceneRootNode()->attach(pointLight);
+//    auto pointLight = std::make_shared<core::PointLightNode>("");
+//    pointLight->setRadiuses(glm::vec2(1.f, 3.f));
+//    pointLight->setTransform(utils::Transform::fromTranslation(glm::vec3(-2.78139, 1.08128, 2.13792)));
+//    scene0->sceneRootNode()->attach(pointLight);
+
+//    auto dirLight = std::make_shared<core::DirectionalLightNode>("");
+//    scene0->sceneRootNode()->attach(dirLight);
+
+    auto spotLight = std::make_shared<core::SpotLightNode>("");
+    spotLight->setRadiuses(glm::vec2(2.f, 7.f));
+    spotLight->setHalfAngles(glm::vec2(glm::pi<float>() / 8, glm::pi<float>() / 6));
+    spotLight->setTransform(utils::Transform(1.f, glm::quat(0.888179f, -0.260215f, 0.363439f, 0.106479f), glm::vec3(2.78139, 2.08128, 2.13792)));
+    scene0->sceneRootNode()->attach(spotLight);
 
     auto planeDrawableNode = std::make_shared<core::DrawableNode>("");
     planeDrawableNode->addDrawable(planeDrawable);
@@ -184,6 +195,8 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
                                       utils::Transform::fromRotation(glm::quat(glm::vec3(0.0f, -0.5f, 0.0f))));
     bunnyDrawableNode->addDrawable(bunnyDrawable);
     scene0->sceneRootNode()->attach(bunnyDrawableNode);
+
+    //scene0->sceneRootNode()->setTransform(utils::Transform(50.f));
 }
 
 std::shared_ptr<core::GraphicsEngine> TestApplication::graphicsEngine()

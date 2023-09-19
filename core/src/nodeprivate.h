@@ -27,12 +27,7 @@ public:
     utils::Transform &transform();
     utils::Transform &globalTransform();
 
-    utils::BoundingBox &globalBoundingBox();
-
-    virtual void doUpdate(uint64_t, uint32_t);
-
-    static void dirtyGlobalTransform(std::shared_ptr<Node>);
-    static void dirtyBoundingBox(std::shared_ptr<Node>);
+    utils::BoundingBox &boundingBox();
 
 protected:
     std::string m_name;

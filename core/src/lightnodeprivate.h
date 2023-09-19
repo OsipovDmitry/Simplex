@@ -16,12 +16,18 @@ public:
     LightNodePrivate(const std::string &name);
     ~LightNodePrivate() override;
 
-    glm::vec3 &color();
     bool &isLightingEnabled();
 
+    std::shared_ptr<DrawableBase> &areaDrawable();
+
+    bool &isAreaMatrixDirty();
+    glm::mat4x4 &areaMatrix();
+
 private:
-    glm::vec3 m_color;
     bool m_isLightingEnabled;
+    std::shared_ptr<DrawableBase> m_areaDrawable;
+    bool m_isAreaMatrixDirty;
+    glm::mat4x4 m_areaMatrix;
 
 };
 

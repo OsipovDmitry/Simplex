@@ -36,6 +36,8 @@ public:
     std::shared_ptr<Scene> addNewScene(const std::string&);
     void removeScene(std::shared_ptr<Scene>);
 
+    const debug::GraphicsEngineInformation &debugInformation() const;
+
     void setF(int);
 
 private:
