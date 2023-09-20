@@ -81,7 +81,7 @@ GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<graphics
     DirectionalLightNodePrivate::lightAreaVertexArray() = m_->directionalLightAreaVertexArray();
 
     static const std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, utils::VertexComponentType>> s_screenDrawableVertexDeclaration{
-        {utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}}};
+        {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}};
 
     m_->screenQuadDrawable() = std::make_shared<Drawable>(
                 renderer->createVertexArray(utils::MeshPainter(
@@ -264,35 +264,38 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             renderer->compute(m_->OITSortNodesComputeProgram(), renderInfo, glm::uvec3(cameraViewportSize, 1u));
 
             // render lights areas
-            renderInfo.setFaceCulling(false/*true*/, graphics::FaceType::Back);
-            renderInfo.setDepthTest(false);
-            renderInfo.setColorMasks(true);
-
-            renderer->clearRenderData();
-            for (const auto &light : lightNodeCollector.nodes())
-            {
-                if (!light->isLightingEnabled())
-                    continue;
-
-                const auto &areaMatrix = light->areaMatrix();
-                const auto &drawable = light->areaDrawable();
-
-                renderer->addRenderData(m_->programsManager()->loadOrGetLightPassRenderProgram(Drawable::vertexAttrubitesSet(drawable)),
-                                        drawable,
-                                        light->globalTransform() * areaMatrix);
-            }
-            renderer->render(camera->finalFrameBuffer(), renderInfo, cameraViewport);
-
-            // render final
-//            renderInfo.setFaceCulling(false);
+//            renderInfo.setFaceCulling(true, graphics::FaceType::Front);
 //            renderInfo.setDepthTest(false);
 //            renderInfo.setColorMasks(true);
 
 //            renderer->clearRenderData();
-//            renderer->addRenderData(m_->finalRenderProgram(),
-//                                    m_->screenQuadDrawable());
+//            for (const auto &light : lightNodeCollector.nodes())
+//            {
+//                if (!light->isLightingEnabled())
+//                    continue;
+
+//                const auto &areaMatrix = light->areaMatrix();
+//                const auto &drawable = light->areaDrawable();
+
+//                renderer->addRenderData(m_->programsManager()->loadOrGetLightPassRenderProgram(
+//                                            Drawable::vertexAttrubitesSet(drawable),
+//                                            Drawable::lightComponentsSet(drawable)),
+//                                        drawable,
+//                                        light->globalTransform() * areaMatrix);
+//            }
 //            renderer->render(camera->finalFrameBuffer(), renderInfo, cameraViewport);
 
+            // render final
+            renderInfo.setFaceCulling(false);
+            renderInfo.setDepthTest(false);
+            renderInfo.setColorMasks(true);
+
+            renderer->clearRenderData();
+            renderer->addRenderData(m_->finalRenderProgram(),
+                                    m_->screenQuadDrawable());
+            renderer->render(camera->finalFrameBuffer(), renderInfo, cameraViewport);
+
+            // blit
             renderer->blitFrameBuffer(camera->finalFrameBuffer(), renderer->defaultFrameBuffer(),
                                       cameraViewport,
                                       glm::uvec4(0u, 0u, screenSize),

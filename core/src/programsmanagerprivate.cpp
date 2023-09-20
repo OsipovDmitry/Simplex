@@ -56,17 +56,17 @@ void ProgramsManagerPrivate::prepareVertexAttributesDefines(const utils::VertexA
         "COLOR_ATTRIBUTE"
     };
 
-    for (uint16_t i = 0; i < utils::numElementsVertexAttribute(); ++i)
+    for (uint16_t i = 0u; i < utils::numElementsVertexAttribute(); ++i)
         if (attribsSet.count(utils::castToVertexAttribute(i)))
             defines.insert({s_table[i], std::to_string(i)});
 }
 
 uint16_t ProgramsManagerPrivate::prepareVertexAttributesKey(const utils::VertexAttributesSet &attribsSet,
-                                                            VertexAttributesKey &attribsKey,
+                                                            NameKey &nameKey,
                                                             uint16_t firstKeyIndex)
 {
-    for (uint16_t i = 0; i < utils::numElementsVertexAttribute(); ++i)
-        attribsKey.set(firstKeyIndex + i, attribsSet.count(utils::castToVertexAttribute(i)));
+    for (uint16_t i = 0u; i < utils::numElementsVertexAttribute(); ++i)
+        nameKey.set(firstKeyIndex + i, attribsSet.count(utils::castToVertexAttribute(i)));
     return firstKeyIndex + utils::numElementsVertexAttribute();
 }
 
@@ -83,24 +83,47 @@ void ProgramsManagerPrivate::preparePBRComponentsDefines(const graphics::PBRComp
         "HAS_NORMAL_MAP",
     };
 
-    for (uint16_t i = 0; i < graphics::numElementsPBRComponent(); ++i)
+    for (uint16_t i = 0u; i < graphics::numElementsPBRComponent(); ++i)
         if (PBRComponentsSet.count(graphics::castToPBRComponent(i)))
             defines.insert({s_table[i], ""});
 }
 
 uint16_t ProgramsManagerPrivate::preparePBRComponentsKey(const graphics::PBRComponentsSet &PBRComponentsSet,
-                                                         VertexAttributesKey &attribsKey,
+                                                         NameKey &nameKey,
                                                          uint16_t firstKeyIndex)
 {
-    for (uint16_t i = 0; i < graphics::numElementsPBRComponent(); ++i)
-        attribsKey.set(firstKeyIndex + i, PBRComponentsSet.count(graphics::castToPBRComponent(i)));
+    for (uint16_t i = 0u; i < graphics::numElementsPBRComponent(); ++i)
+        nameKey.set(firstKeyIndex + i, PBRComponentsSet.count(graphics::castToPBRComponent(i)));
     return firstKeyIndex + graphics::numElementsPBRComponent();
+}
+
+void ProgramsManagerPrivate::prepareLightComponentsDefines(const graphics::LightComponentsSet &lightComponentsSet,
+                                                           utils::ShaderDefines &defines)
+{
+    static const std::array<std::string, graphics::numElementsLightComponent()> s_table {
+        "HAS_COLOR",
+        "HAS_RADIUSES",
+        "HAS_HALF_ANGLES",
+    };
+
+    for (uint16_t i = 0; i < graphics::numElementsLightComponent(); ++i)
+        if (lightComponentsSet.count(graphics::castToLightComponent(i)))
+            defines.insert({s_table[i], ""});
+}
+
+uint16_t ProgramsManagerPrivate::prepareLightComponentsKey(const graphics::LightComponentsSet &lightComponentsSet,
+                                                           NameKey &nameKey,
+                                                           uint16_t firstKeyIndex)
+{
+    for (uint16_t i = 0u; i < graphics::numElementsLightComponent(); ++i)
+        nameKey.set(firstKeyIndex + i, lightComponentsSet.count(graphics::castToLightComponent(i)));
+    return firstKeyIndex + graphics::numElementsLightComponent();
 }
 
 void ProgramsManagerPrivate::prepareDefinesAndKeyForGeometryPassRenderProgram(const utils::VertexAttributesSet& attribsSet,
                                                                               const graphics::PBRComponentsSet &PBRComponentsSet,
                                                                               utils::ShaderDefines &defines,
-                                                                              VertexAttributesKey &key)
+                                                                              NameKey &key)
 {
     prepareVertexAttributesDefines(attribsSet, defines);
     preparePBRComponentsDefines(PBRComponentsSet, defines);
@@ -111,13 +134,16 @@ void ProgramsManagerPrivate::prepareDefinesAndKeyForGeometryPassRenderProgram(co
 }
 
 void ProgramsManagerPrivate::prepareDefinesAndKeyForLightPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
+                                                                           const graphics::LightComponentsSet &lightComponentsSet,
                                                                            utils::ShaderDefines &defines,
-                                                                           VertexAttributesKey &key)
+                                                                           NameKey &key)
 {
     prepareVertexAttributesDefines(attribsSet, defines);
+    prepareLightComponentsDefines(lightComponentsSet, defines);
 
     uint16_t bit = 0u;
     bit = prepareVertexAttributesKey(attribsSet, key, bit);
+    bit = prepareLightComponentsKey(lightComponentsSet, key, bit);
 }
 
 const std::string &ProgramsManagerPrivate::opaqueGeometryPassRenderProgramName()

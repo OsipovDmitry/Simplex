@@ -27,6 +27,8 @@ struct UniformInfo;
 struct SSBOInfo;
 enum class PBRComponent : uint16_t;
 using PBRComponentsSet = std::unordered_set<PBRComponent>;
+enum class LightComponent : uint16_t;
+using LightComponentsSet = std::unordered_set<LightComponent>;
 enum class FaceType : uint16_t;
 enum class DepthFunc : uint16_t;
 enum class StencilFunc : uint16_t;

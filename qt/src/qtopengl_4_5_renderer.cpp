@@ -2469,6 +2469,18 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
         case core::graphics::UniformId::ModelViewProjectionMatrix:
             uniform = core::makeUniform(renderInfo.viewProjectionMatrixUniform()->data() * modelMatrix);
             break;
+        case core::graphics::UniformId::ModelPosition:
+            uniform = core::makeUniform(modelMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f));
+            break;
+        case core::graphics::UniformId::ModelXDirection:
+            uniform = core::makeUniform(glm::normalize(modelMatrix * glm::vec4(1.f, 0.f, 0.f, 0.f)));
+            break;
+        case core::graphics::UniformId::ModelYDirection:
+            uniform = core::makeUniform(glm::normalize(modelMatrix * glm::vec4(0.f, 1.f, 0.f, 0.f)));
+            break;
+        case core::graphics::UniformId::ModelZDirection:
+            uniform = core::makeUniform(glm::normalize(modelMatrix * glm::vec4(0.f, 0.f, 1.f, 0.f)));
+            break;
         case core::graphics::UniformId::ViewPosition:
             uniform = renderInfo.viewPositionUniform();
             break;

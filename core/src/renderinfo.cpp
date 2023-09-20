@@ -68,9 +68,9 @@ void RenderInfo::setViewMatrix(const glm::mat4 &vm)
     m_->viewProjectionMatrixInverseUniform() = makeUniform(glm::inverse(viewProjectionMatrixUniform()->data()));
 
     m_->viewPositionUniform() = makeUniform(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 0.f, 0.f, 1.f)));
-    m_->viewXDirectionUniform() = makeUniform(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(1.f, 0.f, 0.f, 0.f)));
-    m_->viewYDirectionUniform() = makeUniform(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 1.f, 0.f, 0.f)));
-    m_->viewZDirectionUniform() = makeUniform(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 0.f, 1.f, 0.f)));
+    m_->viewXDirectionUniform() = makeUniform(glm::normalize(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(1.f, 0.f, 0.f, 0.f))));
+    m_->viewYDirectionUniform() = makeUniform(glm::normalize(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 1.f, 0.f, 0.f))));
+    m_->viewZDirectionUniform() = makeUniform(glm::normalize(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 0.f, 1.f, 0.f))));
 }
 
 const PUniform<glm::mat4> &RenderInfo::projectionMatrixUniform() const

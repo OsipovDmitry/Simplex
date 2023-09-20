@@ -103,6 +103,10 @@ ENUMCLASS(UniformId, uint16_t,
           ModelViewMatrix,
           NormalViewMatrix,
           ModelViewProjectionMatrix,
+          ModelPosition,
+          ModelXDirection,
+          ModelYDirection,
+          ModelZDirection,
           ViewPosition,
           ViewXDirection,
           ViewYDirection,
@@ -201,6 +205,11 @@ ENUMCLASS(PBRComponent, uint16_t,
           MetalnessMap,
           RoughnessMap,
           NormalMap)
+
+ENUMCLASS(LightComponent, uint16_t,
+          Color,
+          Radiuses,
+          HalfAngles)
 
 ENUMCLASS(FaceType, uint16_t,
           Front, Back, FrontAndBack)
@@ -401,6 +410,7 @@ public:
     static SSBOId SSBOIdByName(const std::string&);
 
     static UniformId uniformIdByPBRComponent(PBRComponent);
+    static UniformId uniformIdByLightComponent(LightComponent);
 };
 
 class IRenderProgram : public virtual IProgram
@@ -541,6 +551,10 @@ inline UniformId IProgram::UniformIdByName(const std::string &name)
         { "u_modelViewMatrix", UniformId::ModelViewMatrix },
         { "u_normalViewMatrix", UniformId::NormalViewMatrix },
         { "u_modelViewProjectionMatrix", UniformId::ModelViewProjectionMatrix },
+        { "u_modelPosition", UniformId::ModelPosition },
+        { "u_modelXDirection", UniformId::ModelXDirection },
+        { "u_modelYDirection", UniformId::ModelYDirection },
+        { "u_modelZDirection", UniformId::ModelZDirection },
         { "u_viewPosition", UniformId::ViewPosition },
         { "u_viewXDirection", UniformId::ViewXDirection },
         { "u_viewYDirection", UniformId::ViewYDirection },
@@ -587,6 +601,18 @@ inline UniformId IProgram::uniformIdByPBRComponent(PBRComponent value)
         { PBRComponent::MetalnessMap, UniformId::MetalnessMap },
         { PBRComponent::RoughnessMap, UniformId::RoughnessMap },
         { PBRComponent::NormalMap, UniformId::NormalMap },
+    };
+
+    auto it = s_table.find(value);
+    return (it == s_table.end()) ? UniformId::Undefined : it->second;
+}
+
+inline UniformId IProgram::uniformIdByLightComponent(LightComponent value)
+{
+    static const std::unordered_map<LightComponent, UniformId> s_table {
+        { LightComponent::Color, UniformId::LightColor },
+        { LightComponent::Radiuses, UniformId::LightRadiuses },
+        { LightComponent::HalfAngles, UniformId::LightHalfAngles },
     };
 
     auto it = s_table.find(value);

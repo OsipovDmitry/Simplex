@@ -18,7 +18,7 @@ namespace core
 class ProgramsManagerPrivate
 {
 public:
-    using VertexAttributesKey = std::bitset<32>;
+    using NameKey = std::bitset<32u>;
 
     ProgramsManagerPrivate(std::shared_ptr<graphics::IRenderer>);
     ~ProgramsManagerPrivate();
@@ -29,23 +29,30 @@ public:
     static void prepareVertexAttributesDefines(const utils::VertexAttributesSet&,
                                                utils::ShaderDefines&);
     static uint16_t prepareVertexAttributesKey(const utils::VertexAttributesSet&,
-                                               VertexAttributesKey&,
+                                               NameKey&,
                                                uint16_t);
 
     static void preparePBRComponentsDefines(const graphics::PBRComponentsSet&,
                                             utils::ShaderDefines&);
     static uint16_t preparePBRComponentsKey(const graphics::PBRComponentsSet&,
-                                            VertexAttributesKey&,
+                                            NameKey&,
                                             uint16_t);
+
+    static void prepareLightComponentsDefines(const graphics::LightComponentsSet&,
+                                              utils::ShaderDefines&);
+    static uint16_t prepareLightComponentsKey(const graphics::LightComponentsSet&,
+                                              NameKey&,
+                                              uint16_t);
 
     static void prepareDefinesAndKeyForGeometryPassRenderProgram(const utils::VertexAttributesSet&,
                                                                  const graphics::PBRComponentsSet&,
                                                                  utils::ShaderDefines&,
-                                                                 VertexAttributesKey&);
+                                                                 NameKey&);
 
     static void prepareDefinesAndKeyForLightPassRenderProgram(const utils::VertexAttributesSet&,
+                                                              const graphics::LightComponentsSet&,
                                                               utils::ShaderDefines&,
-                                                              VertexAttributesKey&);
+                                                              NameKey&);
 
     static const std::string &opaqueGeometryPassRenderProgramName();
     static const std::string &transparentGeometryPassRenderProgramName();

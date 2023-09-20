@@ -19,7 +19,7 @@ class QT_SHARED_EXPORT QtRenderWidget : public QOpenGLWidget
 {
     NONCOPYBLE(QtRenderWidget)
 public:
-    QtRenderWidget();
+    QtRenderWidget(QWidget* = nullptr);
     ~QtRenderWidget() override;
 
     void setApplication(std::weak_ptr<core::IApplication>);

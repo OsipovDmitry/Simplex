@@ -16,8 +16,8 @@ namespace simplex
 namespace qt
 {
 
-QtRenderWidget::QtRenderWidget()
-    : QOpenGLWidget(nullptr)
+QtRenderWidget::QtRenderWidget(QWidget *parent)
+    : QOpenGLWidget(parent)
     , m_(std::make_unique<QtRenderWidgetPrivate>())
 {
     QSurfaceFormat format;

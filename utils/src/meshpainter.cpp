@@ -745,11 +745,11 @@ MeshPainter &MeshPainter::drawCone(uint32_t segs)
     for (uint32_t a = 0u; a < segs; ++a)
     {
         indices[6u * a + 0u] = (4u * (a)) + 0u;
-        indices[6u * a + 1u] = (4u * (a+1u)) + 1u;
-        indices[6u * a + 2u] = (4u * (a)) + 1u;
+        indices[6u * a + 1u] = (4u * (a)) + 1u;
+        indices[6u * a + 2u] = (4u * (a+1u)) + 1u;
         indices[6u * a + 3u] = (4u * (a)) + 2u;
-        indices[6u * a + 4u] = (4u * (a+1u)) + 2u;
-        indices[6u * a + 5u] = (4u * (a)) + 3u;
+        indices[6u * a + 4u] = (4u * (a)) + 3u;
+        indices[6u * a + 5u] = (4u * (a+1u)) + 2u;
     }
 
     drawElements({{VertexAttribute::Position, vertices},

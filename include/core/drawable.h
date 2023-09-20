@@ -42,6 +42,7 @@ public:
 
     static utils::VertexAttributesSet vertexAttrubitesSet(const std::shared_ptr<const Drawable>&);
     static graphics::PBRComponentsSet PBRComponentsSet(const std::shared_ptr<const Drawable>&);
+    static graphics::LightComponentsSet lightComponentsSet(const std::shared_ptr<const Drawable>&);
 
 protected:
     Drawable(std::unique_ptr<DrawablePrivate>);

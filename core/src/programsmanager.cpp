@@ -83,7 +83,7 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetOpaqueGeomet
         const graphics::PBRComponentsSet &PBRComponentsSet)
 {
     utils::ShaderDefines defines;
-    ProgramsManagerPrivate::VertexAttributesKey key;
+    ProgramsManagerPrivate::NameKey key;
     ProgramsManagerPrivate::prepareDefinesAndKeyForGeometryPassRenderProgram(attribsSet,
                                                                              PBRComponentsSet,
                                                                              defines,
@@ -100,7 +100,7 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetTransparentG
         const graphics::PBRComponentsSet &PBRComponentsSet)
 {
     utils::ShaderDefines defines;
-    ProgramsManagerPrivate::VertexAttributesKey key;
+    ProgramsManagerPrivate::NameKey key;
     ProgramsManagerPrivate::prepareDefinesAndKeyForGeometryPassRenderProgram(attribsSet,
                                                                              PBRComponentsSet,
                                                                              defines,
@@ -126,11 +126,13 @@ std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetOITSortNode
                                    ProgramsManagerPrivate::OITSortNodesPassComputeProgramName());
 }
 
-std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetLightPassRenderProgram(const utils::VertexAttributesSet &attribsSet)
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetLightPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
+                                                                                           const graphics::LightComponentsSet &lightComponentsSet)
 {
     utils::ShaderDefines defines;
-    ProgramsManagerPrivate::VertexAttributesKey key;
+    ProgramsManagerPrivate::NameKey key;
     ProgramsManagerPrivate::prepareDefinesAndKeyForLightPassRenderProgram(attribsSet,
+                                                                          lightComponentsSet,
                                                                           defines,
                                                                           key);
 
@@ -145,7 +147,7 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetFinalPassRen
     utils::ShaderDefines defines;
     ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
 
-    ProgramsManagerPrivate::VertexAttributesKey key;
+    ProgramsManagerPrivate::NameKey key;
     ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, 0u);
 
     return loadOrGetRenderProgram(ProgramsManagerPrivate::finalPassVertexShaderPath(),

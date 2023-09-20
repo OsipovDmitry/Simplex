@@ -3,7 +3,6 @@
 
 #include <memory>
 
-#include <utils/pimpl.h>
 #include <utils/noncopyble.h>
 
 #include <core/coreglobal.h>
@@ -18,7 +17,6 @@ namespace core
 class ApplicationBasePrivate;
 class CORE_SHARED_EXPORT ApplicationBase : public IApplication
 {
-    PIMPL(ApplicationBase)
     NONCOPYBLE(ApplicationBase)
 
 public:
