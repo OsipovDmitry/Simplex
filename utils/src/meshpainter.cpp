@@ -5,6 +5,7 @@
 #include <utils/logger.h>
 #include <utils/meshpainter.h>
 #include <utils/mesh.h>
+#include <utils/transform.h>
 
 #include "normal.h"
 #include "triangledata.h"
@@ -511,7 +512,7 @@ void AbstractPainter::setVertexTransform(const Transform &vertexTransform)
     m_->transforms[VertexAttribute::Normal] = Transform::fromRotation(vertexTransform.rotation);
 }
 
-const Transform &AbstractPainter::texCoordTransform() const
+const Transform &AbstractPainter::texCoordsTransform() const
 {
     return m_->transforms[VertexAttribute::TexCoords];
 }
@@ -600,7 +601,7 @@ MeshPainter &MeshPainter::drawTetrahedron()
 
 MeshPainter &MeshPainter::drawCube(const glm::vec3 &size)
 {
-    const glm::vec4 v4Size(size, 1.0f);
+    const glm::vec4 v4Size(size, 1.f);
     std::vector<glm::vec4> vertices(s_cubeVertices.size());
     for (uint32_t i = 0u; i < s_cubeVertices.size(); ++i)
         vertices[i] = s_cubeVertices[i] * v4Size;

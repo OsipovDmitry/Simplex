@@ -6,8 +6,8 @@
         __VA_ARGS__ , Count \
     }; \
     using Name##InternalType = type; \
-    static constexpr Name castTo##Name(type value) { return static_cast< Name >(value); } \
-    static constexpr type castFrom##Name(Name value) { return static_cast< type >(value); } \
-    static constexpr size_t numElements##Name() { return static_cast<size_t>(Name::Count); }
+    [[maybe_unused]] static constexpr Name castTo##Name(type value) { return static_cast< Name >(value); } \
+    [[maybe_unused]] static constexpr type castFrom##Name(Name value) { return static_cast< type >(value); } \
+    [[maybe_unused]] static constexpr size_t numElements##Name() { return static_cast<size_t>(Name::Count); }
 
 #endif // UTILS_ENUMCLASS_H

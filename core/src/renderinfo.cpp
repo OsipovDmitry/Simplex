@@ -1,6 +1,7 @@
 #include <utils/logger.h>
 
 #include <core/renderinfo.h>
+#include <core/uniform.h>
 
 #include "renderinfoprivate.h"
 
@@ -17,24 +18,21 @@ RenderInfo::RenderInfo()
     setViewMatrix(glm::mat4x4(1.f));
     setProjectionMatrix(glm::mat4x4(1.f));
 
-    setGBufferMaps(nullptr, nullptr, nullptr);
-
-    setFaceCulling(false);
-
-    for (uint16_t i = 0; i < graphics::FrameBufferColorAttachmentsCount(); ++i) setColorMask(i, true);
-    setDepthTest(true);
-    setDepthMask(true);
-    setStencilTest(false);
+    setCameraDepthStencilTexture(nullptr);
+    setGBufferTextures(nullptr, nullptr);
+    setOITNodesBuffer(nullptr);
+    setOITNodesCounter(nullptr);
+    setOITIndicesImage(nullptr);
 }
 
 RenderInfo::~RenderInfo() = default;
 
-const PUniform<glm::mat4> &RenderInfo::viewMatrixUniform() const
+const PUniform<glm::mat4x4> &RenderInfo::viewMatrixUniform() const
 {
     return m_->viewMatrixUniform();
 }
 
-const PUniform<glm::mat4> &RenderInfo::viewMatrixInverseUniform() const
+const PUniform<glm::mat4x4> &RenderInfo::viewMatrixInverseUniform() const
 {
     return m_->viewMatrixInverseUniform();
 }
@@ -73,12 +71,12 @@ void RenderInfo::setViewMatrix(const glm::mat4 &vm)
     m_->viewZDirectionUniform() = makeUniform(glm::normalize(glm::vec3(viewMatrixInverseUniform()->data() * glm::vec4(0.f, 0.f, 1.f, 0.f))));
 }
 
-const PUniform<glm::mat4> &RenderInfo::projectionMatrixUniform() const
+const PUniform<glm::mat4x4> &RenderInfo::projectionMatrixUniform() const
 {
     return m_->projectionMatrixUniform();
 }
 
-const PUniform<glm::mat4> &RenderInfo::projectionMatrixInverseUniform() const
+const PUniform<glm::mat4x4> &RenderInfo::projectionMatrixInverseUniform() const
 {
     return m_->projectionMatrixInverseUniform();
 }
@@ -92,38 +90,50 @@ void RenderInfo::setProjectionMatrix(const glm::mat4 &pm)
     m_->viewProjectionMatrixInverseUniform() = makeUniform(glm::inverse(viewProjectionMatrixUniform()->data()));
 }
 
-const PUniform<glm::mat4> &RenderInfo::viewProjectionMatrixUniform() const
+const PUniform<glm::mat4x4> &RenderInfo::viewProjectionMatrixUniform() const
 {
     return m_->viewProjectionMatrixUniform();
 }
 
-const PUniform<glm::mat4> &RenderInfo::viewProjectionMatrixInverseUniform() const
+const PUniform<glm::mat4x4> &RenderInfo::viewProjectionMatrixInverseUniform() const
 {
     return m_->viewProjectionMatrixInverseUniform();
 }
 
-const PUniform<graphics::PConstTexture> &RenderInfo::gBufferColor0MapUniform() const
+const PUniform<graphics::PConstTexture> &RenderInfo::cameraDepthStencilTextureUniform() const
 {
-    return m_->gBufferColor0MapUniform();
+    return m_->cameraDepthStencilTextureUniform();
 }
 
-const PUniform<graphics::PConstTexture> &RenderInfo::gBufferColor1MapUniform() const
+void RenderInfo::setCameraDepthStencilTexture(const graphics::PConstTexture &value)
 {
-    return m_->gBufferColor1MapUniform();
+    m_->cameraDepthStencilTextureUniform() = makeUniform(value);
 }
 
-const PUniform<graphics::PConstTexture> &RenderInfo::gBufferDepthMapUniform() const
+const PUniform<graphics::PConstTexture> &RenderInfo::BRDFLutlTextureUniform() const
 {
-    return m_->gBufferDepthMapUniform();
+    return m_->BRDFLutTextureUniform();
 }
 
-void RenderInfo::setGBufferMaps(const graphics::PConstTexture &color0Map,
-                                const graphics::PConstTexture &color1Map,
-                                const graphics::PConstTexture &depthMap)
+void RenderInfo::setBRDFLutTexture(const graphics::PConstTexture &value)
 {
-    m_->gBufferColor0MapUniform() = makeUniform(color0Map);
-    m_->gBufferColor1MapUniform() = makeUniform(color1Map);
-    m_->gBufferDepthMapUniform() = makeUniform(depthMap);
+    m_->BRDFLutTextureUniform() = makeUniform(value);
+}
+
+const PUniform<graphics::PConstTexture> &RenderInfo::GBufferColor0TextureUniform() const
+{
+    return m_->GBufferColor0TextureUniform();
+}
+
+const PUniform<graphics::PConstTexture> &RenderInfo::GBufferColor1TextureUniform() const
+{
+    return m_->GBufferColor1TextureUniform();
+}
+
+void RenderInfo::setGBufferTextures(const graphics::PConstTexture &color0Map, const graphics::PConstTexture &color1Map)
+{
+    m_->GBufferColor0TextureUniform() = makeUniform(color0Map);
+    m_->GBufferColor1TextureUniform() = makeUniform(color1Map);
 }
 
 const graphics::PConstBufferRange &RenderInfo::OITNodesBuffer() const
@@ -154,80 +164,6 @@ const PUniform<graphics::PConstImage> &RenderInfo::OITIndicesImageUniform() cons
 void RenderInfo::setOITIndicesImage(const graphics::PConstImage &value)
 {
     m_->OITIndicesImageUniform() = makeUniform(value);
-}
-
-bool RenderInfo::faceCulling() const
-{
-    return m_->faceCulling();
-}
-
-graphics::FaceType RenderInfo::cullFaceType() const
-{
-    return m_->cullFaceType();
-}
-
-void RenderInfo::setFaceCulling(bool value, graphics::FaceType type)
-{
-    m_->faceCulling() = value;
-    m_->cullFaceType() = type;
-}
-
-bool RenderInfo::colorMask(uint16_t index) const
-{
-    if (index >= graphics::FrameBufferColorAttachmentsCount())
-        LOG_CRITICAL << "Index must be less than " << graphics::FrameBufferColorAttachmentsCount();
-
-    return m_->colorMasks()[index];
-}
-
-void RenderInfo::setColorMask(uint16_t index, bool value)
-{
-    if (index >= graphics::FrameBufferColorAttachmentsCount())
-        LOG_CRITICAL << "Index must be less than " << graphics::FrameBufferColorAttachmentsCount();
-
-    m_->colorMasks()[index] = value;
-}
-
-void RenderInfo::setColorMasks(bool value)
-{
-    for (auto &mask : m_->colorMasks())
-        mask = value;
-}
-
-bool RenderInfo::depthTest() const
-{
-    return m_->depthTest();
-}
-
-graphics::DepthFunc RenderInfo::depthFunc() const
-{
-    return m_->depthFunc();
-}
-
-void RenderInfo::setDepthTest(bool value, graphics::DepthFunc func)
-{
-    m_->depthTest() = value;
-    m_->depthFunc() = func;
-}
-
-bool RenderInfo::depthMask() const
-{
-    return m_->depthMask();
-}
-
-void RenderInfo::setDepthMask(bool value)
-{
-    m_->depthMask() = value;
-}
-
-bool RenderInfo::stencilTest() const
-{
-    return m_->stencilTest();
-}
-
-void RenderInfo::setStencilTest(bool value)
-{
-    m_->stencilTest() = value;
 }
 
 }

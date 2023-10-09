@@ -16,7 +16,7 @@ class CORE_SHARED_EXPORT StandardDrawable : public Drawable
 {
     PIMPL(StandardDrawable)
 public:
-    StandardDrawable(std::shared_ptr<graphics::IVertexArray>);
+    StandardDrawable(const std::shared_ptr<graphics::IVertexArray>&);
     ~StandardDrawable() override;
 
     bool isTransparent() const override;

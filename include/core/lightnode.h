@@ -24,11 +24,23 @@ public:
     std::shared_ptr<LightNode> asLightNode() override;
     std::shared_ptr<const LightNode> asLightNode() const override;
 
+    virtual std::shared_ptr<PointLightNode> asPointLightNode();
+    virtual std::shared_ptr<const PointLightNode> asPointLightNode() const;
+
+    virtual std::shared_ptr<SpotLightNode> asSpotLightNode();
+    virtual std::shared_ptr<const SpotLightNode> asSpotLightNode() const;
+
+    virtual std::shared_ptr<DirectionalLightNode> asDirectionalLightNode();
+    virtual std::shared_ptr<const DirectionalLightNode> asDirectionalLightNode() const;
+
+    virtual std::shared_ptr<IBLLightNode> asIBLLightNode();
+    virtual std::shared_ptr<const IBLLightNode> asIBLLightNode() const;
+
     bool isLightingEnabled() const;
     void setLightingEnabled(bool);
 
     const glm::mat4x4 &areaMatrix() const;
-    std::shared_ptr<const Drawable> areaDrawable() const;
+    std::shared_ptr<const LightDrawable> areaDrawable() const;
 
 protected:
     LightNode(std::unique_ptr<LightNodePrivate>);

@@ -8,7 +8,11 @@ namespace simplex
 namespace core
 {
 
-template<typename T> inline graphics::UniformType toUniformType() { return graphics::UniformType::Undefined; }
+template<typename T>
+using remove_cvr = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
+
+template<typename T>
+inline graphics::UniformType toUniformType() { return graphics::UniformType::Undefined; }
 
 class AbstractUniform
 {
@@ -88,7 +92,7 @@ template<> inline graphics::UniformType toUniformType<glm::u32vec4>() { return g
 
 template<typename T>
 PUniform<T> makeUniform(const T &value) {
-    return std::make_shared<Uniform<typename std::remove_cv<typename std::remove_reference<T>::type>::type>>(value);
+    return std::make_shared<Uniform<remove_cvr<T>>>(value);
 }
 
 template <typename T>

@@ -38,6 +38,8 @@ class MeshPainter;
 using ShaderDefines = std::unordered_map<std::string, std::string>;
 class Shader;
 
+class TextFile;
+
 class AbstractClipSpace;
 class OrthoClipSpace;
 class PerspectiveClipSpace;

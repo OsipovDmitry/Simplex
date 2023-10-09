@@ -4,7 +4,7 @@
 #include <core/uniform.h>
 #include <core/scene.h>
 #include <core/spotlightnode.h>
-#include <core/drawable.h>
+#include <core/lightdrawable.h>
 
 #include "spotlightnodeprivate.h"
 
@@ -17,9 +17,9 @@ SpotLightNode::SpotLightNode(const std::string &name)
     : LightNode(std::make_unique<SpotLightNodePrivate>(name))
 {
     if (SpotLightNodePrivate::lightAreaVertexArray().expired())
-        LOG_CRITICAL << "Point light area vertex array is expired";
+        LOG_CRITICAL << "Spot light area vertex array is expired";
 
-    auto drawable = std::make_shared<Drawable>(SpotLightNodePrivate::lightAreaVertexArray().lock());
+    auto drawable = std::make_shared<LightDrawable>(SpotLightNodePrivate::lightAreaVertexArray().lock(), LightDrawableType::Spot);
     drawable->getOrCreateUniform(graphics::UniformId::LightColor) = makeUniform(glm::vec3(1.f));
     drawable->getOrCreateUniform(graphics::UniformId::LightRadiuses) = makeUniform(glm::vec2(1.f, 2.f));
     drawable->getOrCreateUniform(graphics::UniformId::LightHalfAngles) = makeUniform(glm::vec2(.5f * glm::quarter_pi<float>(),
@@ -28,6 +28,16 @@ SpotLightNode::SpotLightNode(const std::string &name)
 }
 
 SpotLightNode::~SpotLightNode() = default;
+
+std::shared_ptr<SpotLightNode> SpotLightNode::asSpotLightNode()
+{
+    return std::dynamic_pointer_cast<SpotLightNode>(shared_from_this());
+}
+
+std::shared_ptr<const SpotLightNode> SpotLightNode::asSpotLightNode() const
+{
+    return std::dynamic_pointer_cast<const SpotLightNode>(shared_from_this());
+}
 
 const glm::vec3 &SpotLightNode::color() const
 {

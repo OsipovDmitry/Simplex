@@ -15,12 +15,13 @@ namespace utils
 
 ENUMCLASS(PixelComponentType, uint16_t,
           Undefined, Single, Uint8, Uint16)
+size_t UTILS_SHARED_EXPORT sizeOfPixelComponentType(PixelComponentType value);
 
-class UTILS_SHARED_EXPORT Image
+class UTILS_SHARED_EXPORT Image final
 {
     NONCOPYBLE(Image)
 public:
-    explicit Image();
+    Image();
     ~Image();
 
     uint32_t width() const;
@@ -28,6 +29,9 @@ public:
     uint32_t numComponents() const;
     PixelComponentType type() const;
     const void *data() const;
+    void *data();
+
+    bool saveToFile(const std::filesystem::path&);
 
     static std::shared_ptr<Image> loadFromData(uint32_t, uint32_t, uint32_t, PixelComponentType, const void*);
     static std::shared_ptr<Image> loadFromFile(const std::filesystem::path&);

@@ -28,9 +28,9 @@ public:
     const std::string &name() const override;
     void update(uint64_t time, uint32_t dt) override;
 
-    std::shared_ptr<graphics::IRenderer> graphicsRenderer() const;
-    std::shared_ptr<TexturesManager> texturesManager() const;
-    std::shared_ptr<ProgramsManager> programsManager() const;
+    const std::shared_ptr<graphics::IRenderer> &graphicsRenderer() const;
+    const std::shared_ptr<TexturesManager> &texturesManager() const;
+    const std::shared_ptr<ProgramsManager> &programsManager() const;
 
     const std::vector<std::shared_ptr<Scene>> &scenes() const;
     std::shared_ptr<Scene> addNewScene(const std::string&);

@@ -20,7 +20,7 @@ class CORE_SHARED_EXPORT Drawable
     NONCOPYBLE(Drawable)
 
 public:
-    explicit Drawable(const std::shared_ptr<graphics::IVertexArray>&);
+    Drawable(const std::shared_ptr<graphics::IVertexArray>&);
     virtual ~Drawable();
 
     virtual bool isTransparent() const;
@@ -42,7 +42,7 @@ public:
 
     static utils::VertexAttributesSet vertexAttrubitesSet(const std::shared_ptr<const Drawable>&);
     static graphics::PBRComponentsSet PBRComponentsSet(const std::shared_ptr<const Drawable>&);
-    static graphics::LightComponentsSet lightComponentsSet(const std::shared_ptr<const Drawable>&);
+    static graphics::BackgroundComponentsSet backgroundComponentsSet(const std::shared_ptr<const Drawable>&);
 
 protected:
     Drawable(std::unique_ptr<DrawablePrivate>);

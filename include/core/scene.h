@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <utils/noncopyble.h>
+#include <utils/pimpl.h>
 #include <utils/sortedobject.h>
 
 #include <core/coreglobal.h>
@@ -19,6 +20,7 @@ class ScenePrivate;
 class CORE_SHARED_EXPORT Scene : public INamedObject, public utils::SortedObject
 {
     NONCOPYBLE(Scene)
+    PIMPL(Scene)
 public:
     ~Scene() override;
 
@@ -30,8 +32,14 @@ public:
     std::shared_ptr<const SceneRootNode> sceneRootNode() const;
     std::shared_ptr<SceneRootNode> sceneRootNode();
 
+    graphics::PConstTexture backgroundTexture() const;
+    void setBackgroundTexture(const graphics::PConstTexture&);
+
+    float backgroundRoughness() const;
+    void setBackgroundRoughness(float);
+
 private:
-    Scene(std::weak_ptr<GraphicsEngine>, const std::string&);
+    Scene(const std::weak_ptr<GraphicsEngine>&, const std::string&);
 
     std::unique_ptr<ScenePrivate> m_;
 

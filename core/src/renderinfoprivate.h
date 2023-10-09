@@ -6,7 +6,7 @@
 #include <utils/glm/vec3.hpp>
 #include <utils/glm/mat4x4.hpp>
 
-#include <core/uniform.h>
+#include <core/forwarddecl.h>
 
 namespace simplex
 {
@@ -16,37 +16,29 @@ namespace core
 class RenderInfoPrivate
 {
 public:
-    RenderInfoPrivate() {}
+    RenderInfoPrivate();
 
-    PUniform<glm::mat4x4> &viewMatrixUniform() { return m_viewMatrixUniform; }
-    PUniform<glm::mat4x4> &viewMatrixInverseUniform() { return m_viewMatrixInverseUniform; }
-    PUniform<glm::mat4x4> &projectionMatrixUniform() { return m_projectionMatrixUniform; }
-    PUniform<glm::mat4x4> &projectionMatrixInverseUniform() { return m_projectionMatrixInverseUniform; }
-    PUniform<glm::mat4x4> &viewProjectionMatrixUniform() { return m_viewProjectionMatrixUniform; }
-    PUniform<glm::mat4x4> &viewProjectionMatrixInverseUniform() { return m_viewProjectionMatrixInverseUniform; }
-    PUniform<glm::vec3> &viewPositionUniform() { return m_viewPositionUniform; }
-    PUniform<glm::vec3> &viewXDirectionUniform() { return m_viewXDirectionUniform; }
-    PUniform<glm::vec3> &viewYDirectionUniform() { return m_viewYDirectionUniform; }
-    PUniform<glm::vec3> &viewZDirectionUniform() { return m_viewZDirectionUniform; }
+    PUniform<glm::mat4x4> &viewMatrixUniform();
+    PUniform<glm::mat4x4> &viewMatrixInverseUniform();
+    PUniform<glm::mat4x4> &projectionMatrixUniform();
+    PUniform<glm::mat4x4> &projectionMatrixInverseUniform();
+    PUniform<glm::mat4x4> &viewProjectionMatrixUniform();
+    PUniform<glm::mat4x4> &viewProjectionMatrixInverseUniform();
+    PUniform<glm::vec3> &viewPositionUniform();
+    PUniform<glm::vec3> &viewXDirectionUniform();
+    PUniform<glm::vec3> &viewYDirectionUniform();
+    PUniform<glm::vec3> &viewZDirectionUniform();
 
-    PUniform<graphics::PConstTexture> &gBufferColor0MapUniform() { return m_gBufferColor0MapUniform; }
-    PUniform<graphics::PConstTexture> &gBufferColor1MapUniform() { return m_gBufferColor1MapUniform; }
-    PUniform<graphics::PConstTexture> &gBufferDepthMapUniform() { return m_gBufferDepthMapUniform; }
+    PUniform<graphics::PConstTexture> &cameraDepthStencilTextureUniform();
 
-    graphics::PConstBufferRange &OITDataBuffer() { return m_OITDataBuffer; }
-    PUniform<graphics::PConstBufferRange> &OITNodesCounterUniform() { return m_OITNodesCounterUniform; }
-    PUniform<graphics::PConstImage> &OITIndicesImageUniform() { return m_OITIndicesImageUniform; }
+    PUniform<graphics::PConstTexture> &BRDFLutTextureUniform();
 
-    bool &faceCulling() { return m_faceCulling; }
-    graphics::FaceType &cullFaceType() { return m_cullFaceType; }
+    PUniform<graphics::PConstTexture> &GBufferColor0TextureUniform();
+    PUniform<graphics::PConstTexture> &GBufferColor1TextureUniform();
 
-    std::array<bool, graphics::FrameBufferColorAttachmentsCount()> & colorMasks() { return m_colorMasks; }
-
-    bool &depthTest() { return m_depthTest; }
-    graphics::DepthFunc &depthFunc() { return m_depthFunc; }
-    bool &depthMask() { return m_depthMask; }
-
-    bool &stencilTest() { return m_stencilTest; }
+    graphics::PConstBufferRange &OITDataBuffer();
+    PUniform<graphics::PConstBufferRange> &OITNodesCounterUniform();
+    PUniform<graphics::PConstImage> &OITIndicesImageUniform();
 
 private:
     PUniform<glm::mat4x4> m_viewMatrixUniform;
@@ -60,22 +52,16 @@ private:
     PUniform<glm::vec3> m_viewYDirectionUniform;
     PUniform<glm::vec3> m_viewZDirectionUniform;
 
-    PUniform<graphics::PConstTexture> m_gBufferColor0MapUniform;
-    PUniform<graphics::PConstTexture> m_gBufferColor1MapUniform;
-    PUniform<graphics::PConstTexture> m_gBufferDepthMapUniform;
+    PUniform<graphics::PConstTexture> m_cameraDepthStencilTextureUniform;
+
+    PUniform<graphics::PConstTexture> m_BRDFLutTextureUniform;
+
+    PUniform<graphics::PConstTexture> m_GBufferColor0TextureUniform;
+    PUniform<graphics::PConstTexture> m_GBufferColor1TextureUniform;
 
     graphics::PConstBufferRange m_OITDataBuffer;
     PUniform<graphics::PConstBufferRange> m_OITNodesCounterUniform;
     PUniform<graphics::PConstImage> m_OITIndicesImageUniform;
-
-    bool m_faceCulling;
-    graphics::FaceType m_cullFaceType;
-
-    std::array<bool, graphics::FrameBufferColorAttachmentsCount()> m_colorMasks;
-    bool m_depthTest;
-    graphics::DepthFunc m_depthFunc;
-    bool m_depthMask;
-    bool m_stencilTest;
 
 };
 

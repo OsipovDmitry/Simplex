@@ -18,7 +18,7 @@ bool &LightNodePrivate::isLightingEnabled()
     return m_isLightingEnabled;
 }
 
-std::shared_ptr<Drawable> &LightNodePrivate::areaDrawable()
+std::shared_ptr<LightDrawable> &LightNodePrivate::areaDrawable()
 {
     return m_areaDrawable;
 }

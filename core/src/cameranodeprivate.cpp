@@ -33,24 +33,24 @@ glm::vec2 &CameraNodePrivate::cullPlanesLimits()
     return m_cullPlanesLimits;
 }
 
-std::shared_ptr<graphics::IFrameBuffer> &CameraNodePrivate::GFrameBuffer()
+graphics::PConstTexture &CameraNodePrivate::sharedDepthStencilTexture()
 {
-    return m_GFrameBuffer;
+    return m_sharedDepthStencilTexture;
 }
 
-std::shared_ptr<graphics::IFrameBuffer> &CameraNodePrivate::OITFrameBuffer()
+std::shared_ptr<GFrameBuffer> &CameraNodePrivate::gFrameBuffer()
 {
-    return m_OITFrameBuffer;
+    return m_gFrameBuffer;
 }
 
-std::shared_ptr<graphics::IFrameBuffer> &CameraNodePrivate::finalFrameBuffer()
+std::shared_ptr<OITFrameBuffer> &CameraNodePrivate::oitFrameBuffer()
+{
+    return m_oitFrameBuffer;
+}
+
+std::shared_ptr<FinalFrameBuffer> &CameraNodePrivate::finalFrameBuffer()
 {
     return m_finalFrameBuffer;
-}
-
-std::shared_ptr<graphics::IImage> &CameraNodePrivate::OITIndicesImage()
-{
-    return m_OITIndicesImage;
 }
 
 }

@@ -57,12 +57,6 @@ VertexBuffer::VertexBuffer(uint32_t numVertices, uint32_t numComponents, VertexC
     , m_numComponents(numComponents)
     , m_type(type)
 {
-    if (m_numComponents < 1 || m_numComponents >  4u)
-        LOG_CRITICAL << "Num components must be in [1..4]";
-
-    if (m_type == VertexComponentType::Undefined)
-        LOG_CRITICAL << "Undefined vertex component type";
-
     setNumVertices(numVertices);
 }
 
@@ -111,7 +105,6 @@ void VertexBuffer::setVertex(uint32_t index, const void *data)
 uint32_t VertexBuffer::componentSize(VertexComponentType type)
 {
     static std::array<uint32_t, numElementsVertexComponentType()> s_table {
-        0u,
         sizeof(float),
         sizeof(double),
         sizeof(int32_t),

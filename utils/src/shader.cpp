@@ -1,8 +1,8 @@
-#include <fstream>
 #include <set>
 
 #include <utils/shader.h>
 #include <utils/logger.h>
+#include <utils/textfile.h>
 
 namespace simplex
 {
@@ -12,7 +12,6 @@ namespace utils
 std::string Shader::s_version = "450 core";
 
 Shader::Shader()
-    : m_data()
 {
 }
 
@@ -42,34 +41,18 @@ std::shared_ptr<Shader> Shader::loadFromData(const std::string &data)
 
 std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filename, const ShaderDefines &defines)
 {
-    static auto readFile = [](const std::filesystem::path &filename, std::string &data) -> bool
-    {
-        data.clear();
-
-        std::ifstream shaderFile(filename);
-        if (!shaderFile.is_open())
-            return false;
-
-        shaderFile.seekg(0, std::ios::end);
-        const auto size = shaderFile.tellg();
-        data.resize(static_cast<std::string::size_type>(size));
-        shaderFile.seekg(0, std::ios::beg);
-        shaderFile.read(&data[0], size);
-        shaderFile.close();
-
-        return true;
-    };
-
     auto absoluteFilename = std::filesystem::absolute(filename);
     auto absoluteDir = absoluteFilename.parent_path();
 
-    auto result = std::make_shared<Shader>();
-
-    if (!readFile(absoluteFilename, result->m_data))
+    auto shaderFile = TextFile::loadFromFile(absoluteFilename);
+    if (!shaderFile)
     {
         LOG_ERROR << "Can't open shader file " << absoluteFilename;
         return nullptr;
     }
+
+    auto result = std::make_shared<Shader>();
+    result->m_data = std::move(shaderFile->data());
 
     static const std::string versionString = "#version";
     static const std::string includeString = "#include<";
@@ -88,7 +71,9 @@ std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filena
         }
 
         auto pos1 = pos + includeString.length();
-        auto includedFilename = absoluteDir / std::filesystem::path(result->m_data.substr(pos1, pos2-pos1));
+        auto includedPath = std::filesystem::path(result->m_data.substr(pos1, pos2-pos1));
+        std::filesystem::path includedFilename = includedPath.is_absolute() ?
+                    includedPath : absoluteDir / includedPath;
 
         if (includedFiles.count(includedFilename))
         {
@@ -96,14 +81,14 @@ std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filena
             continue;
         }
 
-        std::string includedData;
-        if (!readFile(includedFilename, includedData))
+        auto includedFile = TextFile::loadFromFile(includedFilename);
+        if (!includedFile)
         {
             LOG_ERROR << "Shader file " << absoluteFilename << ": Can't open included file " << includedFilename;
             return nullptr;
         }
 
-        result->m_data.replace(pos, pos2-pos+1, includedData);
+        result->m_data.replace(pos, pos2-pos+1, includedFile->data());
         includedFiles.insert(includedFilename);
     }
 

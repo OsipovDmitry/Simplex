@@ -1,7 +1,7 @@
 #include <QApplication>
 #include <QPointer>
 #include <QListWidget>
-#include <QTextEdit>>
+#include <QTextEdit>
 
 #include <utils/logger.h>
 
@@ -31,8 +31,25 @@ private:
     QPointer<QTextEdit> m_textEdit;
 };
 
+#include <utils/image.h>
+#include <utils/cubemap.h>
+#include <utils/iblcalculator.h>
+
 int main(int argc, char *argv[])
-{   
+{
+    //simplex::utils::IBLCalculator::calclulateBRDFLut()->saveToFile("D:/c/brdf.png");
+
+    auto src = simplex::utils::Image::loadFromFile("D:/c/latlong.hdr");
+
+    //simplex::utils::IBLCalculator::calculateIrradiance(src)->saveToFile("D:/c/irradiance.hdr");
+
+//    auto radiances = simplex::utils::IBLCalculator::calculateRadiance(src);
+//    for (size_t i = 0u; i < radiances.size(); ++i)
+//        radiances[i]->saveToFile("D:/c/radiance"+std::to_string(i)+".hdr");
+
+    //simplex::utils::CubemapConverter::convertSphericalCubemapToHCross(src)->saveToFile("D:/c/hcross.hdr");
+    //simplex::utils::CubemapConverter::convertSphericalCubemapToVCross(src)->saveToFile("D:/c/vcross.hdr");
+
     QApplication a(argc, argv);
 
     auto mainWidget = new MainWidget();

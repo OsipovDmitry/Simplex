@@ -8,7 +8,7 @@
 #include <utils/glm/mat4x4.hpp>
 
 #include <core/coreglobal.h>
-#include <core/igraphicsrenderer.h>
+#include <core/forwarddecl.h>
 
 namespace simplex
 {
@@ -38,12 +38,15 @@ public:
     const PUniform<glm::mat4x4> &viewProjectionMatrixUniform() const;
     const PUniform<glm::mat4x4> &viewProjectionMatrixInverseUniform() const;
 
-    const PUniform<graphics::PConstTexture> &gBufferColor0MapUniform() const;
-    const PUniform<graphics::PConstTexture> &gBufferColor1MapUniform() const;
-    const PUniform<graphics::PConstTexture> &gBufferDepthMapUniform() const;
-    void setGBufferMaps(const graphics::PConstTexture& color0Map,
-                        const graphics::PConstTexture& color1Map,
-                        const graphics::PConstTexture& depthMap);
+    const PUniform<graphics::PConstTexture> &cameraDepthStencilTextureUniform() const;
+    void setCameraDepthStencilTexture(const graphics::PConstTexture&);
+
+    const PUniform<graphics::PConstTexture> &BRDFLutlTextureUniform() const;
+    void setBRDFLutTexture(const graphics::PConstTexture&);
+
+    const PUniform<graphics::PConstTexture> &GBufferColor0TextureUniform() const;
+    const PUniform<graphics::PConstTexture> &GBufferColor1TextureUniform() const;
+    void setGBufferTextures(const graphics::PConstTexture& color0Map, const graphics::PConstTexture& color1Map);
 
     const graphics::PConstBufferRange &OITNodesBuffer() const;
     void setOITNodesBuffer(const graphics::PConstBufferRange&);
@@ -53,23 +56,6 @@ public:
 
     const PUniform<graphics::PConstImage> &OITIndicesImageUniform() const;
     void setOITIndicesImage(const graphics::PConstImage&);
-
-    bool faceCulling() const;
-    graphics::FaceType cullFaceType() const;
-    void setFaceCulling(bool, graphics::FaceType = graphics::FaceType::Back);
-
-    bool colorMask(uint16_t) const;
-    void setColorMask(uint16_t, bool);
-    void setColorMasks(bool);
-
-    bool depthTest() const;
-    graphics::DepthFunc depthFunc() const;
-    void setDepthTest(bool, graphics::DepthFunc func = graphics::DepthFunc::Less);
-    bool depthMask() const;
-    void setDepthMask(bool);
-
-    bool stencilTest() const;
-    void setStencilTest(bool);
 
 private:
     std::unique_ptr<RenderInfoPrivate> m_;

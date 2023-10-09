@@ -55,10 +55,11 @@ const utils::BoundingBox &DrawableNode::localBoundingBox() const
     auto &mPrivate = m();
     if (mPrivate.isLocalBoundingBoxDirty())
     {
-        auto &bb = mPrivate.localBoundingBox();
-        bb = utils::BoundingBox();
+        utils::BoundingBox bb;
         for (auto &drawable : mPrivate.drawables())
             bb += drawable->calculateBoundingBox();
+
+        mPrivate.localBoundingBox() = bb;
         mPrivate.isLocalBoundingBoxDirty() = false;
     }
     return mPrivate.localBoundingBox();

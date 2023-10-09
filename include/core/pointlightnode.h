@@ -18,6 +18,9 @@ public:
     PointLightNode(const std::string&);
     ~PointLightNode() override;
 
+    std::shared_ptr<PointLightNode> asPointLightNode() override;
+    std::shared_ptr<const PointLightNode> asPointLightNode() const override;
+
     const glm::vec3 &color() const;
     void setColor(const glm::vec3&);
 

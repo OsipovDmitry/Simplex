@@ -67,6 +67,7 @@ public:
     bool visit(const std::shared_ptr<Node>&) override;
 
     const std::array<float, 2u> &zNearFar() const;
+    bool isEmpty() const;
 
 protected:
     std::array<float, 2u> m_zNearFar;

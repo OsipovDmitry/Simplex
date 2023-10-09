@@ -12,7 +12,7 @@ namespace simplex
 namespace core
 {
 
-StandardDrawable::StandardDrawable(std::shared_ptr<graphics::IVertexArray> vao)
+StandardDrawable::StandardDrawable(const std::shared_ptr<graphics::IVertexArray> &vao)
     : Drawable(std::make_unique<StandardDrawablePrivate>(vao))
 {
 }

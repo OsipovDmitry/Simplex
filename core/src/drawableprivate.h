@@ -16,7 +16,6 @@ class DrawablePrivate
 {
 public:
     DrawablePrivate(const std::shared_ptr<graphics::IVertexArray>&);
-
     virtual ~DrawablePrivate();
 
     std::shared_ptr<graphics::IVertexArray> &vertexArray();

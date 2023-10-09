@@ -225,23 +225,23 @@ graphics::PBRComponentsSet Drawable::PBRComponentsSet(const std::shared_ptr<cons
     return result;
 }
 
-graphics::LightComponentsSet Drawable::lightComponentsSet(const std::shared_ptr<const Drawable> &drawable)
+graphics::BackgroundComponentsSet Drawable::backgroundComponentsSet(const std::shared_ptr<const Drawable> &drawable)
 {
-    graphics::LightComponentsSet result;
+    graphics::BackgroundComponentsSet result;
 
-    for (uint16_t i = 0u; i < graphics::numElementsLightComponent(); ++i)
+    for (uint16_t i = 0u; i < graphics::numElementsBackgroundComponent(); ++i)
     {
-        auto lightComponent = graphics::castToLightComponent(i);
-        if (auto uniformId = graphics::IProgram::uniformIdByLightComponent(lightComponent);
+        auto backgroundComponent = graphics::castToBackgroundComponent(i);
+        if (auto uniformId = graphics::IProgram::uniformIdByBackgroundComponent(backgroundComponent);
                 (uniformId != graphics::UniformId::Undefined) && drawable->uniform(uniformId))
-            result.insert(lightComponent);
+            result.insert(backgroundComponent);
     }
 
     return result;
 }
 
-Drawable::Drawable(std::unique_ptr<DrawablePrivate> drawableBasePrivate)
-    : m_(std::move(drawableBasePrivate))
+Drawable::Drawable(std::unique_ptr<DrawablePrivate> drawablPrivate)
+    : m_(std::move(drawablPrivate))
 {
 }
 

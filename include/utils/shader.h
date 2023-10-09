@@ -15,11 +15,11 @@ namespace simplex
 namespace utils
 {
 
-class UTILS_SHARED_EXPORT Shader
+class UTILS_SHARED_EXPORT Shader final
 {
     NONCOPYBLE(Shader)
 public:
-    explicit Shader();
+    Shader();
     ~Shader();
 
     const std::string &data() const;

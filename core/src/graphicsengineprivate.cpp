@@ -35,21 +35,6 @@ std::shared_ptr<ProgramsManager> &GraphicsEnginePrivate::programsManager()
     return m_programsManager;
 }
 
-std::shared_ptr<graphics::IComputeProgram> &GraphicsEnginePrivate::OITClearComputeProgram()
-{
-    return m_OITClearComputeProgram;
-}
-
-std::shared_ptr<graphics::IComputeProgram> &GraphicsEnginePrivate::OITSortNodesComputeProgram()
-{
-    return m_OITSortNodesComputeProgram;
-}
-
-std::shared_ptr<graphics::IRenderProgram> &GraphicsEnginePrivate::finalRenderProgram()
-{
-    return m_finalRenderProgram;
-}
-
 glm::vec4 &GraphicsEnginePrivate::defaultBaseColor()
 {
     return m_defaultBaseColor;
@@ -95,9 +80,9 @@ std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::directionalLight
     return m_directionalLightAreaVertexArray;
 }
 
-std::shared_ptr<Drawable> &GraphicsEnginePrivate::screenQuadDrawable()
+std::shared_ptr<Drawable> &GraphicsEnginePrivate::finalScreenQuadDrawable()
 {
-    return m_screenQuadDrawable;
+    return m_finalScreenQuadDrawable;
 }
 
 std::shared_ptr<StandardDrawable> &GraphicsEnginePrivate::nodeBoundingBoxDrawable()

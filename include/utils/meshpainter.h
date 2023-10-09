@@ -5,10 +5,10 @@
 #include <vector>
 #include <unordered_map>
 
+#include <utils/glm/vec3.hpp>
 #include <utils/glm/vec4.hpp>
 #include <utils/utilsglobal.h>
 #include <utils/forwarddecl.h>
-#include <utils/transform.h>
 
 namespace simplex
 {
@@ -33,7 +33,7 @@ public:
     const Transform &normalTransform() const;
     void setVertexTransform(const Transform&);
 
-    const Transform &texCoordTransform() const;
+    const Transform &texCoordsTransform() const;
     void setTexCoordsTransform(const Transform&);
 
     void drawArrays(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices,

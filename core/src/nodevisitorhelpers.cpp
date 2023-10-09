@@ -72,6 +72,7 @@ std::deque<std::shared_ptr<DrawableNode>> &DrawableNodeCollector::drawableNodes(
 
 ZNearFarNodeVisitor::ZNearFarNodeVisitor(const utils::OpenFrustum &openFrustum)
     : FrustumCullingNodeVisitor(openFrustum)
+    , m_zNearFar({ std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest() })
 {
 }
 
@@ -107,6 +108,11 @@ bool ZNearFarNodeVisitor::visit(const std::shared_ptr<Node> &node)
 const std::array<float, 2u> &ZNearFarNodeVisitor::zNearFar() const
 {
     return m_zNearFar;
+}
+
+bool ZNearFarNodeVisitor::isEmpty() const
+{
+    return m_zNearFar[0] > m_zNearFar[1];
 }
 
 // DirtyGlobalTransformNodeVisitor

@@ -1,6 +1,7 @@
 #include <cstring>
 
 #include <utils/logger.h>
+#include <utils/fileextension.h>
 #include <utils/image.h>
 
 #ifdef _WIN32
@@ -10,12 +11,15 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb/stb_image_write.h"
+
 namespace simplex
 {
 namespace utils
 {
 
-inline size_t sizeOfPixelComponentType(PixelComponentType value)
+size_t sizeOfPixelComponentType(PixelComponentType value)
 {
     static std::array<uint32_t, numElementsPixelComponentType()> s_table {
         0,
@@ -63,6 +67,62 @@ PixelComponentType Image::type() const
 const void *Image::data() const
 {
     return m_data;
+}
+
+void *Image::data()
+{
+    return m_data;
+}
+
+bool Image::saveToFile(const std::filesystem::path &filename)
+{
+    const auto filenameUtf8 = filename.string();
+    auto extension = fileExtension(filename);
+
+    bool result = true;
+
+    if (extension == L".png")
+        result = stbi_write_png(filenameUtf8.c_str(),
+                                static_cast<int>(width()),
+                                static_cast<int>(height()),
+                                static_cast<int>(numComponents()),
+                                data(),
+                                static_cast<int>(width() * numComponents() * sizeOfPixelComponentType(type())));
+    else if (extension == L".bmp")
+        result = stbi_write_bmp(filenameUtf8.c_str(),
+                                static_cast<int>(width()),
+                                static_cast<int>(height()),
+                                static_cast<int>(numComponents()),
+                                data());
+    else if (extension == L".tga")
+        result = stbi_write_tga(filenameUtf8.c_str(),
+                                static_cast<int>(width()),
+                                static_cast<int>(height()),
+                                static_cast<int>(numComponents()),
+                                data());
+    else if (extension == L".jpg" || extension == L".jpeg")
+        result = stbi_write_jpg(filenameUtf8.c_str(),
+                                static_cast<int>(width()),
+                                static_cast<int>(height()),
+                                static_cast<int>(numComponents()),
+                                data(),
+                                100);
+    else if (extension == L".hdr")
+        result = stbi_write_hdr(filenameUtf8.c_str(),
+                                static_cast<int>(width()),
+                                static_cast<int>(height()),
+                                static_cast<int>(numComponents()),
+                                reinterpret_cast<const float*>(data()));
+    else
+    {
+        LOG_ERROR << "Unsupported format <\"" << extension << "\"";
+        return false;
+    }
+
+    if (!result)
+        LOG_ERROR << "Failed to save image " << filename;
+
+    return result;
 }
 
 std::shared_ptr<Image> Image::loadFromData(uint32_t w, uint32_t h, uint32_t n, PixelComponentType t, const void *d)

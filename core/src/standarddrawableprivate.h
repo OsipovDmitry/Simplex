@@ -13,7 +13,7 @@ namespace core
 class StandardDrawablePrivate : public DrawablePrivate
 {
 public:
-    StandardDrawablePrivate(std::shared_ptr<graphics::IVertexArray>);
+    StandardDrawablePrivate(const std::shared_ptr<graphics::IVertexArray>&);
 
     static glm::vec4 &defaultBaseColor();
     static float &defaultMetalness();

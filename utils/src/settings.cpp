@@ -1,7 +1,6 @@
-#include <fstream>
-
+#include <utils/logger.h>
+#include <utils/textfile.h>
 #include <utils/settings.h>
-
 
 namespace simplex
 {
@@ -38,36 +37,23 @@ const std::filesystem::path &Settings::path()
 Settings::Settings()
     : m_(std::make_unique<SettingsPrivate>())
 {
-    static auto readFile = [](const std::filesystem::path &filename, std::string &data) -> bool
-    {
-        data.clear();
-
-        std::ifstream shaderFile(filename);
-        if (!shaderFile.is_open())
-            return false;
-
-        shaderFile.seekg(0, std::ios::end);
-        const auto size = shaderFile.tellg();
-        data.resize(static_cast<std::string::size_type>(size));
-        shaderFile.seekg(0, std::ios::beg);
-        shaderFile.read(&data[0], size);
-        shaderFile.close();
-
-        return true;
-    };
-
     std::string jsonData;
     if (SettingsPrivate::settingsFilename == "default")
         jsonData = "{}";
-    else if (!readFile(SettingsPrivate::settingsFilename, jsonData))
+    else
     {
-        assert(false);
+        auto absoluteFilename = std::filesystem::absolute(SettingsPrivate::settingsFilename);
+
+        if (auto settingsFile = TextFile::loadFromFile(absoluteFilename); settingsFile)
+            jsonData = std::move(settingsFile->data());
+        else
+            LOG_CRITICAL << "Can't open settings file \"" << absoluteFilename << "\"";
     }
 
     m_->document.Parse(jsonData.c_str());
     if (!m_->document.IsObject())
     {
-        assert(false);
+        LOG_CRITICAL << "Settings file \"" << std::filesystem::absolute(SettingsPrivate::settingsFilename) << "\" is damaged";
     }
 }
 

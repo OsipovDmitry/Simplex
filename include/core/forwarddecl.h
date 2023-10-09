@@ -3,6 +3,7 @@
 
 #include <inttypes.h>
 #include <memory>
+#include <array>
 #include <unordered_set>
 
 namespace simplex
@@ -15,7 +16,7 @@ namespace graphics
 enum class PixelInternalFormat : uint16_t;
 enum class TextureType : uint16_t;
 enum class TextureWrapMode : uint16_t;
-enum class TextureFiltering : uint16_t;
+enum class TextureFilterMode : uint16_t;
 enum class FrameBufferAttachment : uint16_t;
 union FrameBufferClearColorValue;
 enum class FrameBufferClearColorType : uint16_t;
@@ -29,24 +30,33 @@ enum class PBRComponent : uint16_t;
 using PBRComponentsSet = std::unordered_set<PBRComponent>;
 enum class LightComponent : uint16_t;
 using LightComponentsSet = std::unordered_set<LightComponent>;
+enum class BackgroundComponent : uint16_t;
+using BackgroundComponentsSet = std::unordered_set<BackgroundComponent>;
 enum class FaceType : uint16_t;
-enum class DepthFunc : uint16_t;
-enum class StencilFunc : uint16_t;
+enum class ComparingFunc : uint16_t;
+enum class StencilOperation : uint16_t;
+using StencilOperations = std::array<StencilOperation, 3u>; // sfail, dpfail, dppass
 class IBuffer;
 class IBufferRange;
-using PConstBufferRange = std::shared_ptr<const IBufferRange>;
 class IVertexArray;
 class ISurface;
 class ITexture;
-using PConstTexture = std::shared_ptr<const ITexture>;
 class IImage;
-using PConstImage = std::shared_ptr<const IImage>;
 class IRenderBuffer;
 class IFrameBuffer;
 class IProgram;
 class IRenderProgram;
 class IComputeProgram;
 class IRenderer;
+
+using PConstBufferRange = std::shared_ptr<const IBufferRange>;
+using PBufferRange = std::shared_ptr<IBufferRange>;
+
+using PConstTexture = std::shared_ptr<const ITexture>;
+using PTexture = std::shared_ptr<ITexture>;
+
+using PConstImage = std::shared_ptr<const IImage>;
+using PImage = std::shared_ptr<IImage>;
 }
 
 namespace debug
@@ -76,6 +86,8 @@ using PUniform = std::shared_ptr<Uniform<T>>;
 
 class Drawable;
 class StandardDrawable;
+enum class LightDrawableType : uint16_t;
+class LightDrawable;
 
 class Scene;
 class Node;
@@ -86,6 +98,7 @@ class LightNode;
 class PointLightNode;
 class SpotLightNode;
 class DirectionalLightNode;
+class IBLLightNode;
 
 class NodeVisitor;
 template <typename NodeClass> class NodeCollector;

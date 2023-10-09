@@ -28,11 +28,6 @@ public:
     std::shared_ptr<TexturesManager> &texturesManager();
     std::shared_ptr<ProgramsManager> &programsManager();
 
-    std::shared_ptr<graphics::IComputeProgram> &OITClearComputeProgram();
-    std::shared_ptr<graphics::IComputeProgram> &OITSortNodesComputeProgram();
-
-    std::shared_ptr<graphics::IRenderProgram> &finalRenderProgram();
-
     glm::vec4 &defaultBaseColor();
     float &defaultMetallness();
     float &defaultRoughness();
@@ -46,7 +41,7 @@ public:
     std::shared_ptr<graphics::IVertexArray> &spotLightAreaVertexArray();
     std::shared_ptr<graphics::IVertexArray> &directionalLightAreaVertexArray();
 
-    std::shared_ptr<Drawable> &screenQuadDrawable();
+    std::shared_ptr<Drawable> &finalScreenQuadDrawable();
     std::shared_ptr<StandardDrawable> &nodeBoundingBoxDrawable();
     std::shared_ptr<StandardDrawable> &cameraNodeCameraDrawable();
     std::shared_ptr<StandardDrawable> &cameraNodeFrustumDrawable();
@@ -61,12 +56,6 @@ private:
     std::shared_ptr<TexturesManager> m_texturesManager;
     std::shared_ptr<ProgramsManager> m_programsManager;
 
-    std::shared_ptr<graphics::IRenderProgram> m_deferredOpaqueGeometryPassRenderProgram;
-    std::shared_ptr<graphics::IRenderProgram> m_deferredTransparentGeometryPassRenderProgram;
-    std::shared_ptr<graphics::IComputeProgram> m_OITClearComputeProgram;
-    std::shared_ptr<graphics::IComputeProgram> m_OITSortNodesComputeProgram;
-    std::shared_ptr<graphics::IRenderProgram> m_finalRenderProgram;
-
     glm::vec4 m_defaultBaseColor;
     float m_defaultMetallness;
     float m_defaultRoughness;
@@ -80,7 +69,7 @@ private:
     std::shared_ptr<graphics::IVertexArray> m_spotLightAreaVertexArray;
     std::shared_ptr<graphics::IVertexArray> m_directionalLightAreaVertexArray;
 
-    std::shared_ptr<Drawable> m_screenQuadDrawable;
+    std::shared_ptr<Drawable> m_finalScreenQuadDrawable;
     std::shared_ptr<StandardDrawable> m_nodeBoundingBoxDrawable;
     std::shared_ptr<StandardDrawable> m_cameraNodeCameraDrawable;
     std::shared_ptr<StandardDrawable> m_cameraNodeFrustumDrawable;

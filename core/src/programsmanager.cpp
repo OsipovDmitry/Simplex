@@ -126,13 +126,44 @@ std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetOITSortNode
                                    ProgramsManagerPrivate::OITSortNodesPassComputeProgramName());
 }
 
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetBackgroundPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
+                                                                                                const graphics::BackgroundComponentsSet &backgroundComponentsSet)
+{
+    utils::ShaderDefines defines;
+    ProgramsManagerPrivate::NameKey key;
+    ProgramsManagerPrivate::prepareDefinesAndKeyForBackgroundPassRenderProgram(attribsSet,
+                                                                               backgroundComponentsSet,
+                                                                               defines,
+                                                                               key);
+
+    return loadOrGetRenderProgram(ProgramsManagerPrivate::backgroundPassVertexShaderPath(),
+                                  ProgramsManagerPrivate::backgroundPassFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::backgroundPassRenderProgramName() + key.to_string());
+}
+
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetStencilPassRenderProgram(const utils::VertexAttributesSet &attribsSet)
+{
+    utils::ShaderDefines defines;
+    ProgramsManagerPrivate::NameKey key;
+    ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
+    ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, 0u);
+
+    return loadOrGetRenderProgram(ProgramsManagerPrivate::stencilPassVertexShaderPath(),
+                                  ProgramsManagerPrivate::stencilPassFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::stencilPassRenderProgramName() + key.to_string());
+}
+
 std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetLightPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
-                                                                                           const graphics::LightComponentsSet &lightComponentsSet)
+                                                                                           const graphics::LightComponentsSet &lightComponentsSet,
+                                                                                           LightDrawableType lightDrawableType)
 {
     utils::ShaderDefines defines;
     ProgramsManagerPrivate::NameKey key;
     ProgramsManagerPrivate::prepareDefinesAndKeyForLightPassRenderProgram(attribsSet,
                                                                           lightComponentsSet,
+                                                                          lightDrawableType,
                                                                           defines,
                                                                           key);
 

@@ -1,10 +1,10 @@
 #include <utils/logger.h>
 #include <utils/clipspace.h>
 
+#include <core/igraphicsrenderer.h>
 #include <core/cameranode.h>
 #include <core/scene.h>
 #include <core/graphicsengine.h>
-#include <core/igraphicsrenderer.h>
 
 #include "cameranodeprivate.h"
 
@@ -76,67 +76,31 @@ void CameraNode::resize(const glm::uvec2 &value)
 
     auto &mPrivate = m();
 
-    auto &GFrameBuffer = mPrivate.GFrameBuffer();
-    if (!GFrameBuffer)
-    {
-        GFrameBuffer = graphicsRenderer->createFrameBuffer();
-        GFrameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Color0,
-                                    core::graphics::FrameBufferAttachment::Color1,
-                                    core::graphics::FrameBufferAttachment::DepthStencil});
-        GFrameBuffer->setClearColor(0u, glm::vec4(0.f, 0.f, 0.f, 1.f));
-        GFrameBuffer->setClearColor(1u, glm::vec4(0.f, 0.f, 0.f, 0.f));
-        GFrameBuffer->setClearDepthStencil(1.f, 0);
-        GFrameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0, core::graphics::FrameBufferAttachment::Color1});
-    }
+    auto &gFrameBuffer = mPrivate.gFrameBuffer();
+    if (!gFrameBuffer)
+        gFrameBuffer = std::make_shared<GFrameBuffer>(graphicsRenderer);
 
-    auto &OITFrameBuffer = mPrivate.OITFrameBuffer();
-    if (!OITFrameBuffer)
-    {
-        OITFrameBuffer = graphicsRenderer->createFrameBuffer();
-        OITFrameBuffer->setClearMask({});
-        OITFrameBuffer->setDrawBuffers({});
-    }
+    auto &oitFrameBuffer = mPrivate.oitFrameBuffer();
+    if (!oitFrameBuffer)
+        oitFrameBuffer = std::make_shared<OITFrameBuffer>(graphicsRenderer);
 
     auto &finalFrameBuffer = mPrivate.finalFrameBuffer();
     if (!finalFrameBuffer)
-    {
-        finalFrameBuffer = graphicsRenderer->createFrameBuffer();
-        finalFrameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Color0});
-        finalFrameBuffer->setClearColor(0u, glm::vec4(0.f, 0.f, 0.f, 1.f));
-        finalFrameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
-    }
+        finalFrameBuffer = std::make_shared<FinalFrameBuffer>(graphicsRenderer);
 
     auto &viewportSize = mPrivate.viewportSize();
     if (viewportSize != value)
     {
         viewportSize = value;
 
-        GFrameBuffer->attach(core::graphics::FrameBufferAttachment::Color0,
-                             graphicsRenderer->createTextureRectEmpty(viewportSize.x,
-                                                                      viewportSize.y,
-                                                                      core::graphics::PixelInternalFormat::R11F_G11F_B10F));
+        mPrivate.sharedDepthStencilTexture() = graphicsRenderer->createTextureRectEmpty(
+                    viewportSize.x,
+                    viewportSize.y,
+                    core::graphics::PixelInternalFormat::Depth24Stencil8);
 
-        GFrameBuffer->attach(core::graphics::FrameBufferAttachment::Color1,
-                             graphicsRenderer->createTextureRectEmpty(viewportSize.x,
-                                                                      viewportSize.y,
-                                                                      core::graphics::PixelInternalFormat::RGBA8));
-
-        auto gDepthStencil = graphicsRenderer->createTextureRectEmpty(viewportSize.x,
-                                                                      viewportSize.y,
-                                                                      core::graphics::PixelInternalFormat::Depth24Stencil8);
-        GFrameBuffer->attach(core::graphics::FrameBufferAttachment::DepthStencil, gDepthStencil);
-
-        OITFrameBuffer->attach(core::graphics::FrameBufferAttachment::DepthStencil, gDepthStencil);
-
-        auto oitIndicesTexture = graphicsRenderer->createTextureRectEmpty(viewportSize.x,
-                                                                          viewportSize.y,
-                                                                          core::graphics::PixelInternalFormat::R32UI);
-        mPrivate.OITIndicesImage() = graphicsRenderer->createImage(oitIndicesTexture, graphics::IImage::DataAccess::ReadWrite);
-
-        finalFrameBuffer->attach(core::graphics::FrameBufferAttachment::Color0,
-                                 graphicsRenderer->createTextureRectEmpty(viewportSize.x,
-                                                                          viewportSize.y,
-                                                                          core::graphics::PixelInternalFormat::RGBA8));
+        gFrameBuffer->resize(graphicsRenderer, mPrivate.sharedDepthStencilTexture(), viewportSize);
+        oitFrameBuffer->resize(graphicsRenderer, mPrivate.sharedDepthStencilTexture(), viewportSize);
+        finalFrameBuffer->resize(graphicsRenderer, mPrivate.sharedDepthStencilTexture(), viewportSize);
     }
 }
 
@@ -161,54 +125,6 @@ void CameraNode::setCullPlanesLimits(const glm::vec2 &values)
     m().cullPlanesLimits() = values;
 }
 
-std::shared_ptr<graphics::IFrameBuffer> CameraNode::GFrameBuffer()
-{
-    return m().GFrameBuffer();
-}
-
-graphics::PConstTexture CameraNode::GFrameBufferColorMap0() const
-{
-    graphics::IFrameBuffer::AttachmentInfo info;
-    m().GFrameBuffer()->attachment(core::graphics::FrameBufferAttachment::Color0, info);
-    return std::dynamic_pointer_cast<graphics::ITexture>(info.renderSurface);
-}
-
-graphics::PConstTexture CameraNode::GFrameBufferColorMap1() const
-{
-    graphics::IFrameBuffer::AttachmentInfo info;
-    m().GFrameBuffer()->attachment(core::graphics::FrameBufferAttachment::Color1, info);
-    return std::dynamic_pointer_cast<graphics::ITexture>(info.renderSurface);
-}
-
-graphics::PConstTexture CameraNode::GFrameBufferDepthStencilMap() const
-{
-    graphics::IFrameBuffer::AttachmentInfo info;
-    m().GFrameBuffer()->attachment(core::graphics::FrameBufferAttachment::DepthStencil, info);
-    return std::dynamic_pointer_cast<graphics::ITexture>(info.renderSurface);
-}
-
-std::shared_ptr<graphics::IFrameBuffer> CameraNode::OITFrameBuffer()
-{
-    return m().OITFrameBuffer();
-}
-
-std::shared_ptr<graphics::IImage> CameraNode::OITIndicesImage()
-{
-    return m().OITIndicesImage();
-}
-
-std::shared_ptr<graphics::IFrameBuffer> CameraNode::finalFrameBuffer()
-{
-    return m().finalFrameBuffer();
-}
-
-graphics::PConstTexture CameraNode::finalFrameBufferColorMap() const
-{
-    graphics::IFrameBuffer::AttachmentInfo info;
-    m().finalFrameBuffer()->attachment(core::graphics::FrameBufferAttachment::Color0, info);
-    return std::dynamic_pointer_cast<graphics::ITexture>(info.renderSurface);
-}
-
 bool CameraNode::canAttach(std::shared_ptr<Node>)
 {
     LOG_ERROR << "It's forbidden to attach to camera node \"" << name() << "\"";
@@ -227,9 +143,9 @@ void CameraNode::doDetach()
 
     auto &mPrivate = m();
     mPrivate.viewportSize() = glm::uvec2(0u, 0u);
-    mPrivate.GFrameBuffer() = nullptr;
+    mPrivate.gFrameBuffer() = nullptr;
+    mPrivate.oitFrameBuffer() = nullptr;
     mPrivate.finalFrameBuffer() = nullptr;
-    mPrivate.OITIndicesImage() = nullptr;
 }
 
 }

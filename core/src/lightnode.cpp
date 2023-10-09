@@ -21,6 +21,46 @@ std::shared_ptr<const LightNode> LightNode::asLightNode() const
     return std::dynamic_pointer_cast<const LightNode>(shared_from_this());
 }
 
+std::shared_ptr<PointLightNode> LightNode::asPointLightNode()
+{
+    return nullptr;
+}
+
+std::shared_ptr<const PointLightNode> LightNode::asPointLightNode() const
+{
+    return nullptr;
+}
+
+std::shared_ptr<SpotLightNode> LightNode::asSpotLightNode()
+{
+    return nullptr;
+}
+
+std::shared_ptr<const SpotLightNode> LightNode::asSpotLightNode() const
+{
+    return nullptr;
+}
+
+std::shared_ptr<DirectionalLightNode> LightNode::asDirectionalLightNode()
+{
+    return nullptr;
+}
+
+std::shared_ptr<const DirectionalLightNode> LightNode::asDirectionalLightNode() const
+{
+    return nullptr;
+}
+
+std::shared_ptr<IBLLightNode> LightNode::asIBLLightNode()
+{
+    return nullptr;
+}
+
+std::shared_ptr<const IBLLightNode> LightNode::asIBLLightNode() const
+{
+    return nullptr;
+}
+
 bool LightNode::isLightingEnabled() const
 {
     return m().isLightingEnabled();
@@ -42,7 +82,7 @@ const glm::mat4x4 &LightNode::areaMatrix() const
     return mPrivate.areaMatrix();
 }
 
-std::shared_ptr<const Drawable> LightNode::areaDrawable() const
+std::shared_ptr<const LightDrawable> LightNode::areaDrawable() const
 {
     return m().areaDrawable();
 }

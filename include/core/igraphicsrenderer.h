@@ -13,6 +13,7 @@
 #include <utils/glm/mat2x2.hpp>
 #include <utils/glm/mat3x3.hpp>
 #include <utils/glm/mat4x4.hpp>
+#include <utils/image.h>
 #include <utils/mesh.h>
 
 #include <utils/forwarddecl.h>
@@ -44,6 +45,8 @@ ENUMCLASS(PixelInternalFormat, uint16_t,
           RGBA8I, RGBA8UI, RGBA16I, RGBA16UI, RGBA32I, RGBA32UI,
           Depth16, Depth24, Depth32F, Stencil8, Depth24Stencil8, Dept32FStencil8)
 
+static core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(uint32_t, utils::PixelComponentType);
+
 ENUMCLASS(TextureType, uint16_t,
           Type1D,
           Type2D,
@@ -61,7 +64,7 @@ ENUMCLASS(TextureWrapMode, uint16_t,
           Repeat,
           MirrorClampToEdge)
 
-ENUMCLASS(TextureFiltering, uint16_t,
+ENUMCLASS(TextureFilterMode, uint16_t,
           Point,
           Linear,
           Bilinear,
@@ -92,6 +95,7 @@ using FrameBufferClearColor = std::pair<FrameBufferClearColorType, FrameBufferCl
 
 ENUMCLASS(UniformId, uint16_t,
           Undefined,
+          ViewportSize,
           ModelMatrix,
           NormalMatrix,
           ViewMatrix,
@@ -111,9 +115,10 @@ ENUMCLASS(UniformId, uint16_t,
           ViewXDirection,
           ViewYDirection,
           ViewZDirection,
+          CameraDepthStencilMap,
+          BRDFLutMap,
           GBufferColor0Map,
           GBufferColor1Map,
-          GBufferDepthMap,
           OITIndicesImage,
           OITNodesCounter,
           BaseColor,
@@ -125,7 +130,10 @@ ENUMCLASS(UniformId, uint16_t,
           NormalMap,
           LightColor,
           LightRadiuses,
-          LightHalfAngles)
+          LightHalfAngles,
+          IBLDiffuseMap,
+          IBLSpecularMap,
+          BackgroundColorMap)
 
 ENUMCLASS(UniformType, uint16_t,
           Undefined,
@@ -207,18 +215,19 @@ ENUMCLASS(PBRComponent, uint16_t,
           NormalMap)
 
 ENUMCLASS(LightComponent, uint16_t,
-          Color,
-          Radiuses,
-          HalfAngles)
+          None)
+
+ENUMCLASS(BackgroundComponent, uint16_t,
+          ColorMap)
 
 ENUMCLASS(FaceType, uint16_t,
           Front, Back, FrontAndBack)
 
-ENUMCLASS(DepthFunc, uint16_t,
+ENUMCLASS(ComparingFunc, uint16_t,
           Never, Less, Equal, LessOrEqual, Greater, NotEqual, GreatOrEqual, Always)
 
-ENUMCLASS(StencilFunc, uint16_t,
-          Never, Less, Equal, LessOrEqual, Greater, NotEqual, GreatOrEqual, Always)
+ENUMCLASS(StencilOperation, uint16_t,
+          Keep, Zero, Replace, Increment, IncrementWrap, Decrement, DecrementWrap, Invert)
 
 static constexpr FrameBufferAttachment FrameBufferColorAttachment(uint16_t i) {
     return castToFrameBufferAttachment(castFromFrameBufferAttachment(FrameBufferAttachment::Color0) + i);
@@ -327,7 +336,7 @@ public:
     virtual void generateMipmaps() = 0;
     virtual void setBorderColor(const glm::vec4&) = 0;
     virtual void setWrapMode(TextureWrapMode) = 0;
-    virtual void setFiltering(TextureFiltering) = 0;
+    virtual void setFilterMode(TextureFilterMode) = 0;
 
 };
 
@@ -355,11 +364,11 @@ class IFrameBuffer
 public:
     struct AttachmentInfo
     {
-        AttachmentInfo(std::shared_ptr<ISurface> _renderSurface = nullptr, uint32_t _level = 0u, uint32_t _layer = 0u)
+        AttachmentInfo(std::shared_ptr<const ISurface> _renderSurface = nullptr, uint32_t _level = 0u, uint32_t _layer = 0u)
             : renderSurface(_renderSurface), level(_level), layer(_layer)
         {}
 
-        std::shared_ptr<ISurface> renderSurface;
+        std::shared_ptr<const ISurface> renderSurface;
         uint32_t level;
         uint32_t layer;
     };
@@ -372,7 +381,7 @@ public:
 
     virtual const Attachments &attachments() const = 0;
     virtual bool attachment(FrameBufferAttachment, AttachmentInfo&) const = 0;
-    virtual void attach(FrameBufferAttachment, std::shared_ptr<ISurface>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
+    virtual void attach(FrameBufferAttachment, std::shared_ptr<const ISurface>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
     virtual void detach(FrameBufferAttachment) = 0;
 
     virtual const FrameBufferClearColor &clearColor(uint32_t) const = 0;
@@ -382,12 +391,35 @@ public:
 
     virtual float clearDepth() const = 0;
     virtual int32_t clearStencil() const = 0;
-    virtual void setClearDepthStencil(float, int32_t) = 0;
+    virtual void setClearDepthStencil(float, uint8_t) = 0;
 
     virtual const std::unordered_set<FrameBufferAttachment> &clearMask() const = 0;
     virtual void setClearMask(const std::unordered_set<FrameBufferAttachment>&) = 0;
 
-    virtual void setDrawBuffers(const std::vector<FrameBufferAttachment>&) = 0;
+    virtual void setDrawBuffers(const std::vector<FrameBufferAttachment>&) = 0; 
+
+    virtual bool faceCulling() const = 0;
+    virtual FaceType cullFaceType() const = 0;
+    virtual void setFaceCulling(bool, FaceType = FaceType::Back) = 0;
+
+    virtual bool colorMask(uint16_t) const = 0;
+    virtual void setColorMask(uint16_t, bool) = 0;
+    virtual void setColorMasks(bool) = 0;
+
+    virtual bool depthTest() const = 0;
+    virtual ComparingFunc depthFunc() const = 0;
+    virtual void setDepthTest(bool, ComparingFunc func = ComparingFunc::Less) = 0;
+    virtual bool depthMask() const = 0;
+    virtual void setDepthMask(bool) = 0;
+
+    virtual bool stencilTest() const = 0;
+    virtual void setStencilTest(bool) = 0;
+    virtual ComparingFunc stencilComparingFunc(FaceType) const = 0;
+    virtual uint8_t stencilReferenceValue(FaceType) const = 0;
+    virtual uint8_t stencilMaskValue(FaceType) const = 0;
+    virtual void setStencilFunc(FaceType, ComparingFunc, uint8_t ref, uint8_t mask) = 0;
+    virtual const StencilOperations &stencilOperations(FaceType) const = 0;
+    virtual void setStencilOperations(FaceType, const StencilOperations&) = 0;
 };
 
 class IProgram
@@ -411,6 +443,7 @@ public:
 
     static UniformId uniformIdByPBRComponent(PBRComponent);
     static UniformId uniformIdByLightComponent(LightComponent);
+    static UniformId uniformIdByBackgroundComponent(BackgroundComponent);
 };
 
 class IRenderProgram : public virtual IProgram
@@ -444,18 +477,80 @@ public:
                                  bool linearFilter = false) = 0;
 
     virtual std::shared_ptr<IBuffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
-    virtual std::shared_ptr<IBufferRange> createBufferRange(std::shared_ptr<IBuffer>, size_t, size_t = static_cast<size_t>(-1)) const = 0;
-    virtual std::shared_ptr<IVertexArray> createVertexArray(std::shared_ptr<utils::Mesh> = nullptr, bool uniteBuffers = true) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture2DEmpty(uint32_t width, uint32_t height, PixelInternalFormat, uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture2D(std::shared_ptr<utils::Image>,
+    virtual std::shared_ptr<IBufferRange> createBufferRange(const std::shared_ptr<IBuffer>&,
+                                                            size_t,
+                                                            size_t = static_cast<size_t>(-1)) const = 0;
+    virtual std::shared_ptr<IVertexArray> createVertexArray(const std::shared_ptr<utils::Mesh>& = nullptr,
+                                                            bool uniteBuffers = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture1DEmpty(uint32_t width,
+                                                           PixelInternalFormat,
+                                                           uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture1D(const std::shared_ptr<utils::Image>&,
                                                       PixelInternalFormat = PixelInternalFormat::Undefined,
                                                       uint32_t numLevels = 0,
                                                       bool genMipmaps = true) const = 0;
-    virtual std::shared_ptr<ITexture> createTextureRectEmpty(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat) const = 0;
-    virtual std::shared_ptr<IImage> createImage(std::shared_ptr<ITexture>,
+    virtual std::shared_ptr<ITexture> createTexture2DEmpty(uint32_t width,
+                                                           uint32_t height,
+                                                           PixelInternalFormat,
+                                                           uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture2D(const std::shared_ptr<utils::Image>&,
+                                                      PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                      uint32_t numLevels = 0,
+                                                      bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture3DEmpty(uint32_t width,
+                                                           uint32_t height,
+                                                           uint32_t depth,
+                                                           PixelInternalFormat,
+                                                           uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture3D(const std::vector<std::shared_ptr<utils::Image>>&,
+                                                      PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                      uint32_t numLevels = 0,
+                                                      bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureCubeEmpty(uint32_t width,
+                                                             uint32_t height,
+                                                             PixelInternalFormat,
+                                                             uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureCube(const std::vector<std::shared_ptr<utils::Image>>&,
+                                                        PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                        uint32_t numLevels = 0,
+                                                        bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture1DArrayEmpty(uint32_t width,
+                                                                uint32_t numLayers,
+                                                                PixelInternalFormat,
+                                                                uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture1DArray(const std::vector<std::shared_ptr<utils::Image>>&,
+                                                           PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                           uint32_t numLevels = 0,
+                                                           bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture2DArrayEmpty(uint32_t width,
+                                                                uint32_t height,
+                                                                uint32_t numLayers,
+                                                                PixelInternalFormat,
+                                                                uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture2DArray(const std::vector<std::shared_ptr<utils::Image>>&,
+                                                           PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                           uint32_t numLevels = 0,
+                                                           bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureCubeArrayEmpty(uint32_t width,
+                                                                  uint32_t height,
+                                                                  uint32_t numLayers,
+                                                                  PixelInternalFormat,
+                                                                  uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureCubeArray(const std::vector<std::vector<std::shared_ptr<utils::Image>>>&, //[layer][face]
+                                                             PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                             uint32_t numLevels = 0,
+                                                             bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureRectEmpty(uint32_t width,
+                                                             uint32_t height,
+                                                             core::graphics::PixelInternalFormat) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureRect(const std::shared_ptr<utils::Image>&,
+                                                        core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined) const = 0;
+    virtual std::shared_ptr<IImage> createImage(const std::shared_ptr<ITexture>&,
                                                 IImage::DataAccess,
                                                 uint32_t level = 0u) const = 0;
-    virtual std::shared_ptr<IRenderBuffer> createRenderBuffer(uint32_t width, uint32_t height, PixelInternalFormat) const = 0;
+    virtual std::shared_ptr<IRenderBuffer> createRenderBuffer(uint32_t width,
+                                                              uint32_t height,
+                                                              PixelInternalFormat) const = 0;
     virtual std::shared_ptr<IFrameBuffer> createFrameBuffer() const = 0;
     virtual std::shared_ptr<IRenderProgram> createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
                                                                 const std::shared_ptr<utils::Shader> &fragmentShader) const = 0;
@@ -471,6 +566,55 @@ public:
     virtual void render(const std::shared_ptr<IFrameBuffer>&, const RenderInfo&, const glm::uvec4&) = 0;
     virtual void compute(const std::shared_ptr<IComputeProgram>&, const RenderInfo&, const glm::uvec3&) = 0;
 };
+
+inline core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(uint32_t numComponents,
+                                                                                                        utils::PixelComponentType type)
+{
+    PixelInternalFormat result = core::graphics::PixelInternalFormat::Undefined;
+
+    switch (type)
+    {
+    case utils::PixelComponentType::Uint8:
+    {
+        switch (numComponents)
+        {
+        case 1: { result = core::graphics::PixelInternalFormat::R8; break; }
+        case 2: { result = core::graphics::PixelInternalFormat::RG8; break; }
+        case 3: { result = core::graphics::PixelInternalFormat::RGB8; break; }
+        case 4: { result = core::graphics::PixelInternalFormat::RGBA8; break; }
+        default: { break; }
+        }
+    break;
+    }
+        case utils::PixelComponentType::Uint16:
+        {
+        switch (numComponents)
+        {
+        case 1: { result = core::graphics::PixelInternalFormat::R16; break; }
+        case 2: { result = core::graphics::PixelInternalFormat::RG16; break; }
+        case 3: { result = core::graphics::PixelInternalFormat::RGB16; break; }
+        case 4: { result = core::graphics::PixelInternalFormat::RGBA16; break; }
+        default: { break; }
+        }
+        break;
+        }
+    case utils::PixelComponentType::Single:
+    {
+        switch (numComponents)
+        {
+        case 1: { result = core::graphics::PixelInternalFormat::R16F; break; }
+        case 2: { result = core::graphics::PixelInternalFormat::RG16F; break; }
+        case 3: { result = core::graphics::PixelInternalFormat::RGB16F; break; }
+        case 4: { result = core::graphics::PixelInternalFormat::RGBA16F; break; }
+        default: { break; }
+        }
+    break;
+    }
+    default: { break; }
+    }
+
+    return result;
+}
 
 inline UniformType IProgram::uniformTypeByTextureType(TextureType textureType)
 {
@@ -540,6 +684,7 @@ inline utils::VertexAttribute IRenderProgram::vertexAttributeByName(const std::s
 inline UniformId IProgram::UniformIdByName(const std::string &name)
 {
     static const std::unordered_map<std::string, UniformId> s_table {
+        { "u_viewportSize", UniformId::ViewportSize },
         { "u_modelMatrix", UniformId::ModelMatrix },
         { "u_normalMatrix", UniformId::NormalMatrix },
         { "u_viewMatrix", UniformId::ViewMatrix },
@@ -559,9 +704,10 @@ inline UniformId IProgram::UniformIdByName(const std::string &name)
         { "u_viewXDirection", UniformId::ViewXDirection },
         { "u_viewYDirection", UniformId::ViewYDirection },
         { "u_viewZDirection", UniformId::ViewZDirection },
-        { "u_gBufferColor0Map", UniformId::GBufferColor0Map },
-        { "u_gBufferColor1Map", UniformId::GBufferColor1Map },
-        { "u_gBufferDepthMap", UniformId::GBufferDepthMap },
+        { "u_cameraDepthStencilMap", UniformId::CameraDepthStencilMap },
+        { "u_BRDFLutMap", UniformId::BRDFLutMap },
+        { "u_GBufferColor0Map", UniformId::GBufferColor0Map },
+        { "u_GBufferColor1Map", UniformId::GBufferColor1Map },
         { "u_OITIndicesImage", UniformId::OITIndicesImage },
         { "ssbo_OITNodesCounter", UniformId::OITNodesCounter },
         { "u_baseColor", UniformId::BaseColor },
@@ -574,6 +720,9 @@ inline UniformId IProgram::UniformIdByName(const std::string &name)
         { "u_lightColor", UniformId::LightColor },
         { "u_lightRadiuses", UniformId::LightRadiuses },
         { "u_lightHalfAngles", UniformId::LightHalfAngles },
+        { "u_IBLDiffuseMap", UniformId::IBLDiffuseMap },
+        { "u_IBLSpecularMap", UniformId::IBLSpecularMap },
+        { "u_backgroundColorMap", UniformId::BackgroundColorMap }
     };
 
     auto it = s_table.find(name);
@@ -607,12 +756,10 @@ inline UniformId IProgram::uniformIdByPBRComponent(PBRComponent value)
     return (it == s_table.end()) ? UniformId::Undefined : it->second;
 }
 
-inline UniformId IProgram::uniformIdByLightComponent(LightComponent value)
+inline UniformId IProgram::uniformIdByBackgroundComponent(BackgroundComponent value)
 {
-    static const std::unordered_map<LightComponent, UniformId> s_table {
-        { LightComponent::Color, UniformId::LightColor },
-        { LightComponent::Radiuses, UniformId::LightRadiuses },
-        { LightComponent::HalfAngles, UniformId::LightHalfAngles },
+    static const std::unordered_map<BackgroundComponent, UniformId> s_table {
+        { BackgroundComponent::ColorMap, UniformId::BackgroundColorMap },
     };
 
     auto it = s_table.find(value);

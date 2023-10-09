@@ -42,7 +42,6 @@ GLenum Conversions::PrimitiveType2GL(utils::PrimitiveType value)
 GLenum Conversions::VertexComponentType2GL(utils::VertexComponentType value)
 {
     static std::array<GLenum, utils::numElementsVertexComponentType()> s_table {
-        GL_NONE,
         GL_FLOAT,
         GL_DOUBLE,
         GL_INT,
@@ -191,56 +190,6 @@ GLenum Conversions::PixelComponentType2GL(utils::PixelComponentType value)
     return s_table[utils::castFromPixelComponentType(value)];
 }
 
-core::graphics::PixelInternalFormat Conversions::PixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(
-        uint32_t numComponents,
-        utils::PixelComponentType type)
-{
-    core::graphics::PixelInternalFormat result = core::graphics::PixelInternalFormat::Undefined;
-
-    switch (type)
-    {
-    case utils::PixelComponentType::Uint8:
-    {
-        switch (numComponents)
-        {
-        case 1: { result = core::graphics::PixelInternalFormat::R8; break; }
-        case 2: { result = core::graphics::PixelInternalFormat::RG8; break; }
-        case 3: { result = core::graphics::PixelInternalFormat::RGB8; break; }
-        case 4: { result = core::graphics::PixelInternalFormat::RGBA8; break; }
-        default: { break; }
-        }
-        break;
-    }
-    case utils::PixelComponentType::Uint16:
-    {
-        switch (numComponents)
-        {
-        case 1: { result = core::graphics::PixelInternalFormat::R16; break; }
-        case 2: { result = core::graphics::PixelInternalFormat::RG16; break; }
-        case 3: { result = core::graphics::PixelInternalFormat::RGB16; break; }
-        case 4: { result = core::graphics::PixelInternalFormat::RGBA16; break; }
-        default: { break; }
-        }
-        break;
-    }
-    case utils::PixelComponentType::Single:
-    {
-        switch (numComponents)
-        {
-        case 1: { result = core::graphics::PixelInternalFormat::R16F; break; }
-        case 2: { result = core::graphics::PixelInternalFormat::RG16F; break; }
-        case 3: { result = core::graphics::PixelInternalFormat::RGB16F; break; }
-        case 4: { result = core::graphics::PixelInternalFormat::RGBA16F; break; }
-        default: { break; }
-        }
-        break;
-    }
-    default: { break; }
-    }
-
-    return result;
-}
-
 GLenum Conversions::FrameBufferAttachment2GL(core::graphics::FrameBufferAttachment value)
 {
     static std::array<GLenum, core::graphics::numElementsFrameBufferAttachment()> s_table {
@@ -338,7 +287,7 @@ utils::VertexComponentType Conversions::GL2VertexComponentType(GLenum value)
     };
 
     auto it = s_table.find(value);
-    return (it == s_table.end()) ? utils::VertexComponentType::Undefined : it->second;
+    return (it == s_table.end()) ? utils::VertexComponentType::Count : it->second;
 }
 
 GLenum Conversions::UniformType2GL(core::graphics::UniformType value)
@@ -479,9 +428,9 @@ GLenum Conversions::faceType2GL(core::graphics::FaceType value)
     return s_table[core::graphics::castFromFaceType(value)];
 }
 
-GLenum Conversions::depthFunc2GL(core::graphics::DepthFunc value)
+GLenum Conversions::comparingFunc2GL(core::graphics::ComparingFunc value)
 {
-    static std::array<GLenum, core::graphics::numElementsDepthFunc()> s_table {
+    static std::array<GLenum, core::graphics::numElementsComparingFunc()> s_table {
         GL_NEVER,
         GL_LESS,
         GL_EQUAL,
@@ -491,7 +440,22 @@ GLenum Conversions::depthFunc2GL(core::graphics::DepthFunc value)
         GL_GEQUAL,
         GL_ALWAYS
     };
-    return s_table[core::graphics::castFromDepthFunc(value)];
+    return s_table[core::graphics::castFromComparingFunc(value)];
+}
+
+GLenum Conversions::stencilOperation2GL(core::graphics::StencilOperation value)
+{
+    static std::array<GLenum, core::graphics::numElementsStencilOperation()> s_table {
+        GL_KEEP,
+        GL_ZERO,
+        GL_REPLACE,
+        GL_INCR,
+        GL_INCR_WRAP,
+        GL_DECR,
+        GL_DECR_WRAP,
+        GL_INVERT
+    };
+    return s_table[core::graphics::castFromStencilOperation(value)];
 }
 
 // Buffer_4_5::MappedData_4_5
@@ -695,11 +659,8 @@ void VertexArray_4_5::declareVertexAttribute(utils::VertexAttribute attrib,
                                              utils::VertexComponentType type,
                                              uint32_t relativeOffset)
 {
-    if (numComponents > 4)
-        LOG_CRITICAL << "Num components must be lest or equal than 4";
-
-    if (type == utils::VertexComponentType::Undefined)
-        LOG_CRITICAL << "Undefined vertex component type";
+    if (numComponents < 1 || numComponents > 4)
+        LOG_CRITICAL << "Num components must be [1..4]";
 
     if (type != core::graphics::IRenderProgram::attributeVertexComponentTypeByAttributeId(attrib))
         LOG_CRITICAL << "Vertex attribute has wrong component type";
@@ -769,7 +730,7 @@ uint32_t VertexArray_4_5::vertexAttributeNumComponents(utils::VertexAttribute at
 utils::VertexComponentType VertexArray_4_5::vertexAttributeComponentType(utils::VertexAttribute attrib) const
 {
     auto it = m_vertexDeclarations.find(attrib);
-    return (it != m_vertexDeclarations.end()) ? std::get<2>(it->second) : utils::VertexComponentType::Undefined;
+    return (it != m_vertexDeclarations.end()) ? std::get<2>(it->second) : utils::VertexComponentType::Count;
 }
 
 uint32_t VertexArray_4_5::vertexAttributeRelativeOffset(utils::VertexAttribute attrib) const
@@ -902,27 +863,27 @@ void TextureBase_4_5::setWrapMode(core::graphics::TextureWrapMode value)
     renderer->glTextureParameteri(m_id, GL_TEXTURE_WRAP_R, glValue);
 }
 
-void TextureBase_4_5::setFiltering(core::graphics::TextureFiltering value)
+void TextureBase_4_5::setFilterMode(core::graphics::TextureFilterMode value)
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
     switch (value)
     {
-    case core::graphics::TextureFiltering::Point: {
+    case core::graphics::TextureFilterMode::Point: {
         renderer->glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         renderer->glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         break;
     }
-    case core::graphics::TextureFiltering::Linear: {
+    case core::graphics::TextureFilterMode::Linear: {
         renderer->glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         renderer->glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         break;
     }
-    case core::graphics::TextureFiltering::Bilinear: {
+    case core::graphics::TextureFilterMode::Bilinear: {
         renderer->glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         renderer->glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
         break;
     }
-    case core::graphics::TextureFiltering::Trilinear: {
+    case core::graphics::TextureFilterMode::Trilinear: {
         renderer->glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         renderer->glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         break;
@@ -939,6 +900,44 @@ GLenum TextureBase_4_5::GLinternalFormat() const
     renderer->glGetTextureLevelParameteriv(m_id, 0, GL_TEXTURE_INTERNAL_FORMAT, &result);
 
     return static_cast<GLenum>(result);
+}
+
+// Texture1D_4_5
+
+Texture1D_4_5::Texture1D_4_5(uint32_t width, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
+    : TextureBase_4_5()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glCreateTextures(GL_TEXTURE_1D, 1, &m_id);
+    renderer->glTextureStorage1D(m_id,
+                                 static_cast<GLsizei>(numLevels),
+                                 Conversions::PixelInternalFormat2GL(internalFormat),
+                                 static_cast<GLsizei>(width));
+}
+
+Texture1D_4_5::~Texture1D_4_5() = default;
+
+core::graphics::TextureType Texture1D_4_5::type() const
+{
+    return core::graphics::TextureType::Type1D;
+}
+
+void Texture1D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
+{
+    if ((numComponents < 1) || (numComponents > 4))
+        LOG_CRITICAL << "Num components must be in [1..4]";
+
+    if (type == utils::PixelComponentType::Undefined)
+        LOG_CRITICAL << "Undefined pixel component type";
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glTextureSubImage1D(m_id,
+                                  static_cast<GLint>(level),
+                                  static_cast<GLint>(offset.x),
+                                  static_cast<GLint>(size.x),
+                                  Conversions::PixelNumComponents2GL(numComponents),
+                                  Conversions::PixelComponentType2GL(type),
+                                  data);
 }
 
 // Texture2D_4_5
@@ -975,6 +974,207 @@ void Texture2D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const 
                                   static_cast<GLint>(level),
                                   static_cast<GLint>(offset.x), static_cast<GLint>(offset.y),
                                   static_cast<GLint>(size.x), static_cast<GLint>(size.y),
+                                  Conversions::PixelNumComponents2GL(numComponents),
+                                  Conversions::PixelComponentType2GL(type),
+                                  data);
+}
+
+// Texture3D_4_5
+
+Texture3D_4_5::Texture3D_4_5(uint32_t width, uint32_t height, uint32_t depth, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
+    : TextureBase_4_5()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glCreateTextures(GL_TEXTURE_3D, 1, &m_id);
+    renderer->glTextureStorage3D(m_id,
+                                 static_cast<GLsizei>(numLevels),
+                                 Conversions::PixelInternalFormat2GL(internalFormat),
+                                 static_cast<GLsizei>(width),
+                                 static_cast<GLsizei>(height),
+                                 static_cast<GLsizei>(depth));
+}
+
+Texture3D_4_5::~Texture3D_4_5() = default;
+
+core::graphics::TextureType Texture3D_4_5::type() const
+{
+    return core::graphics::TextureType::Type3D;
+}
+
+void Texture3D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
+{
+    if ((numComponents < 1) || (numComponents > 4))
+        LOG_CRITICAL << "Num components must be in [1..4]";
+
+    if (type == utils::PixelComponentType::Undefined)
+        LOG_CRITICAL << "Undefined pixel component type";
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glTextureSubImage3D(m_id,
+                                  static_cast<GLint>(level),
+                                  static_cast<GLint>(offset.x), static_cast<GLint>(offset.y), static_cast<GLint>(offset.z),
+                                  static_cast<GLint>(size.x), static_cast<GLint>(size.y), static_cast<GLint>(size.z),
+                                  Conversions::PixelNumComponents2GL(numComponents),
+                                  Conversions::PixelComponentType2GL(type),
+                                  data);
+}
+
+// TextureCube_4_5
+
+TextureCube_4_5::TextureCube_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
+    : TextureBase_4_5()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_id);
+    renderer->glTextureStorage2D(m_id,
+                                 static_cast<GLsizei>(numLevels),
+                                 Conversions::PixelInternalFormat2GL(internalFormat),
+                                 static_cast<GLsizei>(width),
+                                 static_cast<GLsizei>(height));
+}
+
+TextureCube_4_5::~TextureCube_4_5() = default;
+
+core::graphics::TextureType TextureCube_4_5::type() const
+{
+    return core::graphics::TextureType::TypeCube;
+}
+
+void TextureCube_4_5::setSubImage(uint32_t level,const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
+{
+    if (offset.z + size.z > 6u)
+        LOG_CRITICAL << "Number of cubemap faces must be 6";
+
+    if ((numComponents < 1) || (numComponents > 4))
+        LOG_CRITICAL << "Num components must be in [1..4]";
+
+    if (type == utils::PixelComponentType::Undefined)
+        LOG_CRITICAL << "Undefined pixel component type";
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glTextureSubImage3D(m_id,
+                                  static_cast<GLint>(level),
+                                  static_cast<GLint>(offset.x), static_cast<GLint>(offset.y), static_cast<GLint>(offset.z),
+                                  static_cast<GLint>(size.x), static_cast<GLint>(size.y), static_cast<GLint>(size.z),
+                                  Conversions::PixelNumComponents2GL(numComponents),
+                                  Conversions::PixelComponentType2GL(type),
+                                  data);
+}
+
+// Texture1DArray_4_5
+
+Texture1DArray_4_5::Texture1DArray_4_5(uint32_t width, uint32_t numLayers, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
+    : TextureBase_4_5()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glCreateTextures(GL_TEXTURE_1D_ARRAY, 1, &m_id);
+    renderer->glTextureStorage2D(m_id,
+                                 static_cast<GLsizei>(numLevels),
+                                 Conversions::PixelInternalFormat2GL(internalFormat),
+                                 static_cast<GLsizei>(width),
+                                 static_cast<GLsizei>(numLayers));
+}
+
+Texture1DArray_4_5::~Texture1DArray_4_5() = default;
+
+core::graphics::TextureType Texture1DArray_4_5::type() const
+{
+    return core::graphics::TextureType::Type1DArray;
+}
+
+void Texture1DArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
+{
+    if ((numComponents < 1) || (numComponents > 4))
+        LOG_CRITICAL << "Num components must be in [1..4]";
+
+    if (type == utils::PixelComponentType::Undefined)
+        LOG_CRITICAL << "Undefined pixel component type";
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glTextureSubImage2D(m_id,
+                                  static_cast<GLint>(level),
+                                  static_cast<GLint>(offset.x), static_cast<GLint>(offset.y),
+                                  static_cast<GLint>(size.x), static_cast<GLint>(size.y),
+                                  Conversions::PixelNumComponents2GL(numComponents),
+                                  Conversions::PixelComponentType2GL(type),
+                                  data);
+}
+
+// Texture2DArray_4_5
+
+Texture2DArray_4_5::Texture2DArray_4_5(uint32_t width, uint32_t height, uint32_t numLayers, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
+    : TextureBase_4_5()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &m_id);
+    renderer->glTextureStorage3D(m_id,
+                                 static_cast<GLsizei>(numLevels),
+                                 Conversions::PixelInternalFormat2GL(internalFormat),
+                                 static_cast<GLsizei>(width),
+                                 static_cast<GLsizei>(height),
+                                 static_cast<GLsizei>(numLayers));
+}
+
+Texture2DArray_4_5::~Texture2DArray_4_5() = default;
+
+core::graphics::TextureType Texture2DArray_4_5::type() const
+{
+    return core::graphics::TextureType::Type2DArray;
+}
+
+void Texture2DArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
+{
+    if ((numComponents < 1) || (numComponents > 4))
+        LOG_CRITICAL << "Num components must be in [1..4]";
+
+    if (type == utils::PixelComponentType::Undefined)
+        LOG_CRITICAL << "Undefined pixel component type";
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glTextureSubImage3D(m_id,
+                                  static_cast<GLint>(level),
+                                  static_cast<GLint>(offset.x), static_cast<GLint>(offset.y), static_cast<GLint>(offset.z),
+                                  static_cast<GLint>(size.x), static_cast<GLint>(size.y), static_cast<GLint>(size.z),
+                                  Conversions::PixelNumComponents2GL(numComponents),
+                                  Conversions::PixelComponentType2GL(type),
+                                  data);
+}
+
+// TextureCubeArray_4_5
+
+TextureCubeArray_4_5::TextureCubeArray_4_5(uint32_t width, uint32_t height, uint32_t numLayers, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
+    : TextureBase_4_5()
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glCreateTextures(GL_TEXTURE_CUBE_MAP_ARRAY, 1, &m_id);
+    renderer->glTextureStorage3D(m_id,
+                                 static_cast<GLsizei>(numLevels),
+                                 Conversions::PixelInternalFormat2GL(internalFormat),
+                                 static_cast<GLsizei>(width),
+                                 static_cast<GLsizei>(height),
+                                 static_cast<GLsizei>(6u * numLayers));
+}
+
+TextureCubeArray_4_5::~TextureCubeArray_4_5() = default;
+
+core::graphics::TextureType TextureCubeArray_4_5::type() const
+{
+    return core::graphics::TextureType::TypeCubeArray;
+}
+
+void TextureCubeArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
+{
+    if ((numComponents < 1) || (numComponents > 4))
+        LOG_CRITICAL << "Num components must be in [1..4]";
+
+    if (type == utils::PixelComponentType::Undefined)
+        LOG_CRITICAL << "Undefined pixel component type";
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glTextureSubImage3D(m_id,
+                                  static_cast<GLint>(level),
+                                  static_cast<GLint>(offset.x), static_cast<GLint>(offset.y), static_cast<GLint>(offset.z),
+                                  static_cast<GLint>(size.x), static_cast<GLint>(size.y), static_cast<GLint>(size.z),
                                   Conversions::PixelNumComponents2GL(numComponents),
                                   Conversions::PixelComponentType2GL(type),
                                   data);
@@ -1113,10 +1313,18 @@ FrameBufferBase_4_5::FrameBufferBase_4_5(GLuint id)
     : m_id(id)
 {
     for (uint32_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
-        m_clearColor[i] = { core::graphics::FrameBufferClearColorType::Single,
-                            core::graphics::FrameBufferClearColorValue{glm::vec4(.5f, .5f, 1.f, 1.f)} };
-    m_clearDepth = 1.f;
-    m_clearStencil = 0;
+        setClearColor(i, glm::vec4(.5f, .5f, 1.f, 1.f));
+
+    setClearDepthStencil(1.f, 0x00u);
+
+    setFaceCulling(false);
+
+    setColorMasks(true);
+
+    setDepthTest(true);
+    setDepthMask(true);
+
+    setStencilTest(false);
 }
 
 FrameBufferBase_4_5::~FrameBufferBase_4_5()
@@ -1126,108 +1334,6 @@ FrameBufferBase_4_5::~FrameBufferBase_4_5()
 GLuint FrameBufferBase_4_5::id() const
 {
     return m_id;
-}
-
-bool FrameBufferBase_4_5::isComplete() const
-{
-    auto renderer = QtOpenGL_4_5_Renderer::instance();
-    return renderer->glCheckNamedFramebufferStatus(m_id, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
-}
-
-const core::graphics::IFrameBuffer::Attachments &FrameBufferBase_4_5::attachments() const
-{
-    return m_attchments;
-}
-
-bool FrameBufferBase_4_5::attachment(core::graphics::FrameBufferAttachment value, AttachmentInfo &result) const
-{
-    auto it = m_attchments.find(value);
-    if (it == m_attchments.end())
-        return false;
-
-    result = it->second;
-    return true;
-}
-
-const core::graphics::FrameBufferClearColor &FrameBufferBase_4_5::clearColor(uint32_t index) const
-{
-    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
-        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
-
-    return m_clearColor[index];
-}
-
-void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::vec4 &value)
-{
-    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
-        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
-
-    core::graphics::FrameBufferClearColorValue clearColorValue;
-    clearColorValue.floatColor = value;
-    m_clearColor[index] = { core::graphics::FrameBufferClearColorType::Single, clearColorValue};
-}
-
-void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::i32vec4 &value)
-{
-    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
-        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
-
-    core::graphics::FrameBufferClearColorValue clearColorValue;
-    clearColorValue.intColor = value;
-    m_clearColor[index] = { core::graphics::FrameBufferClearColorType::Int32, clearColorValue };
-}
-
-void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::u32vec4 &value)
-{
-    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
-        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
-
-    core::graphics::FrameBufferClearColorValue clearColorValue;
-    clearColorValue.uintColor = value;
-    m_clearColor[index] = { core::graphics::FrameBufferClearColorType::Uint32, clearColorValue };
-}
-
-float FrameBufferBase_4_5::clearDepth() const
-{
-    return m_clearDepth;
-}
-
-int32_t FrameBufferBase_4_5::clearStencil() const
-{
-    return m_clearStencil;
-}
-
-void FrameBufferBase_4_5::setClearDepthStencil(float depth, int32_t stencil)
-{
-    m_clearDepth = depth;
-    m_clearStencil = stencil;
-}
-
-const std::unordered_set<core::graphics::FrameBufferAttachment> &FrameBufferBase_4_5::clearMask() const
-{
-    return m_clearMask;
-}
-
-void FrameBufferBase_4_5::setClearMask(const std::unordered_set<core::graphics::FrameBufferAttachment> &value)
-{
-    m_clearMask = value;
-}
-
-void FrameBufferBase_4_5::setDrawBuffers(const std::vector<core::graphics::FrameBufferAttachment> &attachments)
-{
-    std::vector<GLenum> buffers;
-    for (const auto &attachment : attachments)
-    {
-        if (!core::graphics::IsFrameBufferColorAttachment(attachment))
-            LOG_CRITICAL << "Not color attachment can be draw buffer";
-
-        buffers.push_back(GL_COLOR_ATTACHMENT0 + core::graphics::FrameBufferColorAttachmentIndex(attachment));
-    }
-
-    auto renderer = QtOpenGL_4_5_Renderer::instance();
-    renderer->glNamedFramebufferDrawBuffers(m_id,
-                                            static_cast<GLsizei>(buffers.size()),
-                                            buffers.data());
 }
 
 void FrameBufferBase_4_5::clear()
@@ -1316,6 +1422,304 @@ void FrameBufferBase_4_5::clear()
     }
 }
 
+bool FrameBufferBase_4_5::isComplete() const
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    return renderer->glCheckNamedFramebufferStatus(m_id, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+}
+
+const core::graphics::IFrameBuffer::Attachments &FrameBufferBase_4_5::attachments() const
+{
+    return m_attchments;
+}
+
+bool FrameBufferBase_4_5::attachment(core::graphics::FrameBufferAttachment value, AttachmentInfo &result) const
+{
+    auto it = m_attchments.find(value);
+    if (it == m_attchments.end())
+        return false;
+
+    result = it->second;
+    return true;
+}
+
+const core::graphics::FrameBufferClearColor &FrameBufferBase_4_5::clearColor(uint32_t index) const
+{
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
+    return m_clearColor[index];
+}
+
+void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::vec4 &value)
+{
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
+    core::graphics::FrameBufferClearColorValue clearColorValue;
+    clearColorValue.floatColor = value;
+    m_clearColor[index] = { core::graphics::FrameBufferClearColorType::Single, clearColorValue};
+}
+
+void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::i32vec4 &value)
+{
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
+    core::graphics::FrameBufferClearColorValue clearColorValue;
+    clearColorValue.intColor = value;
+    m_clearColor[index] = { core::graphics::FrameBufferClearColorType::Int32, clearColorValue };
+}
+
+void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::u32vec4 &value)
+{
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
+    core::graphics::FrameBufferClearColorValue clearColorValue;
+    clearColorValue.uintColor = value;
+    m_clearColor[index] = { core::graphics::FrameBufferClearColorType::Uint32, clearColorValue };
+}
+
+float FrameBufferBase_4_5::clearDepth() const
+{
+    return m_clearDepth;
+}
+
+int32_t FrameBufferBase_4_5::clearStencil() const
+{
+    return m_clearStencil;
+}
+
+void FrameBufferBase_4_5::setClearDepthStencil(float depth, uint8_t stencil)
+{
+    m_clearDepth = depth;
+    m_clearStencil = stencil;
+}
+
+const std::unordered_set<core::graphics::FrameBufferAttachment> &FrameBufferBase_4_5::clearMask() const
+{
+    return m_clearMask;
+}
+
+void FrameBufferBase_4_5::setClearMask(const std::unordered_set<core::graphics::FrameBufferAttachment> &value)
+{
+    m_clearMask = value;
+}
+
+void FrameBufferBase_4_5::setDrawBuffers(const std::vector<core::graphics::FrameBufferAttachment> &attachments)
+{
+    std::vector<GLenum> buffers;
+    for (const auto &attachment : attachments)
+    {
+        if (!core::graphics::IsFrameBufferColorAttachment(attachment))
+            LOG_CRITICAL << "Not color attachment can be draw buffer";
+
+        buffers.push_back(GL_COLOR_ATTACHMENT0 + core::graphics::FrameBufferColorAttachmentIndex(attachment));
+    }
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glNamedFramebufferDrawBuffers(m_id,
+                                            static_cast<GLsizei>(buffers.size()),
+                                            buffers.data());
+}
+
+bool FrameBufferBase_4_5::faceCulling() const
+{
+    return m_faceCulling;
+}
+
+core::graphics::FaceType FrameBufferBase_4_5::cullFaceType() const
+{
+    return m_cullFaceType;
+}
+
+void FrameBufferBase_4_5::setFaceCulling(bool value, core::graphics::FaceType type)
+{
+    m_faceCulling = value;
+    m_cullFaceType = type;
+}
+
+bool FrameBufferBase_4_5::colorMask(uint16_t index) const
+{
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
+    return m_colorMasks[index];
+}
+
+void FrameBufferBase_4_5::setColorMask(uint16_t index, bool value)
+{
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
+    m_colorMasks[index] = value;
+}
+
+void FrameBufferBase_4_5::setColorMasks(bool value)
+{
+    for (auto &mask : m_colorMasks)
+        mask = value;
+}
+
+bool FrameBufferBase_4_5::depthTest() const
+{
+    return m_depthTest;
+}
+
+core::graphics::ComparingFunc FrameBufferBase_4_5::depthFunc() const
+{
+    return m_depthFunc;
+}
+
+void FrameBufferBase_4_5::setDepthTest(bool value, core::graphics::ComparingFunc func)
+{
+    m_depthTest = value;
+    m_depthFunc = func;
+}
+
+bool FrameBufferBase_4_5::depthMask() const
+{
+    return m_depthMask;
+}
+
+void FrameBufferBase_4_5::setDepthMask(bool value)
+{
+    m_depthMask = value;
+}
+
+bool FrameBufferBase_4_5::stencilTest() const
+{
+    return m_stencilTest;
+}
+
+void FrameBufferBase_4_5::setStencilTest(bool value)
+{
+    m_stencilTest = value;
+}
+
+core::graphics::ComparingFunc FrameBufferBase_4_5::stencilComparingFunc(core::graphics::FaceType value) const
+{
+    auto result = core::graphics::ComparingFunc::Always;
+
+    switch (value)
+    {
+    case core::graphics::FaceType::Front:
+        result = m_stencilComparingFuncFrontFace;
+        break;
+    case core::graphics::FaceType::Back:
+        result = m_stencilComparingFuncBackFace;
+        break;
+    default:
+        LOG_CRITICAL << "Face type must be Front or Back";
+        break;
+    }
+
+    return result;
+}
+
+uint8_t FrameBufferBase_4_5::stencilReferenceValue(core::graphics::FaceType value) const
+{
+    uint8_t result = 0x00u;
+
+    switch (value)
+    {
+    case core::graphics::FaceType::Front:
+        result = m_stencilRefFrontFace;
+        break;
+    case core::graphics::FaceType::Back:
+        result = m_stencilRefBackFace;
+        break;
+    default:
+        LOG_CRITICAL << "Face type must be Front or Back";
+        break;
+    }
+
+    return result;
+}
+
+uint8_t FrameBufferBase_4_5::stencilMaskValue(core::graphics::FaceType value) const
+{
+    uint8_t result = 0x00u;
+
+    switch (value)
+    {
+    case core::graphics::FaceType::Front:
+        result = m_stencilMaskFrontFace;
+        break;
+    case core::graphics::FaceType::Back:
+        result = m_stencilMaskBackFace;
+        break;
+    default:
+        LOG_CRITICAL << "Face type must be Front or Back";
+        break;
+    }
+
+    return result;
+}
+
+void FrameBufferBase_4_5::setStencilFunc(core::graphics::FaceType face, core::graphics::ComparingFunc func, uint8_t ref, uint8_t mask)
+{
+    switch (face)
+    {
+    case core::graphics::FaceType::Front:
+        m_stencilComparingFuncFrontFace = func;
+        m_stencilRefFrontFace = ref;
+        m_stencilMaskFrontFace = mask;
+        break;
+    case core::graphics::FaceType::Back:
+        m_stencilComparingFuncBackFace = func;
+        m_stencilRefBackFace = ref;
+        m_stencilMaskBackFace = mask;
+        break;
+    case core::graphics::FaceType::FrontAndBack:
+        m_stencilComparingFuncFrontFace = m_stencilComparingFuncBackFace = func;
+        m_stencilRefFrontFace = m_stencilRefBackFace = ref;
+        m_stencilMaskFrontFace = m_stencilMaskBackFace = mask;
+        break;
+    default:
+        LOG_CRITICAL << "Face type must be Front, Back or FrontAndBack";
+        break;
+    }
+}
+
+const core::graphics::StencilOperations &FrameBufferBase_4_5::stencilOperations(core::graphics::FaceType value) const
+{
+    static core::graphics::StencilOperations errorResult;
+
+    switch (value)
+    {
+    case core::graphics::FaceType::Front:
+        return m_stencilOperationsFrontFace;
+    case core::graphics::FaceType::Back:
+        return m_stencilOperationsBackFace;
+    default:
+        LOG_CRITICAL << "Face type must be Front or Back";
+        break;
+    }
+
+    return errorResult;
+}
+
+void FrameBufferBase_4_5::setStencilOperations(core::graphics::FaceType face, const core::graphics::StencilOperations &value)
+{
+    switch (face)
+    {
+    case core::graphics::FaceType::Front:
+        m_stencilOperationsFrontFace = value;
+        break;
+    case core::graphics::FaceType::Back:
+        m_stencilOperationsBackFace = value;
+        break;
+    case core::graphics::FaceType::FrontAndBack:
+        m_stencilOperationsFrontFace = m_stencilOperationsBackFace = value;
+        break;
+    default:
+        LOG_CRITICAL << "Face type must be Front, Back or FrontAndBack";
+        break;
+    }
+}
+
 // FrameBuffer_4_5
 
 FrameBuffer_4_5::FrameBuffer_4_5()
@@ -1332,13 +1736,13 @@ FrameBuffer_4_5::~FrameBuffer_4_5()
 }
 
 void FrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment key,
-                             std::shared_ptr<core::graphics::ISurface> surface,
+                             std::shared_ptr<const core::graphics::ISurface> surface,
                              uint32_t level,
                              uint32_t layer)
 {
     detach(key);
 
-    if (auto texture = std::dynamic_pointer_cast<TextureBase_4_5>(surface); texture)
+    if (auto texture = std::dynamic_pointer_cast<const TextureBase_4_5>(surface); texture)
     {
         auto renderer = QtOpenGL_4_5_Renderer::instance();
         if (false
@@ -1361,7 +1765,7 @@ void FrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment key,
         }
         m_attchments[key] = { surface, level, layer };
     }
-    else if (auto renderBuffer = std::dynamic_pointer_cast<RenderBuffer_4_5>(surface); renderBuffer)
+    else if (auto renderBuffer = std::dynamic_pointer_cast<const RenderBuffer_4_5>(surface); renderBuffer)
     {
         auto renderer = QtOpenGL_4_5_Renderer::instance();
         renderer->glNamedFramebufferRenderbuffer(m_id,
@@ -1397,7 +1801,7 @@ DefaultFrameBuffer_4_5::~DefaultFrameBuffer_4_5()
 {
 }
 
-void DefaultFrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment, std::shared_ptr<core::graphics::ISurface>, uint32_t, uint32_t)
+void DefaultFrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment, std::shared_ptr<const core::graphics::ISurface>, uint32_t, uint32_t)
 {
 }
 
@@ -1417,7 +1821,7 @@ void DefaultFrameBuffer_4_5::setClearColor(uint32_t, const glm::u32vec4&)
 {
 }
 
-void DefaultFrameBuffer_4_5::setClearDepthStencil(float, int32_t)
+void DefaultFrameBuffer_4_5::setClearDepthStencil(float, uint8_t)
 {
 }
 
@@ -1767,14 +2171,14 @@ std::shared_ptr<core::graphics::IBuffer> QtOpenGL_4_5_Renderer::createBuffer(siz
     return std::make_shared<Buffer_4_5>(size, data);
 }
 
-std::shared_ptr<core::graphics::IBufferRange> QtOpenGL_4_5_Renderer::createBufferRange(std::shared_ptr<core::graphics::IBuffer> buffer,
+std::shared_ptr<core::graphics::IBufferRange> QtOpenGL_4_5_Renderer::createBufferRange(const std::shared_ptr<core::graphics::IBuffer> &buffer,
                                                                                        size_t offset,
                                                                                        size_t size) const
 {
     return std::make_shared<BufferRange_4_5>(buffer, offset, size);
 }
 
-std::shared_ptr<core::graphics::IVertexArray> QtOpenGL_4_5_Renderer::createVertexArray(std::shared_ptr<utils::Mesh> mesh,
+std::shared_ptr<core::graphics::IVertexArray> QtOpenGL_4_5_Renderer::createVertexArray(const std::shared_ptr<utils::Mesh> &mesh,
                                                                                        bool uniteVertexBuffers) const
 {
     auto vertexArray = std::make_shared<VertexArray_4_5>();
@@ -1869,6 +2273,48 @@ std::shared_ptr<core::graphics::IVertexArray> QtOpenGL_4_5_Renderer::createVerte
     return vertexArray;
 }
 
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture1DEmpty(uint32_t width,
+                                                                                      core::graphics::PixelInternalFormat internalFormat,
+                                                                                      uint32_t numLevels) const
+{
+    if (width == 0u)
+        LOG_CRITICAL << "Width can't be 0";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        LOG_CRITICAL << "Undefined pixel internal format";
+
+    auto numMipmapLevels = static_cast<uint32_t>(glm::levels(width));
+    if (numLevels == 0u)
+        numLevels = numMipmapLevels;
+    numLevels = glm::min(numLevels, numMipmapLevels);
+
+    auto result = std::make_shared<Texture1D_4_5>(width, internalFormat, numLevels);
+    result->setWrapMode(core::graphics::TextureWrapMode::Repeat);
+    result->setFilterMode(numLevels > 1u ? core::graphics::TextureFilterMode::Trilinear : core::graphics::TextureFilterMode::Linear);
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture1D(const std::shared_ptr<utils::Image> &image,
+                                                                                 core::graphics::PixelInternalFormat internalFormat,
+                                                                                 uint32_t numLevels,
+                                                                                 bool genMipmaps) const
+{
+    if (!image)
+        LOG_CRITICAL << "Image can't be nullptr";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(image->numComponents(), image->type());
+
+    auto result = createTexture1DEmpty(image->width(), internalFormat, numLevels);
+    result->setSubImage(0u, glm::uvec3(0u), glm::uvec3(image->width(), 0u, 0u), image->numComponents(), image->type(), image->data());
+
+    if (genMipmaps)
+        result->generateMipmaps();
+
+    return result;
+}
+
 std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture2DEmpty(uint32_t width,
                                                                                       uint32_t height,
                                                                                       core::graphics::PixelInternalFormat internalFormat,
@@ -1887,12 +2333,12 @@ std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture2D
 
     auto result = std::make_shared<Texture2D_4_5>(width, height, internalFormat, numLevels);
     result->setWrapMode(core::graphics::TextureWrapMode::Repeat);
-    result->setFiltering(numLevels > 1u ? core::graphics::TextureFiltering::Trilinear : core::graphics::TextureFiltering::Linear);
+    result->setFilterMode(numLevels > 1u ? core::graphics::TextureFilterMode::Trilinear : core::graphics::TextureFilterMode::Linear);
 
     return result;
 }
 
-std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture2D(std::shared_ptr<utils::Image> image,
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture2D(const std::shared_ptr<utils::Image> &image,
                                                                                  core::graphics::PixelInternalFormat internalFormat,
                                                                                  uint32_t numLevels,
                                                                                  bool genMipmaps) const
@@ -1901,10 +2347,316 @@ std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture2D
         LOG_CRITICAL << "Image can't be nullptr";
 
     if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
-        internalFormat = Conversions::PixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(image->numComponents(), image->type());
+        internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(image->numComponents(), image->type());
 
     auto result = createTexture2DEmpty(image->width(), image->height(), internalFormat, numLevels);
     result->setSubImage(0u, glm::uvec3(0u), glm::uvec3(image->width(), image->height(), 0u), image->numComponents(), image->type(), image->data());
+
+    if (genMipmaps)
+        result->generateMipmaps();
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture3DEmpty(uint32_t width,
+                                                                                      uint32_t height,
+                                                                                      uint32_t depth,
+                                                                                      core::graphics::PixelInternalFormat internalFormat,
+                                                                                      uint32_t numLevels) const
+{
+    if (width * height * depth == 0u)
+        LOG_CRITICAL << "Width, height and depth can't be 0";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        LOG_CRITICAL << "Undefined pixel internal format";
+
+    auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec3(width, height, depth)));
+    if (numLevels == 0u)
+        numLevels = numMipmapLevels;
+    numLevels = glm::min(numLevels, numMipmapLevels);
+
+    auto result = std::make_shared<Texture3D_4_5>(width, height, depth, internalFormat, numLevels);
+    result->setWrapMode(core::graphics::TextureWrapMode::Repeat);
+    result->setFilterMode(numLevels > 1u ? core::graphics::TextureFilterMode::Trilinear : core::graphics::TextureFilterMode::Linear);
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture3D(const std::vector<std::shared_ptr<utils::Image>> &images,
+                                                                                 core::graphics::PixelInternalFormat internalFormat,
+                                                                                 uint32_t numLevels,
+                                                                                 bool genMipmaps) const
+{
+    if (images.empty())
+        LOG_CRITICAL << "Images count of 3D texture can't be 0";
+
+    for (const auto &image : images)
+        if (!image)
+            LOG_CRITICAL << "Image can't be nullptr";
+
+    auto width = images[0u]->width();
+    auto height = images[0u]->height();
+    auto numComponents = images[0u]->numComponents();
+    auto type = images[0u]->type();
+
+    for (const auto &image : images)
+        if ((width != image->width()) ||
+            (height != image->height()) ||
+            (numComponents != image->numComponents()) ||
+            (type != image->type()))
+            LOG_CRITICAL << "All the layers of 3D teture must be the the same size, components count and component pixel type";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
+
+    auto result = createTexture3DEmpty(width, height, static_cast<uint32_t>(images.size()), internalFormat, numLevels);
+    for (uint32_t layer = 0; layer < static_cast<uint32_t>(images.size()); ++layer)
+        result->setSubImage(0u, glm::uvec3(0u, 0u, layer), glm::uvec3(width, height, 1u), numComponents, type, images[layer]->data());
+
+    if (genMipmaps)
+        result->generateMipmaps();
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTextureCubeEmpty(uint32_t width,
+                                                                                        uint32_t height,
+                                                                                        core::graphics::PixelInternalFormat internalFormat,
+                                                                                        uint32_t numLevels) const
+{
+    if (width * height == 0u)
+        LOG_CRITICAL << "Width and height can't be 0";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        LOG_CRITICAL << "Undefined pixel internal format";
+
+    auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec2(width, height)));
+    if (numLevels == 0u)
+        numLevels = numMipmapLevels;
+    numLevels = glm::min(numLevels, numMipmapLevels);
+
+    auto result = std::make_shared<TextureCube_4_5>(width, height, internalFormat, numLevels);
+    result->setFilterMode(numLevels > 1u ? core::graphics::TextureFilterMode::Trilinear : core::graphics::TextureFilterMode::Linear);
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTextureCube(const std::vector<std::shared_ptr<utils::Image>> &images,
+                                                                                   core::graphics::PixelInternalFormat internalFormat,
+                                                                                   uint32_t numLevels,
+                                                                                   bool genMipmaps) const
+{
+    if (images.size() != 6u)
+        LOG_CRITICAL << "Images count of cubemap texture must be 6";
+
+    for (const auto &image : images)
+        if (!image)
+            LOG_CRITICAL << "Image can't be nullptr";
+
+    auto width = images[0u]->width();
+    auto height = images[0u]->height();
+    auto numComponents = images[0u]->numComponents();
+    auto type = images[0u]->type();
+
+    for (const auto &image : images)
+        if ((width != image->width()) ||
+            (height != image->height()) ||
+            (numComponents != image->numComponents()) ||
+            (type != image->type()))
+            LOG_CRITICAL << "All the faces of cubemap must be the the same size, components count and component pixel type";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
+
+    auto result = createTextureCubeEmpty(width, height, internalFormat, numLevels);
+    for (uint32_t face = 0; face < static_cast<uint32_t>(images.size()); ++face)
+        result->setSubImage(0u, glm::uvec3(0u, 0u, face), glm::uvec3(width, height, 1u), numComponents, type, images[face]->data());
+
+    if (genMipmaps)
+        result->generateMipmaps();
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture1DArrayEmpty(uint32_t width,
+                                                                                           uint32_t numLayers,
+                                                                                           core::graphics::PixelInternalFormat internalFormat,
+                                                                                           uint32_t numLevels) const
+{
+    if (width * numLayers == 0u)
+        LOG_CRITICAL << "Width and layers count of 1D array texture can't be 0";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        LOG_CRITICAL << "Undefined pixel internal format";
+
+    auto numMipmapLevels = static_cast<uint32_t>(glm::levels(width));
+    if (numLevels == 0u)
+        numLevels = numMipmapLevels;
+    numLevels = glm::min(numLevels, numMipmapLevels);
+
+    auto result = std::make_shared<Texture1DArray_4_5>(width, numLayers, internalFormat, numLevels);
+    result->setWrapMode(core::graphics::TextureWrapMode::Repeat);
+    result->setFilterMode(numLevels > 1u ? core::graphics::TextureFilterMode::Trilinear : core::graphics::TextureFilterMode::Linear);
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture1DArray(const std::vector<std::shared_ptr<utils::Image>> &images,
+                                                                                      core::graphics::PixelInternalFormat internalFormat,
+                                                                                      uint32_t numLevels,
+                                                                                      bool genMipmaps) const
+{
+    if (images.empty())
+        LOG_CRITICAL << "Layers count of 1D texture array can't be 0";
+
+    for (const auto &image : images)
+        if (!image)
+            LOG_CRITICAL << "Image can't be nullptr";
+
+    auto width = images[0u]->width();
+    auto numComponents = images[0u]->numComponents();
+    auto type = images[0u]->type();
+
+    for (const auto &image : images)
+        if ((width != image->width()) ||
+            (numComponents != image->numComponents()) ||
+            (type != image->type()))
+            LOG_CRITICAL << "All the layers of 1D texture array must be the the same size, components count and component pixel type";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
+
+    auto result = createTexture1DArrayEmpty(width, static_cast<uint32_t>(images.size()), internalFormat, numLevels);
+    for (uint32_t layer = 0u; layer < static_cast<uint32_t>(images.size()); ++layer)
+        result->setSubImage(0u, glm::uvec3(0u, layer, 0u), glm::uvec3(width, 1u, 0u), numComponents, type, images[layer]->data());
+
+    if (genMipmaps)
+        result->generateMipmaps();
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture2DArrayEmpty(uint32_t width,
+                                                                                           uint32_t height,
+                                                                                           uint32_t numLayers,
+                                                                                           core::graphics::PixelInternalFormat internalFormat,
+                                                                                           uint32_t numLevels) const
+{
+    if (width * height * numLayers == 0u)
+        LOG_CRITICAL << "Width, height and layers count of 2D array texture can't be 0";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        LOG_CRITICAL << "Undefined pixel internal format";
+
+    auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec2(width, height)));
+    if (numLevels == 0u)
+        numLevels = numMipmapLevels;
+    numLevels = glm::min(numLevels, numMipmapLevels);
+
+    auto result = std::make_shared<Texture2DArray_4_5>(width, height, numLayers, internalFormat, numLevels);
+    result->setWrapMode(core::graphics::TextureWrapMode::Repeat);
+    result->setFilterMode(numLevels > 1u ? core::graphics::TextureFilterMode::Trilinear : core::graphics::TextureFilterMode::Linear);
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTexture2DArray(const std::vector<std::shared_ptr<utils::Image>> &images,
+                                                                                      core::graphics::PixelInternalFormat internalFormat,
+                                                                                      uint32_t numLevels,
+                                                                                      bool genMipmaps) const
+{
+    if (images.empty())
+        LOG_CRITICAL << "Layers count of 2D texture array can't be 0";
+
+    for (const auto &image : images)
+        if (!image)
+            LOG_CRITICAL << "Image can't be nullptr";
+
+    auto width = images[0u]->width();
+    auto height = images[0u]->height();
+    auto numComponents = images[0u]->numComponents();
+    auto type = images[0u]->type();
+
+    for (const auto &image : images)
+        if ((width != image->width()) ||
+            (height != image->height()) ||
+            (numComponents != image->numComponents()) ||
+            (type != image->type()))
+            LOG_CRITICAL << "All the layers of 2D texture array must be the the same size, components count and component pixel type";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
+
+    auto result = createTexture2DArrayEmpty(width, height, static_cast<uint32_t>(images.size()), internalFormat, numLevels);
+    for (uint32_t layer = 0u; layer < static_cast<uint32_t>(images.size()); ++layer)
+        result->setSubImage(0u, glm::uvec3(0u, 0u, layer), glm::uvec3(width, height, 1u), numComponents, type, images[layer]->data());
+
+    if (genMipmaps)
+        result->generateMipmaps();
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTextureCubeArrayEmpty(uint32_t width,
+                                                                                             uint32_t height,
+                                                                                             uint32_t numLayers,
+                                                                                             core::graphics::PixelInternalFormat internalFormat,
+                                                                                             uint32_t numLevels) const
+{
+    if (width * height * numLayers == 0u)
+        LOG_CRITICAL << "Width, height and layers count of cubemap array texture can't be 0";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        LOG_CRITICAL << "Undefined pixel internal format";
+
+    auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec2(width, height)));
+    if (numLevels == 0u)
+        numLevels = numMipmapLevels;
+    numLevels = glm::min(numLevels, numMipmapLevels);
+
+    auto result = std::make_shared<TextureCubeArray_4_5>(width, height, numLayers, internalFormat, numLevels);
+    result->setFilterMode(numLevels > 1u ? core::graphics::TextureFilterMode::Trilinear : core::graphics::TextureFilterMode::Linear);
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTextureCubeArray(const std::vector<std::vector<std::shared_ptr<utils::Image>>> &images,
+                                                                                        core::graphics::PixelInternalFormat internalFormat,
+                                                                                        uint32_t numLevels,
+                                                                                        bool genMipmaps) const
+{
+    if (images.empty())
+        LOG_CRITICAL << "Layers count of cubemap texture array can't be 0";
+
+    for (const auto &layerImages : images)
+    {
+        if (layerImages.size() != 6u)
+            LOG_CRITICAL << "Images count of cubemap texture array must be 6";
+        for (const auto &image : layerImages)
+            if (!image)
+                LOG_CRITICAL << "Image can't be nullptr";
+    }
+
+    auto width = images[0u][0u]->width();
+    auto height = images[0u][0u]->height();
+    auto numComponents = images[0u][0u]->numComponents();
+    auto type = images[0u][0u]->type();
+
+    for (const auto &layerImages : images)
+        for (const auto &image : layerImages)
+            if ((width != image->width()) ||
+                (height != image->height()) ||
+                (numComponents != image->numComponents()) ||
+                (type != image->type()))
+                LOG_CRITICAL << "All the layers of cubemap texture array must be the the same size, components count and component pixel type";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
+
+    auto result = createTextureCubeArrayEmpty(width, height, static_cast<uint32_t>(images.size()), internalFormat, numLevels);
+    for (uint32_t layer = 0u; layer < static_cast<uint32_t>(images.size()); ++layer)
+        for (uint32_t face = 0; face < static_cast<uint32_t>(images.size()); ++face)
+            result->setSubImage(0u, glm::uvec3(0u, 0u, 6u * layer + face), glm::uvec3(width, height, 1u), numComponents, type, images[layer][face]->data());
 
     if (genMipmaps)
         result->generateMipmaps();
@@ -1924,12 +2676,27 @@ std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTextureRe
 
     auto result = std::make_shared<TextureRect_4_5>(width, height, internalFormat);
     result->setWrapMode(core::graphics::TextureWrapMode::ClampToEdge);
-    result->setFiltering(core::graphics::TextureFiltering::Point);
+    result->setFilterMode(core::graphics::TextureFilterMode::Point);
 
     return result;
 }
 
-std::shared_ptr<core::graphics::IImage> QtOpenGL_4_5_Renderer::createImage(std::shared_ptr<core::graphics::ITexture> texture,
+std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTextureRect(const std::shared_ptr<utils::Image> &image,
+                                                                                   core::graphics::PixelInternalFormat internalFormat) const
+{
+    if (!image)
+        LOG_CRITICAL << "Image can't be nullptr";
+
+    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+        internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(image->numComponents(), image->type());
+
+    auto result = createTextureRectEmpty(image->width(), image->height(), internalFormat);
+    result->setSubImage(0u, glm::uvec3(0u), glm::uvec3(image->width(), image->height(), 0u), image->numComponents(), image->type(), image->data());
+
+    return result;
+}
+
+std::shared_ptr<core::graphics::IImage> QtOpenGL_4_5_Renderer::createImage(const std::shared_ptr<core::graphics::ITexture> &texture,
                                                                            core::graphics::IImage::DataAccess access,
                                                                            uint32_t level) const
 {
@@ -2017,9 +2784,9 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
                                    const core::RenderInfo &renderInfo,
                                    const glm::uvec4 &viewport)
 {
-    if (renderInfo.faceCulling())
+    if (frameBuffer->faceCulling())
     {
-        glCullFace(Conversions::faceType2GL(renderInfo.cullFaceType()));
+        glCullFace(Conversions::faceType2GL(frameBuffer->cullFaceType()));
         glEnable(GL_CULL_FACE);
     }
     else
@@ -2027,25 +2794,39 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
 
     for (uint16_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
     {
-        GLboolean mask = renderInfo.colorMask(i);
+        GLboolean mask = frameBuffer->colorMask(i);
         glColorMaski(i, mask, mask, mask, mask);
     }
 
-    if (renderInfo.depthTest())
+    if (frameBuffer->depthTest())
     {
         glEnable(GL_DEPTH_TEST);
-        glDepthFunc(Conversions::depthFunc2GL(renderInfo.depthFunc()));
-        glDepthMask(renderInfo.depthMask());
+        glDepthFunc(Conversions::comparingFunc2GL(frameBuffer->depthFunc()));
+        glDepthMask(frameBuffer->depthMask());
     }
     else
         glDisable(GL_DEPTH_TEST);
 
-//    if (renderInfo.stencilTest())
-//    {
-//        glEnable(GL_STENCIL_TEST);
-//    }
-//    else
-//        glDisable(GL_STENCIL_TEST);
+    if (frameBuffer->stencilTest())
+    {
+        glEnable(GL_STENCIL_TEST);
+        for (const auto &face : {core::graphics::FaceType::Front, core::graphics::FaceType::Back})
+        {
+            const auto &operations = frameBuffer->stencilOperations(face);
+
+            glStencilOpSeparate(Conversions::faceType2GL(face),
+                                Conversions::stencilOperation2GL(operations[0]),
+                                Conversions::stencilOperation2GL(operations[1]),
+                                Conversions::stencilOperation2GL(operations[2]));
+
+            glStencilFuncSeparate(Conversions::faceType2GL(face),
+                                  Conversions::comparingFunc2GL(frameBuffer->stencilComparingFunc(face)),
+                                  frameBuffer->stencilReferenceValue(face),
+                                  frameBuffer->stencilMaskValue(face));
+        }
+    }
+    else
+        glDisable(GL_STENCIL_TEST);
 
     auto frameBuffer_4_5 = std::dynamic_pointer_cast<FrameBufferBase_4_5>(frameBuffer);
     if (!frameBuffer_4_5)
@@ -2073,7 +2854,7 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
             LOG_CRITICAL << "Render program can't be nullptr";
         glUseProgram(renderProgram_4_5->id());
         setupVertexAttributes(renderProgram_4_5, vao_4_5);
-        setupUniforms(renderProgram_4_5, drawable, renderInfo, std::get<0>(renderData));
+        setupUniforms(renderProgram_4_5, drawable, renderInfo, glm::uvec2(viewport.z, viewport.w), std::get<0>(renderData));
         setupSSBOs(renderProgram_4_5, drawable, renderInfo);
 
         for (auto &primitiveSet : vao_4_5->primitiveSets())
@@ -2105,7 +2886,7 @@ void QtOpenGL_4_5_Renderer::compute(const std::shared_ptr<core::graphics::ICompu
     if (!computeProgram_4_5)
         LOG_CRITICAL << "Compute program can't be nullptr";
     glUseProgram(computeProgram_4_5->id());
-    setupUniforms(computeProgram_4_5, nullptr, renderInfo, glm::mat4x4(1.0f));
+    setupUniforms(computeProgram_4_5, nullptr, renderInfo, glm::uvec2(0u), glm::mat4x4(1.0f));
     setupSSBOs(computeProgram_4_5, nullptr, renderInfo);
 
     auto numWorkGroups = glm::uvec3(glm::ceil(glm::vec3(numInvocations) / glm::vec3(computeProgram->workGroupSize())) + glm::vec3(.5f));
@@ -2207,6 +2988,7 @@ QtOpenGL_4_5_Renderer::QtOpenGL_4_5_Renderer(QOpenGLContext *context, GLuint def
 
     makeDefaultFrameBuffer(defaultFbo);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
     LOG_INFO << "GraphicsRenderer \"" << QtOpenGL_4_5_Renderer::name() << "\" has been created";
 }
@@ -2424,6 +3206,7 @@ void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
 void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5> &program,
                                           const std::shared_ptr<const core::Drawable> &drawable,
                                           const core::RenderInfo &renderInfo,
+                                          const glm::vec2 &viewportSize,
                                           const glm::mat4 &modelMatrix)
 {
     auto programId = program->id();
@@ -2436,6 +3219,9 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
 
         switch (uniformInfo.id)
         {
+        case core::graphics::UniformId::ViewportSize:
+            uniform = core::makeUniform(viewportSize);
+            break;
         case core::graphics::UniformId::ModelMatrix:
             uniform = core::makeUniform(modelMatrix);
             break;
@@ -2470,16 +3256,16 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
             uniform = core::makeUniform(renderInfo.viewProjectionMatrixUniform()->data() * modelMatrix);
             break;
         case core::graphics::UniformId::ModelPosition:
-            uniform = core::makeUniform(modelMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f));
+            uniform = core::makeUniform(glm::vec3(modelMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f)));
             break;
         case core::graphics::UniformId::ModelXDirection:
-            uniform = core::makeUniform(glm::normalize(modelMatrix * glm::vec4(1.f, 0.f, 0.f, 0.f)));
+            uniform = core::makeUniform(glm::normalize(glm::vec3(modelMatrix * glm::vec4(1.f, 0.f, 0.f, 0.f))));
             break;
         case core::graphics::UniformId::ModelYDirection:
-            uniform = core::makeUniform(glm::normalize(modelMatrix * glm::vec4(0.f, 1.f, 0.f, 0.f)));
+            uniform = core::makeUniform(glm::normalize(glm::vec3(modelMatrix * glm::vec4(0.f, 1.f, 0.f, 0.f))));
             break;
         case core::graphics::UniformId::ModelZDirection:
-            uniform = core::makeUniform(glm::normalize(modelMatrix * glm::vec4(0.f, 0.f, 1.f, 0.f)));
+            uniform = core::makeUniform(glm::normalize(glm::vec3(modelMatrix * glm::vec4(0.f, 0.f, 1.f, 0.f))));
             break;
         case core::graphics::UniformId::ViewPosition:
             uniform = renderInfo.viewPositionUniform();
@@ -2493,14 +3279,17 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
         case core::graphics::UniformId::ViewZDirection:
             uniform = renderInfo.viewZDirectionUniform();
             break;
+        case core::graphics::UniformId::CameraDepthStencilMap:
+            uniform = renderInfo.cameraDepthStencilTextureUniform();
+            break;
+        case core::graphics::UniformId::BRDFLutMap:
+            uniform = renderInfo.BRDFLutlTextureUniform();
+            break;
         case core::graphics::UniformId::GBufferColor0Map:
-            uniform = renderInfo.gBufferColor0MapUniform();
+            uniform = renderInfo.GBufferColor0TextureUniform();
             break;
         case core::graphics::UniformId::GBufferColor1Map:
-            uniform = renderInfo.gBufferColor1MapUniform();
-            break;
-        case core::graphics::UniformId::GBufferDepthMap:
-            uniform = renderInfo.gBufferDepthMapUniform();
+            uniform = renderInfo.GBufferColor1TextureUniform();
             break;
         case core::graphics::UniformId::OITIndicesImage:
             uniform = renderInfo.OITIndicesImageUniform();

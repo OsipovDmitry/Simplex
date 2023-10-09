@@ -9,7 +9,7 @@ glm::vec4 StandardDrawablePrivate::s_defaultBaseColor = glm::vec4(1.f);
 float StandardDrawablePrivate::s_defaultMetalness = 1.f;
 float StandardDrawablePrivate::s_defaultRoughness = 1.f;
 
-StandardDrawablePrivate::StandardDrawablePrivate(std::shared_ptr<graphics::IVertexArray> vao)
+StandardDrawablePrivate::StandardDrawablePrivate(const std::shared_ptr<graphics::IVertexArray> &vao)
     : DrawablePrivate(vao)
 {
 }

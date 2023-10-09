@@ -16,7 +16,6 @@ namespace utils
 {
 
 ENUMCLASS(VertexComponentType, uint16_t,
-          Undefined,
           Single,
           Double,
           Int32,

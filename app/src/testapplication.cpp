@@ -13,6 +13,7 @@
 #include <core/pointlightnode.h>
 #include <core/spotlightnode.h>
 #include <core/directionallightnode.h>
+#include <core/ibllightnode.h>
 #include <core/drawablenode.h>
 #include <core/igraphicsrenderer.h>
 #include <core/standarddrawable.h>
@@ -50,21 +51,24 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
     auto planeDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(planePainter.drawPlane().mesh()));
     planeDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/brick/bc.jpg"));
     planeDrawable->setNormalMap(texturesManager->loadOrGetTexture("D:/res/textures/brick/n.jpg"));
+    planeDrawable->setMetalness(0.0f);
+    planeDrawable->setRoughness(0.2f);
 
     utils::MeshPainter teapotPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
                                                                    {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
                                                                    {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
                                                                 }));
     auto teapotDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(teapotPainter.drawTeapot().mesh()));
-    teapotDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.2f));
-    teapotDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass0.jpg"));
+    //teapotDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass0.jpg"));
+    teapotDrawable->setMetalness(0.0f);
+    teapotDrawable->setRoughness(1.0f);
 
     utils::MeshPainter boxPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
                                                                 {utils::VertexAttribute::Normal, {3u, utils::VertexComponentType::Single}},
                                                                 {utils::VertexAttribute::TexCoords, {2u, utils::VertexComponentType::Single}}
                                                                 }));
     auto boxDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(boxPainter.drawCube(glm::vec3(0.6f, 1.0f, 0.1f)).mesh()));
-    boxDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.3f));
+    //boxDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.3f));
     boxDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass1.jpg"));
 
     utils::MeshPainter tetraPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
@@ -73,7 +77,7 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
                                                                 }));
     tetraPainter.setVertexTransform(utils::Transform::fromScale(0.8f));
     auto tetraDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(tetraPainter.drawTetrahedron().mesh()));
-    tetraDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.3f));
+    //tetraDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.3f));
     tetraDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass2.jpg"));
 
     utils::MeshPainter spherePainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
@@ -82,7 +86,7 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
                                                                 }));
     spherePainter.setVertexTransform(utils::Transform::fromScale(0.4f));
     auto sphereDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(spherePainter.drawSphere(16).mesh()));
-    sphereDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.4f));
+    //sphereDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.4f));
     sphereDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass3.jpg"));
 
     utils::MeshPainter suzannePainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
@@ -91,7 +95,7 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
                                                                 }));
     suzannePainter.setVertexTransform(utils::Transform::fromScale(0.8f));
     auto suzanneDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(suzannePainter.drawSuzanne().mesh()));
-    suzanneDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.4f));
+    //suzanneDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.4f));
     suzanneDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass4.jpg"));
 
     utils::MeshPainter bunnyPainter(utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}},
@@ -100,7 +104,7 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
                                                                 }));
     bunnyPainter.setVertexTransform(utils::Transform::fromScale(0.8f));
     auto bunnyDrawable = std::make_shared<core::StandardDrawable>(graphicsRenderer->createVertexArray(bunnyPainter.drawBunny().mesh()));
-    bunnyDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.4f));
+    //bunnyDrawable->setBaseColor(glm::vec4(glm::vec3(1.f), 0.4f));
     bunnyDrawable->setBaseColorMap(texturesManager->loadOrGetTexture("D:/res/textures/glass2.jpg"));
 
     auto scene0 = graphicsEngineInstance->addNewScene(SceneName);
@@ -117,13 +121,17 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
 //    scene0->sceneRootNode()->attach(pointLight);
 
 //    auto dirLight = std::make_shared<core::DirectionalLightNode>("");
+//    dirLight->setTransform(utils::Transform::fromRotation(glm::quat(0.888179f, -0.260215f, 0.363439f, 0.106479f)));
 //    scene0->sceneRootNode()->attach(dirLight);
 
-    auto spotLight = std::make_shared<core::SpotLightNode>("");
-    spotLight->setRadiuses(glm::vec2(2.f, 7.f));
-    spotLight->setHalfAngles(glm::vec2(glm::pi<float>() / 8, glm::pi<float>() / 6));
-    spotLight->setTransform(utils::Transform(1.f, glm::quat(0.888179f, -0.260215f, 0.363439f, 0.106479f), glm::vec3(2.78139, 2.08128, 2.13792)));
-    scene0->sceneRootNode()->attach(spotLight);
+//    auto spotLight = std::make_shared<core::SpotLightNode>("");
+//    spotLight->setRadiuses(glm::vec2(2.f, 7.f));
+//    spotLight->setHalfAngles(glm::vec2(glm::pi<float>() / 8, glm::pi<float>() / 6));
+//    spotLight->setTransform(utils::Transform(1.f, glm::quat(0.888179f, -0.260215f, 0.363439f, 0.106479f), glm::vec3(2.78139, 2.08128, 2.13792)));
+//    scene0->sceneRootNode()->attach(spotLight);
+
+    auto iblLight = std::make_shared<core::IBLLightNode>("");
+    scene0->sceneRootNode()->attach(iblLight);
 
     auto planeDrawableNode = std::make_shared<core::DrawableNode>("");
     planeDrawableNode->addDrawable(planeDrawable);
@@ -137,31 +145,31 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
     boxDrawableNode->setTransform(utils::Transform::fromTranslation(glm::vec3(0.2f, 0.5f, 0.42f)) *
                                   utils::Transform::fromRotation(glm::quat(glm::vec3(-0.4f, 0.3f, 0.0f))));
     boxDrawableNode->addDrawable(boxDrawable);
-    scene0->sceneRootNode()->attach(boxDrawableNode);
+    //scene0->sceneRootNode()->attach(boxDrawableNode);
 
     auto tetraDrawableNode = std::make_shared<core::DrawableNode>("");
     tetraDrawableNode->setTransform(utils::Transform::fromTranslation(glm::vec3(-0.6f, 0.21f, -1.0f)));
     tetraDrawableNode->addDrawable(tetraDrawable);
-    scene0->sceneRootNode()->attach(tetraDrawableNode);
+    //scene0->sceneRootNode()->attach(tetraDrawableNode);
 
     auto sphereDrawableNode = std::make_shared<core::DrawableNode>("");
     sphereDrawableNode->setTransform(utils::Transform::fromTranslation(glm::vec3(1.4f, 0.4f, -1.f)));
     sphereDrawableNode->addDrawable(sphereDrawable);
-    scene0->sceneRootNode()->attach(sphereDrawableNode);
+    //scene0->sceneRootNode()->attach(sphereDrawableNode);
 
     auto suzanneDrawableNode = std::make_shared<core::DrawableNode>("");
     suzanneDrawableNode->setTransform(utils::Transform::fromTranslation(glm::vec3(0.3f, 0.25f, -1.8f)) *
                                       utils::Transform::fromRotation(glm::quat(glm::vec3(-0.7f, 0.5f, 0.0f))));
     suzanneDrawableNode->addDrawable(suzanneDrawable);
-    scene0->sceneRootNode()->attach(suzanneDrawableNode);
+    //scene0->sceneRootNode()->attach(suzanneDrawableNode);
 
     auto bunnyDrawableNode = std::make_shared<core::DrawableNode>("");
     bunnyDrawableNode->setTransform(utils::Transform::fromTranslation(glm::vec3(1.3f, 0.01f, 1.0f)) *
                                       utils::Transform::fromRotation(glm::quat(glm::vec3(0.0f, -0.5f, 0.0f))));
     bunnyDrawableNode->addDrawable(bunnyDrawable);
-    scene0->sceneRootNode()->attach(bunnyDrawableNode);
+    //scene0->sceneRootNode()->attach(bunnyDrawableNode);
 
-    //scene0->sceneRootNode()->setTransform(utils::Transform(50.f));
+    //scene0->sceneRootNode()->setTransform(utils::Transform::fromRotation(glm::quat(glm::vec3(0.0f, 1.57f, 0.0f))));
 }
 
 std::shared_ptr<core::GraphicsEngine> TestApplication::graphicsEngine()

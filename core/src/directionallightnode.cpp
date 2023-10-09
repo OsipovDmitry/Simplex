@@ -5,7 +5,7 @@
 #include <core/scene.h>
 #include <core/scenerootnode.h>
 #include <core/directionallightnode.h>
-#include <core/drawable.h>
+#include <core/lightdrawable.h>
 
 #include "directionallightnodeprivate.h"
 
@@ -18,14 +18,24 @@ DirectionalLightNode::DirectionalLightNode(const std::string &name)
     : LightNode(std::make_unique<DirectionalLightNodePrivate>(name))
 {
     if (DirectionalLightNodePrivate::lightAreaVertexArray().expired())
-        LOG_CRITICAL << "Point light area vertex array is expired";
+        LOG_CRITICAL << "Directional light area vertex array is expired";
 
-    auto drawable = std::make_shared<Drawable>(DirectionalLightNodePrivate::lightAreaVertexArray().lock());
+    auto drawable = std::make_shared<LightDrawable>(DirectionalLightNodePrivate::lightAreaVertexArray().lock(), LightDrawableType::Directional);
     drawable->getOrCreateUniform(graphics::UniformId::LightColor) = makeUniform(glm::vec3(1.f));
     m().areaDrawable() = drawable;
 }
 
 DirectionalLightNode::~DirectionalLightNode() = default;
+
+std::shared_ptr<DirectionalLightNode> DirectionalLightNode::asDirectionalLightNode()
+{
+    return std::dynamic_pointer_cast<DirectionalLightNode>(shared_from_this());
+}
+
+std::shared_ptr<const DirectionalLightNode> DirectionalLightNode::asDirectionalLightNode() const
+{
+    return std::dynamic_pointer_cast<const DirectionalLightNode>(shared_from_this());
+}
 
 const glm::vec3 &DirectionalLightNode::color() const
 {
@@ -54,7 +64,9 @@ glm::mat4x4 DirectionalLightNode::doAreaMatrix() const
         return result;
 
     auto sceneBoundingBox = sceneRootNode->globalTransform() * sceneRootNode->boundingBox();
-    result = globalTransform().inverted() * glm::scale(glm::mat4x4(1.f), sceneBoundingBox.halfSize());
+    result = globalTransform().inverted() *
+            glm::translate(glm::mat4x4(1.f), sceneBoundingBox.center()) *
+            glm::scale(glm::mat4x4(1.f), sceneBoundingBox.halfSize());
 
     return result;
 }
