@@ -56,7 +56,7 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetTexture(const std:
         return it->second;
     }
 
-    auto absoluteFilename = std::filesystem::absolute(filename);
+    const auto absoluteFilename = std::filesystem::absolute(filename);
     std::shared_ptr<graphics::ITexture> texture;
 
     if (utils::fileExtension(absoluteFilename) == L".json")
@@ -84,7 +84,7 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetTexture(const std:
     }
 
     if (!texture)
-        LOG_CRITICAL << "Load texture " << absoluteFilename << " has been failed";
+        LOG_CRITICAL << "Failed to load texture " << absoluteFilename;
 
     m_->resources()[name] = texture;
     return texture;

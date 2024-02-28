@@ -4,6 +4,8 @@
 #include <utils/logger.h>
 #include <utils/textfile.h>
 
+#define DEBUG_PRINT_SHADER 1
+
 namespace simplex
 {
 namespace utils
@@ -97,8 +99,9 @@ std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filena
 
     result->m_data.insert(0, versionString + " " + s_version + "\n\n");
 
-//    LOG_INFO << filename;
-//    LOG_INFO << result->m_data;
+#if DEBUG_PRINT_SHADER
+    TextFile::loadFromData(result->m_data)->saveToFile(std::filesystem::path(filename.filename()));
+#endif
 
     return result;
 }

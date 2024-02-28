@@ -13,18 +13,53 @@ namespace simplex
 namespace core
 {
 
-// NodeUpdateVisitor
+// UpdateNodeVisitor
 
-class NodeUpdateVisitor : public NodeVisitor
+class UpdateNodeVisitor : public NodeVisitor
 {
 public:
-    NodeUpdateVisitor(uint64_t, uint32_t);
+    UpdateNodeVisitor(uint64_t, uint32_t);
 
     bool visit(const std::shared_ptr<Node>&) override;
 
 private:
     uint64_t m_time;
     uint32_t m_dt;
+};
+
+// BeforeTransformChangedNodeVisitor
+
+class BeforeTransformChangedNodeVisitor : public NodeVisitor
+{
+public:
+    BeforeTransformChangedNodeVisitor();
+
+    bool visit(const std::shared_ptr<Node>&) override;
+};
+
+// AfterTransformChangedNodeVisitor
+
+class AfterTransformChangedNodeVisitor : public NodeVisitor
+{
+public:
+    AfterTransformChangedNodeVisitor();
+
+    bool visit(const std::shared_ptr<Node>&) override;
+};
+
+// FindRootNodeVisitor
+
+class FindRootNodeVisitor : public NodeVisitor
+{
+public:
+    FindRootNodeVisitor();
+
+    bool visit(const std::shared_ptr<Node>&) override;
+
+    const std::shared_ptr<Node> &rootNode();
+
+protected:
+    std::shared_ptr<Node> m_rootNode;
 };
 
 // FrustumCullingNodeCollector
@@ -41,12 +76,12 @@ protected:
     utils::Frustum m_transformedFrustum;
 };
 
-// DrawableNodeCollector
+// DrawableNodesCollector
 
-class DrawableNodeCollector : public FrustumCullingNodeVisitor
+class DrawableNodesCollector : public FrustumCullingNodeVisitor
 {
 public:
-    DrawableNodeCollector(const utils::Frustum&);
+    DrawableNodesCollector(const utils::Frustum&);
 
     bool visit(const std::shared_ptr<Node>&) override;
 
@@ -57,6 +92,24 @@ protected:
     std::deque<std::shared_ptr<DrawableNode>> m_drawableNodes;
 };
 
+// LightNodesCollector
+
+class LightNodesCollector : public FrustumCullingNodeVisitor
+{
+public:
+    LightNodesCollector(const utils::Frustum&);
+
+    bool visit(const std::shared_ptr<Node>&) override;
+
+    const std::deque<std::shared_ptr<LightNode>> &lightNodes() const;
+    std::deque<std::shared_ptr<LightNode>> &lightNodes();
+
+protected:
+    std::deque<std::shared_ptr<LightNode>> m_lightNodes;
+};
+
+
+
 // ZNearFarNodeVisitor
 
 class ZNearFarNodeVisitor : public FrustumCullingNodeVisitor
@@ -66,11 +119,11 @@ public:
 
     bool visit(const std::shared_ptr<Node>&) override;
 
-    const std::array<float, 2u> &zNearFar() const;
+    const utils::Range &zNearFar() const;
     bool isEmpty() const;
 
 protected:
-    std::array<float, 2u> m_zNearFar;
+    utils::Range m_zNearFar;
 };
 
 // DirtyGlobalTransformNodeVisitor
@@ -88,9 +141,13 @@ public:
 class DirtyBoundingBoxNodeVisitor : public NodeVisitor
 {
 public:
-    DirtyBoundingBoxNodeVisitor();
+    DirtyBoundingBoxNodeVisitor(const std::unordered_set<BoundingBoxPolicy>&);
 
     bool visit(const std::shared_ptr<Node>&) override;
+
+protected:
+    std::unordered_set<BoundingBoxPolicy> m_policies;
+
 };
 
 

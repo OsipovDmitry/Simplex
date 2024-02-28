@@ -6,10 +6,10 @@
 #include <core/graphicsengine.h>
 #include <core/scene.h>
 #include <core/scenerootnode.h>
-#include <core/drawable.h>
-#include <core/uniform.h>
+#include <core/backgrounddrawable.h>
 
 #include "sceneprivate.h"
+#include "backgrounddrawableprivate.h"
 
 namespace simplex
 {
@@ -45,46 +45,23 @@ std::shared_ptr<SceneRootNode> Scene::sceneRootNode()
     return m_->sceneRootNode();
 }
 
-graphics::PConstTexture Scene::backgroundTexture() const
+std::shared_ptr<const BackgroundDrawable> Scene::backgroundDrawable() const
 {
-    return uniform_cast<graphics::PConstTexture>(m_->backgroundScreenQuadDrawable()->uniform(graphics::UniformId::BackgroundColorMap))->data();
+    return const_cast<Scene*>(this)->backgroundDrawable();
 }
 
-void Scene::setBackgroundTexture(const graphics::PConstTexture &value)
+std::shared_ptr<BackgroundDrawable> Scene::backgroundDrawable()
 {
-    uniform_cast<graphics::PConstTexture>(m_->backgroundScreenQuadDrawable()->uniform(graphics::UniformId::BackgroundColorMap))->data() = value;
-}
-
-float Scene::backgroundRoughness() const
-{
-    return uniform_cast<float>(m_->backgroundScreenQuadDrawable()->uniform(graphics::UniformId::Roughness))->data();
-}
-
-void Scene::setBackgroundRoughness(float value)
-{
-    uniform_cast<float>(m_->backgroundScreenQuadDrawable()->uniform(graphics::UniformId::Roughness))->data() = value;
+    return m_->backgroundDrawable();
 }
 
 Scene::Scene(const std::weak_ptr<GraphicsEngine> &graphicsEngine, const std::string &name)
     : m_(std::make_unique<ScenePrivate>(graphicsEngine, name, std::shared_ptr<SceneRootNode>(new SceneRootNode(SceneRootNodeName))))
 {
-    static const std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, utils::VertexComponentType>> s_screenDrawableVertexDeclaration {
-        {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}} };
+    if (BackgroundDrawablePrivate::screenQuadVertexArray().expired())
+        LOG_CRITICAL << "Background screen quad vertex array is expired";
 
-    if (graphicsEngine.expired())
-        LOG_CRITICAL << "Graphics engine is expired";
-
-    if (ScenePrivate::defaultBacgroundTexture().expired())
-        LOG_CRITICAL << "Background default texture is expired";
-
-    auto screeQuadVertexArray = graphicsEngine.lock()->graphicsRenderer()->createVertexArray(
-                utils::MeshPainter(utils::Mesh::createEmptyMesh(s_screenDrawableVertexDeclaration)).drawScreenQuad().mesh());
-
-    m_->backgroundScreenQuadDrawable() = std::make_shared<Drawable>(screeQuadVertexArray);
-    m_->backgroundScreenQuadDrawable()->getOrCreateUniform(graphics::UniformId::BackgroundColorMap) = makeUniform(
-                ScenePrivate::defaultBacgroundTexture().lock());
-    m_->backgroundScreenQuadDrawable()->getOrCreateUniform(graphics::UniformId::Roughness) = makeUniform(.8f);
-
+    m_->backgroundDrawable() = std::make_shared<BackgroundDrawable>(BackgroundDrawablePrivate::screenQuadVertexArray().lock());
 }
 
 

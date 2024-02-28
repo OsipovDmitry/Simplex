@@ -32,11 +32,8 @@ public:
     std::shared_ptr<const SceneRootNode> sceneRootNode() const;
     std::shared_ptr<SceneRootNode> sceneRootNode();
 
-    graphics::PConstTexture backgroundTexture() const;
-    void setBackgroundTexture(const graphics::PConstTexture&);
-
-    float backgroundRoughness() const;
-    void setBackgroundRoughness(float);
+    std::shared_ptr<const BackgroundDrawable> backgroundDrawable() const;
+    std::shared_ptr<BackgroundDrawable> backgroundDrawable();
 
 private:
     Scene(const std::weak_ptr<GraphicsEngine>&, const std::string&);

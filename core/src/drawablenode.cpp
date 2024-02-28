@@ -2,7 +2,6 @@
 #include <core/drawable.h>
 
 #include "drawablenodeprivate.h"
-#include "nodevisitorhelpers.h"
 
 namespace simplex
 {
@@ -56,8 +55,8 @@ const utils::BoundingBox &DrawableNode::localBoundingBox() const
     if (mPrivate.isLocalBoundingBoxDirty())
     {
         utils::BoundingBox bb;
-        for (auto &drawable : mPrivate.drawables())
-            bb += drawable->calculateBoundingBox();
+        for (const auto &drawable : mPrivate.drawables())
+            bb += drawable->boundingBox();
 
         mPrivate.localBoundingBox() = bb;
         mPrivate.isLocalBoundingBoxDirty() = false;
@@ -68,9 +67,7 @@ const utils::BoundingBox &DrawableNode::localBoundingBox() const
 void DrawableNode::recalculateLocalBoundingBox()
 {
     m().isLocalBoundingBoxDirty() = true;
-
-    DirtyBoundingBoxNodeVisitor dirtyBoundingBoxNodeVisitor;
-    acceptUp(dirtyBoundingBoxNodeVisitor);
+    dirtyBoundingBox();
 }
 
 }

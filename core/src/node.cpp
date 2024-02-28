@@ -1,3 +1,5 @@
+#include <utils/logger.h>
+
 #include <core/nodevisitor.h>
 #include <core/node.h>
 #include <core/scenerootnode.h>
@@ -15,13 +17,23 @@ Node::Node(const std::string &name)
 {
 }
 
-Node::~Node()
-{
-}
+Node::~Node() = default;
 
 const std::string &Node::name() const
 {
     return m_->name();
+}
+
+std::shared_ptr<const Node> Node::rootNode() const
+{
+    return const_cast<Node*>(this)->rootNode();
+}
+
+std::shared_ptr<Node> Node::rootNode()
+{
+    FindRootNodeVisitor findRootNodeVisitor;
+    acceptUp(findRootNodeVisitor);
+    return findRootNodeVisitor.rootNode();
 }
 
 std::shared_ptr<const Scene> Node::scene() const
@@ -29,42 +41,11 @@ std::shared_ptr<const Scene> Node::scene() const
     return const_cast<Node*>(this)->scene();
 }
 
-//class FindSceneNodeVisitor : public NodeVisitor
-//{
-//public:
-//    FindSceneNodeVisitor()
-//    {}
-//    ~FindSceneNodeVisitor() override = default;
-
-//    bool visit(std::shared_ptr<Node> node) override
-//    {
-//        if (auto sceneRootNode = node->asSceneRootNode(); sceneRootNode)
-//            m_scene = sceneRootNode->scene();
-//        return true;
-//    }
-
-//    const std::shared_ptr<Scene> &scene()
-//    {
-//        return m_scene;
-//    }
-
-//private:
-//    std::shared_ptr<Scene> m_scene;
-//};
-
 std::shared_ptr<Scene> Node::scene()
 {
-//    FindSceneNodeVisitor findSceneNodeVisitor;
-//    acceptUp(findSceneNodeVisitor);
-//    return findSceneNodeVisitor.scene();
-
-    auto p = asNode();
-    for (auto parentNode = p->parent(); parentNode; parentNode = parentNode->parent())
-        p = parentNode;
-
-    std::shared_ptr<Scene> result = nullptr;
-    if (auto sceneRootNode = p->asSceneRootNode(); sceneRootNode)
-        result = sceneRootNode->scene();
+    std::shared_ptr<Scene> result;
+    if (auto sceneNode = rootNode()->asSceneRootNode(); sceneNode)
+        result = sceneNode->scene();
 
     return result;
 }
@@ -123,11 +104,14 @@ const utils::Transform &Node::globalTransform() const
 {
     if (m_->isGlobalTransformDirty())
     {
-        m_->globalTransform() = m_->transform();
+        utils::Transform t = m_->transform();
         if (auto parentNode = parent(); parentNode)
-            m_->globalTransform() = parentNode->globalTransform() * m_->globalTransform();
+            t = parentNode->globalTransform() * t;
+
+        m_->globalTransform() = t;
         m_->isGlobalTransformDirty() = false;
     }
+
     return m_->globalTransform();
 }
 
@@ -138,35 +122,99 @@ const utils::Transform &Node::transform() const
 
 void Node::setTransform(const utils::Transform &t)
 {
+    BeforeTransformChangedNodeVisitor beforeTransformChangedNodeVisitor;
+    acceptDown(beforeTransformChangedNodeVisitor);
+
     m_->transform() = t;
 
-    DirtyGlobalTransformNodeVisitor dirtyGlobalTransformNodeVisitor;
-    acceptDown(dirtyGlobalTransformNodeVisitor);
+    dirtyGlobalTransform();
+    dirtyBoundingBox();
 
-    DirtyBoundingBoxNodeVisitor dirtyBoundingBoxNodeVisitor;
-    acceptUp(dirtyBoundingBoxNodeVisitor);
+    AfterTransformChangedNodeVisitor afterTransformChangedNodeVisitor;
+    acceptDown(afterTransformChangedNodeVisitor);
 }
 
 const utils::BoundingBox &Node::boundingBox() const
 {
+    static const auto calculateBoundingBox = [](const std::shared_ptr<const Node> &node)
+    {
+        static const auto calculateStandardBoundingBoxImpl = [](const auto& impl,
+                                                                const std::shared_ptr<const Node> &node) -> const utils::BoundingBox&
+        {
+            utils::BoundingBox bb;
+
+            if (node->boundingBoxPolicy() == BoundingBoxPolicy::Standard)
+                bb += node->doBoundingBox();
+
+            for (const auto &child : node->children())
+                bb += child->transform() * impl(impl, child);
+
+            if (auto sceneRootNode = node->asSceneRootNode(); sceneRootNode)
+                bb = utils::Transform::fromScale(1.05f) * bb;
+
+            auto &nodePrivate = node->m();
+            nodePrivate.boundingBox() = bb;
+            nodePrivate.isBoundingBoxDirty() = false;
+
+            return nodePrivate.boundingBox();
+        };
+
+        static const auto calculateRootBoundingBoxImpl = [](const auto& impl,
+                                                            const std::shared_ptr<const Node> &node,
+                                                            const std::shared_ptr<const Node> &rootNode) -> void
+        {
+            if (node->boundingBoxPolicy() == BoundingBoxPolicy::Root)
+            {
+                const auto rootNode2NodeTransform = rootNode->globalTransform() * node->globalTransform().inverted();
+                node->m().boundingBox() = rootNode2NodeTransform * rootNode->m().boundingBox();
+            }
+
+            for (const auto &child : node->children())
+                impl(impl, child, rootNode);
+        };
+
+        calculateStandardBoundingBoxImpl(calculateStandardBoundingBoxImpl, node);
+        calculateRootBoundingBoxImpl(calculateRootBoundingBoxImpl, node, node);
+    };
+
     if (m_->isBoundingBoxDirty())
     {
-        auto bb = const_cast<Node*>(this)->doBoundingBox();
-        for (auto &child : children())
-            bb += child->transform() * child->boundingBox();
+        std::shared_ptr<const Node> targetNode;
+        switch (m_->boundingBoxPolicy())
+        {
+        case BoundingBoxPolicy::Standard:
+            targetNode = asNode();
+            break;
+        case BoundingBoxPolicy::Root:
+            targetNode = rootNode();
+            break;
+        default:
+            LOG_CRITICAL << "Undefined bounding box policy";
+            break;
+        }
 
-        m_->boundingBox() = bb;
-        m_->isBoundingBoxDirty() = false;
+        calculateBoundingBox(targetNode);
     }
 
     return m_->boundingBox();
+}
+
+BoundingBoxPolicy Node::boundingBoxPolicy() const
+{
+    return m_->boundingBoxPolicy();
+}
+
+void Node::setBoundingBoxPolicy(BoundingBoxPolicy value)
+{
+    m_->boundingBoxPolicy() = value;
+    dirtyBoundingBox();
 }
 
 void Node::acceptUp(NodeVisitor &nodeVisitor)
 {
     if (nodeVisitor.visit(asNode()))
         if (auto p = parent(); p)
-            p->acceptDown(nodeVisitor);
+            p->acceptUp(nodeVisitor);
 }
 
 void Node::acceptDown(NodeVisitor &nodeVisitor)
@@ -187,14 +235,10 @@ utils::BoundingBox Node::doBoundingBox() const
 
 void Node::doBeforeTransformChanged()
 {
-    for (const auto &child : children())
-        child->doBeforeTransformChanged();
 }
 
 void Node::doAfterTransformChanged()
 {
-    for (const auto &child : children())
-        child->doAfterTransformChanged();
 }
 
 Node::Node(std::unique_ptr<NodePrivate> nodePrivate)
@@ -204,26 +248,29 @@ Node::Node(std::unique_ptr<NodePrivate> nodePrivate)
 
 void Node::doAttach()
 {
-    DirtyGlobalTransformNodeVisitor dirtyGlobalTransformNodeVisitor;
-    acceptDown(dirtyGlobalTransformNodeVisitor);
-
-    if (auto p = parent(); p)
-    {
-        DirtyBoundingBoxNodeVisitor dirtyBoundingBoxNodeVisitor;
-        p->acceptUp(dirtyBoundingBoxNodeVisitor);
-    }
+    dirtyGlobalTransform();
+    dirtyBoundingBox();
 }
 
 void Node::doDetach()
 {
+    dirtyGlobalTransform();
+    dirtyBoundingBox();
+}
+
+void Node::dirtyGlobalTransform()
+{
     DirtyGlobalTransformNodeVisitor dirtyGlobalTransformNodeVisitor;
     acceptDown(dirtyGlobalTransformNodeVisitor);
+}
 
-    if (auto p = parent(); p)
-    {
-        DirtyBoundingBoxNodeVisitor dirtyBoundingBoxNodeVisitor;
-        p->acceptUp(dirtyBoundingBoxNodeVisitor);
-    }
+void Node::dirtyBoundingBox()
+{
+    DirtyBoundingBoxNodeVisitor dirtyStandardBoundingBoxNodeVisitor({BoundingBoxPolicy::Standard});
+    acceptUp(dirtyStandardBoundingBoxNodeVisitor);
+
+    DirtyBoundingBoxNodeVisitor dirtyRootBoundingBoxNodeVisitor({BoundingBoxPolicy::Root});
+    acceptDown(dirtyRootBoundingBoxNodeVisitor);
 }
 
 }

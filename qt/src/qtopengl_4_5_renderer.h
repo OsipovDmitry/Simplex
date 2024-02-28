@@ -26,16 +26,20 @@ public:
     static GLenum PixelNumComponents2GL(uint32_t);
     static GLenum PixelComponentType2GL(utils::PixelComponentType);
     static GLenum FrameBufferAttachment2GL(core::graphics::FrameBufferAttachment);
+    static GLenum TextureType2GL(core::graphics::TextureType);
     static GLenum TextureWrapMode2GL(core::graphics::TextureWrapMode);
+    static GLenum TextureSwizzle2GL(core::graphics::TextureSwizzle);
     static GLbitfield BufferMapAccess2GL(core::graphics::IBuffer::MapAccess);
     static GLenum ImageDataAccess2GL(core::graphics::IImage::DataAccess);
     static uint16_t GL2VertexNumComponents(GLenum); // for shader vertex attribute
     static utils::VertexComponentType GL2VertexComponentType(GLenum); // for shader vertex attribute
     static GLenum UniformType2GL(core::graphics::UniformType);
     static core::graphics::UniformType GL2UniformType(GLenum);
-    static GLenum faceType2GL(core::graphics::FaceType);
-    static GLenum comparingFunc2GL(core::graphics::ComparingFunc);
-    static GLenum stencilOperation2GL(core::graphics::StencilOperation);
+    static GLenum FaceType2GL(core::graphics::FaceType);
+    static GLenum ComparingFunc2GL(core::graphics::ComparingFunc);
+    static GLenum StencilOperation2GL(core::graphics::StencilOperation);
+    static GLenum BlendEquetion2GL(core::graphics::BlendEquation);
+    static GLenum BlendFactor2GL(core::graphics::BlendFactor);
 };
 
 class Buffer_4_5 : public core::graphics::IBuffer, public std::enable_shared_from_this<Buffer_4_5>
@@ -144,6 +148,7 @@ public:
     ~TextureBase_4_5() override;
 
     GLuint id() const;
+    GLenum GLinternalFormat() const;
 
     glm::uvec2 size() const override;
     core::graphics::PixelInternalFormat internalFormat() const override;
@@ -156,11 +161,10 @@ public:
     void setBorderColor(const glm::vec4&) override;
     void setWrapMode(core::graphics::TextureWrapMode) override;
     void setFilterMode(core::graphics::TextureFilterMode) override;
-
-    GLenum GLinternalFormat() const;
+    void setSwizzleMask(const core::graphics::TextureSwizzleMask&) override;
 
 protected:
-    GLuint m_id = 0;
+    GLuint m_id;
 };
 
 class Texture1D_4_5 : public TextureBase_4_5
@@ -375,8 +379,8 @@ public:
     core::graphics::FaceType cullFaceType() const override;
     void setFaceCulling(bool, core::graphics::FaceType = core::graphics::FaceType::Back) override;
 
-    bool colorMask(uint16_t) const override;
-    void setColorMask(uint16_t, bool) override;
+    bool colorMask(uint32_t) const override;
+    void setColorMask(uint32_t, bool) override;
     void setColorMasks(bool) override;
 
     bool depthTest() const override;
@@ -393,6 +397,25 @@ public:
     void setStencilFunc(core::graphics::FaceType, core::graphics::ComparingFunc, uint8_t ref, uint8_t mask) override;
     const core::graphics::StencilOperations &stencilOperations(core::graphics::FaceType) const override;
     void setStencilOperations(core::graphics::FaceType, const core::graphics::StencilOperations&) override;
+
+    bool blending() const override;
+    void setBlending(bool) override;
+    core::graphics::BlendEquation blendColorEquation(uint32_t) override;
+    core::graphics::BlendEquation blendAlphaEquation(uint32_t) override;
+    void setBlendEquation(uint32_t, core::graphics::BlendEquation, core::graphics::BlendEquation) override;
+    core::graphics::BlendFactor blendColorSourceFactor(uint32_t) override;
+    core::graphics::BlendFactor blendAlphaSourceFactor(uint32_t) override;
+    core::graphics::BlendFactor blendColorDestinationFactor(uint32_t) override;
+    core::graphics::BlendFactor blendAlphaDestinationFactor(uint32_t) override;
+    void setBlendFactor(uint32_t,
+                        core::graphics::BlendFactor,
+                        core::graphics::BlendFactor,
+                        core::graphics::BlendFactor,
+                        core::graphics::BlendFactor) override;
+    glm::vec3 blendConstantColor() const override;
+    void setBlendConstantColor(const glm::vec3&) override;
+    float blendConstantAlpha() const override;
+    void setBlendConstantAlpha(float) override;
 
 protected:
     GLuint m_id;
@@ -418,6 +441,13 @@ protected:
     uint8_t m_stencilMaskFrontFace, m_stencilMaskBackFace;
     core::graphics::StencilOperations m_stencilOperationsFrontFace, m_stencilOperationsBackFace;
     bool m_stencilTest;
+
+    std::array<core::graphics::BlendEquation, core::graphics::FrameBufferColorAttachmentsCount()> m_blendColorEquation, m_blendAlphaEquation;
+    std::array<core::graphics::BlendFactor, core::graphics::FrameBufferColorAttachmentsCount()> m_blendColorSourceFactor, m_blendAlphaSourceFactor;
+    std::array<core::graphics::BlendFactor, core::graphics::FrameBufferColorAttachmentsCount()> m_blendColorDestFactor, m_blendAlphaDestFactor;
+    glm::vec3 m_blendConstColor;
+    float m_blendConstAlpha;
+    bool m_blending;
 };
 
 class FrameBuffer_4_5 : public FrameBufferBase_4_5

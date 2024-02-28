@@ -15,13 +15,19 @@ public:
     ~IBLLightNodePrivate() override;
 
     static std::weak_ptr<graphics::IVertexArray> &lightAreaVertexArray();
-    static std::weak_ptr<const graphics::ITexture> &defaultDiffuseTexture();
-    static std::weak_ptr<const graphics::ITexture> &defaultSpecularTexture();
+    static utils::BoundingBox &lightAreaBoundingBox();
+    static std::weak_ptr<const graphics::ITexture> &defaultBRDFLutMap();
+    static std::weak_ptr<const graphics::ITexture> &defaultDiffuseMap();
+    static std::weak_ptr<const graphics::ITexture> &defaultSpecularMap();
+    static float &defaultContribution();
 
 private:
     static std::weak_ptr<graphics::IVertexArray> s_lightAreaVertexArray;
-    static std::weak_ptr<const graphics::ITexture> s_defaultDiffuseTexture;
-    static std::weak_ptr<const graphics::ITexture> s_defaultSpecularTexture;
+    static utils::BoundingBox s_lightAreaBoundingBox;
+    static std::weak_ptr<const graphics::ITexture> s_defaultBRDFLutMap;
+    static std::weak_ptr<const graphics::ITexture> s_defaultDiffuseMap;
+    static std::weak_ptr<const graphics::ITexture> s_defaultSpecularMap;
+    static float s_defaultContribution;
 
 };
 

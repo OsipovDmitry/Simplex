@@ -18,11 +18,13 @@ RenderInfo::RenderInfo()
     setViewMatrix(glm::mat4x4(1.f));
     setProjectionMatrix(glm::mat4x4(1.f));
 
-    setCameraDepthStencilTexture(nullptr);
-    setGBufferTextures(nullptr, nullptr);
+    setGBufferTextures(nullptr, nullptr, nullptr, nullptr);
     setOITNodesBuffer(nullptr);
     setOITNodesCounter(nullptr);
+    setOITDepthImage(nullptr);
     setOITIndicesImage(nullptr);
+    setLightBufferColorTexture(nullptr);
+    setFinalBufferColorTexture(nullptr);
 }
 
 RenderInfo::~RenderInfo() = default;
@@ -100,26 +102,6 @@ const PUniform<glm::mat4x4> &RenderInfo::viewProjectionMatrixInverseUniform() co
     return m_->viewProjectionMatrixInverseUniform();
 }
 
-const PUniform<graphics::PConstTexture> &RenderInfo::cameraDepthStencilTextureUniform() const
-{
-    return m_->cameraDepthStencilTextureUniform();
-}
-
-void RenderInfo::setCameraDepthStencilTexture(const graphics::PConstTexture &value)
-{
-    m_->cameraDepthStencilTextureUniform() = makeUniform(value);
-}
-
-const PUniform<graphics::PConstTexture> &RenderInfo::BRDFLutlTextureUniform() const
-{
-    return m_->BRDFLutTextureUniform();
-}
-
-void RenderInfo::setBRDFLutTexture(const graphics::PConstTexture &value)
-{
-    m_->BRDFLutTextureUniform() = makeUniform(value);
-}
-
 const PUniform<graphics::PConstTexture> &RenderInfo::GBufferColor0TextureUniform() const
 {
     return m_->GBufferColor0TextureUniform();
@@ -130,10 +112,25 @@ const PUniform<graphics::PConstTexture> &RenderInfo::GBufferColor1TextureUniform
     return m_->GBufferColor1TextureUniform();
 }
 
-void RenderInfo::setGBufferTextures(const graphics::PConstTexture &color0Map, const graphics::PConstTexture &color1Map)
+const PUniform<graphics::PConstTexture> &RenderInfo::GBufferColor2TextureUniform() const
+{
+    return m_->GBufferColor2TextureUniform();
+}
+
+const PUniform<graphics::PConstTexture> &RenderInfo::GBufferDepthTextureUniform() const
+{
+    return m_->GBufferDepthTextureUniform();
+}
+
+void RenderInfo::setGBufferTextures(const graphics::PConstTexture &color0Map,
+                                    const graphics::PConstTexture &color1Map,
+                                    const graphics::PConstTexture &color2Map,
+                                    const graphics::PConstTexture &depthMap)
 {
     m_->GBufferColor0TextureUniform() = makeUniform(color0Map);
     m_->GBufferColor1TextureUniform() = makeUniform(color1Map);
+    m_->GBufferColor2TextureUniform() = makeUniform(color2Map);
+    m_->GBufferDepthTextureUniform() = makeUniform(depthMap);
 }
 
 const graphics::PConstBufferRange &RenderInfo::OITNodesBuffer() const
@@ -156,6 +153,16 @@ void RenderInfo::setOITNodesCounter(const graphics::PConstBufferRange &value)
     m_->OITNodesCounterUniform() = makeUniform(value);
 }
 
+const PUniform<graphics::PConstImage> &RenderInfo::OITDepthImageUniform() const
+{
+    return m_->OITDepthImageUniform();
+}
+
+void RenderInfo::setOITDepthImage(const graphics::PConstImage &value)
+{
+    m_->OITDepthImageUniform() = makeUniform(value);
+}
+
 const PUniform<graphics::PConstImage> &RenderInfo::OITIndicesImageUniform() const
 {
     return m_->OITIndicesImageUniform();
@@ -164,6 +171,26 @@ const PUniform<graphics::PConstImage> &RenderInfo::OITIndicesImageUniform() cons
 void RenderInfo::setOITIndicesImage(const graphics::PConstImage &value)
 {
     m_->OITIndicesImageUniform() = makeUniform(value);
+}
+
+const PUniform<graphics::PConstTexture> &RenderInfo::lightBufferColorTextureUniform() const
+{
+    return m_->lightBufferColorTextureUniform();
+}
+
+void RenderInfo::setLightBufferColorTexture(const graphics::PConstTexture &value)
+{
+    m_->lightBufferColorTextureUniform() = makeUniform(value);
+}
+
+const PUniform<graphics::PConstTexture> &RenderInfo::finalBufferColorTextureUniform() const
+{
+    return m_->finalBufferColorTextureUniform();
+}
+
+void RenderInfo::setFinalBufferColorTexture(const graphics::PConstTexture &value)
+{
+    m_->finalBufferColorTextureUniform() = makeUniform(value);
 }
 
 }

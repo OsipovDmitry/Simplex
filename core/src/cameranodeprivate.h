@@ -2,8 +2,7 @@
 #define CORE_CAMERANODEPRIVATE_H
 
 #include <utils/clipspace.h>
-
-#include <core/forwarddecl.h>
+#include <utils/range.h>
 
 #include "nodeprivate.h"
 #include "framebufferhelpers.h"
@@ -23,22 +22,24 @@ public:
     bool &isRenderingEnabled();
 
     glm::uvec2 &viewportSize();
-    glm::vec2 &cullPlanesLimits();
-    graphics::PConstTexture &sharedDepthStencilTexture();
+    utils::Range &cullPlanesLimits();
     std::shared_ptr<GFrameBuffer> &gFrameBuffer();
     std::shared_ptr<OITFrameBuffer> &oitFrameBuffer();
+    std::shared_ptr<LightFrameBuffer> &lightFrameBuffer();
     std::shared_ptr<FinalFrameBuffer> &finalFrameBuffer();
+    std::shared_ptr<PostprocessFrameBuffer> &postprocessFrameBuffer();
 
 private:
     std::shared_ptr<utils::AbstractClipSpace> m_clipSpace;
     bool m_isRenderingEnabled;
 
     glm::uvec2 m_viewportSize;
-    glm::vec2 m_cullPlanesLimits;
-    graphics::PConstTexture m_sharedDepthStencilTexture;
+    utils::Range m_cullPlanesLimits;
     std::shared_ptr<GFrameBuffer> m_gFrameBuffer;
     std::shared_ptr<OITFrameBuffer> m_oitFrameBuffer;
+    std::shared_ptr<LightFrameBuffer> m_lightFrameBuffer;
     std::shared_ptr<FinalFrameBuffer> m_finalFrameBuffer;
+    std::shared_ptr<PostprocessFrameBuffer> m_postprocessFrameBuffer;
 };
 
 }

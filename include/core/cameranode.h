@@ -34,8 +34,8 @@ public:
     void resize(const glm::uvec2&);
     const glm::uvec2 &viewportSize() const;
 
-    const glm::vec2 &cullPlanesLimits() const;
-    void setCullPlanesLimits(const glm::vec2&);
+    const utils::Range &cullPlanesLimits() const;
+    void setCullPlanesLimits(const utils::Range&);
 
 protected:
     bool canAttach(std::shared_ptr<Node>) override;

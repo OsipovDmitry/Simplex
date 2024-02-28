@@ -24,6 +24,8 @@ public:
     std::shared_ptr<LightNode> asLightNode() override;
     std::shared_ptr<const LightNode> asLightNode() const override;
 
+    utils::BoundingBox doBoundingBox() const override;
+
     virtual std::shared_ptr<PointLightNode> asPointLightNode();
     virtual std::shared_ptr<const PointLightNode> asPointLightNode() const;
 
@@ -41,6 +43,9 @@ public:
 
     const glm::mat4x4 &areaMatrix() const;
     std::shared_ptr<const LightDrawable> areaDrawable() const;
+    const utils::BoundingBox &areaBoundingBox() const;
+
+    void recalculateAreaBoundingBox();
 
 protected:
     LightNode(std::unique_ptr<LightNodePrivate>);
@@ -49,6 +54,7 @@ protected:
     bool canDetach(std::shared_ptr<Node>) override;
 
     virtual glm::mat4x4 doAreaMatrix() const = 0;
+    virtual utils::BoundingBox doAreaBoundingBox() const = 0;
 };
 
 }

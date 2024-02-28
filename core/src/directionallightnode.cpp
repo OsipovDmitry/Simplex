@@ -20,9 +20,12 @@ DirectionalLightNode::DirectionalLightNode(const std::string &name)
     if (DirectionalLightNodePrivate::lightAreaVertexArray().expired())
         LOG_CRITICAL << "Directional light area vertex array is expired";
 
+    auto &mPrivate = m();
+    mPrivate.boundingBoxPolicy() = BoundingBoxPolicy::Root;
+
     auto drawable = std::make_shared<LightDrawable>(DirectionalLightNodePrivate::lightAreaVertexArray().lock(), LightDrawableType::Directional);
+    mPrivate.areaDrawable() = drawable;
     drawable->getOrCreateUniform(graphics::UniformId::LightColor) = makeUniform(glm::vec3(1.f));
-    m().areaDrawable() = drawable;
 }
 
 DirectionalLightNode::~DirectionalLightNode() = default;
@@ -49,6 +52,7 @@ void DirectionalLightNode::setColor(const glm::vec3 &value)
 
 void DirectionalLightNode::doAfterTransformChanged()
 {
+    recalculateAreaBoundingBox();
     m().isAreaMatrixDirty() = true;
 }
 
@@ -69,6 +73,11 @@ glm::mat4x4 DirectionalLightNode::doAreaMatrix() const
             glm::scale(glm::mat4x4(1.f), sceneBoundingBox.halfSize());
 
     return result;
+}
+
+utils::BoundingBox DirectionalLightNode::doAreaBoundingBox() const
+{
+    return utils::BoundingBox::empty(); // is is not used because bb policy is Root
 }
 
 }

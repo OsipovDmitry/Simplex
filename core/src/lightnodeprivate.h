@@ -23,12 +23,19 @@ public:
     bool &isAreaMatrixDirty();
     glm::mat4x4 &areaMatrix();
 
+    bool &isAreaBoundingBoxDirty();
+    utils::BoundingBox &areaBoundingBox();
+
 private:
     bool m_isLightingEnabled;
+
     std::shared_ptr<LightDrawable> m_areaDrawable;
+
     bool m_isAreaMatrixDirty;
     glm::mat4x4 m_areaMatrix;
 
+    bool m_isAreaBoundingBoxDirty;
+    utils::BoundingBox m_areaBoundingBox;
 };
 
 }

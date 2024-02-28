@@ -70,6 +70,14 @@ ENUMCLASS(TextureFilterMode, uint16_t,
           Bilinear,
           Trilinear)
 
+ENUMCLASS(TextureSwizzle, uint16_t,
+          Red,
+          Green,
+          Blue,
+          Alpha,
+          Zero,
+          One)
+
 ENUMCLASS(FrameBufferAttachment, uint16_t,
           Color0,
           Color1,
@@ -115,25 +123,37 @@ ENUMCLASS(UniformId, uint16_t,
           ViewXDirection,
           ViewYDirection,
           ViewZDirection,
-          CameraDepthStencilMap,
-          BRDFLutMap,
+          BackgroundColorMap,
+          BackgroundBaseColor,
+          BackgroundRoughness,
           GBufferColor0Map,
           GBufferColor1Map,
+          GBufferColor2Map,
+          GBufferDepthMap,
+          OITDepthImage,
           OITIndicesImage,
           OITNodesCounter,
+          LightBufferColorMap,
+          FinalBufferColorMap,
+          AlphaCutoff,
+          ORMSwizzleMask,
           BaseColor,
-          Metalness,
-          Roughness,
           BaseColorMap,
+          Metalness,
           MetalnessMap,
+          Roughness,
           RoughnessMap,
           NormalMap,
+          NormalMapScale,
+          OcclusionMap,
+          OcclusionMapStrength,
           LightColor,
           LightRadiuses,
-          LightHalfAngles,
+          LightCosHalfAngles,
+          IBLBRDFLutMap,
           IBLDiffuseMap,
           IBLSpecularMap,
-          BackgroundColorMap)
+          IBLContribution)
 
 ENUMCLASS(UniformType, uint16_t,
           Undefined,
@@ -207,18 +227,23 @@ struct SSBOInfo
 
 ENUMCLASS(PBRComponent, uint16_t,
           BaseColor,
-          Metalness,
-          Roughness,
           BaseColorMap,
+          Metalness,
           MetalnessMap,
+          Roughness,
           RoughnessMap,
-          NormalMap)
+          NormalMap,
+          NormalMapScale,
+          OcclusionMap,
+          OcclusionMapStrength)
 
 ENUMCLASS(LightComponent, uint16_t,
           None)
 
 ENUMCLASS(BackgroundComponent, uint16_t,
-          ColorMap)
+          ColorMap,
+          BaseColor,
+          Roughness)
 
 ENUMCLASS(FaceType, uint16_t,
           Front, Back, FrontAndBack)
@@ -228,6 +253,15 @@ ENUMCLASS(ComparingFunc, uint16_t,
 
 ENUMCLASS(StencilOperation, uint16_t,
           Keep, Zero, Replace, Increment, IncrementWrap, Decrement, DecrementWrap, Invert)
+
+ENUMCLASS(BlendEquation, uint16_t,
+          Add, Sub, InvSub, Min, Max)
+
+ENUMCLASS(BlendFactor, uint16_t,
+          Zero, One,
+          SrcColor, OneMinusSrcColor, DstColor, OneMinusDstColor,
+          SrcAlpha, OneMinusSrcAlpha, DstAlpha, OneMinusDstAlpha,
+          ConstColot, OneMinusConstColor, ConstAlpha, OneMinusConstAlpha)
 
 static constexpr FrameBufferAttachment FrameBufferColorAttachment(uint16_t i) {
     return castToFrameBufferAttachment(castFromFrameBufferAttachment(FrameBufferAttachment::Color0) + i);
@@ -337,6 +371,7 @@ public:
     virtual void setBorderColor(const glm::vec4&) = 0;
     virtual void setWrapMode(TextureWrapMode) = 0;
     virtual void setFilterMode(TextureFilterMode) = 0;
+    virtual void setSwizzleMask(const TextureSwizzleMask&) = 0;
 
 };
 
@@ -402,8 +437,8 @@ public:
     virtual FaceType cullFaceType() const = 0;
     virtual void setFaceCulling(bool, FaceType = FaceType::Back) = 0;
 
-    virtual bool colorMask(uint16_t) const = 0;
-    virtual void setColorMask(uint16_t, bool) = 0;
+    virtual bool colorMask(uint32_t) const = 0;
+    virtual void setColorMask(uint32_t, bool) = 0;
     virtual void setColorMasks(bool) = 0;
 
     virtual bool depthTest() const = 0;
@@ -420,6 +455,21 @@ public:
     virtual void setStencilFunc(FaceType, ComparingFunc, uint8_t ref, uint8_t mask) = 0;
     virtual const StencilOperations &stencilOperations(FaceType) const = 0;
     virtual void setStencilOperations(FaceType, const StencilOperations&) = 0;
+
+    virtual bool blending() const = 0;
+    virtual void setBlending(bool) = 0;
+    virtual BlendEquation blendColorEquation(uint32_t) = 0;
+    virtual BlendEquation blendAlphaEquation(uint32_t) = 0;
+    virtual void setBlendEquation(uint32_t, BlendEquation, BlendEquation) = 0;
+    virtual BlendFactor blendColorSourceFactor(uint32_t) = 0;
+    virtual BlendFactor blendAlphaSourceFactor(uint32_t) = 0;
+    virtual BlendFactor blendColorDestinationFactor(uint32_t) = 0;
+    virtual BlendFactor blendAlphaDestinationFactor(uint32_t) = 0;
+    virtual void setBlendFactor(uint32_t, BlendFactor srcColor, BlendFactor dstColor, BlendFactor srcAlpha, BlendFactor dstAlpha) = 0;
+    virtual glm::vec3 blendConstantColor() const = 0;
+    virtual void setBlendConstantColor(const glm::vec3&) = 0;
+    virtual float blendConstantAlpha() const = 0;
+    virtual void setBlendConstantAlpha(float) = 0;
 };
 
 class IProgram
@@ -704,25 +754,37 @@ inline UniformId IProgram::UniformIdByName(const std::string &name)
         { "u_viewXDirection", UniformId::ViewXDirection },
         { "u_viewYDirection", UniformId::ViewYDirection },
         { "u_viewZDirection", UniformId::ViewZDirection },
-        { "u_cameraDepthStencilMap", UniformId::CameraDepthStencilMap },
-        { "u_BRDFLutMap", UniformId::BRDFLutMap },
+        { "u_backgroundColorMap", UniformId::BackgroundColorMap },
+        { "u_backgroundBaseColor", UniformId::BackgroundBaseColor },
+        { "u_backgroundRoughness", UniformId::BackgroundRoughness },
         { "u_GBufferColor0Map", UniformId::GBufferColor0Map },
         { "u_GBufferColor1Map", UniformId::GBufferColor1Map },
+        { "u_GBufferColor2Map", UniformId::GBufferColor2Map },
+        { "u_GBufferDepthMap", UniformId::GBufferDepthMap },
+        { "u_OITDepthImage", UniformId::OITDepthImage },
         { "u_OITIndicesImage", UniformId::OITIndicesImage },
         { "ssbo_OITNodesCounter", UniformId::OITNodesCounter },
+        { "u_lightBufferColorMap", UniformId::LightBufferColorMap },
+        { "u_finalBufferColorMap", UniformId::FinalBufferColorMap },
+        { "u_alphaCutoff", UniformId::AlphaCutoff },
+        { "u_ORMSwizzleMask", UniformId::ORMSwizzleMask },
         { "u_baseColor", UniformId::BaseColor },
-        { "u_metalness", UniformId::Metalness },
-        { "u_roughness", UniformId::Roughness },
         { "u_baseColorMap", UniformId::BaseColorMap },
+        { "u_metalness", UniformId::Metalness },
         { "u_metalnessMap", UniformId::MetalnessMap },
+        { "u_roughness", UniformId::Roughness },
         { "u_roughnessMap", UniformId::RoughnessMap },
         { "u_normalMap", UniformId::NormalMap },
+        { "u_normalMapScale", UniformId::NormalMapScale },
+        { "u_occlusionMap", UniformId::OcclusionMap },
+        { "u_occlusionMapStrength", UniformId::OcclusionMapStrength },
         { "u_lightColor", UniformId::LightColor },
         { "u_lightRadiuses", UniformId::LightRadiuses },
-        { "u_lightHalfAngles", UniformId::LightHalfAngles },
+        { "u_lightCosHalfAngles", UniformId::LightCosHalfAngles },
+        { "u_IBLBRDFLutMap", UniformId::IBLBRDFLutMap },
         { "u_IBLDiffuseMap", UniformId::IBLDiffuseMap },
         { "u_IBLSpecularMap", UniformId::IBLSpecularMap },
-        { "u_backgroundColorMap", UniformId::BackgroundColorMap }
+        { "u_IBLContribution", UniformId::IBLContribution }
     };
 
     auto it = s_table.find(name);
@@ -744,12 +806,15 @@ inline UniformId IProgram::uniformIdByPBRComponent(PBRComponent value)
 {
     static const std::unordered_map<PBRComponent, UniformId> s_table {
         { PBRComponent::BaseColor, UniformId::BaseColor },
-        { PBRComponent::Metalness, UniformId::Metalness },
-        { PBRComponent::Roughness, UniformId::Roughness },
         { PBRComponent::BaseColorMap, UniformId::BaseColorMap },
+        { PBRComponent::Metalness, UniformId::Metalness },
         { PBRComponent::MetalnessMap, UniformId::MetalnessMap },
+        { PBRComponent::Roughness, UniformId::Roughness },
         { PBRComponent::RoughnessMap, UniformId::RoughnessMap },
         { PBRComponent::NormalMap, UniformId::NormalMap },
+        { PBRComponent::NormalMapScale, UniformId::NormalMapScale },
+        { PBRComponent::OcclusionMap, UniformId::OcclusionMap },
+        { PBRComponent::OcclusionMapStrength, UniformId::OcclusionMapStrength },
     };
 
     auto it = s_table.find(value);
@@ -760,6 +825,8 @@ inline UniformId IProgram::uniformIdByBackgroundComponent(BackgroundComponent va
 {
     static const std::unordered_map<BackgroundComponent, UniformId> s_table {
         { BackgroundComponent::ColorMap, UniformId::BackgroundColorMap },
+        { BackgroundComponent::BaseColor, UniformId::BackgroundBaseColor },
+        { BackgroundComponent::Roughness, UniformId::BackgroundRoughness },
     };
 
     auto it = s_table.find(value);

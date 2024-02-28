@@ -21,6 +21,7 @@ public:
     std::shared_ptr<SceneRootNode> asSceneRootNode() override;
     std::shared_ptr<const SceneRootNode> asSceneRootNode() const override;
 
+    std::shared_ptr<const Scene> scene() const;
     std::shared_ptr<Scene> scene();
 
 protected:

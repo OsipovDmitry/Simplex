@@ -3,11 +3,11 @@
 #include <utils/glm/gtc/matrix_inverse.hpp>
 #include <utils/glm/gtc/type_ptr.hpp>
 #include <utils/logger.h>
+#include <utils/transform.h>
 #include <utils/meshpainter.h>
 #include <utils/mesh.h>
-#include <utils/transform.h>
 
-#include "normal.h"
+#include "meshimpl.h"
 #include "triangledata.h"
 #include "planedata.h"
 #include "tetrahedrondata.h"
@@ -165,6 +165,50 @@ inline void orthogonalizeTangentSpaceImpl(uint32_t numVertices,
                               reinterpret_cast<V*>(result.data()));
 }
 
+template<typename V>
+inline BoundingBox calculateBoundingBoxImpl(const std::shared_ptr<DrawArrays> &drawArrays,
+                                            const VertexBuffer &vertices)
+{
+    return calculateBoundingBox<V>(drawArrays,
+                                   vertices.numComponents(),
+                                   reinterpret_cast<const V*>(vertices.data()));
+}
+
+template<typename V, typename I>
+inline BoundingBox calculateBoundingBoxImpl(const std::shared_ptr<DrawElements> &drawElements,
+                                            const VertexBuffer &vertices,
+                                            const Buffer &indices)
+{
+    return calculateBoundingBox<V, I>(drawElements,
+                                      vertices.numComponents(),
+                                      reinterpret_cast<const V*>(vertices.data()),
+                                      reinterpret_cast<const I*>(indices.data()));
+}
+
+template<typename V>
+inline BoundingBox calculateBoundingBoxImpl(const std::shared_ptr<DrawElementsBuffer> &drawElementsBuffer,
+                                            const VertexBuffer &vertices)
+{
+    BoundingBox result;
+    switch (drawElementsBuffer->type())
+    {
+    case DrawElementsIndexType::Uint8:
+        result = calculateBoundingBoxImpl<V, uint8_t>(drawElementsBuffer, vertices, *drawElementsBuffer);
+        break;
+    case DrawElementsIndexType::Uint16:
+        result = calculateBoundingBoxImpl<V, uint16_t>(drawElementsBuffer, vertices, *drawElementsBuffer);
+        break;
+    case DrawElementsIndexType::Uint32:
+        result = calculateBoundingBoxImpl<V, uint32_t>(drawElementsBuffer, vertices, *drawElementsBuffer);
+        break;
+    default:
+        LOG_ERROR << "Undefined draw elements buffer type";
+        break;
+    }
+
+    return result;
+}
+
 inline void setVertexToBuffer(std::shared_ptr<VertexBuffer> buffer, uint32_t idx, const glm::vec4 &v)
 {
     switch (buffer->componentType())
@@ -224,16 +268,16 @@ public:
 
     void calculateNormals()
     {
-        const auto &vertexBuffer = mesh->vertexBuffers();
+        const auto &vertexBuffers = mesh->vertexBuffers();
         const auto &primitiveSets = mesh->primitiveSets();
 
-        if (!vertexBuffer.count(VertexAttribute::Position))
+        if (!vertexBuffers.count(VertexAttribute::Position))
         {
             LOG_ERROR << "Mesh doesn't have Position vertex buffer";
             return;
         }
 
-        const auto& vertices = vertexBuffer.at(VertexAttribute::Position);
+        const auto& vertices = vertexBuffers.at(VertexAttribute::Position);
         const auto numVertices = vertices->numVertices();
         const auto vertexComponentType = vertices->componentType();
 
@@ -296,30 +340,30 @@ public:
 
     void calculateTangents()
     {
-        const auto &vertexBuffer = mesh->vertexBuffers();
+        const auto &vertexBuffers = mesh->vertexBuffers();
         const auto &primitiveSets = mesh->primitiveSets();
 
-        if (!vertexBuffer.count(VertexAttribute::Position))
+        if (!vertexBuffers.count(VertexAttribute::Position))
         {
             LOG_ERROR << "Mesh doesn't have Position vertex buffer";
             return;
         }
 
-        if (!vertexBuffer.count(VertexAttribute::TexCoords))
+        if (!vertexBuffers.count(VertexAttribute::TexCoords))
         {
             LOG_ERROR << "Mesh doesn't have TexCoords vertex buffer";
             return;
         }
 
-        if (!vertexBuffer.count(VertexAttribute::Normal))
+        if (!vertexBuffers.count(VertexAttribute::Normal))
         {
             LOG_ERROR << "Mesh doesn't have Normal vertex buffer";
             return;
         }
 
-        const auto& vertices = vertexBuffer.at(VertexAttribute::Position);
-        const auto& texCoords = vertexBuffer.at(VertexAttribute::TexCoords);
-        const auto& normals = vertexBuffer.at(VertexAttribute::Normal);
+        const auto& vertices = vertexBuffers.at(VertexAttribute::Position);
+        const auto& texCoords = vertexBuffers.at(VertexAttribute::TexCoords);
+        const auto& normals = vertexBuffers.at(VertexAttribute::Normal);
 
         const auto numVertices = vertices->numVertices();
         if (numVertices != texCoords->numVertices())
@@ -405,6 +449,62 @@ public:
             LOG_ERROR << "Vertex component type must be floating point";
             break;
         }
+    }
+
+    BoundingBox calculateBoundingBox() const
+    {
+        BoundingBox result;
+
+        const auto &vertexBuffers = mesh->vertexBuffers();
+        const auto &primitiveSets = mesh->primitiveSets();
+
+        if (!vertexBuffers.count(VertexAttribute::Position))
+        {
+            LOG_ERROR << "Mesh doesn't have Position vertex buffer";
+            return result;
+        }
+
+        const auto& vertices = vertexBuffers.at(VertexAttribute::Position);
+        const auto vertexComponentType = vertices->componentType();
+
+        for (const auto &primitiveSet : primitiveSets)
+        {
+            if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
+            {
+                switch (vertexComponentType)
+                {
+                case VertexComponentType::Single:
+                    result = calculateBoundingBoxImpl<float>(drawArrays, *vertices);
+                    break;
+                case VertexComponentType::Double:
+                    result = calculateBoundingBoxImpl<double>(drawArrays, *vertices);
+                    break;
+                default:
+                    LOG_ERROR << "Vertex component type must be floating point";
+                    break;
+                }
+            }
+            else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
+            {
+                if (auto drawElementsBuffer = drawElements->asDrawElementsBuffer(); drawElementsBuffer)
+                {
+                    switch (vertexComponentType)
+                    {
+                    case VertexComponentType::Single:
+                        result = calculateBoundingBoxImpl<float>(drawElementsBuffer, *vertices);
+                        break;
+                    case VertexComponentType::Double:
+                        result = calculateBoundingBoxImpl<double>(drawElementsBuffer, *vertices);
+                        break;
+                    default:
+                        LOG_ERROR << "Vertex component type must be floating point";
+                        break;
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 
     std::pair<uint32_t, uint32_t> addVertices(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices)
@@ -549,6 +649,11 @@ void AbstractPainter::drawElements(const std::unordered_map<VertexAttribute, con
         setIndexToBuffer(drawElemetsBuffer, i, indices[i]);
 
     m_->mesh->attachPrimitiveSet(drawElemetsBuffer);
+}
+
+BoundingBox AbstractPainter::calculateBoundingBox() const
+{
+    return m_->calculateBoundingBox();
 }
 
 MeshPainter::MeshPainter(std::shared_ptr<Mesh> mesh)

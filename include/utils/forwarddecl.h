@@ -47,6 +47,9 @@ class PerspectiveClipSpace;
 class SortedObject;
 struct SortedObjectComparator;
 
+template<typename T> struct RangeT;
+using Range = RangeT<float>;
+
 template<glm::length_t L, typename T> struct TransformT;
 using Transform = TransformT<3, float>;
 

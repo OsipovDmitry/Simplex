@@ -17,24 +17,30 @@ const std::string ProgramsManagerPrivate::s_opaqueGeometryPassRenderProgramName 
 const std::string ProgramsManagerPrivate::s_transparentGeometryPassRenderProgramName = "TransparentGeometryPass";
 const std::string ProgramsManagerPrivate::s_OITClearPassComputeProgramName = "OITClearPass";
 const std::string ProgramsManagerPrivate::s_OITSortNodesPassComputeProgramName = "OITSortNodesPass";
-const std::string ProgramsManagerPrivate::s_backgroundPassRenderProgramName = "BackgroundPass";
 const std::string ProgramsManagerPrivate::s_stencilPassRenderProgramName = "StencilPass";
 const std::string ProgramsManagerPrivate::s_lightPassRenderProgramName = "LightPass";
+const std::string ProgramsManagerPrivate::s_backgroundPassRenderProgramName = "BackgroundPass";
+const std::string ProgramsManagerPrivate::s_foregroundPassRenderProgramName = "ForegroundPass";
 const std::string ProgramsManagerPrivate::s_finalPassRenderProgramName = "FinalPass";
+const std::string ProgramsManagerPrivate::s_postprocessPassRenderProgramName = "PostprocessPass";
 
 const std::filesystem::path ProgramsManagerPrivate::s_geometryPassVertexShaderPath = "D:/res/shaders/deferred_geometry_pass.vert";
 const std::filesystem::path ProgramsManagerPrivate::s_opaqueGeometryPassFragmnetShaderPath = "D:/res/shaders/deferred_opaque_geometry_pass.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_transparentGeometryPassFragmnetShaderPath = "D:/res/shaders/deferred_transparent_geometry_pass.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_OITClearPassComputeShaderPath = "D:/res/shaders/oit_clear.comp";
 const std::filesystem::path ProgramsManagerPrivate::s_OITSortNodesPassComputeShaderPath = "D:/res/shaders/oit_sort.comp";
-const std::filesystem::path ProgramsManagerPrivate::s_backgroundPassVertexShaderPath = "D:/res/shaders/background.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_backgroundPassFragmnetShaderPath = "D:/res/shaders/background.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_stencilPassVertexShaderPath = "D:/res/shaders/deferred_stencil_pass.vert";
 const std::filesystem::path ProgramsManagerPrivate::s_stencilPassFragmnetShaderPath = "D:/res/shaders/deferred_stencil_pass.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_lightPassVertexShaderPath = "D:/res/shaders/deferred_light_pass.vert";
 const std::filesystem::path ProgramsManagerPrivate::s_lightPassFragmnetShaderPath = "D:/res/shaders/deferred_light_pass.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_backgroundPassVertexShaderPath = "D:/res/shaders/background.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_backgroundPassFragmnetShaderPath = "D:/res/shaders/background.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_foregroundPassVertexShaderPath = "D:/res/shaders/foreground.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_foregroundPassFragmnetShaderPath = "D:/res/shaders/foreground.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_finalPassVertexShaderPath = "D:/res/shaders/final.vert";
 const std::filesystem::path ProgramsManagerPrivate::s_finalPassFragmnetShaderPath = "D:/res/shaders/final.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_postprocessPassVertexShaderPath = "D:/res/shaders/postprocess.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_postprocessPassFragmnetShaderPath = "D:/res/shaders/postprocess.frag";
 
 ProgramsManagerPrivate::ProgramsManagerPrivate(std::shared_ptr<graphics::IRenderer> renderer)
     : m_renderer(renderer)
@@ -90,12 +96,15 @@ void ProgramsManagerPrivate::preparePBRComponentsDefines(const graphics::PBRComp
 {
     static const std::array<std::string, graphics::numElementsPBRComponent()> s_table {
         "HAS_BASE_COLOR",
-        "HAS_METALNESS",
-        "HAS_ROUGHNESS",
         "HAS_BASE_COLOR_MAP",
+        "HAS_METALNESS",
         "HAS_METALNESS_MAP",
+        "HAS_ROUGHNESS",
         "HAS_ROUGHNESS_MAP",
         "HAS_NORMAL_MAP",
+        "HAS_NORMAL_MAP_SCALE",
+        "HAS_OCCLUSION_MAP",
+        "HAS_OCCLUSION_MAP_STRENGTH",
     };
 
     for (uint16_t i = 0u; i < graphics::numElementsPBRComponent(); ++i)
@@ -115,22 +124,24 @@ uint16_t ProgramsManagerPrivate::preparePBRComponentsKey(const graphics::PBRComp
 void ProgramsManagerPrivate::prepareBackgroundComponentsDefines(const graphics::BackgroundComponentsSet &backgroundComponentsSet,
                                                                 utils::ShaderDefines &defines)
 {
-    static const std::array<std::string, graphics::numElementsBackgroundComponent()> s_table {
+    static const std::array<std::string, graphics::numElementsPBRComponent()> s_table {
         "HAS_BACKGROUND_COLOR_MAP",
+        "HAS_BACKGROUND_BASE_COLOR",
+        "HAS_BACKGROUND_ROUGHNESS",
     };
 
-    for (uint16_t i = 0; i < graphics::numElementsBackgroundComponent(); ++i)
+    for (uint16_t i = 0u; i < graphics::numElementsBackgroundComponent(); ++i)
         if (backgroundComponentsSet.count(graphics::castToBackgroundComponent(i)))
             defines.insert({s_table[i], ""});
 }
 
-uint16_t ProgramsManagerPrivate::prepareBackgrounfComponentsKey(const graphics::BackgroundComponentsSet &backgroundComponentsSet,
+uint16_t ProgramsManagerPrivate::prepareBackgroundComponentsKey(const graphics::BackgroundComponentsSet &backgroundComponentsSet,
                                                                 NameKey &nameKey,
                                                                 uint16_t firstKeyIndex)
 {
     for (uint16_t i = 0u; i < graphics::numElementsBackgroundComponent(); ++i)
         nameKey.set(firstKeyIndex + i, backgroundComponentsSet.count(graphics::castToBackgroundComponent(i)));
-    return firstKeyIndex + graphics::numElementsBackgroundComponent();
+    return firstKeyIndex + graphics::numElementsPBRComponent();
 }
 
 void ProgramsManagerPrivate::prepareLightComponentsDefines(const graphics::LightComponentsSet &lightComponentsSet,
@@ -197,7 +208,7 @@ void ProgramsManagerPrivate::prepareDefinesAndKeyForBackgroundPassRenderProgram(
 
     uint16_t bit = 0u;
     bit = prepareVertexAttributesKey(attribsSet, key, bit);
-    bit = prepareBackgrounfComponentsKey(backgroundComponentsSet, key, bit);
+    bit = prepareBackgroundComponentsKey(backgroundComponentsSet, key, bit);
 }
 
 void ProgramsManagerPrivate::prepareDefinesAndKeyForLightPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
@@ -235,11 +246,6 @@ const std::string &ProgramsManagerPrivate::OITSortNodesPassComputeProgramName()
     return s_OITSortNodesPassComputeProgramName;
 }
 
-const std::string &ProgramsManagerPrivate::backgroundPassRenderProgramName()
-{
-    return s_backgroundPassRenderProgramName;
-}
-
 const std::string &ProgramsManagerPrivate::stencilPassRenderProgramName()
 {
     return s_stencilPassRenderProgramName;
@@ -250,9 +256,24 @@ const std::string &ProgramsManagerPrivate::lightPassRenderProgramName()
     return s_lightPassRenderProgramName;
 }
 
+const std::string &ProgramsManagerPrivate::backgroundPassRenderProgramName()
+{
+    return s_backgroundPassRenderProgramName;
+}
+
+const std::string &ProgramsManagerPrivate::foregroundPassRenderProgramName()
+{
+    return s_foregroundPassRenderProgramName;
+}
+
 const std::string &ProgramsManagerPrivate::finalPassRenderProgramName()
 {
     return s_finalPassRenderProgramName;
+}
+
+const std::string &ProgramsManagerPrivate::postprocessPassRenderProgramName()
+{
+    return s_postprocessPassRenderProgramName;
 }
 
 const std::filesystem::path &ProgramsManagerPrivate::geometryPassVertexShaderPath()
@@ -280,16 +301,6 @@ const std::filesystem::path &ProgramsManagerPrivate::OITSortNodesPassComputeShad
     return s_OITSortNodesPassComputeShaderPath;
 }
 
-const std::filesystem::path &ProgramsManagerPrivate::backgroundPassVertexShaderPath()
-{
-    return s_backgroundPassVertexShaderPath;
-}
-
-const std::filesystem::path &ProgramsManagerPrivate::backgroundPassFragmnetShaderPath()
-{
-    return s_backgroundPassFragmnetShaderPath;
-}
-
 const std::filesystem::path &ProgramsManagerPrivate::stencilPassVertexShaderPath()
 {
     return s_stencilPassVertexShaderPath;
@@ -310,6 +321,26 @@ const std::filesystem::path &ProgramsManagerPrivate::lightPassFragmnetShaderPath
     return s_lightPassFragmnetShaderPath;
 }
 
+const std::filesystem::path &ProgramsManagerPrivate::backgroundPassVertexShaderPath()
+{
+    return s_backgroundPassVertexShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::backgroundPassFragmnetShaderPath()
+{
+    return s_backgroundPassFragmnetShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::foregroundPassVertexShaderPath()
+{
+    return s_foregroundPassVertexShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::foregroundPassFragmnetShaderPath()
+{
+    return s_foregroundPassFragmnetShaderPath;
+}
+
 const std::filesystem::path &ProgramsManagerPrivate::finalPassVertexShaderPath()
 {
     return s_finalPassVertexShaderPath;
@@ -318,6 +349,16 @@ const std::filesystem::path &ProgramsManagerPrivate::finalPassVertexShaderPath()
 const std::filesystem::path &ProgramsManagerPrivate::finalPassFragmnetShaderPath()
 {
     return s_finalPassFragmnetShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::postprocessPassVertexShaderPath()
+{
+    return s_postprocessPassVertexShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::postprocessPassFragmnetShaderPath()
+{
+    return s_postprocessPassFragmnetShaderPath;
 }
 
 }

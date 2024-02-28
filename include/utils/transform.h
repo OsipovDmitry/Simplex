@@ -59,7 +59,7 @@ public:
 
     TransformT<L, T> &invert()
     {
-        scale = 1.f / scale;
+        scale = static_cast<T>(1) / scale;
         rotation = glm::conjugate(rotation);
         translation = -PointType(rotation  * vec3cast(scale * translation));
         return *this;

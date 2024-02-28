@@ -38,15 +38,14 @@ public:
     const PUniform<glm::mat4x4> &viewProjectionMatrixUniform() const;
     const PUniform<glm::mat4x4> &viewProjectionMatrixInverseUniform() const;
 
-    const PUniform<graphics::PConstTexture> &cameraDepthStencilTextureUniform() const;
-    void setCameraDepthStencilTexture(const graphics::PConstTexture&);
-
-    const PUniform<graphics::PConstTexture> &BRDFLutlTextureUniform() const;
-    void setBRDFLutTexture(const graphics::PConstTexture&);
-
     const PUniform<graphics::PConstTexture> &GBufferColor0TextureUniform() const;
     const PUniform<graphics::PConstTexture> &GBufferColor1TextureUniform() const;
-    void setGBufferTextures(const graphics::PConstTexture& color0Map, const graphics::PConstTexture& color1Map);
+    const PUniform<graphics::PConstTexture> &GBufferColor2TextureUniform() const;
+    const PUniform<graphics::PConstTexture> &GBufferDepthTextureUniform() const;
+    void setGBufferTextures(const graphics::PConstTexture& color0Map,
+                            const graphics::PConstTexture& color1Map,
+                            const graphics::PConstTexture& color2Map,
+                            const graphics::PConstTexture& depthMap);
 
     const graphics::PConstBufferRange &OITNodesBuffer() const;
     void setOITNodesBuffer(const graphics::PConstBufferRange&);
@@ -54,8 +53,17 @@ public:
     const PUniform<graphics::PConstBufferRange> &OITNodesCounterUniform() const;
     void setOITNodesCounter(const graphics::PConstBufferRange&);
 
+    const PUniform<graphics::PConstImage> &OITDepthImageUniform() const;
+    void setOITDepthImage(const graphics::PConstImage&);
+
     const PUniform<graphics::PConstImage> &OITIndicesImageUniform() const;
     void setOITIndicesImage(const graphics::PConstImage&);
+
+    const PUniform<graphics::PConstTexture> &lightBufferColorTextureUniform() const;
+    void setLightBufferColorTexture(const graphics::PConstTexture&);
+
+    const PUniform<graphics::PConstTexture> &finalBufferColorTextureUniform() const;
+    void setFinalBufferColorTexture(const graphics::PConstTexture&);
 
 private:
     std::unique_ptr<RenderInfoPrivate> m_;

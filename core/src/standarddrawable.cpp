@@ -1,5 +1,4 @@
 #include <utils/glm/ext/scalar_constants.hpp>
-#include <utils/logger.h>
 
 #include <core/igraphicsrenderer.h>
 #include <core/standarddrawable.h>
@@ -12,23 +11,46 @@ namespace simplex
 namespace core
 {
 
-StandardDrawable::StandardDrawable(const std::shared_ptr<graphics::IVertexArray> &vao)
-    : Drawable(std::make_unique<StandardDrawablePrivate>(vao))
+StandardDrawable::StandardDrawable(const std::shared_ptr<graphics::IVertexArray> &vao, const utils::BoundingBox &bb)
+    : Drawable(std::make_unique<StandardDrawablePrivate>(vao, bb))
 {
+    setORMSwizzleMask(StandardDrawablePrivate::defaultORMSwizzleMask());
+}
+
+const utils::BoundingBox &StandardDrawable::boundingBox() const
+{
+    return m().boundingBox();
 }
 
 StandardDrawable::~StandardDrawable() = default;
 
-bool StandardDrawable::isTransparent() const
+DrawableAlphaMode StandardDrawable::alphaMode() const
 {
-    auto result = Drawable::isTransparent();
+    auto result = Drawable::alphaMode();
 
-    result = result || (baseColor().a < 1.f - glm::epsilon<float>());
+    if (result == DrawableAlphaMode::Opaque) // it's possible to increase alphamode up to tranparent if only it is opaque
+    {
+        auto isTransparent = false;
+        isTransparent = isTransparent || (baseColor().a < 1.f - glm::epsilon<float>());
+        if (auto map = baseColorMap(); map)
+            isTransparent = isTransparent || map->hasAlpha();
 
-    if (auto map = baseColorMap(); map)
-        result = result || map->hasAlpha();
+        if (isTransparent)
+            result = DrawableAlphaMode::Transparent;
+    }
 
     return result;
+}
+
+const glm::u32vec4 &StandardDrawable::ORMSwizzleMask() const
+{
+    auto uni = uniform_cast<glm::u32vec4>(uniform(graphics::UniformId::ORMSwizzleMask));
+    return uni ? uni->data() : StandardDrawablePrivate::defaultORMSwizzleMask();
+}
+
+void StandardDrawable::setORMSwizzleMask(const glm::u32vec4 &value)
+{
+    getOrCreateUniform(graphics::UniformId::ORMSwizzleMask) = makeUniform(value);
 }
 
 const glm::vec4 &StandardDrawable::baseColor() const
@@ -108,5 +130,52 @@ void StandardDrawable::setNormalMap(const graphics::PConstTexture &value)
     getOrCreateUniform(graphics::UniformId::NormalMap) = makeUniform(value);
 }
 
+float StandardDrawable::normalMapScale() const
+{
+    auto uni = uniform_cast<float>(uniform(graphics::UniformId::NormalMapScale));
+    return uni ? uni->data() : StandardDrawablePrivate::defaultNormalMapScale();
+}
+
+void StandardDrawable::setNormalMapScale(float value)
+{
+    getOrCreateUniform(graphics::UniformId::NormalMapScale) = makeUniform(value);
+}
+
+graphics::PConstTexture StandardDrawable::occlusionMap() const
+{
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(graphics::UniformId::OcclusionMap));
+    return uni ? uni->data() : nullptr;
+}
+
+void StandardDrawable::setOcclusionMap(const graphics::PConstTexture &value)
+{
+    getOrCreateUniform(graphics::UniformId::OcclusionMap) = makeUniform(value);
+}
+
+float StandardDrawable::occlusionMapStrength() const
+{
+    auto uni = uniform_cast<float>(uniform(graphics::UniformId::OcclusionMapStrength));
+    return uni ? uni->data() : StandardDrawablePrivate::defaultOcclusionMapStrength();
+}
+
+void StandardDrawable::setOcclusionMapStrength(float value)
+{
+    getOrCreateUniform(graphics::UniformId::OcclusionMapStrength) = makeUniform(value);
+}
+
+graphics::PBRComponentsSet StandardDrawable::PBRComponentsSet(const std::shared_ptr<const Drawable> &drawable)
+{
+    graphics::PBRComponentsSet result;
+
+    for (uint16_t i = 0u; i < graphics::numElementsPBRComponent(); ++i)
+    {
+        auto pbrComponent = graphics::castToPBRComponent(i);
+        if (auto uniformId = graphics::IProgram::uniformIdByPBRComponent(pbrComponent);
+                (uniformId != graphics::UniformId::Undefined) && drawable->uniform(uniformId))
+            result.insert(pbrComponent);
+    }
+
+    return result;
+}
 }
 }

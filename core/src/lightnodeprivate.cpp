@@ -7,7 +7,10 @@ namespace core
 
 LightNodePrivate::LightNodePrivate(const std::string &name)
     : NodePrivate(name)
+    , m_isLightingEnabled(true)
+    , m_areaDrawable()
     , m_isAreaMatrixDirty(true)
+    , m_isAreaBoundingBoxDirty(true)
 {
 }
 
@@ -31,6 +34,16 @@ bool &LightNodePrivate::isAreaMatrixDirty()
 glm::mat4x4 &LightNodePrivate::areaMatrix()
 {
     return m_areaMatrix;
+}
+
+bool &LightNodePrivate::isAreaBoundingBoxDirty()
+{
+    return m_isAreaBoundingBoxDirty;
+}
+
+utils::BoundingBox &LightNodePrivate::areaBoundingBox()
+{
+    return m_areaBoundingBox;
 }
 
 }

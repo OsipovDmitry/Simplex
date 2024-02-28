@@ -17,6 +17,8 @@ enum class PixelInternalFormat : uint16_t;
 enum class TextureType : uint16_t;
 enum class TextureWrapMode : uint16_t;
 enum class TextureFilterMode : uint16_t;
+enum class TextureSwizzle : uint16_t;
+using TextureSwizzleMask = std::array<TextureSwizzle, 4u>;
 enum class FrameBufferAttachment : uint16_t;
 union FrameBufferClearColorValue;
 enum class FrameBufferClearColorType : uint16_t;
@@ -35,6 +37,8 @@ using BackgroundComponentsSet = std::unordered_set<BackgroundComponent>;
 enum class FaceType : uint16_t;
 enum class ComparingFunc : uint16_t;
 enum class StencilOperation : uint16_t;
+enum class BlendEquation : uint16_t;
+enum class BlendFactor : uint16_t;
 using StencilOperations = std::array<StencilOperation, 3u>; // sfail, dpfail, dppass
 class IBuffer;
 class IBufferRange;
@@ -84,10 +88,14 @@ template <typename T> class Uniform;
 template<typename T>
 using PUniform = std::shared_ptr<Uniform<T>>;
 
+enum class DrawableAlphaMode : uint16_t;
 class Drawable;
 class StandardDrawable;
 enum class LightDrawableType : uint16_t;
 class LightDrawable;
+class BackgroundDrawable;
+
+enum class BoundingBoxPolicy : uint16_t;
 
 class Scene;
 class Node;

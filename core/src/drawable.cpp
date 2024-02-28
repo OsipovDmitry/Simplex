@@ -2,7 +2,6 @@
 #include <utils/boundingbox.h>
 #include <utils/primitiveset.h>
 
-#include <core/igraphicsrenderer.h>
 #include <core/drawable.h>
 #include <core/uniform.h>
 
@@ -13,139 +12,52 @@ namespace simplex
 namespace core
 {
 
-template<typename T>
-static void readDataToType(const uint8_t* data, utils::VertexComponentType type, T &result)
-{
-    switch (type)
-    {
-    case utils::VertexComponentType::Single: { result = static_cast<T>(*reinterpret_cast<const float*>(data)); break; }
-    case utils::VertexComponentType::Double: { result = static_cast<T>(*reinterpret_cast<const double*>(data)); break; }
-    case utils::VertexComponentType::Int32: { result = static_cast<T>(*reinterpret_cast<const int32_t*>(data)); break; }
-    case utils::VertexComponentType::Uint32: { result = static_cast<T>(*reinterpret_cast<const uint32_t*>(data)); break; }
-    default: { break; }
-    }
-}
-
-template<typename T>
-static void readDataToType(const uint8_t* data, utils::DrawElementsIndexType type, T &result)
-{
-    switch (type)
-    {
-    case utils::DrawElementsIndexType::Uint8: { result = static_cast<T>(*reinterpret_cast<const uint8_t*>(data)); break; }
-    case utils::DrawElementsIndexType::Uint16: { result = static_cast<T>(*reinterpret_cast<const uint16_t*>(data)); break; }
-    case utils::DrawElementsIndexType::Uint32: { result = static_cast<T>(*reinterpret_cast<const uint32_t*>(data)); break; }
-    default: { break; }
-    }
-}
-
-template<uint32_t VecLength, typename T>
-static void readDataToVec(const uint8_t* data,
-                          uint32_t numComponents,
-                          utils::VertexComponentType type,
-                          uint32_t typeSize,
-                          glm::vec<VecLength, T> &result)
-{
-    numComponents = glm::min(numComponents, VecLength);
-
-    for (uint32_t i = 0u; i < numComponents; ++i)
-        readDataToType<T>(data + i * typeSize, type, result[static_cast<glm::length_t>(i)]);
-}
-
 Drawable::Drawable(const std::shared_ptr<graphics::IVertexArray> &vertexArray)
     : Drawable(std::make_unique<DrawablePrivate>(vertexArray))
 {
 }
 
-Drawable::~Drawable()
+Drawable::~Drawable() = default;
+
+const utils::BoundingBox &Drawable::boundingBox() const
 {
+    static utils::BoundingBox s_emptyBoundingBox;
+    return s_emptyBoundingBox;
 }
 
-utils::BoundingBox Drawable::calculateBoundingBox() const
+bool Drawable::isDoubleSided() const
 {
-    utils::BoundingBox result;
+    return m_->isDoubleSided();
+}
 
-    auto vao = m_->vertexArray();
-    if (!vao)
-        return result;
+void Drawable::setDoubleSided(bool value)
+{
+    m_->isDoubleSided() = value;
+}
 
-    auto bindingIndex = vao->vertexAttributeBindingIndex(utils::VertexAttribute::Position);
-    if (bindingIndex == static_cast<uint32_t>(-1))
-        return result;
+float Drawable::alphaCutoff() const
+{
+    auto uni = uniform_cast<float>(uniform(graphics::UniformId::AlphaCutoff));
+    return uni ? uni->data() : DrawablePrivate::defaultAlphaCutoff();
+}
 
-    auto vertexBuffer = vao->vertexBuffer(bindingIndex);
-    if (!vertexBuffer)
-        return result;
+void Drawable::setAlphaCutoff(float value)
+{
+    getOrCreateUniform(graphics::UniformId::AlphaCutoff) = makeUniform(value);
+}
 
-    auto vertexBufferOffset = vao->vertexBufferOffset(bindingIndex);
-    auto vertexBufferStride = vao->vertexBufferStride(bindingIndex);
+DrawableAlphaMode Drawable::alphaMode() const
+{
+    auto result = DrawableAlphaMode::Opaque;
 
-    auto vertexAttributeNumComponents = vao->vertexAttributeNumComponents(utils::VertexAttribute::Position);
-    auto vertexAttributeType = vao->vertexAttributeComponentType(utils::VertexAttribute::Position);
-    auto vertexAttributeRelativeOffset = vao->vertexAttributeRelativeOffset(utils::VertexAttribute::Position);
-    auto vertexAttributeComponentSize = utils::VertexBuffer::componentSize(vertexAttributeType);
-
-    auto vertexBufferData = vertexBuffer->map(graphics::IBuffer::MapAccess::ReadOnly, vertexBufferOffset);
-
-    for (auto &primitiveSet : vao->primitiveSets())
-    {
-        if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
-        {
-            auto drawArraysFirst = drawArrays->first();
-            auto drawArraysCount = drawArrays->count();
-
-            utils::BoundingBox::PointType p(static_cast<utils::BoundingBox::value_type>(0));
-
-            for (uint32_t i = 0; i < drawArraysCount; ++i)
-            {
-                readDataToVec<utils::BoundingBox::length(), utils::BoundingBox::value_type>(
-                            vertexBufferData->get() + (i + drawArraysFirst) * vertexBufferStride + vertexAttributeRelativeOffset,
-                            vertexAttributeNumComponents,
-                            vertexAttributeType,
-                            vertexAttributeComponentSize,
-                            p);
-                result += p;
-            }
-        }
-        else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
-        {
-            auto drawElementsCount = drawElements->count();
-            auto drawElementsType = drawElements->type();
-            auto drawElementsOffset = drawElements->offset();
-            auto drawElementsBaseVertex = drawElements->baseVertex();
-            auto drawElementsIndexSize = utils::DrawElements::indexSize(drawElementsType);
-
-            auto indexBuffer = vao->indexBuffer();
-            if (!indexBuffer)
-                continue;
-
-            auto indexBufferData = indexBuffer->map(graphics::IBuffer::MapAccess::ReadOnly,
-                                                    drawElementsOffset,
-                                                    drawElementsCount * drawElementsIndexSize);
-
-            uint32_t index;
-            utils::BoundingBox::PointType p(static_cast<utils::BoundingBox::value_type>(0));
-
-            for (uint32_t i = 0; i < drawElementsCount; ++i)
-            {
-                readDataToType<uint32_t>(indexBufferData->get() + i * drawElementsIndexSize, drawElementsType, index);
-                readDataToVec<utils::BoundingBox::length(), utils::BoundingBox::value_type>(
-                            vertexBufferData->get() + (index + drawElementsBaseVertex) * vertexBufferStride + vertexAttributeRelativeOffset,
-                            vertexAttributeNumComponents,
-                            vertexAttributeType,
-                            vertexAttributeComponentSize,
-                            p);
-                result += p;
-            }
-        }
-    }
+    if (alphaCutoff() > 0.f)
+        result = DrawableAlphaMode::Mask;
+    else if (vertexArray()->vertexAttributeNumComponents(utils::VertexAttribute::Color) > 3u)
+        result = DrawableAlphaMode::Transparent;
+    else
+        result = DrawableAlphaMode::Opaque;
 
     return result;
-}
-
-bool Drawable::isTransparent() const
-{
-    return false;
-    //return m_->vertexArray()->vertexAttributeNumComponents(utils::VertexAttribute::Color) == 4u;
 }
 
 std::shared_ptr<const graphics::IVertexArray> Drawable::vertexArray() const
@@ -210,39 +122,10 @@ utils::VertexAttributesSet Drawable::vertexAttrubitesSet(const std::shared_ptr<c
     return result;
 }
 
-graphics::PBRComponentsSet Drawable::PBRComponentsSet(const std::shared_ptr<const Drawable> &drawable)
-{
-    graphics::PBRComponentsSet result;
-
-    for (uint16_t i = 0u; i < graphics::numElementsPBRComponent(); ++i)
-    {
-        auto pbrComponent = graphics::castToPBRComponent(i);
-        if (auto uniformId = graphics::IProgram::uniformIdByPBRComponent(pbrComponent);
-                (uniformId != graphics::UniformId::Undefined) && drawable->uniform(uniformId))
-            result.insert(pbrComponent);
-    }
-
-    return result;
-}
-
-graphics::BackgroundComponentsSet Drawable::backgroundComponentsSet(const std::shared_ptr<const Drawable> &drawable)
-{
-    graphics::BackgroundComponentsSet result;
-
-    for (uint16_t i = 0u; i < graphics::numElementsBackgroundComponent(); ++i)
-    {
-        auto backgroundComponent = graphics::castToBackgroundComponent(i);
-        if (auto uniformId = graphics::IProgram::uniformIdByBackgroundComponent(backgroundComponent);
-                (uniformId != graphics::UniformId::Undefined) && drawable->uniform(uniformId))
-            result.insert(backgroundComponent);
-    }
-
-    return result;
-}
-
 Drawable::Drawable(std::unique_ptr<DrawablePrivate> drawablPrivate)
     : m_(std::move(drawablPrivate))
 {
+    setAlphaCutoff(DrawablePrivate::defaultAlphaCutoff());
 }
 
 }

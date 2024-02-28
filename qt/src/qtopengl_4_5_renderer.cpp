@@ -205,6 +205,22 @@ GLenum Conversions::FrameBufferAttachment2GL(core::graphics::FrameBufferAttachme
     return s_table[core::graphics::castFromFrameBufferAttachment(value)];
 }
 
+GLenum Conversions::TextureType2GL(core::graphics::TextureType value)
+{
+    static std::array<GLenum, core::graphics::numElementsTextureType()> s_table {
+        GL_TEXTURE_1D,
+        GL_TEXTURE_2D,
+        GL_TEXTURE_3D,
+        GL_TEXTURE_CUBE_MAP,
+        GL_TEXTURE_1D_ARRAY,
+        GL_TEXTURE_2D_ARRAY,
+        GL_TEXTURE_CUBE_MAP_ARRAY,
+        GL_TEXTURE_RECTANGLE
+    };
+
+    return s_table[core::graphics::castFromTextureType(value)];
+}
+
 GLenum Conversions::TextureWrapMode2GL(core::graphics::TextureWrapMode value)
 {
     static std::array<GLenum, core::graphics::numElementsTextureWrapMode()> s_table {
@@ -216,6 +232,20 @@ GLenum Conversions::TextureWrapMode2GL(core::graphics::TextureWrapMode value)
     };
 
     return s_table[core::graphics::castFromTextureWrapMode(value)];
+}
+
+GLenum Conversions::TextureSwizzle2GL(core::graphics::TextureSwizzle value)
+{
+    static std::array<GLenum, core::graphics::numElementsTextureSwizzle()> s_table {
+        GL_RED,
+        GL_GREEN,
+        GL_BLUE,
+        GL_ALPHA,
+        GL_ZERO,
+        GL_ONE
+    };
+
+    return s_table[core::graphics::castFromTextureSwizzle(value)];
 }
 
 GLbitfield Conversions::BufferMapAccess2GL(core::graphics::IBuffer::MapAccess value)
@@ -418,7 +448,7 @@ core::graphics::UniformType Conversions::GL2UniformType(GLenum value)
     return (it == s_table.end()) ? core::graphics::UniformType::Undefined : it->second;
 }
 
-GLenum Conversions::faceType2GL(core::graphics::FaceType value)
+GLenum Conversions::FaceType2GL(core::graphics::FaceType value)
 {
     static std::array<GLenum, core::graphics::numElementsFaceType()> s_table {
         GL_FRONT,
@@ -428,7 +458,7 @@ GLenum Conversions::faceType2GL(core::graphics::FaceType value)
     return s_table[core::graphics::castFromFaceType(value)];
 }
 
-GLenum Conversions::comparingFunc2GL(core::graphics::ComparingFunc value)
+GLenum Conversions::ComparingFunc2GL(core::graphics::ComparingFunc value)
 {
     static std::array<GLenum, core::graphics::numElementsComparingFunc()> s_table {
         GL_NEVER,
@@ -443,7 +473,7 @@ GLenum Conversions::comparingFunc2GL(core::graphics::ComparingFunc value)
     return s_table[core::graphics::castFromComparingFunc(value)];
 }
 
-GLenum Conversions::stencilOperation2GL(core::graphics::StencilOperation value)
+GLenum Conversions::StencilOperation2GL(core::graphics::StencilOperation value)
 {
     static std::array<GLenum, core::graphics::numElementsStencilOperation()> s_table {
         GL_KEEP,
@@ -456,6 +486,39 @@ GLenum Conversions::stencilOperation2GL(core::graphics::StencilOperation value)
         GL_INVERT
     };
     return s_table[core::graphics::castFromStencilOperation(value)];
+}
+
+GLenum Conversions::BlendEquetion2GL(core::graphics::BlendEquation value)
+{
+    static std::array<GLenum, core::graphics::numElementsBlendEquation()> s_table {
+        GL_FUNC_ADD,
+        GL_FUNC_SUBTRACT,
+        GL_FUNC_REVERSE_SUBTRACT,
+        GL_MIN,
+        GL_MAX
+    };
+    return s_table[core::graphics::castFromBlendEquation(value)];
+}
+
+GLenum Conversions::BlendFactor2GL(core::graphics::BlendFactor value)
+{
+    static std::array<GLenum, core::graphics::numElementsBlendFactor()> s_table {
+        GL_ZERO,
+        GL_ONE,
+        GL_SRC_COLOR,
+        GL_ONE_MINUS_SRC_COLOR,
+        GL_DST_COLOR,
+        GL_ONE_MINUS_DST_COLOR,
+        GL_SRC_ALPHA,
+        GL_ONE_MINUS_SRC_ALPHA,
+        GL_DST_ALPHA,
+        GL_ONE_MINUS_DST_ALPHA,
+        GL_CONSTANT_COLOR,
+        GL_ONE_MINUS_CONSTANT_COLOR,
+        GL_CONSTANT_ALPHA,
+        GL_ONE_MINUS_CONSTANT_ALPHA
+    };
+    return s_table[core::graphics::castFromBlendFactor(value)];
 }
 
 // Buffer_4_5::MappedData_4_5
@@ -545,9 +608,7 @@ std::unique_ptr<core::graphics::IBuffer::MappedData> Buffer_4_5::map(MapAccess a
                 static_cast<uint8_t*>(renderer->glMapNamedBufferRange(m_id,
                                                                       static_cast<GLintptr>(offset),
                                                                       static_cast<GLsizei>(size),
-                                                                      Conversions::BufferMapAccess2GL(access))
-                                      )
-                );
+                                                                      Conversions::BufferMapAccess2GL(access))));
 }
 
 // BufferRange_4_5
@@ -724,7 +785,7 @@ uint32_t VertexArray_4_5::vertexAttributeBindingIndex(utils::VertexAttribute att
 uint32_t VertexArray_4_5::vertexAttributeNumComponents(utils::VertexAttribute attrib) const
 {
     auto it = m_vertexDeclarations.find(attrib);
-    return (it != m_vertexDeclarations.end()) ? std::get<1>(it->second) : 0;
+    return (it != m_vertexDeclarations.end()) ? std::get<1>(it->second) : 0u;
 }
 
 utils::VertexComponentType VertexArray_4_5::vertexAttributeComponentType(utils::VertexAttribute attrib) const
@@ -736,7 +797,7 @@ utils::VertexComponentType VertexArray_4_5::vertexAttributeComponentType(utils::
 uint32_t VertexArray_4_5::vertexAttributeRelativeOffset(utils::VertexAttribute attrib) const
 {
     auto it = m_vertexDeclarations.find(attrib);
-    return (it != m_vertexDeclarations.end()) ? std::get<3>(it->second) : 0;
+    return (it != m_vertexDeclarations.end()) ? std::get<3>(it->second) : 0u;
 }
 
 void VertexArray_4_5::attachIndexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer)
@@ -785,6 +846,7 @@ const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> &VertexArray_4_5:
 // TextureBase_4_5
 
 TextureBase_4_5::TextureBase_4_5()
+    : m_id(0u)
 {
 }
 
@@ -797,6 +859,19 @@ TextureBase_4_5::~TextureBase_4_5()
 GLuint TextureBase_4_5::id() const
 {
     return m_id;
+}
+
+void TextureBase_4_5::setSwizzleMask(const core::graphics::TextureSwizzleMask &value)
+{
+    const std::array<GLint, 4u> glValues {
+        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[0u])),
+        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[1u])),
+        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[2u])),
+        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[3u])),
+    };
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glTextureParameteriv(m_id, GL_TEXTURE_SWIZZLE_RGBA, glValues.data());
 }
 
 glm::uvec2 TextureBase_4_5::size() const
@@ -1325,11 +1400,22 @@ FrameBufferBase_4_5::FrameBufferBase_4_5(GLuint id)
     setDepthMask(true);
 
     setStencilTest(false);
+
+    setBlending(false);
+    setBlendConstantColor(glm::vec3(1.f));
+    setBlendConstantAlpha(1.f);
+    for (uint32_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
+    {
+        setBlendEquation(i, core::graphics::BlendEquation::Add, core::graphics::BlendEquation::Add);
+        setBlendFactor(i,
+                       core::graphics::BlendFactor::Zero,
+                       core::graphics::BlendFactor::One,
+                       core::graphics::BlendFactor::Zero,
+                       core::graphics::BlendFactor::One);
+    }
 }
 
-FrameBufferBase_4_5::~FrameBufferBase_4_5()
-{
-}
+FrameBufferBase_4_5::~FrameBufferBase_4_5() = default;
 
 GLuint FrameBufferBase_4_5::id() const
 {
@@ -1540,7 +1626,7 @@ void FrameBufferBase_4_5::setFaceCulling(bool value, core::graphics::FaceType ty
     m_cullFaceType = type;
 }
 
-bool FrameBufferBase_4_5::colorMask(uint16_t index) const
+bool FrameBufferBase_4_5::colorMask(uint32_t index) const
 {
     if (index >= core::graphics::FrameBufferColorAttachmentsCount())
         LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
@@ -1548,7 +1634,7 @@ bool FrameBufferBase_4_5::colorMask(uint16_t index) const
     return m_colorMasks[index];
 }
 
-void FrameBufferBase_4_5::setColorMask(uint16_t index, bool value)
+void FrameBufferBase_4_5::setColorMask(uint32_t index, bool value)
 {
     if (index >= core::graphics::FrameBufferColorAttachmentsCount())
         LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
@@ -1720,6 +1806,84 @@ void FrameBufferBase_4_5::setStencilOperations(core::graphics::FaceType face, co
     }
 }
 
+bool FrameBufferBase_4_5::blending() const
+{
+    return m_blending;
+}
+
+void FrameBufferBase_4_5::setBlending(bool value)
+{
+    m_blending = value;
+}
+
+core::graphics::BlendEquation FrameBufferBase_4_5::blendColorEquation(uint32_t index)
+{
+    return m_blendColorEquation[index];
+}
+
+core::graphics::BlendEquation FrameBufferBase_4_5::blendAlphaEquation(uint32_t index)
+{
+    return m_blendAlphaEquation[index];
+}
+
+void FrameBufferBase_4_5::setBlendEquation(uint32_t index, core::graphics::BlendEquation colorValue, core::graphics::BlendEquation alphaValue)
+{
+    m_blendColorEquation[index] = colorValue;
+    m_blendAlphaEquation[index] = alphaValue;
+}
+
+core::graphics::BlendFactor FrameBufferBase_4_5::blendColorSourceFactor(uint32_t index)
+{
+    return m_blendColorSourceFactor[index];
+}
+
+core::graphics::BlendFactor FrameBufferBase_4_5::blendAlphaSourceFactor(uint32_t index)
+{
+    return m_blendAlphaSourceFactor[index];
+}
+
+core::graphics::BlendFactor FrameBufferBase_4_5::blendColorDestinationFactor(uint32_t index)
+{
+    return m_blendColorDestFactor[index];
+}
+
+core::graphics::BlendFactor FrameBufferBase_4_5::blendAlphaDestinationFactor(uint32_t index)
+{
+    return m_blendAlphaDestFactor[index];
+}
+
+void FrameBufferBase_4_5::setBlendFactor(uint32_t index,
+                                         core::graphics::BlendFactor colorSourceValue,
+                                         core::graphics::BlendFactor colorDestValue,
+                                         core::graphics::BlendFactor alphaSourceValue,
+                                         core::graphics::BlendFactor alphaDestValue)
+{
+    m_blendColorSourceFactor[index] = colorSourceValue;
+    m_blendColorDestFactor[index] = colorDestValue;
+    m_blendAlphaSourceFactor[index] = alphaSourceValue;
+    m_blendAlphaDestFactor[index] = alphaDestValue;
+}
+
+glm::vec3 FrameBufferBase_4_5::blendConstantColor() const
+{
+    return m_blendConstColor;
+}
+
+void FrameBufferBase_4_5::setBlendConstantColor(const glm::vec3 &value)
+{
+    m_blendConstColor = value;
+}
+
+float FrameBufferBase_4_5::blendConstantAlpha() const
+{
+    return m_blendConstAlpha;
+}
+
+void FrameBufferBase_4_5::setBlendConstantAlpha(float value)
+{
+    m_blendConstAlpha = value;
+}
+
 // FrameBuffer_4_5
 
 FrameBuffer_4_5::FrameBuffer_4_5()
@@ -1774,6 +1938,8 @@ void FrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment key,
                                                  renderBuffer->id());
         m_attchments[key] = { surface, level, layer };
     }
+    else
+        LOG_CRITICAL << "Attachment can't be nullptr";
 }
 
 void FrameBuffer_4_5::detach(core::graphics::FrameBufferAttachment key)
@@ -2144,8 +2310,7 @@ void QtOpenGL_4_5_Renderer::blitFrameBuffer(std::shared_ptr<const core::graphics
         LOG_CRITICAL << "Source framebuffer can't be nullptr";
 
     auto dstFramebuffer = std::dynamic_pointer_cast<FrameBufferBase_4_5>(dst);
-
-    if (!srcFramebuffer)
+    if (!dstFramebuffer)
         LOG_CRITICAL << "Destination framebuffer can't be nullptr";
 
     GLbitfield mask = 0;
@@ -2786,7 +2951,7 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
 {
     if (frameBuffer->faceCulling())
     {
-        glCullFace(Conversions::faceType2GL(frameBuffer->cullFaceType()));
+        glCullFace(Conversions::FaceType2GL(frameBuffer->cullFaceType()));
         glEnable(GL_CULL_FACE);
     }
     else
@@ -2801,7 +2966,7 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
     if (frameBuffer->depthTest())
     {
         glEnable(GL_DEPTH_TEST);
-        glDepthFunc(Conversions::comparingFunc2GL(frameBuffer->depthFunc()));
+        glDepthFunc(Conversions::ComparingFunc2GL(frameBuffer->depthFunc()));
         glDepthMask(frameBuffer->depthMask());
     }
     else
@@ -2814,19 +2979,41 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
         {
             const auto &operations = frameBuffer->stencilOperations(face);
 
-            glStencilOpSeparate(Conversions::faceType2GL(face),
-                                Conversions::stencilOperation2GL(operations[0]),
-                                Conversions::stencilOperation2GL(operations[1]),
-                                Conversions::stencilOperation2GL(operations[2]));
+            glStencilOpSeparate(Conversions::FaceType2GL(face),
+                                Conversions::StencilOperation2GL(operations[0]),
+                                Conversions::StencilOperation2GL(operations[1]),
+                                Conversions::StencilOperation2GL(operations[2]));
 
-            glStencilFuncSeparate(Conversions::faceType2GL(face),
-                                  Conversions::comparingFunc2GL(frameBuffer->stencilComparingFunc(face)),
+            glStencilFuncSeparate(Conversions::FaceType2GL(face),
+                                  Conversions::ComparingFunc2GL(frameBuffer->stencilComparingFunc(face)),
                                   frameBuffer->stencilReferenceValue(face),
                                   frameBuffer->stencilMaskValue(face));
         }
     }
     else
         glDisable(GL_STENCIL_TEST);
+
+    if (frameBuffer->blending())
+    {
+        glEnable(GL_BLEND);
+
+        auto blendConstantColor = frameBuffer->blendConstantColor();
+        glBlendColor(blendConstantColor.r, blendConstantColor.g, blendConstantColor.b, frameBuffer->blendConstantAlpha());
+
+        for (uint16_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
+        {
+            glBlendEquationSeparatei(i,
+                                     Conversions::BlendEquetion2GL(frameBuffer->blendColorEquation(i)),
+                                     Conversions::BlendEquetion2GL(frameBuffer->blendAlphaEquation(i)));
+            glBlendFuncSeparatei(i,
+                                 Conversions::BlendFactor2GL(frameBuffer->blendColorSourceFactor(i)),
+                                 Conversions::BlendFactor2GL(frameBuffer->blendColorDestinationFactor(i)),
+                                 Conversions::BlendFactor2GL(frameBuffer->blendAlphaSourceFactor(i)),
+                                 Conversions::BlendFactor2GL(frameBuffer->blendAlphaDestinationFactor(i)));
+        }
+    }
+    else
+        glDisable(GL_BLEND);
 
     auto frameBuffer_4_5 = std::dynamic_pointer_cast<FrameBufferBase_4_5>(frameBuffer);
     if (!frameBuffer_4_5)
@@ -3279,23 +3466,32 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
         case core::graphics::UniformId::ViewZDirection:
             uniform = renderInfo.viewZDirectionUniform();
             break;
-        case core::graphics::UniformId::CameraDepthStencilMap:
-            uniform = renderInfo.cameraDepthStencilTextureUniform();
-            break;
-        case core::graphics::UniformId::BRDFLutMap:
-            uniform = renderInfo.BRDFLutlTextureUniform();
-            break;
         case core::graphics::UniformId::GBufferColor0Map:
             uniform = renderInfo.GBufferColor0TextureUniform();
             break;
         case core::graphics::UniformId::GBufferColor1Map:
             uniform = renderInfo.GBufferColor1TextureUniform();
             break;
+        case core::graphics::UniformId::GBufferColor2Map:
+            uniform = renderInfo.GBufferColor2TextureUniform();
+            break;
+        case core::graphics::UniformId::GBufferDepthMap:
+            uniform = renderInfo.GBufferDepthTextureUniform();
+            break;
+        case core::graphics::UniformId::OITDepthImage:
+            uniform = renderInfo.OITDepthImageUniform();
+            break;
         case core::graphics::UniformId::OITIndicesImage:
             uniform = renderInfo.OITIndicesImageUniform();
             break;
         case core::graphics::UniformId::OITNodesCounter:
             uniform = renderInfo.OITNodesCounterUniform();
+            break;
+        case core::graphics::UniformId::LightBufferColorMap:
+            uniform = renderInfo.lightBufferColorTextureUniform();
+            break;
+        case core::graphics::UniformId::FinalBufferColorMap:
+            uniform = renderInfo.finalBufferColorTextureUniform();
             break;
         case core::graphics::UniformId::Undefined:
             uniform = drawable->userUniform(program->uniformNameByIndex(uniformInfo.index));

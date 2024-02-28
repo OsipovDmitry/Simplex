@@ -20,18 +20,13 @@ public:
 
     std::weak_ptr<GraphicsEngine> &graphicsEngine();
     std::shared_ptr<SceneRootNode> &sceneRootNode();
-
-    std::shared_ptr<Drawable> &backgroundScreenQuadDrawable();
-
-    static std::weak_ptr<const graphics::ITexture> &defaultBacgroundTexture();
+    std::shared_ptr<BackgroundDrawable> &backgroundDrawable();
 
 private:
-    static std::weak_ptr<const graphics::ITexture> s_defaultBacgroundTexture;
-
     std::string m_name;
     std::weak_ptr<GraphicsEngine> m_graphicsEngine;
     std::shared_ptr<SceneRootNode> m_sceneRootNode;
-    std::shared_ptr<Drawable> m_backgroundScreenQuadDrawable;
+    std::shared_ptr<BackgroundDrawable> m_backgroundDrawable;
 
 };
 

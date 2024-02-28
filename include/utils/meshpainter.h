@@ -9,6 +9,7 @@
 #include <utils/glm/vec4.hpp>
 #include <utils/utilsglobal.h>
 #include <utils/forwarddecl.h>
+#include <utils/boundingbox.h>
 
 namespace simplex
 {
@@ -43,6 +44,8 @@ public:
                       PrimitiveType primitiveType,
                       const std::vector<uint32_t> &indices,
                       DrawElementsIndexType drawElemetsBufferType);
+
+    BoundingBox calculateBoundingBox() const;
 
 protected:
     std::unique_ptr<AbstractPainterPrivate> m_;

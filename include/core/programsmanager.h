@@ -41,17 +41,20 @@ public:
     std::shared_ptr<graphics::IComputeProgram> loadOrGetOITClearPassComputeProgram();
     std::shared_ptr<graphics::IComputeProgram> loadOrGetOITSortNodesPassComputeProgram();
 
-    std::shared_ptr<graphics::IRenderProgram> loadOrGetBackgroundPassRenderProgram(const utils::VertexAttributesSet&,
-                                                                                   const graphics::BackgroundComponentsSet&);
-
-
     std::shared_ptr<graphics::IRenderProgram> loadOrGetStencilPassRenderProgram(const utils::VertexAttributesSet&);
 
     std::shared_ptr<graphics::IRenderProgram> loadOrGetLightPassRenderProgram(const utils::VertexAttributesSet&,
                                                                               const graphics::LightComponentsSet&,
                                                                               LightDrawableType);
 
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetBackgroundPassRenderProgram(const utils::VertexAttributesSet&,
+                                                                                   const graphics::BackgroundComponentsSet&);
+
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetForegroundPassRenderProgram(const utils::VertexAttributesSet&);
+
     std::shared_ptr<graphics::IRenderProgram> loadOrGetFinalPassRenderProgram(const utils::VertexAttributesSet&);
+
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetPostprocessPassRenderProgram(const utils::VertexAttributesSet&);
 
 private:
     std::unique_ptr<ProgramsManagerPrivate> m_;

@@ -6,8 +6,11 @@ namespace core
 {
 
 std::weak_ptr<graphics::IVertexArray> IBLLightNodePrivate::s_lightAreaVertexArray;
-std::weak_ptr<const graphics::ITexture> IBLLightNodePrivate::s_defaultDiffuseTexture;
-std::weak_ptr<const graphics::ITexture> IBLLightNodePrivate::s_defaultSpecularTexture;
+utils::BoundingBox IBLLightNodePrivate::s_lightAreaBoundingBox;
+std::weak_ptr<const graphics::ITexture> IBLLightNodePrivate::s_defaultBRDFLutMap;
+std::weak_ptr<const graphics::ITexture> IBLLightNodePrivate::s_defaultDiffuseMap;
+std::weak_ptr<const graphics::ITexture> IBLLightNodePrivate::s_defaultSpecularMap;
+float IBLLightNodePrivate::s_defaultContribution = .4f;
 
 IBLLightNodePrivate::IBLLightNodePrivate(const std::string &name)
     : LightNodePrivate(name)
@@ -21,14 +24,29 @@ std::weak_ptr<graphics::IVertexArray> &IBLLightNodePrivate::lightAreaVertexArray
     return s_lightAreaVertexArray;
 }
 
-std::weak_ptr<const graphics::ITexture> &IBLLightNodePrivate::defaultDiffuseTexture()
+utils::BoundingBox &IBLLightNodePrivate::lightAreaBoundingBox()
 {
-    return s_defaultDiffuseTexture;
+    return s_lightAreaBoundingBox;
 }
 
-std::weak_ptr<const graphics::ITexture> &IBLLightNodePrivate::defaultSpecularTexture()
+std::weak_ptr<const graphics::ITexture> &IBLLightNodePrivate::defaultBRDFLutMap()
 {
-    return s_defaultSpecularTexture;
+    return s_defaultBRDFLutMap;
+}
+
+std::weak_ptr<const graphics::ITexture> &IBLLightNodePrivate::defaultDiffuseMap()
+{
+    return s_defaultDiffuseMap;
+}
+
+std::weak_ptr<const graphics::ITexture> &IBLLightNodePrivate::defaultSpecularMap()
+{
+    return s_defaultSpecularMap;
+}
+
+float &IBLLightNodePrivate::defaultContribution()
+{
+    return s_defaultContribution;
 }
 
 }

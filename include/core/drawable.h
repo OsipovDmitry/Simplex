@@ -5,6 +5,7 @@
 
 #include <utils/noncopyble.h>
 #include <utils/forwarddecl.h>
+#include <utils/enumclass.h>
 
 #include <core/coreglobal.h>
 #include <core/forwarddecl.h>
@@ -13,6 +14,11 @@ namespace simplex
 {
 namespace core
 {
+
+ENUMCLASS(DrawableAlphaMode, uint16_t,
+          Opaque,
+          Mask,
+          Transparent)
 
 class DrawablePrivate;
 class CORE_SHARED_EXPORT Drawable
@@ -23,9 +29,15 @@ public:
     Drawable(const std::shared_ptr<graphics::IVertexArray>&);
     virtual ~Drawable();
 
-    virtual bool isTransparent() const;
+    virtual const utils::BoundingBox &boundingBox() const;
 
-    utils::BoundingBox calculateBoundingBox() const;
+    bool isDoubleSided() const;
+    void setDoubleSided(bool);
+
+    float alphaCutoff() const;
+    void setAlphaCutoff(float);
+
+    virtual DrawableAlphaMode alphaMode() const;
 
     std::shared_ptr<const graphics::IVertexArray> vertexArray() const;
     std::shared_ptr<graphics::IVertexArray> vertexArray();
@@ -41,8 +53,6 @@ public:
     graphics::PConstBufferRange SSBO(graphics::SSBOId) const;
 
     static utils::VertexAttributesSet vertexAttrubitesSet(const std::shared_ptr<const Drawable>&);
-    static graphics::PBRComponentsSet PBRComponentsSet(const std::shared_ptr<const Drawable>&);
-    static graphics::BackgroundComponentsSet backgroundComponentsSet(const std::shared_ptr<const Drawable>&);
 
 protected:
     Drawable(std::unique_ptr<DrawablePrivate>);

@@ -26,6 +26,8 @@ public:
 
 protected:
     glm::mat4x4 doAreaMatrix() const override;
+    utils::BoundingBox doAreaBoundingBox() const override;
+
 };
 
 }

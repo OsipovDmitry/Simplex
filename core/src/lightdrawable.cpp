@@ -10,14 +10,14 @@ namespace core
 LightDrawable::LightDrawable(const std::shared_ptr<graphics::IVertexArray> &vao, LightDrawableType type)
     : Drawable(std::make_unique<LightDrawablePrivate>(vao, type))
 {
-
+    setDoubleSided(true);
 }
 
 LightDrawable::~LightDrawable() = default;
 
-bool LightDrawable::isTransparent() const
+DrawableAlphaMode LightDrawable::alphaMode() const
 {
-    return Drawable::isTransparent();
+    return DrawableAlphaMode::Opaque;
 }
 
 LightDrawableType LightDrawable::type() const
@@ -25,7 +25,7 @@ LightDrawableType LightDrawable::type() const
     return m().type();
 }
 
-graphics::LightComponentsSet LightDrawable::lightComponentsSet(const std::shared_ptr<const LightDrawable> &lightDrawable)
+graphics::LightComponentsSet LightDrawable::lightComponentsSet(const std::shared_ptr<const LightDrawable> &/*lightDrawable*/)
 {
     graphics::LightComponentsSet result;
 

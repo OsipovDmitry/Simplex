@@ -18,7 +18,7 @@ CameraNode::CameraNode(const std::string &name)
 {
     setRenderingEnabled(true);
     setPerspectiveProjection(glm::half_pi<float>());
-    setCullPlanesLimits(glm::vec2(.5f, std::numeric_limits<float>::max()));
+    setCullPlanesLimits({.5f, std::numeric_limits<float>::max()});
 }
 
 CameraNode::~CameraNode()
@@ -84,23 +84,28 @@ void CameraNode::resize(const glm::uvec2 &value)
     if (!oitFrameBuffer)
         oitFrameBuffer = std::make_shared<OITFrameBuffer>(graphicsRenderer);
 
+    auto &lightFrameBuffer = mPrivate.lightFrameBuffer();
+    if (!lightFrameBuffer)
+        lightFrameBuffer = std::make_shared<LightFrameBuffer>(graphicsRenderer);
+
     auto &finalFrameBuffer = mPrivate.finalFrameBuffer();
     if (!finalFrameBuffer)
         finalFrameBuffer = std::make_shared<FinalFrameBuffer>(graphicsRenderer);
+
+    auto &postprocessFrameBuffer = mPrivate.postprocessFrameBuffer();
+    if (!postprocessFrameBuffer)
+        postprocessFrameBuffer = std::make_shared<PostprocessFrameBuffer>(graphicsRenderer);
 
     auto &viewportSize = mPrivate.viewportSize();
     if (viewportSize != value)
     {
         viewportSize = value;
 
-        mPrivate.sharedDepthStencilTexture() = graphicsRenderer->createTextureRectEmpty(
-                    viewportSize.x,
-                    viewportSize.y,
-                    core::graphics::PixelInternalFormat::Depth24Stencil8);
-
-        gFrameBuffer->resize(graphicsRenderer, mPrivate.sharedDepthStencilTexture(), viewportSize);
-        oitFrameBuffer->resize(graphicsRenderer, mPrivate.sharedDepthStencilTexture(), viewportSize);
-        finalFrameBuffer->resize(graphicsRenderer, mPrivate.sharedDepthStencilTexture(), viewportSize);
+        gFrameBuffer->resize(graphicsRenderer, viewportSize);
+        oitFrameBuffer->resize(graphicsRenderer, gFrameBuffer->depthTexture(), viewportSize);
+        lightFrameBuffer->resize(graphicsRenderer, gFrameBuffer->depthTexture(), viewportSize);
+        finalFrameBuffer->resize(graphicsRenderer, gFrameBuffer->stencilTexture(), viewportSize);
+        postprocessFrameBuffer->resize(graphicsRenderer, viewportSize);
     }
 }
 
@@ -109,17 +114,17 @@ const glm::uvec2 &CameraNode::viewportSize() const
     return m().viewportSize();
 }
 
-const glm::vec2 &CameraNode::cullPlanesLimits() const
+const utils::Range &CameraNode::cullPlanesLimits() const
 {
     return m().cullPlanesLimits();
 }
 
-void CameraNode::setCullPlanesLimits(const glm::vec2 &values)
+void CameraNode::setCullPlanesLimits(const utils::Range &values)
 {
-    if (values[0] <= 0.f)
+    if (values.nearValue() <= 0.f)
         LOG_CRITICAL << "Znear must be greater than 0.0";
 
-    if (values[1] <= values[0])
+    if (values.farValue() <= values.nearValue())
         LOG_CRITICAL << "Zfar must be greater than Znear";
 
     m().cullPlanesLimits() = values;
@@ -145,7 +150,7 @@ void CameraNode::doDetach()
     mPrivate.viewportSize() = glm::uvec2(0u, 0u);
     mPrivate.gFrameBuffer() = nullptr;
     mPrivate.oitFrameBuffer() = nullptr;
-    mPrivate.finalFrameBuffer() = nullptr;
+    mPrivate.lightFrameBuffer() = nullptr;
 }
 
 }

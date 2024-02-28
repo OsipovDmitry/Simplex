@@ -28,18 +28,18 @@ public:
     std::shared_ptr<TexturesManager> &texturesManager();
     std::shared_ptr<ProgramsManager> &programsManager();
 
-    glm::vec4 &defaultBaseColor();
-    float &defaultMetallness();
-    float &defaultRoughness();
-
     std::shared_ptr<core::graphics::IBufferRange> &OITNodesBuffer();
     std::shared_ptr<core::graphics::IBufferRange> &OITNodesCounter();
 
     std::vector<std::shared_ptr<Scene>> &scenes();
 
+    std::shared_ptr<graphics::IVertexArray> &screenQuadVertexArray();
+
     std::shared_ptr<graphics::IVertexArray> &pointLightAreaVertexArray();
     std::shared_ptr<graphics::IVertexArray> &spotLightAreaVertexArray();
     std::shared_ptr<graphics::IVertexArray> &directionalLightAreaVertexArray();
+
+    std::shared_ptr<Drawable> &screenQuadDrawable();
 
     std::shared_ptr<Drawable> &finalScreenQuadDrawable();
     std::shared_ptr<StandardDrawable> &nodeBoundingBoxDrawable();
@@ -65,9 +65,13 @@ private:
 
     std::vector<std::shared_ptr<Scene>> m_scenes;
 
+    std::shared_ptr<graphics::IVertexArray> m_screenQuadVertexArray;
+
     std::shared_ptr<graphics::IVertexArray> m_pointLightAreaVertexArray;
     std::shared_ptr<graphics::IVertexArray> m_spotLightAreaVertexArray;
     std::shared_ptr<graphics::IVertexArray> m_directionalLightAreaVertexArray;
+
+    std::shared_ptr<Drawable> m_screenQuadDrawable;
 
     std::shared_ptr<Drawable> m_finalScreenQuadDrawable;
     std::shared_ptr<StandardDrawable> m_nodeBoundingBoxDrawable;

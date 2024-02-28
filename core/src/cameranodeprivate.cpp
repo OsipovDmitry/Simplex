@@ -28,14 +28,9 @@ glm::uvec2 &CameraNodePrivate::viewportSize()
     return m_viewportSize;
 }
 
-glm::vec2 &CameraNodePrivate::cullPlanesLimits()
+utils::Range &CameraNodePrivate::cullPlanesLimits()
 {
     return m_cullPlanesLimits;
-}
-
-graphics::PConstTexture &CameraNodePrivate::sharedDepthStencilTexture()
-{
-    return m_sharedDepthStencilTexture;
 }
 
 std::shared_ptr<GFrameBuffer> &CameraNodePrivate::gFrameBuffer()
@@ -48,9 +43,19 @@ std::shared_ptr<OITFrameBuffer> &CameraNodePrivate::oitFrameBuffer()
     return m_oitFrameBuffer;
 }
 
+std::shared_ptr<LightFrameBuffer> &CameraNodePrivate::lightFrameBuffer()
+{
+    return m_lightFrameBuffer;
+}
+
 std::shared_ptr<FinalFrameBuffer> &CameraNodePrivate::finalFrameBuffer()
 {
     return m_finalFrameBuffer;
+}
+
+std::shared_ptr<PostprocessFrameBuffer> &CameraNodePrivate::postprocessFrameBuffer()
+{
+    return m_postprocessFrameBuffer;
 }
 
 }

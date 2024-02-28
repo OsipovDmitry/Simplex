@@ -1,12 +1,13 @@
-#ifndef UTILS_TANGENTSPACE_H
-#define UTILS_TANGENTSPACE_H
+#ifndef UTILS_MESHIMPL_H
+#define UTILS_MESHIMPL_H
 
 #include <vector>
 
-#include <utils/logger.h>
 #include <utils/glm/matrix.hpp>
 #include <utils/glm/gtc/type_ptr.hpp>
 #include <utils/glm/gtx/normal.hpp>
+#include <utils/logger.h>
+#include <utils/boundingbox.h>
 #include <utils/primitiveset.h>
 
 
@@ -45,10 +46,10 @@ inline void calculateNormal(const std::shared_ptr<DrawArrays> &drawArrays,
     if (drawArrays->primitiveType() != PrimitiveType::Triangles)
         LOG_CRITICAL << "Primitive type must be Triangle";
 
-    if (verticesNumComponents < 3)
+    if (verticesNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (normalsNumComponents < 3)
+    if (normalsNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawArraysFirst = drawArrays->first();
@@ -80,10 +81,10 @@ inline void calculateNormal(const std::shared_ptr<DrawElements> &drawElements,
     if (drawElements->primitiveType() != PrimitiveType::Triangles)
         LOG_CRITICAL << "Primitive type must be Triangle";
 
-    if (verticesNumComponents < 3)
+    if (verticesNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (normalsNumComponents < 3)
+    if (normalsNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawElementsCount = drawElements->count();
@@ -113,10 +114,10 @@ inline void normalize(uint32_t numVertices,
                       V *result)
 
 {
-    if (normalsNumComponents < 3)
+    if (normalsNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (resultNumComponents < 3)
+    if (resultNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     for (uint32_t i = 0u; i < numVertices; ++i)
@@ -176,16 +177,16 @@ inline void calculateTangentSpace(const std::shared_ptr<DrawArrays> &drawArrays,
     if (drawArrays->primitiveType() != PrimitiveType::Triangles)
         LOG_CRITICAL << "Primitive type must be Triangle";
 
-    if (verticesNumComponents < 3)
+    if (verticesNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (texCoordsNumComponents < 2)
+    if (texCoordsNumComponents < 2u)
         LOG_CRITICAL << "Num components must be greater or equal than 2";
 
-    if (tangentsNumComponents < 3)
+    if (tangentsNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (binormalsNumComponents < 3)
+    if (binormalsNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawArraysFirst = drawArrays->first();
@@ -225,16 +226,16 @@ inline void calculateTangentSpace(const std::shared_ptr<DrawElements> &drawEleme
     if (drawElements->primitiveType() != PrimitiveType::Triangles)
         LOG_CRITICAL << "Primitive type must be Triangle";
 
-    if (verticesNumComponents < 3)
+    if (verticesNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (texCoordsNumComponents < 2)
+    if (texCoordsNumComponents < 2u)
         LOG_CRITICAL << "Num components must be greater or equal than 2";
 
-    if (tangentsNumComponents < 3)
+    if (tangentsNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (binormalsNumComponents < 3)
+    if (binormalsNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawElementsCount = drawElements->count();
@@ -272,16 +273,16 @@ inline void orthogonalizeTangentSpace(uint32_t numVertices,
                                       V *result)
 
 {
-    if (tangentsNumComponents < 3)
+    if (tangentsNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (binormalsNumComponents < 3)
+    if (binormalsNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 2";
 
-    if (normalsNumComponents < 3)
+    if (normalsNumComponents < 3u)
         LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (resultNumComponents < 4)
+    if (resultNumComponents < 4u)
         LOG_CRITICAL << "Num components must be greater or equal than 4";
 
     for (uint32_t i = 0u; i < numVertices; ++i)
@@ -290,17 +291,72 @@ inline void orthogonalizeTangentSpace(uint32_t numVertices,
         const auto &t = *reinterpret_cast<const glm::vec<3u, V>*>(tangents + i * tangentsNumComponents);
         const auto &b = *reinterpret_cast<const glm::vec<3u, V>*>(binormals + i * binormalsNumComponents);
 
-        glm::vec4 q =                 glm::vec<4u, V>(glm::normalize(t - n * glm::dot(t, n)),
-                                                      (glm::dot(glm::cross(n, t), b) < static_cast<V>(0)) ?
-                                                          static_cast<V>(-1) :
-                                                          static_cast<V>(+1));
+        glm::vec4 q = glm::vec<4u, V>(glm::normalize(t - n * glm::dot(t, n)),
+                                      (glm::dot(glm::cross(n, t), b) < static_cast<V>(0)) ? static_cast<V>(-1) : static_cast<V>(+1));
 
         *reinterpret_cast<glm::vec<4u, V>*>(result + i * resultNumComponents) = q;
     }
 
 }
 
+template<typename V>
+inline BoundingBox calculateBoundingBox(const std::shared_ptr<DrawArrays> &drawArrays,
+                                        uint32_t verticesNumComponents,
+                                        const V *vertices)
+{
+    if (verticesNumComponents < 1u)
+        LOG_CRITICAL << "Num components must be greater or equal than 1";
+
+    BoundingBox result;
+
+    const auto drawArraysFirst = drawArrays->first();
+    const auto drawArraysCount = drawArrays->count();
+
+    verticesNumComponents = glm::min(verticesNumComponents, static_cast<uint32_t>(BoundingBox::length()));
+
+    for (uint32_t i = 0u; i < drawArraysCount; ++i)
+    {
+        const auto p = reinterpret_cast<const V*>(vertices + (i + drawArraysFirst) * verticesNumComponents);
+        BoundingBox::PointType v(0.f);
+        for (uint32_t j = 0u; j < verticesNumComponents; ++j)
+            v[j] = p[j];
+        result += v;
+    }
+
+    return result;
+}
+
+template<typename V, typename I>
+inline BoundingBox calculateBoundingBox(const std::shared_ptr<DrawElements> &drawElements,
+                                        uint32_t verticesNumComponents,
+                                        const V *vertices,
+                                        const I *indices)
+{
+    if (verticesNumComponents < 1u)
+        LOG_CRITICAL << "Num components must be greater or equal than 1";
+
+    BoundingBox result;
+
+    const auto drawElementsCount = drawElements->count();
+    const auto drawElementsBaseVertex = drawElements->baseVertex();
+    const auto *pIndices = reinterpret_cast<const I*>(reinterpret_cast<const uint8_t*>(indices) + drawElements->offset());
+
+    verticesNumComponents = glm::min(verticesNumComponents, static_cast<uint32_t>(BoundingBox::length()));
+
+    for (uint32_t i = 0u; i < drawElementsCount; ++i)
+    {
+        const I index = static_cast<I>(pIndices[i] + drawElementsBaseVertex);
+        const auto p = reinterpret_cast<const V*>(vertices + index * verticesNumComponents);
+        BoundingBox::PointType v(0.f);
+        for (uint32_t j = 0u; j < verticesNumComponents; ++j)
+            v[j] = p[j];
+        result += v;
+    }
+
+    return result;
+}
+
 }
 }
 
-#endif // UTILS_TANGENTSPACE_H
+#endif // UTILS_MESHIMPL_H

@@ -22,6 +22,11 @@ std::shared_ptr<const SceneRootNode> SceneRootNode::asSceneRootNode() const
     return std::dynamic_pointer_cast<const SceneRootNode>(shared_from_this());
 }
 
+std::shared_ptr<const Scene> SceneRootNode::scene() const
+{
+    return const_cast<SceneRootNode*>(this)->scene();
+}
+
 std::shared_ptr<Scene> SceneRootNode::scene()
 {
     auto wpScene = m().scene();

@@ -31,7 +31,7 @@ public:
     void addDrawable(std::shared_ptr<Drawable>);
     void removeDrawable(std::shared_ptr<Drawable>);
 
-    virtual const utils::BoundingBox &localBoundingBox() const;
+    const utils::BoundingBox &localBoundingBox() const;
 
     void recalculateLocalBoundingBox();
 };

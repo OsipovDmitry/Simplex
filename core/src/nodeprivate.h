@@ -29,6 +29,8 @@ public:
 
     utils::BoundingBox &boundingBox();
 
+    BoundingBoxPolicy &boundingBoxPolicy();
+
 protected:
     std::string m_name;
 
@@ -36,6 +38,8 @@ protected:
     utils::Transform m_globalTransform;
 
     utils::BoundingBox m_boundingBox;
+
+    BoundingBoxPolicy m_boundingBoxPolicy;
 
     bool m_globalTransfomDirty;
     bool m_boundingBoxDirty;

@@ -35,21 +35,6 @@ std::shared_ptr<ProgramsManager> &GraphicsEnginePrivate::programsManager()
     return m_programsManager;
 }
 
-glm::vec4 &GraphicsEnginePrivate::defaultBaseColor()
-{
-    return m_defaultBaseColor;
-}
-
-float &GraphicsEnginePrivate::defaultMetallness()
-{
-    return m_defaultMetallness;
-}
-
-float &GraphicsEnginePrivate::defaultRoughness()
-{
-    return m_defaultRoughness;
-}
-
 std::shared_ptr<graphics::IBufferRange> &GraphicsEnginePrivate::OITNodesBuffer()
 {
     return m_OITNodesBuffer;
@@ -65,6 +50,11 @@ std::vector<std::shared_ptr<Scene>> &GraphicsEnginePrivate::scenes()
     return m_scenes;
 }
 
+std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::screenQuadVertexArray()
+{
+    return m_screenQuadVertexArray;
+}
+
 std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::pointLightAreaVertexArray()
 {
     return m_pointLightAreaVertexArray;
@@ -78,6 +68,11 @@ std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::spotLightAreaVer
 std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::directionalLightAreaVertexArray()
 {
     return m_directionalLightAreaVertexArray;
+}
+
+std::shared_ptr<Drawable> &GraphicsEnginePrivate::screenQuadDrawable()
+{
+    return m_screenQuadDrawable;
 }
 
 std::shared_ptr<Drawable> &GraphicsEnginePrivate::finalScreenQuadDrawable()

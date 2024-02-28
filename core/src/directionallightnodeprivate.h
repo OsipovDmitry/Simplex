@@ -15,9 +15,11 @@ public:
     ~DirectionalLightNodePrivate() override;
 
     static std::weak_ptr<graphics::IVertexArray> &lightAreaVertexArray();
+    static utils::BoundingBox &lightAreaBoundingBox();
 
 private:
     static std::weak_ptr<graphics::IVertexArray> s_lightAreaVertexArray;
+    static utils::BoundingBox s_lightAreaBoundingBox;
 
 };
 

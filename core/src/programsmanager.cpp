@@ -126,22 +126,6 @@ std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetOITSortNode
                                    ProgramsManagerPrivate::OITSortNodesPassComputeProgramName());
 }
 
-std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetBackgroundPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
-                                                                                                const graphics::BackgroundComponentsSet &backgroundComponentsSet)
-{
-    utils::ShaderDefines defines;
-    ProgramsManagerPrivate::NameKey key;
-    ProgramsManagerPrivate::prepareDefinesAndKeyForBackgroundPassRenderProgram(attribsSet,
-                                                                               backgroundComponentsSet,
-                                                                               defines,
-                                                                               key);
-
-    return loadOrGetRenderProgram(ProgramsManagerPrivate::backgroundPassVertexShaderPath(),
-                                  ProgramsManagerPrivate::backgroundPassFragmnetShaderPath(),
-                                  defines,
-                                  ProgramsManagerPrivate::backgroundPassRenderProgramName() + key.to_string());
-}
-
 std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetStencilPassRenderProgram(const utils::VertexAttributesSet &attribsSet)
 {
     utils::ShaderDefines defines;
@@ -173,6 +157,36 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetLightPassRen
                                   ProgramsManagerPrivate::lightPassRenderProgramName() + key.to_string());
 }
 
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetBackgroundPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
+                                                                                                const graphics::BackgroundComponentsSet &backgroundComponentSet)
+{
+    utils::ShaderDefines defines;
+    ProgramsManagerPrivate::NameKey key;
+    ProgramsManagerPrivate::prepareDefinesAndKeyForBackgroundPassRenderProgram(attribsSet,
+                                                                               backgroundComponentSet,
+                                                                               defines,
+                                                                               key);
+
+    return loadOrGetRenderProgram(ProgramsManagerPrivate::backgroundPassVertexShaderPath(),
+                                  ProgramsManagerPrivate::backgroundPassFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::backgroundPassRenderProgramName() + key.to_string());
+}
+
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetForegroundPassRenderProgram(const utils::VertexAttributesSet &attribsSet)
+{
+    utils::ShaderDefines defines;
+    ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
+
+    ProgramsManagerPrivate::NameKey key;
+    ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, 0u);
+
+    return loadOrGetRenderProgram(ProgramsManagerPrivate::foregroundPassVertexShaderPath(),
+                                  ProgramsManagerPrivate::foregroundPassFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::foregroundPassRenderProgramName() + key.to_string());
+}
+
 std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetFinalPassRenderProgram(const utils::VertexAttributesSet &attribsSet)
 {
     utils::ShaderDefines defines;
@@ -182,9 +196,23 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetFinalPassRen
     ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, 0u);
 
     return loadOrGetRenderProgram(ProgramsManagerPrivate::finalPassVertexShaderPath(),
-                     ProgramsManagerPrivate::finalPassFragmnetShaderPath(),
-                     defines,
-                     ProgramsManagerPrivate::finalPassRenderProgramName() + key.to_string());
+                                  ProgramsManagerPrivate::finalPassFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::finalPassRenderProgramName() + key.to_string());
+}
+
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetPostprocessPassRenderProgram(const utils::VertexAttributesSet &attribsSet)
+{
+    utils::ShaderDefines defines;
+    ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
+
+    ProgramsManagerPrivate::NameKey key;
+    ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, 0u);
+
+    return loadOrGetRenderProgram(ProgramsManagerPrivate::postprocessPassVertexShaderPath(),
+                                  ProgramsManagerPrivate::postprocessPassFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::postprocessPassRenderProgramName() + key.to_string());
 }
 
 

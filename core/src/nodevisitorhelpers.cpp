@@ -1,4 +1,6 @@
+#include <core/scenerootnode.h>
 #include <core/drawablenode.h>
+#include <core/lightnode.h>
 
 #include "nodeprivate.h"
 #include "nodevisitorhelpers.h"
@@ -8,17 +10,62 @@ namespace simplex
 namespace core
 {
 
-// NodeUpdateVisitor
+// UpdateNodeVisitor
 
-NodeUpdateVisitor::NodeUpdateVisitor(uint64_t time, uint32_t dt)
-    : m_time(time)
+UpdateNodeVisitor::UpdateNodeVisitor(uint64_t time, uint32_t dt)
+    : NodeVisitor()
+    , m_time(time)
     , m_dt(dt)
 {}
 
-bool NodeUpdateVisitor::visit(const std::shared_ptr<Node> &node)
+bool UpdateNodeVisitor::visit(const std::shared_ptr<Node> &node)
 {
     node->doUpdate(m_time, m_dt);
     return true;
+}
+
+// BeforeTransformChangedNodeVisitor
+
+BeforeTransformChangedNodeVisitor::BeforeTransformChangedNodeVisitor()
+    : NodeVisitor()
+{
+}
+
+bool BeforeTransformChangedNodeVisitor::visit(const std::shared_ptr<Node> &node)
+{
+    node->doBeforeTransformChanged();
+    return true;
+}
+
+// AfterTransformChangedNodeVisitor
+
+AfterTransformChangedNodeVisitor::AfterTransformChangedNodeVisitor()
+    : NodeVisitor()
+{
+}
+
+bool AfterTransformChangedNodeVisitor::visit(const std::shared_ptr<Node> &node)
+{
+    node->doAfterTransformChanged();
+    return true;
+}
+
+// FindRootNodeVisitor
+
+FindRootNodeVisitor::FindRootNodeVisitor()
+    : NodeVisitor()
+{
+}
+
+bool FindRootNodeVisitor::visit(const std::shared_ptr<Node> &node)
+{
+    m_rootNode = node;
+    return true;
+}
+
+const std::shared_ptr<Node> &FindRootNodeVisitor::rootNode()
+{
+    return m_rootNode;
 }
 
 // FrustumCullingNodeCollector
@@ -35,14 +82,14 @@ bool FrustumCullingNodeVisitor::visit(const std::shared_ptr<Node> &node)
     return m_transformedFrustum.contain(node->boundingBox());
 }
 
-// DrawableNodeCollector
+// DrawableNodesCollector
 
-DrawableNodeCollector::DrawableNodeCollector(const utils::Frustum &frustum)
+DrawableNodesCollector::DrawableNodesCollector(const utils::Frustum &frustum)
     : FrustumCullingNodeVisitor(frustum)
 {
 }
 
-bool DrawableNodeCollector::visit(const std::shared_ptr<Node> &node)
+bool DrawableNodesCollector::visit(const std::shared_ptr<Node> &node)
 {
     auto result = FrustumCullingNodeVisitor::visit(node);
 
@@ -58,21 +105,54 @@ bool DrawableNodeCollector::visit(const std::shared_ptr<Node> &node)
     return result;
 }
 
-const std::deque<std::shared_ptr<DrawableNode>> &DrawableNodeCollector::drawableNodes() const
+const std::deque<std::shared_ptr<DrawableNode>> &DrawableNodesCollector::drawableNodes() const
 {
-    return const_cast<DrawableNodeCollector*>(this)->drawableNodes();
+    return const_cast<DrawableNodesCollector*>(this)->drawableNodes();
 }
 
-std::deque<std::shared_ptr<DrawableNode>> &DrawableNodeCollector::drawableNodes()
+std::deque<std::shared_ptr<DrawableNode>> &DrawableNodesCollector::drawableNodes()
 {
     return m_drawableNodes;
+}
+
+// LightNodesCollector
+
+LightNodesCollector::LightNodesCollector(const utils::Frustum &frustum)
+    : FrustumCullingNodeVisitor(frustum)
+{
+}
+
+bool LightNodesCollector::visit(const std::shared_ptr<Node> &node)
+{
+    auto result = FrustumCullingNodeVisitor::visit(node);
+
+    if (result)
+    {
+        if (auto lightNode = node->asLightNode(); lightNode)
+        {
+            if (m_transformedFrustum.contain(lightNode->areaBoundingBox()))
+                m_lightNodes.push_back(lightNode);
+        }
+    }
+
+    return result;
+}
+
+const std::deque<std::shared_ptr<LightNode>> &LightNodesCollector::lightNodes() const
+{
+    return m_lightNodes;
+}
+
+std::deque<std::shared_ptr<LightNode>> &LightNodesCollector::lightNodes()
+{
+    return m_lightNodes;
 }
 
 // ZNearFarNodeVisitor
 
 ZNearFarNodeVisitor::ZNearFarNodeVisitor(const utils::OpenFrustum &openFrustum)
     : FrustumCullingNodeVisitor(openFrustum)
-    , m_zNearFar({ std::numeric_limits<float>::max(), std::numeric_limits<float>::lowest() })
+    , m_zNearFar()
 {
 }
 
@@ -82,37 +162,39 @@ bool ZNearFarNodeVisitor::visit(const std::shared_ptr<Node> &node)
 
     if (result)
     {
+        const auto &transformedNearPlane = m_transformedFrustum.planes[utils::Frustum::castFromPlanes(utils::Frustum::Planes::Near)];
+        utils::Range distances;
+
         if (auto drawableNode = node->asDrawableNode(); drawableNode)
+            distances = drawableNode->localBoundingBox().pairDistancesToPlane(transformedNearPlane);
+        else if (auto lightNode = node->asLightNode(); lightNode)
+            distances = lightNode->areaBoundingBox().pairDistancesToPlane(transformedNearPlane);
+
+        if (distances.farValue() > 0.f)
         {
-            const auto &transformedNearPlane = m_transformedFrustum.planes[utils::Frustum::castFromPlanes(utils::Frustum::Planes::Near)];
-            auto distances = drawableNode->localBoundingBox().pairDistancesToPlane(transformedNearPlane);
+            const auto &nodeGlobalTransform = node->globalTransform();
+            const auto &nearPlane = m_frustum.planes[utils::Frustum::castFromPlanes(utils::Frustum::Planes::Near)];
+            for (auto &d : distances)
+                d = nearPlane.distanceTo(nodeGlobalTransform * transformedNearPlane.anyPoint(d));
 
-            if (distances[1u] > 0.f)
-            {
-                const auto &nodeGlobalTransform = node->globalTransform();
-                const auto &nearPlane = m_frustum.planes[utils::Frustum::castFromPlanes(utils::Frustum::Planes::Near)];
-                for (auto &d : distances)
-                    d = nearPlane.distanceTo(nodeGlobalTransform * transformedNearPlane.anyPoint(d));
+            m_zNearFar.setFarValue(glm::max(m_zNearFar.farValue(), distances.farValue()));
 
-                m_zNearFar[1u] = glm::max(m_zNearFar[1u], distances[1u]);
-
-                distances[0u] = glm::max(distances[0u], 0.f);
-                m_zNearFar[0u] = glm::min(m_zNearFar[0u], distances[0u]);
-            }
+            distances.setNearValue(glm::max(distances.nearValue(), 0.f));
+            m_zNearFar.setNearValue(glm::min(m_zNearFar.nearValue(), distances.nearValue()));
         }
     }
 
     return result;
 }
 
-const std::array<float, 2u> &ZNearFarNodeVisitor::zNearFar() const
+const utils::Range &ZNearFarNodeVisitor::zNearFar() const
 {
     return m_zNearFar;
 }
 
 bool ZNearFarNodeVisitor::isEmpty() const
 {
-    return m_zNearFar[0] > m_zNearFar[1];
+    return m_zNearFar.nearValue() >= m_zNearFar.farValue();
 }
 
 // DirtyGlobalTransformNodeVisitor
@@ -130,18 +212,18 @@ bool DirtyGlobalTransformNodeVisitor::visit(const std::shared_ptr<Node> &node)
 
 // DirtyBoundingBoxNodeVisitor
 
-DirtyBoundingBoxNodeVisitor::DirtyBoundingBoxNodeVisitor()
+DirtyBoundingBoxNodeVisitor::DirtyBoundingBoxNodeVisitor(const std::unordered_set<BoundingBoxPolicy> &policies)
     : NodeVisitor()
+    , m_policies(policies)
 {
 }
 
 bool DirtyBoundingBoxNodeVisitor::visit(const std::shared_ptr<Node> &node)
 {
-    node->m().isBoundingBoxDirty() = true;
+    if (m_policies.count(node->boundingBoxPolicy()))
+        node->m().isBoundingBoxDirty() = true;
     return true;
 }
-
-
 
 
 } // namespace

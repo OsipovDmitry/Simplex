@@ -5,6 +5,7 @@
 
 #include <utils/forwarddecl.h>
 #include <utils/noncopyble.h>
+#include <utils/enumclass.h>
 #include <utils/pimpl.h>
 #include <utils/treenode.h>
 
@@ -17,6 +18,10 @@ namespace simplex
 namespace core
 {
 
+ENUMCLASS(BoundingBoxPolicy, uint16_t,
+          Standard,
+          Root)
+
 class NodePrivate;
 class CORE_SHARED_EXPORT Node : public INamedObject, public utils::TreeNode<Node>, public std::enable_shared_from_this<Node>
 {
@@ -27,6 +32,9 @@ public:
 
     const std::string &name() const override;
 
+    std::shared_ptr<const Node> rootNode() const;
+    std::shared_ptr<Node> rootNode();
+
     std::shared_ptr<const Scene> scene() const;
     std::shared_ptr<Scene> scene();
 
@@ -35,6 +43,9 @@ public:
     void setTransform(const utils::Transform&);
 
     const utils::BoundingBox &boundingBox() const;
+
+    BoundingBoxPolicy boundingBoxPolicy() const;
+    void setBoundingBoxPolicy(BoundingBoxPolicy);
 
     void acceptUp(NodeVisitor&);
     void acceptDown(NodeVisitor&);
@@ -64,6 +75,9 @@ protected:
 
     void doAttach() override;
     void doDetach() override;
+
+    void dirtyGlobalTransform();
+    void dirtyBoundingBox();
 
     std::unique_ptr<NodePrivate> m_;
 

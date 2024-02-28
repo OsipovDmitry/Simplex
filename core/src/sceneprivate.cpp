@@ -5,8 +5,6 @@ namespace simplex
 namespace core
 {
 
-std::weak_ptr<const graphics::ITexture> ScenePrivate::s_defaultBacgroundTexture;
-
 ScenePrivate::ScenePrivate(const std::weak_ptr<GraphicsEngine> &graphicsEngine, const std::string &name, const std::shared_ptr<SceneRootNode> &node)
     : m_name(name)
     , m_graphicsEngine(graphicsEngine)
@@ -29,16 +27,10 @@ std::shared_ptr<SceneRootNode> &ScenePrivate::sceneRootNode()
     return m_sceneRootNode;
 }
 
-std::shared_ptr<Drawable> &ScenePrivate::backgroundScreenQuadDrawable()
+std::shared_ptr<BackgroundDrawable> &ScenePrivate::backgroundDrawable()
 {
-    return m_backgroundScreenQuadDrawable;
+    return m_backgroundDrawable;
 }
-
-std::weak_ptr<const graphics::ITexture> &ScenePrivate::defaultBacgroundTexture()
-{
-    return s_defaultBacgroundTexture;
-}
-
 
 }
 }

@@ -1,6 +1,7 @@
 #ifndef CORE_LIGHTDRAWABLE_H
 #define CORE_LIGHTDRAWABLE_H
 
+#include <utils/forwarddecl.h>
 #include <utils/enumclass.h>
 #include <utils/pimpl.h>
 
@@ -25,7 +26,7 @@ public:
     LightDrawable(const std::shared_ptr<graphics::IVertexArray>&, LightDrawableType);
     ~LightDrawable() override;
 
-    bool isTransparent() const override;
+    DrawableAlphaMode alphaMode() const override;
 
     LightDrawableType type() const;
 

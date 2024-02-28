@@ -17,6 +17,7 @@ struct CameraInformation
     uint32_t numOpaqueDrawablesRendered;
     uint32_t numTransparentDrawablesRendererd;
     uint32_t numTrasparentPixelsRendered;
+    uint32_t numLightsRendered;
 };
 
 struct SceneInformation

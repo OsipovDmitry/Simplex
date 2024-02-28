@@ -13,6 +13,11 @@ namespace simplex
 namespace core
 {
 
+inline float extendedRadius(float value)
+{
+    return value * 1.15f;
+}
+
 PointLightNode::PointLightNode(const std::string &name)
     : LightNode(std::make_unique<PointLightNodePrivate>(name))
 {
@@ -54,20 +59,27 @@ const glm::vec2 &PointLightNode::radiuses() const
 
 void PointLightNode::setRadiuses(const glm::vec2 &value)
 {
-    if (value[0] < 0.f)
+    if (value[0u] < 0.f)
         LOG_CRITICAL << "minRadius must be greater or equal than 0.0";
 
-    if (value[1] <= value[0])
+    if (value[1u] <= value[0])
         LOG_CRITICAL << "maxRadius must be greater than minRadius";
 
     auto &mPrivate = m();
     uniform_cast<glm::vec2>(mPrivate.areaDrawable()->uniform(graphics::UniformId::LightRadiuses))->data() = value;
+
+    recalculateAreaBoundingBox();
     mPrivate.isAreaMatrixDirty() = true;
 }
 
 glm::mat4x4 PointLightNode::doAreaMatrix() const
 {
-    return glm::scale(glm::mat4x4(1.f), glm::vec3(radiuses()[1]));
+    return glm::scale(glm::mat4x4(1.f), glm::vec3(extendedRadius(radiuses()[1u])));
+}
+
+utils::BoundingBox PointLightNode::doAreaBoundingBox() const
+{
+    return areaMatrix() * PointLightNodePrivate::lightAreaBoundingBox();
 }
 
 }

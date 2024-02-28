@@ -21,6 +21,11 @@ std::shared_ptr<const LightNode> LightNode::asLightNode() const
     return std::dynamic_pointer_cast<const LightNode>(shared_from_this());
 }
 
+utils::BoundingBox LightNode::doBoundingBox() const
+{
+    return areaBoundingBox();
+}
+
 std::shared_ptr<PointLightNode> LightNode::asPointLightNode()
 {
     return nullptr;
@@ -87,6 +92,27 @@ std::shared_ptr<const LightDrawable> LightNode::areaDrawable() const
     return m().areaDrawable();
 }
 
+const utils::BoundingBox &LightNode::areaBoundingBox() const
+{
+    auto &mPrivate = m();
+
+    if (mPrivate.boundingBoxPolicy() == BoundingBoxPolicy::Root)
+        return boundingBox();
+
+    if (mPrivate.isAreaBoundingBoxDirty())
+    {
+        mPrivate.areaBoundingBox() = doAreaBoundingBox();
+        mPrivate.isAreaBoundingBoxDirty() = false;
+    }
+    return mPrivate.areaBoundingBox();
+}
+
+void LightNode::recalculateAreaBoundingBox()
+{
+    m().isAreaBoundingBoxDirty() = true;
+    dirtyBoundingBox();
+}
+
 LightNode::LightNode(std::unique_ptr<LightNodePrivate> lightNodePrivate)
     : Node(std::move(lightNodePrivate))
 {
@@ -104,7 +130,6 @@ bool LightNode::canDetach(std::shared_ptr<Node>)
     LOG_ERROR << "It's forbidden to detach from light node \"" << name() << "\"";
     return false;
 }
-
 
 }
 }
