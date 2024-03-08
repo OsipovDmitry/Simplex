@@ -42,6 +42,8 @@ public:
 
     void setF(int);
 
+    bool debug = false;
+
 private:
     std::unique_ptr<GraphicsEnginePrivate> m_;
 

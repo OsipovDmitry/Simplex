@@ -122,5 +122,10 @@ utils::BoundingBox IBLLightNode::doAreaBoundingBox() const
     return utils::BoundingBox::empty(); // is is not used because bb policy is Root
 }
 
+utils::Transform IBLLightNode::doShadowViewTransform(const utils::FrustumCornersInfo &) const
+{
+    return utils::Transform();
+}
+
 }
 }

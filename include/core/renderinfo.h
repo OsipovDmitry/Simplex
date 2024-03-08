@@ -42,22 +42,19 @@ public:
     const PUniform<graphics::PConstTexture> &GBufferColor1TextureUniform() const;
     const PUniform<graphics::PConstTexture> &GBufferColor2TextureUniform() const;
     const PUniform<graphics::PConstTexture> &GBufferDepthTextureUniform() const;
-    void setGBufferTextures(const graphics::PConstTexture& color0Map,
-                            const graphics::PConstTexture& color1Map,
-                            const graphics::PConstTexture& color2Map,
-                            const graphics::PConstTexture& depthMap);
-
-    const graphics::PConstBufferRange &OITNodesBuffer() const;
-    void setOITNodesBuffer(const graphics::PConstBufferRange&);
-
-    const PUniform<graphics::PConstBufferRange> &OITNodesCounterUniform() const;
-    void setOITNodesCounter(const graphics::PConstBufferRange&);
+    void setGBuffer(const graphics::PConstTexture& color0Map,
+                    const graphics::PConstTexture& color1Map,
+                    const graphics::PConstTexture& color2Map,
+                    const graphics::PConstTexture& depthMap);
 
     const PUniform<graphics::PConstImage> &OITDepthImageUniform() const;
-    void setOITDepthImage(const graphics::PConstImage&);
-
     const PUniform<graphics::PConstImage> &OITIndicesImageUniform() const;
-    void setOITIndicesImage(const graphics::PConstImage&);
+    const graphics::PConstBufferRange &OITNodesBuffer() const;
+    const PUniform<graphics::PConstBufferRange> &OITNodesCounterUniform() const;
+    void setOITBuffer(const graphics::PConstImage& depthImage,
+                      const graphics::PConstImage& indicesImage,
+                      const graphics::PConstBufferRange& nodesBuffer,
+                      const graphics::PConstBufferRange& nodesCounter);
 
     const PUniform<graphics::PConstTexture> &lightBufferColorTextureUniform() const;
     void setLightBufferColorTexture(const graphics::PConstTexture&);

@@ -59,6 +59,9 @@ using Plane = PlaneT<3, float>;
 template <glm::length_t L, typename T> struct BoundingBoxT;
 using BoundingBox = BoundingBoxT<3, float>;
 
+template<typename T> struct FrustumCornersInfoT;
+using FrustumCornersInfo = FrustumCornersInfoT<float>;
+
 template<typename T> struct FrustumT;
 using Frustum = FrustumT<float>;
 

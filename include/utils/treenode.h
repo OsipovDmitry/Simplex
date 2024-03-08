@@ -25,24 +25,25 @@ public:
 
     void clear()
     {
-        for (auto &chld : m_children)
+        for (auto &child : m_children)
         {
-            chld->TreeNode<T>::doDetach();
-            chld->m_parent = nullptr;
+            child->TreeNode<T>::doDetach();
+            child->m_parent = nullptr;
         }
         m_children.clear();
     }
 
-    void attach(std::shared_ptr<T> node)
+    bool attach(std::shared_ptr<T> node)
     {
-        if (canAttach(node))
-        {
-            if (node->m_parent)
-                node->m_parent->detach(node);
-            node->m_parent = dynamic_cast<T*>(this);
-            m_children.push_back(node);
-            node->TreeNode<T>::doAttach();
-        }
+        if (!canAttach(node))
+            return false;
+
+        if (node->m_parent)
+            node->m_parent->detach(node);
+        node->m_parent = dynamic_cast<T*>(this);
+        m_children.push_back(node);
+        node->TreeNode<T>::doAttach();
+        return true;
     }
 
     bool detach(std::shared_ptr<T> node)

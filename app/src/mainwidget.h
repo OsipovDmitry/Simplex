@@ -58,6 +58,9 @@ private:
 
     glm::vec3 m_cameraPosition = glm::vec3(-0.17f, 1.17f, 3.0f);
     glm::vec2 m_cameraAngles = glm::vec2(-0.18f, 6.01f);
+
+    void debug();
+    bool debug2 = false;
 };
 
 #endif // MAINWIDGET_H

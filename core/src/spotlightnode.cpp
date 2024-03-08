@@ -112,5 +112,10 @@ utils::BoundingBox SpotLightNode::doAreaBoundingBox() const
     return areaMatrix() * SpotLightNodePrivate::lightAreaBoundingBox();
 }
 
+utils::Transform SpotLightNode::doShadowViewTransform(const utils::FrustumCornersInfo &) const
+{
+    return utils::Transform();
+}
+
 }
 }

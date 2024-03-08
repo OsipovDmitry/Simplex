@@ -17,6 +17,7 @@ public:
     ~LightNodePrivate() override;
 
     bool &isLightingEnabled();
+    bool &isShadingEnabled();
 
     std::shared_ptr<LightDrawable> &areaDrawable();
 
@@ -28,6 +29,7 @@ public:
 
 private:
     bool m_isLightingEnabled;
+    bool m_isShadingEnabled;
 
     std::shared_ptr<LightDrawable> m_areaDrawable;
 

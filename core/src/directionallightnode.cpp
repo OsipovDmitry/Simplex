@@ -1,4 +1,5 @@
 ﻿#include <utils/logger.h>
+#include <utils/frustum.h>
 
 #include <core/igraphicsrenderer.h>
 #include <core/uniform.h>
@@ -77,7 +78,17 @@ glm::mat4x4 DirectionalLightNode::doAreaMatrix() const
 
 utils::BoundingBox DirectionalLightNode::doAreaBoundingBox() const
 {
-    return utils::BoundingBox::empty(); // is is not used because bb policy is Root
+    return utils::BoundingBox::empty(); // it is not used because bb policy is Root
+}
+
+utils::Transform DirectionalLightNode::doShadowViewTransform(const utils::FrustumCornersInfo &cameraFrustumCornersInfo) const
+{
+    const auto lightDirection = glm::normalize(glm::vec3(globalTransform() * glm::vec4(0.f, 0.f, 1.f, 0.f)));
+    const auto bbRange = (globalTransform() * areaBoundingBox()).projectOnLine(cameraFrustumCornersInfo.center, lightDirection);
+
+    return utils::Transform(1.f,
+                            glm::quatLookAt(lightDirection, glm::vec3(0.f, 1.f, 0.f)),
+                            cameraFrustumCornersInfo.center + bbRange.nearValue() * lightDirection);
 }
 
 }

@@ -170,8 +170,6 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
         UpdateNodeVisitor nodeUpdateVisitor(time, dt);
         rootNode->acceptDown(nodeUpdateVisitor);
 
-        std::unordered_set<std::shared_ptr<LightNode>> updatedLightNodes {};
-
         // render
         NodeCollector<CameraNode> cameraNodeCollector;
         rootNode->acceptDown(cameraNodeCollector);
@@ -179,6 +177,8 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
 
         for (const auto &camera : cameraNodeCollector.nodes())
         {
+            auto &cameraPrivate = camera->m();
+
             debug::CameraInformation cameraInfo;
             cameraInfo.cameraName = camera->name();
             auto &numOpaqueDrawablesRendered = cameraInfo.numOpaqueDrawablesRendered;
@@ -196,49 +196,48 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             const auto cameraViewportSize = camera->viewportSize();
             const auto cameraViewport = glm::uvec4(0u, 0u, cameraViewportSize);
             float aspectRatio = static_cast<float>(cameraViewportSize[0]) / static_cast<float>(cameraViewportSize[1]);
+            const auto cameraViewMatrix = camera->globalTransform().inverted();
 
-            ZNearFarNodeVisitor zNearFarNodeVisitor(utils::OpenFrustum(camera->projectionMatrix(aspectRatio, 0.f, 1.f) *
-                                                                       camera->globalTransform().inverted()));
+            ZNearFarNodeVisitor zNearFarNodeVisitor(utils::OpenFrustum(camera->projectionMatrix(aspectRatio, 0.f, 1.f) * cameraViewMatrix));
             rootNode->acceptDown(zNearFarNodeVisitor);
 
-            auto zNear = .5f;
-            auto zFar = 1.f;
+            auto cameraZNear = .5f;
+            auto cameraZFar = 1.f;
             if (!zNearFarNodeVisitor.isEmpty())
             {
                 const auto &cameraCullPlanesLimits = camera->cullPlanesLimits();
 
-                zNear = glm::max(cameraCullPlanesLimits.nearValue(), zNearFarNodeVisitor.zNearFar().nearValue() * 0.95f);
-                zFar = glm::min(cameraCullPlanesLimits.farValue(), zNearFarNodeVisitor.zNearFar().farValue() * 1.05f);
+                cameraZNear = glm::max(cameraCullPlanesLimits.nearValue(), zNearFarNodeVisitor.zNearFar().nearValue() * 0.95f);
+                cameraZFar = glm::min(cameraCullPlanesLimits.farValue(), zNearFarNodeVisitor.zNearFar().farValue() * 1.05f);
             }
 
-            const auto cameraProjectionMatrix = camera->projectionMatrix(aspectRatio, zNear, zFar);
-            const auto cameraViewMatrix = camera->globalTransform().inverted();
-            const auto cameraFrustum = utils::Frustum(cameraProjectionMatrix * cameraViewMatrix);
+            const auto cameraProjectionMatrix = camera->projectionMatrix(aspectRatio, cameraZNear, cameraZFar);
+
+            RenderInfo renderInfo;
+            renderInfo.setViewMatrix(cameraViewMatrix);
+            renderInfo.setProjectionMatrix(cameraProjectionMatrix);
+
+            renderInfo.setGBuffer(cameraPrivate.gFrameBuffer()->color0Texture(),
+                                  cameraPrivate.gFrameBuffer()->color1Texture(),
+                                  cameraPrivate.gFrameBuffer()->color2Texture(),
+                                  cameraPrivate.gFrameBuffer()->depthTexture());
+
+            renderInfo.setOITBuffer(cameraPrivate.oitFrameBuffer()->oitDepthImage(),
+                                    cameraPrivate.oitFrameBuffer()->oitIndicesImage(),
+                                    m_->OITNodesBuffer(),
+                                    m_->OITNodesCounter());
+
+            renderInfo.setLightBufferColorTexture(cameraPrivate.lightFrameBuffer()->colorTexture());
+            renderInfo.setFinalBufferColorTexture(cameraPrivate.finalFrameBuffer()->colorTexture());
+
+            const auto cameraFrustum = utils::Frustum(renderInfo.viewProjectionMatrixUniform()->data());
+            const auto cameraFrustumCornersInfo = utils::Frustum::calculateCornersInfo(renderInfo.viewProjectionMatrixInverseUniform()->data());
 
             DrawableNodesCollector drawableNodesCollector(cameraFrustum);
             rootNode->acceptDown(drawableNodesCollector);
 
             LightNodesCollector lightNodesCollector(cameraFrustum);
             rootNode->acceptDown(lightNodesCollector);
-
-            auto &cameraPrivate = camera->m();
-
-            RenderInfo renderInfo;
-            renderInfo.setViewMatrix(cameraViewMatrix);
-            renderInfo.setProjectionMatrix(cameraProjectionMatrix);
-
-            renderInfo.setGBufferTextures(cameraPrivate.gFrameBuffer()->color0Texture(),
-                                          cameraPrivate.gFrameBuffer()->color1Texture(),
-                                          cameraPrivate.gFrameBuffer()->color2Texture(),
-                                          cameraPrivate.gFrameBuffer()->depthTexture());
-
-            renderInfo.setOITNodesBuffer(m_->OITNodesBuffer());
-            renderInfo.setOITDepthImage(cameraPrivate.oitFrameBuffer()->oitDepthImage());
-            renderInfo.setOITIndicesImage(cameraPrivate.oitFrameBuffer()->oitIndicesImage());
-            renderInfo.setOITNodesCounter(m_->OITNodesCounter());
-
-            renderInfo.setLightBufferColorTexture(cameraPrivate.lightFrameBuffer()->colorTexture());
-            renderInfo.setFinalBufferColorTexture(cameraPrivate.finalFrameBuffer()->colorTexture());
 
             // render opaque geometry to G-buffer
             renderer->clearRenderData();
@@ -303,10 +302,14 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
                 if (!lightNode->isLightingEnabled())
                     continue;
 
-                if (!updatedLightNodes.count(lightNode))
+                if (lightNode->isShadingEnabled())
                 {
-                    // update shadow
-                    updatedLightNodes.insert(lightNode);
+                    if (debug)
+                    {
+                        camera->setTransform(lightNode->calculateShadowViewTransform(cameraFrustumCornersInfo));
+                        debug = false;
+                        return;
+                    }
                 }
 
                 auto modelMatrix = lightNode->globalTransform() * lightNode->areaMatrix();

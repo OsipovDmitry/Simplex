@@ -15,6 +15,10 @@
 #include "ui_mainwidget.h"
 #include "testapplication.h"
 
+
+#include <utils/frustum.h>
+#include <core/lightnode.h>
+
 MainWidget::MainWidget(QWidget *parent) :
     QWidget(parent),
     ui(new Ui::MainWidget)
@@ -61,7 +65,7 @@ void MainWidget::onTimeout()
 
     auto app = ui->m_renderWidget->application().lock();
     auto testApplication = std::dynamic_pointer_cast<TestApplication>(app);
-    if (!app)
+    if (!testApplication)
         return;
 
     if (m_isUpPressed)
@@ -105,7 +109,8 @@ void MainWidget::onTimeout()
     simplex::core::NodeCollector<simplex::core::CameraNode> cameraCollector;
     scenes.front()->sceneRootNode()->acceptDown(cameraCollector);
 
-    cameraCollector.nodes().front()->setTransform(cameraTransform);
+    if (!debug2)
+        cameraCollector.nodes().front()->setTransform(cameraTransform);
 
     ui->m_renderWidget->update();
 }
@@ -144,6 +149,11 @@ void MainWidget::keyPressEvent(QKeyEvent *event)
     case Qt::Key::Key_Right:
         m_isRightPressed = true;
         break;
+    case Qt::Key::Key_Space:
+    {
+        debug();
+        break;
+    }
     default:
         break;
     }
@@ -184,5 +194,21 @@ void MainWidget::keyReleaseEvent(QKeyEvent *event)
     }
 
     event->accept();
+}
+
+void MainWidget::debug()
+{
+    if (ui->m_renderWidget->application().expired())
+        return;
+
+    auto app = ui->m_renderWidget->application().lock();
+    auto testApplication = std::dynamic_pointer_cast<TestApplication>(app);
+    if (!testApplication)
+        return;
+
+    auto graphicsEngine = testApplication->graphicsEngine();
+    graphicsEngine->debug = true;
+    debug2 = true;
+
 }
 

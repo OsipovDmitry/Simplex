@@ -76,6 +76,16 @@ void LightNode::setLightingEnabled(bool value)
     m().isLightingEnabled() = value;
 }
 
+bool LightNode::isShadingEnabled() const
+{
+    return m().isShadingEnabled();
+}
+
+void LightNode::setShadingEnabled(bool value)
+{
+    m().isShadingEnabled() = value;
+}
+
 const glm::mat4x4 &LightNode::areaMatrix() const
 {
     auto &mPrivate = m();
@@ -113,10 +123,16 @@ void LightNode::recalculateAreaBoundingBox()
     dirtyBoundingBox();
 }
 
+utils::Transform LightNode::calculateShadowViewTransform(const utils::FrustumCornersInfo &cameraFrustumCornersInfo) const
+{
+    return doShadowViewTransform(cameraFrustumCornersInfo);
+}
+
 LightNode::LightNode(std::unique_ptr<LightNodePrivate> lightNodePrivate)
     : Node(std::move(lightNodePrivate))
 {
     setLightingEnabled(true);
+    setShadingEnabled(true);
 }
 
 bool LightNode::canAttach(std::shared_ptr<Node>)

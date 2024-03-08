@@ -18,11 +18,8 @@ RenderInfo::RenderInfo()
     setViewMatrix(glm::mat4x4(1.f));
     setProjectionMatrix(glm::mat4x4(1.f));
 
-    setGBufferTextures(nullptr, nullptr, nullptr, nullptr);
-    setOITNodesBuffer(nullptr);
-    setOITNodesCounter(nullptr);
-    setOITDepthImage(nullptr);
-    setOITIndicesImage(nullptr);
+    setGBuffer(nullptr, nullptr, nullptr, nullptr);
+    setOITBuffer(nullptr, nullptr, nullptr, nullptr);
     setLightBufferColorTexture(nullptr);
     setFinalBufferColorTexture(nullptr);
 }
@@ -122,7 +119,7 @@ const PUniform<graphics::PConstTexture> &RenderInfo::GBufferDepthTextureUniform(
     return m_->GBufferDepthTextureUniform();
 }
 
-void RenderInfo::setGBufferTextures(const graphics::PConstTexture &color0Map,
+void RenderInfo::setGBuffer(const graphics::PConstTexture &color0Map,
                                     const graphics::PConstTexture &color1Map,
                                     const graphics::PConstTexture &color2Map,
                                     const graphics::PConstTexture &depthMap)
@@ -133,34 +130,9 @@ void RenderInfo::setGBufferTextures(const graphics::PConstTexture &color0Map,
     m_->GBufferDepthTextureUniform() = makeUniform(depthMap);
 }
 
-const graphics::PConstBufferRange &RenderInfo::OITNodesBuffer() const
-{
-    return m_->OITDataBuffer();
-}
-
-void RenderInfo::setOITNodesBuffer(const graphics::PConstBufferRange &value)
-{
-    m_->OITDataBuffer() = value;
-}
-
-const PUniform<graphics::PConstBufferRange> &RenderInfo::OITNodesCounterUniform() const
-{
-    return m_->OITNodesCounterUniform();
-}
-
-void RenderInfo::setOITNodesCounter(const graphics::PConstBufferRange &value)
-{
-    m_->OITNodesCounterUniform() = makeUniform(value);
-}
-
 const PUniform<graphics::PConstImage> &RenderInfo::OITDepthImageUniform() const
 {
     return m_->OITDepthImageUniform();
-}
-
-void RenderInfo::setOITDepthImage(const graphics::PConstImage &value)
-{
-    m_->OITDepthImageUniform() = makeUniform(value);
 }
 
 const PUniform<graphics::PConstImage> &RenderInfo::OITIndicesImageUniform() const
@@ -168,9 +140,25 @@ const PUniform<graphics::PConstImage> &RenderInfo::OITIndicesImageUniform() cons
     return m_->OITIndicesImageUniform();
 }
 
-void RenderInfo::setOITIndicesImage(const graphics::PConstImage &value)
+const graphics::PConstBufferRange &RenderInfo::OITNodesBuffer() const
 {
-    m_->OITIndicesImageUniform() = makeUniform(value);
+    return m_->OITDataBuffer();
+}
+
+const PUniform<graphics::PConstBufferRange> &RenderInfo::OITNodesCounterUniform() const
+{
+    return m_->OITNodesCounterUniform();
+}
+
+void RenderInfo::setOITBuffer(const graphics::PConstImage &depthImage,
+                              const graphics::PConstImage &indicesImage,
+                              const graphics::PConstBufferRange &nodesBuffer,
+                              const graphics::PConstBufferRange &nodesCounter)
+{
+    m_->OITDepthImageUniform() = makeUniform(depthImage);
+    m_->OITIndicesImageUniform() = makeUniform(indicesImage);
+    m_->OITDataBuffer() = nodesBuffer;
+    m_->OITNodesCounterUniform() = makeUniform(nodesCounter);
 }
 
 const PUniform<graphics::PConstTexture> &RenderInfo::lightBufferColorTextureUniform() const

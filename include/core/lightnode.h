@@ -41,11 +41,15 @@ public:
     bool isLightingEnabled() const;
     void setLightingEnabled(bool);
 
+    bool isShadingEnabled() const;
+    void setShadingEnabled(bool);
+
     const glm::mat4x4 &areaMatrix() const;
     std::shared_ptr<const LightDrawable> areaDrawable() const;
     const utils::BoundingBox &areaBoundingBox() const;
-
     void recalculateAreaBoundingBox();
+
+    utils::Transform calculateShadowViewTransform(const utils::FrustumCornersInfo&) const;
 
 protected:
     LightNode(std::unique_ptr<LightNodePrivate>);
@@ -55,6 +59,7 @@ protected:
 
     virtual glm::mat4x4 doAreaMatrix() const = 0;
     virtual utils::BoundingBox doAreaBoundingBox() const = 0;
+    virtual utils::Transform doShadowViewTransform(const utils::FrustumCornersInfo&) const = 0;
 };
 
 }

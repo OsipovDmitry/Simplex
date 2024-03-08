@@ -140,10 +140,10 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
 //        scene0->sceneRootNode()->attach(pointLight);
 //    }
 
-//    auto dirLight = std::make_shared<core::DirectionalLightNode>("");
-//    dirLight->setColor(glm::vec3(10.0f));
-//    dirLight->setTransform(utils::Transform::fromRotation(glm::quat(0.888179f, -0.260215f, 0.363439f, 0.106479f)));
-//    scene0->sceneRootNode()->attach(dirLight);
+    auto dirLight = std::make_shared<core::DirectionalLightNode>("");
+    dirLight->setColor(glm::vec3(10.0f));
+    dirLight->setTransform(utils::Transform::fromRotation(glm::quat(0.888179f, -0.260215f, 0.363439f, 0.106479f)));
+    scene0->sceneRootNode()->attach(dirLight);
 
 //    auto spotLight = std::make_shared<core::SpotLightNode>("");
 //    spotLight->setColor(glm::vec3(8.f, 0.f, 0.f));
@@ -152,9 +152,9 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
 //    spotLight->setTransform(utils::Transform(1.f, glm::quat(0.888179f, -0.260215f, 0.363439f, 0.106479f), glm::vec3(2.78139, 2.08128, 2.13792)));
 //    scene0->sceneRootNode()->attach(spotLight);
 
-    auto iblLight = std::make_shared<core::IBLLightNode>("");
-    iblLight->setContribution(1.f);
-    scene0->sceneRootNode()->attach(iblLight);
+//    auto iblLight = std::make_shared<core::IBLLightNode>("");
+//    iblLight->setContribution(1.f);
+//    scene0->sceneRootNode()->attach(iblLight);
 
     auto planeDrawableNode = std::make_shared<core::DrawableNode>("");
     planeDrawableNode->addDrawable(planeDrawable);

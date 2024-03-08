@@ -36,6 +36,14 @@ public:
         return false;
     }
 
+    RangeT<T> projectOnLine(const PointType &orig, const PointType &dir) const
+    {
+        PointType vmin = m_minPoint, vmax = m_maxPoint;
+        for (glm::length_t k = 0; k < L; ++k)
+            if (dir[k] < static_cast<T>(0)) std::swap(vmin[k], vmax[k]);
+        return { glm::dot(vmin - orig, dir), glm::dot(vmax - orig, dir) };
+    }
+
     RangeT<T> pairDistancesToPlane(const PlaneT<L, T> &p) const
     {
         PointType vmin = m_minPoint, vmax = m_maxPoint;
