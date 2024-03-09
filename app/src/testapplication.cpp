@@ -141,9 +141,9 @@ TestApplication::TestApplication(std::shared_ptr<simplex::core::graphics::IRende
 //    }
 
     auto dirLight = std::make_shared<core::DirectionalLightNode>("");
-    dirLight->setColor(glm::vec3(10.0f));
+    dirLight->setColor(glm::vec3(7.0f));
     dirLight->setTransform(utils::Transform::fromRotation(glm::quat(0.888179f, -0.260215f, 0.363439f, 0.106479f)));
-    scene0->sceneRootNode()->attach(dirLight);
+    //scene0->sceneRootNode()->attach(dirLight);
 
 //    auto spotLight = std::make_shared<core::SpotLightNode>("");
 //    spotLight->setColor(glm::vec3(8.f, 0.f, 0.f));

@@ -50,8 +50,7 @@ public:
         const auto normal = p.normal();
         for (glm::length_t k = 0; k < L; ++k)
             if (normal[k] < static_cast<T>(0)) std::swap(vmin[k], vmax[k]);
-        const T vMinDist = p.distanceTo(vmin), vMaxDist = p.distanceTo(vmax);
-        return { vMinDist, vMaxDist };
+        return { p.distanceTo(vmin), p.distanceTo(vmax) };
     }
 
     T distanceToPlane(const PlaneT<L, T> &p) const {

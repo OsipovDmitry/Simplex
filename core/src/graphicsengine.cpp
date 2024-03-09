@@ -96,10 +96,8 @@ GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<graphics
     utils::MeshPainter directionalLightAreaPainter(utils::Mesh::createEmptyMesh(s_lightAreaVertexDeclaration));
     m_->directionalLightAreaVertexArray() = renderer->createVertexArray(directionalLightAreaPainter.drawCube(glm::vec3(2.f)).mesh());
     DirectionalLightNodePrivate::lightAreaVertexArray() = m_->directionalLightAreaVertexArray();
-    DirectionalLightNodePrivate::lightAreaBoundingBox() = directionalLightAreaPainter.calculateBoundingBox();
 
     IBLLightNodePrivate::lightAreaVertexArray() = DirectionalLightNodePrivate::lightAreaVertexArray(); // the same for IBL light type
-    IBLLightNodePrivate::lightAreaBoundingBox() = DirectionalLightNodePrivate::lightAreaBoundingBox();
     IBLLightNodePrivate::defaultBRDFLutMap() = texturesManager->loadOrGetDefaultIBLBRDFLutTexture();
     IBLLightNodePrivate::defaultDiffuseMap() = texturesManager->loadOrGetDefaultIBLDiffuseTexture();
     IBLLightNodePrivate::defaultSpecularMap() = texturesManager->loadOrGetDefaultIBLSpecularTexture();
@@ -145,6 +143,10 @@ const std::string &GraphicsEngine::name() const
 
 void GraphicsEngine::update(uint64_t time, uint32_t dt)
 {
+    static utils::Transform vm;
+    static glm::mat4x4 pm;
+    static bool isR = false;
+
     auto &debugInfo = m_->debugInformation();
     debugInfo.graphicsEngineName = name();
     debugInfo.scenesInformation.clear();
@@ -196,25 +198,32 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
             const auto cameraViewportSize = camera->viewportSize();
             const auto cameraViewport = glm::uvec4(0u, 0u, cameraViewportSize);
             float aspectRatio = static_cast<float>(cameraViewportSize[0]) / static_cast<float>(cameraViewportSize[1]);
-            const auto cameraViewMatrix = camera->globalTransform().inverted();
+            /*const*/ auto cameraViewTransform = camera->globalTransform().inverted();
 
-            ZNearFarNodeVisitor zNearFarNodeVisitor(utils::OpenFrustum(camera->projectionMatrix(aspectRatio, 0.f, 1.f) * cameraViewMatrix));
-            rootNode->acceptDown(zNearFarNodeVisitor);
+            ZRangeNodeVisitor zRangeNodeVisitor(utils::OpenFrustum(camera->calculateProjectionMatrix(aspectRatio, utils::Range(0.f, 1.f)) *
+                                                                   cameraViewTransform));
+            rootNode->acceptDown(zRangeNodeVisitor);
 
-            auto cameraZNear = .5f;
-            auto cameraZFar = 1.f;
-            if (!zNearFarNodeVisitor.isEmpty())
+            utils::Range cameraZRange(.5f, 1.f);
+            if (!zRangeNodeVisitor.zRange().isEmpty())
             {
                 const auto &cameraCullPlanesLimits = camera->cullPlanesLimits();
 
-                cameraZNear = glm::max(cameraCullPlanesLimits.nearValue(), zNearFarNodeVisitor.zNearFar().nearValue() * 0.95f);
-                cameraZFar = glm::min(cameraCullPlanesLimits.farValue(), zNearFarNodeVisitor.zNearFar().farValue() * 1.05f);
+                cameraZRange.setNearValue(glm::max(cameraCullPlanesLimits.nearValue(), zRangeNodeVisitor.zRange().nearValue() * 0.95f));
+                cameraZRange.setFarValue(glm::min(cameraCullPlanesLimits.farValue(), zRangeNodeVisitor.zRange().farValue() * 1.05f));
             }
 
-            const auto cameraProjectionMatrix = camera->projectionMatrix(aspectRatio, cameraZNear, cameraZFar);
+            /*const*/ auto cameraProjectionMatrix = camera->calculateProjectionMatrix(aspectRatio, cameraZRange);
+
+
+            if (isR)
+            {
+                cameraViewTransform = vm;
+                cameraProjectionMatrix = pm;
+            }
 
             RenderInfo renderInfo;
-            renderInfo.setViewMatrix(cameraViewMatrix);
+            renderInfo.setViewMatrix(cameraViewTransform);
             renderInfo.setProjectionMatrix(cameraProjectionMatrix);
 
             renderInfo.setGBuffer(cameraPrivate.gFrameBuffer()->color0Texture(),
@@ -304,12 +313,34 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
 
                 if (lightNode->isShadingEnabled())
                 {
+                    const auto shadowViewTransform = lightNode->calculateShadowViewTransform(cameraFrustumCornersInfo);
+                    ZRangeNodeVisitor shadowZRangeNodeVisitor(
+                                utils::OpenFrustum(lightNode->calculateShadowProjectionMatrix(shadowViewTransform,
+                                                                                              cameraFrustumCornersInfo,
+                                                                                              utils::Range(0.f, 1.f)) *
+                                                   shadowViewTransform));
+                    rootNode->acceptDown(shadowZRangeNodeVisitor);
+
+                    utils::Range shadowZRange(.5f, 1.f);
+                    if (!shadowZRangeNodeVisitor.zRange().isEmpty())
+                    {
+                        shadowZRange.setNearValue(shadowZRangeNodeVisitor.zRange().nearValue() * 0.95f);
+                        shadowZRange.setFarValue(shadowZRangeNodeVisitor.zRange().farValue() * 1.05f);
+                    }
+
+                    const auto shadowProjectionMatrix = lightNode->calculateShadowProjectionMatrix(shadowViewTransform,
+                                                                                                   cameraFrustumCornersInfo,
+                                                                                                   shadowZRange);
+
                     if (debug)
                     {
-                        camera->setTransform(lightNode->calculateShadowViewTransform(cameraFrustumCornersInfo));
+                        vm = shadowViewTransform;
+                        pm = shadowProjectionMatrix;
                         debug = false;
+                        isR = true;
                         return;
                     }
+
                 }
 
                 auto modelMatrix = lightNode->globalTransform() * lightNode->areaMatrix();

@@ -100,31 +100,12 @@ void IBLLightNode::doAfterTransformChanged()
 
 glm::mat4x4 IBLLightNode::doAreaMatrix() const
 {
-    glm::mat4x4 result(1.f);
-
-    std::shared_ptr<const Node> sceneRootNode;
-    if (auto s = scene(); s)
-        sceneRootNode = s->sceneRootNode();
-
-    if (!sceneRootNode)
-        return result;
-
-    auto sceneBoundingBox = sceneRootNode->globalTransform() * sceneRootNode->boundingBox();
-    result = globalTransform().inverted() *
-            glm::translate(glm::mat4x4(1.f), sceneBoundingBox.center()) *
-            glm::scale(glm::mat4x4(1.f), sceneBoundingBox.halfSize());
-
-    return result;
+    return glm::mat4x4(1.f); // it is not used because bb policy is Root
 }
 
 utils::BoundingBox IBLLightNode::doAreaBoundingBox() const
 {
-    return utils::BoundingBox::empty(); // is is not used because bb policy is Root
-}
-
-utils::Transform IBLLightNode::doShadowViewTransform(const utils::FrustumCornersInfo &) const
-{
-    return utils::Transform();
+    return utils::BoundingBox::empty(); // it is not used because bb policy is Root
 }
 
 }

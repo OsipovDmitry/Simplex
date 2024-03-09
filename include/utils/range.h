@@ -20,6 +20,8 @@ public:
     {
     }
 
+    bool isEmpty() const { return this->operator [](0u) >= this->operator [](1u); }
+
     const T &nearValue() const { return this->operator [](0u); }
     void setNearValue(const T &n) { this->operator [](0u) = n; }
 

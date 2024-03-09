@@ -28,6 +28,9 @@ protected:
     glm::mat4x4 doAreaMatrix() const override;
     utils::BoundingBox doAreaBoundingBox() const override;
     utils::Transform doShadowViewTransform(const utils::FrustumCornersInfo&) const override;
+    glm::mat4x4 doShadowProjectionMatrix(const utils::Transform &shadowViewTransform,
+                                                 const utils::FrustumCornersInfo&,
+                                                 const utils::Range&) const override;
 
 };
 

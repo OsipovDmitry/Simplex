@@ -3415,6 +3415,9 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
         case core::graphics::UniformId::NormalMatrix:
             uniform = core::makeUniform(glm::mat3x3(glm::inverseTranspose(modelMatrix)));
             break;
+        case core::graphics::UniformId::NormalMatrixInverse:
+            uniform = core::makeUniform(glm::inverse(glm::mat3x3(glm::inverseTranspose(modelMatrix))));
+            break;
         case core::graphics::UniformId::ViewMatrix:
             uniform = renderInfo.viewMatrixUniform();
             break;

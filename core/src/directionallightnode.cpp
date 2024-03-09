@@ -59,21 +59,7 @@ void DirectionalLightNode::doAfterTransformChanged()
 
 glm::mat4x4 DirectionalLightNode::doAreaMatrix() const
 {
-    glm::mat4x4 result(1.f);
-
-    std::shared_ptr<const Node> sceneRootNode;
-    if (auto s = scene(); s)
-        sceneRootNode = s->sceneRootNode();
-
-    if (!sceneRootNode)
-        return result;
-
-    auto sceneBoundingBox = sceneRootNode->globalTransform() * sceneRootNode->boundingBox();
-    result = globalTransform().inverted() *
-            glm::translate(glm::mat4x4(1.f), sceneBoundingBox.center()) *
-            glm::scale(glm::mat4x4(1.f), sceneBoundingBox.halfSize());
-
-    return result;
+    return glm::mat4x4(1.f); // it is not used because bb policy is Root
 }
 
 utils::BoundingBox DirectionalLightNode::doAreaBoundingBox() const
@@ -83,12 +69,28 @@ utils::BoundingBox DirectionalLightNode::doAreaBoundingBox() const
 
 utils::Transform DirectionalLightNode::doShadowViewTransform(const utils::FrustumCornersInfo &cameraFrustumCornersInfo) const
 {
-    const auto lightDirection = glm::normalize(glm::vec3(globalTransform() * glm::vec4(0.f, 0.f, 1.f, 0.f)));
-    const auto bbRange = (globalTransform() * areaBoundingBox()).projectOnLine(cameraFrustumCornersInfo.center, lightDirection);
+    const auto lightDirection = glm::normalize(glm::vec3(globalTransform() * glm::vec4(0.f, 0.f, -1.f, 0.f)));
+    auto bbRange = (globalTransform() * boundingBox()).projectOnLine(cameraFrustumCornersInfo.center, lightDirection);
+    bbRange.setNearValue(bbRange.nearValue() /*- 1.f*/);
 
+    const auto up = glm::abs(lightDirection.y) < .999f ? glm::vec3(0.f, 1.f, 0.f) : glm::vec3(1.f, 0.f, 0.f);
     return utils::Transform(1.f,
-                            glm::quatLookAt(lightDirection, glm::vec3(0.f, 1.f, 0.f)),
-                            cameraFrustumCornersInfo.center + bbRange.nearValue() * lightDirection);
+                            glm::quatLookAt(lightDirection, up),
+                            cameraFrustumCornersInfo.center + bbRange.nearValue() * lightDirection).inverted();
+}
+
+glm::mat4x4 DirectionalLightNode::doShadowProjectionMatrix(const utils::Transform &shadowViewTransform,
+                                                           const utils::FrustumCornersInfo &cameraFrustumCornersInfo,
+                                                           const utils::Range &zRange) const
+{
+    utils::BoundingBox lightFrustumBB;
+    for (const auto &corner : cameraFrustumCornersInfo.corners)
+        lightFrustumBB += shadowViewTransform * corner;
+
+    return glm::ortho(lightFrustumBB.minPoint().x, lightFrustumBB.maxPoint().x,
+                      lightFrustumBB.minPoint().y, lightFrustumBB.maxPoint().y,
+                      /*1.f, -lightFrustumBB.minPoint().z*/
+                      zRange.nearValue(), zRange.farValue());
 }
 
 }

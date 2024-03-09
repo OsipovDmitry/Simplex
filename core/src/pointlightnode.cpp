@@ -82,10 +82,5 @@ utils::BoundingBox PointLightNode::doAreaBoundingBox() const
     return areaMatrix() * PointLightNodePrivate::lightAreaBoundingBox();
 }
 
-utils::Transform PointLightNode::doShadowViewTransform(const utils::FrustumCornersInfo &) const
-{
-    return utils::Transform();
-}
-
 }
 }

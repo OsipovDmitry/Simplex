@@ -148,15 +148,15 @@ std::deque<std::shared_ptr<LightNode>> &LightNodesCollector::lightNodes()
     return m_lightNodes;
 }
 
-// ZNearFarNodeVisitor
+// ZRangeNodeVisitor
 
-ZNearFarNodeVisitor::ZNearFarNodeVisitor(const utils::OpenFrustum &openFrustum)
+ZRangeNodeVisitor::ZRangeNodeVisitor(const utils::OpenFrustum &openFrustum)
     : FrustumCullingNodeVisitor(openFrustum)
-    , m_zNearFar()
+    , m_zRange()
 {
 }
 
-bool ZNearFarNodeVisitor::visit(const std::shared_ptr<Node> &node)
+bool ZRangeNodeVisitor::visit(const std::shared_ptr<Node> &node)
 {
     auto result = FrustumCullingNodeVisitor::visit(node);
 
@@ -177,24 +177,19 @@ bool ZNearFarNodeVisitor::visit(const std::shared_ptr<Node> &node)
             for (auto &d : distances)
                 d = nearPlane.distanceTo(nodeGlobalTransform * transformedNearPlane.anyPoint(d));
 
-            m_zNearFar.setFarValue(glm::max(m_zNearFar.farValue(), distances.farValue()));
+            m_zRange.setFarValue(glm::max(m_zRange.farValue(), distances.farValue()));
 
             distances.setNearValue(glm::max(distances.nearValue(), 0.f));
-            m_zNearFar.setNearValue(glm::min(m_zNearFar.nearValue(), distances.nearValue()));
+            m_zRange.setNearValue(glm::min(m_zRange.nearValue(), distances.nearValue()));
         }
     }
 
     return result;
 }
 
-const utils::Range &ZNearFarNodeVisitor::zNearFar() const
+const utils::Range &ZRangeNodeVisitor::zRange() const
 {
-    return m_zNearFar;
-}
-
-bool ZNearFarNodeVisitor::isEmpty() const
-{
-    return m_zNearFar.nearValue() >= m_zNearFar.farValue();
+    return m_zRange;
 }
 
 // DirtyGlobalTransformNodeVisitor

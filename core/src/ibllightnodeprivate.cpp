@@ -6,7 +6,6 @@ namespace core
 {
 
 std::weak_ptr<graphics::IVertexArray> IBLLightNodePrivate::s_lightAreaVertexArray;
-utils::BoundingBox IBLLightNodePrivate::s_lightAreaBoundingBox;
 std::weak_ptr<const graphics::ITexture> IBLLightNodePrivate::s_defaultBRDFLutMap;
 std::weak_ptr<const graphics::ITexture> IBLLightNodePrivate::s_defaultDiffuseMap;
 std::weak_ptr<const graphics::ITexture> IBLLightNodePrivate::s_defaultSpecularMap;
@@ -22,11 +21,6 @@ IBLLightNodePrivate::~IBLLightNodePrivate() = default;
 std::weak_ptr<graphics::IVertexArray> &IBLLightNodePrivate::lightAreaVertexArray()
 {
     return s_lightAreaVertexArray;
-}
-
-utils::BoundingBox &IBLLightNodePrivate::lightAreaBoundingBox()
-{
-    return s_lightAreaBoundingBox;
 }
 
 std::weak_ptr<const graphics::ITexture> &IBLLightNodePrivate::defaultBRDFLutMap()

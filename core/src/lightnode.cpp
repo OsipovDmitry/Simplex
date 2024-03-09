@@ -128,6 +128,13 @@ utils::Transform LightNode::calculateShadowViewTransform(const utils::FrustumCor
     return doShadowViewTransform(cameraFrustumCornersInfo);
 }
 
+glm::mat4x4 LightNode::calculateShadowProjectionMatrix(const utils::Transform &shadowViewTransform,
+                                                       const utils::FrustumCornersInfo &cameraFrustumCornersInfo,
+                                                       const utils::Range &zRange) const
+{
+    return doShadowProjectionMatrix(shadowViewTransform, cameraFrustumCornersInfo, zRange);
+}
+
 LightNode::LightNode(std::unique_ptr<LightNodePrivate> lightNodePrivate)
     : Node(std::move(lightNodePrivate))
 {
@@ -146,6 +153,12 @@ bool LightNode::canDetach(std::shared_ptr<Node>)
     LOG_ERROR << "It's forbidden to detach from light node \"" << name() << "\"";
     return false;
 }
+
+utils::Transform LightNode::doShadowViewTransform(const utils::FrustumCornersInfo &) const
+{ return utils::Transform(); }
+
+glm::mat4x4 LightNode::doShadowProjectionMatrix(const utils::Transform &, const utils::FrustumCornersInfo &, const utils::Range &) const
+{ return glm::mat4x4(1.f); }
 
 }
 }

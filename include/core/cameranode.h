@@ -29,7 +29,7 @@ public:
 
     void setOrthoProjection();
     void setPerspectiveProjection(float fov);
-    glm::mat4 projectionMatrix(float aspect, float zNear, float zFar) const;
+    glm::mat4x4 calculateProjectionMatrix(float aspect, const utils::Range&) const;
 
     void resize(const glm::uvec2&);
     const glm::uvec2 &viewportSize() const;

@@ -110,20 +110,19 @@ protected:
 
 
 
-// ZNearFarNodeVisitor
+// ZRangeNodeVisitor
 
-class ZNearFarNodeVisitor : public FrustumCullingNodeVisitor
+class ZRangeNodeVisitor : public FrustumCullingNodeVisitor
 {
 public:
-    ZNearFarNodeVisitor(const utils::OpenFrustum&); // zNear of input frustum must be 0.0
+    ZRangeNodeVisitor(const utils::OpenFrustum&); // zNear of input frustum must be 0.0
 
     bool visit(const std::shared_ptr<Node>&) override;
 
-    const utils::Range &zNearFar() const;
-    bool isEmpty() const;
+    const utils::Range &zRange() const;
 
 protected:
-    utils::Range m_zNearFar;
+    utils::Range m_zRange;
 };
 
 // DirtyGlobalTransformNodeVisitor

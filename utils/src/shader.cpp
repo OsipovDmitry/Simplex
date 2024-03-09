@@ -4,7 +4,7 @@
 #include <utils/logger.h>
 #include <utils/textfile.h>
 
-#define DEBUG_PRINT_SHADER 1
+#define DEBUG_PRINT_SHADER 0
 
 namespace simplex
 {

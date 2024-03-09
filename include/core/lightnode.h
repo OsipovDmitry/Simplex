@@ -50,6 +50,9 @@ public:
     void recalculateAreaBoundingBox();
 
     utils::Transform calculateShadowViewTransform(const utils::FrustumCornersInfo&) const;
+    glm::mat4x4 calculateShadowProjectionMatrix(const utils::Transform &shadowViewTransform,
+                                                const utils::FrustumCornersInfo&,
+                                                const utils::Range&) const;
 
 protected:
     LightNode(std::unique_ptr<LightNodePrivate>);
@@ -59,7 +62,10 @@ protected:
 
     virtual glm::mat4x4 doAreaMatrix() const = 0;
     virtual utils::BoundingBox doAreaBoundingBox() const = 0;
-    virtual utils::Transform doShadowViewTransform(const utils::FrustumCornersInfo&) const = 0;
+    virtual utils::Transform doShadowViewTransform(const utils::FrustumCornersInfo&) const /*= 0*/;
+    virtual glm::mat4x4 doShadowProjectionMatrix(const utils::Transform &shadowViewTransform,
+                                                 const utils::FrustumCornersInfo&,
+                                                 const utils::Range&) const /*= 0*/;
 };
 
 }

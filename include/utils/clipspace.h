@@ -23,7 +23,7 @@ public:
     virtual std::shared_ptr<PerspectiveClipSpace> asPerspectiveClipSpace();
     virtual std::shared_ptr<const PerspectiveClipSpace> asPerspectiveClipSpace() const;
 
-    virtual glm::mat4 projectionMatrix(float aspect, float zNear, float zFar) const = 0;
+    virtual glm::mat4 projectionMatrix(float aspect, const utils::Range &zRange) const = 0;
 };
 
 class UTILS_SHARED_EXPORT OrthoClipSpace : public AbstractClipSpace
@@ -34,7 +34,7 @@ public:
     std::shared_ptr<OrthoClipSpace> asOrthoClipSpace() override;
     std::shared_ptr<const OrthoClipSpace> asOrthoClipSpace() const override;
 
-    glm::mat4 projectionMatrix(float aspect, float zNear, float zFar) const override;
+    glm::mat4 projectionMatrix(float aspect, const utils::Range &zRange) const override;
 };
 
 class UTILS_SHARED_EXPORT PerspectiveClipSpace : public AbstractClipSpace
@@ -48,7 +48,7 @@ public:
     std::shared_ptr<PerspectiveClipSpace> asPerspectiveClipSpace() override;
     std::shared_ptr<const PerspectiveClipSpace> asPerspectiveClipSpace() const override;
 
-    glm::mat4 projectionMatrix(float aspect, float zNear, float zFar) const override;
+    glm::mat4 projectionMatrix(float aspect, const utils::Range &zRange) const override;
 
 protected:
     float m_fov;

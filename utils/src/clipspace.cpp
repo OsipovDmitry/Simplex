@@ -1,5 +1,6 @@
 #include <utils/glm/gtc/matrix_transform.hpp>
 #include <utils/clipspace.h>
+#include <utils/range.h>
 
 namespace simplex
 {
@@ -43,9 +44,9 @@ std::shared_ptr<const OrthoClipSpace> OrthoClipSpace::asOrthoClipSpace() const
     return const_cast<OrthoClipSpace*>(this)->asOrthoClipSpace();
 }
 
-glm::mat4 OrthoClipSpace::projectionMatrix(float aspect, float zNear, float zFar) const
+glm::mat4 OrthoClipSpace::projectionMatrix(float aspect, const Range &zRange) const
 {
-    return glm::ortho(-aspect, aspect, -1.f, 1.f, zNear, zFar);
+    return glm::ortho(-aspect, aspect, -1.f, 1.f, zRange.nearValue(), zRange.farValue());
 }
 
 PerspectiveClipSpace::PerspectiveClipSpace(float fov)
@@ -73,9 +74,9 @@ std::shared_ptr<const PerspectiveClipSpace> PerspectiveClipSpace::asPerspectiveC
     return const_cast<PerspectiveClipSpace*>(this)->asPerspectiveClipSpace();
 }
 
-glm::mat4 PerspectiveClipSpace::projectionMatrix(float aspect, float zNear, float zFar) const
+glm::mat4 PerspectiveClipSpace::projectionMatrix(float aspect, const Range &zRange) const
 {
-    return glm::perspective(m_fov, aspect, zNear, zFar);
+    return glm::perspective(m_fov, aspect, zRange.nearValue(), zRange.farValue());
 }
 
 

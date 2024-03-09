@@ -55,9 +55,9 @@ void CameraNode::setPerspectiveProjection(float fov)
     m().clipSpace() = std::make_shared<utils::PerspectiveClipSpace>(fov);
 }
 
-glm::mat4 CameraNode::projectionMatrix(float aspect, float zNear, float zFar) const
+glm::mat4x4 CameraNode::calculateProjectionMatrix(float aspect, const utils::Range &zRange) const
 {
-    return m().clipSpace()->projectionMatrix(aspect, zNear, zFar);
+    return m().clipSpace()->projectionMatrix(aspect, zRange);
 }
 
 void CameraNode::resize(const glm::uvec2 &value)
