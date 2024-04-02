@@ -18,6 +18,8 @@ public:
     SpotLightNode(const std::string&);
     ~SpotLightNode() override;
 
+    LightType type() const override;
+
     std::shared_ptr<SpotLightNode> asSpotLightNode() override;
     std::shared_ptr<const SpotLightNode> asSpotLightNode() const override;
 
@@ -33,6 +35,9 @@ public:
 protected:
     glm::mat4x4 doAreaMatrix() const override;
     utils::BoundingBox doAreaBoundingBox() const override;
+    glm::mat4x4 doUpdateLayeredShadowMatrices(const utils::FrustumCorners&,
+                                              const utils::Range&,
+                                              std::vector<glm::mat4x4>&) const override;
 };
 
 }

@@ -1,4 +1,5 @@
 #include <utils/logger.h>
+#include <utils/frustum.h>
 
 #include <core/igraphicsrenderer.h>
 #include <core/uniform.h>
@@ -29,11 +30,16 @@ SpotLightNode::SpotLightNode(const std::string &name)
     auto &mPrivate = m();
     mPrivate.halfAngles() = s_defaultHalfAngles;
 
-    auto drawable = std::make_shared<LightDrawable>(SpotLightNodePrivate::lightAreaVertexArray().lock(), LightDrawableType::Spot);
+    auto drawable = std::make_shared<LightDrawable>(SpotLightNodePrivate::lightAreaVertexArray().lock());
     mPrivate.areaDrawable() = drawable;
     drawable->getOrCreateUniform(graphics::UniformId::LightColor) = makeUniform(glm::vec3(1.f));
     drawable->getOrCreateUniform(graphics::UniformId::LightRadiuses) = makeUniform(glm::vec2(1.f, 2.f));
     drawable->getOrCreateUniform(graphics::UniformId::LightCosHalfAngles) = makeUniform(glm::cos(s_defaultHalfAngles));
+}
+
+LightType SpotLightNode::type() const
+{
+    return LightType::Spot;
 }
 
 SpotLightNode::~SpotLightNode() = default;
@@ -110,6 +116,34 @@ glm::mat4x4 SpotLightNode::doAreaMatrix() const
 utils::BoundingBox SpotLightNode::doAreaBoundingBox() const
 {
     return areaMatrix() * SpotLightNodePrivate::lightAreaBoundingBox();
+}
+
+glm::mat4x4 SpotLightNode::doUpdateLayeredShadowMatrices(const utils::FrustumCorners &cameraFrustumCorners,
+                                                         const utils::Range &zRange,
+                                                         std::vector<glm::mat4x4> &layeredShadowMatrices) const
+{
+    const auto viewTransform = globalTransform().inverted();
+
+    utils::BoundingBoxT<2u, float> cameraFrustumBB;
+    for (const auto &corner : cameraFrustumCorners)
+    {
+        auto cornerInShadowSpace = viewTransform * corner;
+        cornerInShadowSpace.z = glm::min(cornerInShadowSpace.z, -zRange.nearValue());
+        cameraFrustumBB += -cornerInShadowSpace * zRange.nearValue() / cornerInShadowSpace.z;
+    }
+
+    const float t = zRange.nearValue() * glm::atan(halfAngles()[1u]);
+    const utils::BoundingBoxT<2u, float> lightFrustumBB(glm::vec2(-t, -t), glm::vec2(t, t));
+
+    const auto shadowBB = cameraFrustumBB * lightFrustumBB;
+
+    const auto projectionMatrix = glm::frustum(shadowBB.minPoint().x, shadowBB.maxPoint().x,
+                                               shadowBB.minPoint().y, shadowBB.maxPoint().y,
+                                               zRange.nearValue(), zRange.farValue());
+
+    const auto result = projectionMatrix * viewTransform;
+    layeredShadowMatrices = { result };
+    return result;
 }
 
 }

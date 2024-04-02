@@ -12,25 +12,27 @@ namespace simplex
 namespace core
 {
 
-ENUMCLASS(LightDrawableType, uint16_t,
-          Point,
-          Spot,
-          Directional,
-          IBL)
+ENUMCLASS(LightComponent, uint16_t,
+          None)
 
 class LightDrawablePrivate;
 class CORE_SHARED_EXPORT LightDrawable : public Drawable
 {
     PIMPL(LightDrawable)
 public:
-    LightDrawable(const std::shared_ptr<graphics::IVertexArray>&, LightDrawableType);
+    LightDrawable(const std::shared_ptr<graphics::IVertexArray>&);
     ~LightDrawable() override;
 
     DrawableAlphaMode alphaMode() const override;
 
-    LightDrawableType type() const;
+    void setShadowDepthMap(const graphics::PConstTexture&);
+    void setShadowColorMap(const graphics::PConstTexture&);
 
-    static graphics::LightComponentsSet lightComponentsSet(const std::shared_ptr<const LightDrawable>&);
+    void setShadowMatrix(const glm::mat4x4&);
+
+    std::unordered_set<LightComponent> lightComponentsSet() const;
+
+    static graphics::UniformId uniformIdByLightComponent(LightComponent);
 };
 
 }

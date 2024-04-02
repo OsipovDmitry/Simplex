@@ -17,6 +17,7 @@ RenderInfo::RenderInfo()
     m_->projectionMatrixUniform() = makeUniform(glm::mat4(1.f));
     setViewMatrix(glm::mat4x4(1.f));
     setProjectionMatrix(glm::mat4x4(1.f));
+    setZRange(glm::vec2(.5f, 1.5f));
 
     setGBuffer(nullptr, nullptr, nullptr, nullptr);
     setOITBuffer(nullptr, nullptr, nullptr, nullptr);
@@ -99,6 +100,16 @@ const PUniform<glm::mat4x4> &RenderInfo::viewProjectionMatrixInverseUniform() co
     return m_->viewProjectionMatrixInverseUniform();
 }
 
+const PUniform<glm::vec2> &RenderInfo::zRangeUniform() const
+{
+    return m_->zRangeUniform();
+}
+
+void RenderInfo::setZRange(const glm::vec2 &value)
+{
+    m_->zRangeUniform() = makeUniform(value);
+}
+
 const PUniform<graphics::PConstTexture> &RenderInfo::GBufferColor0TextureUniform() const
 {
     return m_->GBufferColor0TextureUniform();
@@ -159,6 +170,16 @@ void RenderInfo::setOITBuffer(const graphics::PConstImage &depthImage,
     m_->OITIndicesImageUniform() = makeUniform(indicesImage);
     m_->OITDataBuffer() = nodesBuffer;
     m_->OITNodesCounterUniform() = makeUniform(nodesCounter);
+}
+
+const graphics::PConstBufferRange &RenderInfo::layeredShadowMatricesBuffer() const
+{
+    return m_->layeredShadowMatricesBuffer();
+}
+
+void RenderInfo::setLayeredShadowMatricesBuffer(const graphics::PConstBufferRange &value)
+{
+    m_->layeredShadowMatricesBuffer() = value;
 }
 
 const PUniform<graphics::PConstTexture> &RenderInfo::lightBufferColorTextureUniform() const

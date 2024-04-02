@@ -1,5 +1,5 @@
-#ifndef CORE_STANDARDDRAWABLE_H
-#define CORE_STANDARDDRAWABLE_H
+#ifndef CORE_PBRDRAWABLE_H
+#define CORE_PBRDRAWABLE_H
 
 #include <utils/glm/vec4.hpp>
 #include <utils/pimpl.h>
@@ -11,13 +11,25 @@ namespace simplex
 namespace core
 {
 
-class StandardDrawablePrivate;
-class CORE_SHARED_EXPORT StandardDrawable : public Drawable
+ENUMCLASS(PBRComponent, uint16_t,
+          BaseColor,
+          BaseColorMap,
+          Metalness,
+          MetalnessMap,
+          Roughness,
+          RoughnessMap,
+          NormalMap,
+          NormalMapScale,
+          OcclusionMap,
+          OcclusionMapStrength)
+
+class PBRDrawablePrivate;
+class CORE_SHARED_EXPORT PBRDrawable : public Drawable
 {
-    PIMPL(StandardDrawable)
+    PIMPL(PBRDrawable)
 public:
-    StandardDrawable(const std::shared_ptr<graphics::IVertexArray>&, const utils::BoundingBox&);
-    ~StandardDrawable() override;
+    PBRDrawable(const std::shared_ptr<graphics::IVertexArray>&, const utils::BoundingBox&);
+    ~PBRDrawable() override;
 
     const utils::BoundingBox &boundingBox() const override;
 
@@ -56,10 +68,12 @@ public:
     float occlusionMapStrength() const;
     void setOcclusionMapStrength(float);
 
-    static graphics::PBRComponentsSet PBRComponentsSet(const std::shared_ptr<const Drawable>&);
+    static std::unordered_set<PBRComponent> PBRComponentsSet(const std::shared_ptr<const Drawable>&);
+
+    static graphics::UniformId uniformIdByPBRComponent(PBRComponent);
 };
 
 }
 }
 
-#endif // CORE_STANDARDDRAWABLE_H
+#endif // CORE_PBRDRAWABLE_H

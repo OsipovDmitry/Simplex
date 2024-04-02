@@ -58,6 +58,11 @@ PUniform<glm::vec3> &RenderInfoPrivate::viewZDirectionUniform()
     return m_viewZDirectionUniform;
 }
 
+PUniform<glm::vec2> &RenderInfoPrivate::zRangeUniform()
+{
+    return m_zRangeUniform;
+}
+
 PUniform<graphics::PConstTexture> &RenderInfoPrivate::GBufferColor0TextureUniform()
 {
     return m_GBufferColor0TextureUniform;
@@ -96,6 +101,11 @@ PUniform<graphics::PConstImage> &RenderInfoPrivate::OITDepthImageUniform()
 PUniform<graphics::PConstImage> &RenderInfoPrivate::OITIndicesImageUniform()
 {
     return m_OITIndicesImageUniform;
+}
+
+graphics::PConstBufferRange &RenderInfoPrivate::layeredShadowMatricesBuffer()
+{
+    return m_layeredShadowMatricesBuffer;
 }
 
 PUniform<graphics::PConstTexture> &RenderInfoPrivate::lightBufferColorTextureUniform()

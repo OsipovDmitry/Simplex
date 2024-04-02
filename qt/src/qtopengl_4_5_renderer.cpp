@@ -637,9 +637,19 @@ size_t BufferRange_4_5::offset() const
     return m_offset;
 }
 
+void BufferRange_4_5::setOffset(size_t value)
+{
+    m_offset = value;
+}
+
 size_t BufferRange_4_5::size() const
 {
     return m_size;
+}
+
+void BufferRange_4_5::setSize(size_t value)
+{
+    m_size = value;
 }
 
 // VertexArray_4_5
@@ -914,6 +924,16 @@ uint32_t TextureBase_4_5::numMipmapLevels() const
     renderer->glGetTextureParameteriv(m_id, GL_TEXTURE_MAX_LEVEL, &result);
 
     return static_cast<uint32_t>(result);
+}
+
+void TextureBase_4_5::subImage(uint32_t level,
+                               const glm::uvec3 &offset,
+                               const glm::uvec3 &size,
+                               uint32_t &numComponents,
+                               utils::PixelComponentType &type,
+                               void *data) const
+{
+
 }
 
 void TextureBase_4_5::generateMipmaps()
@@ -1901,42 +1921,45 @@ FrameBuffer_4_5::~FrameBuffer_4_5()
 
 void FrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment key,
                              std::shared_ptr<const core::graphics::ISurface> surface,
-                             uint32_t level,
-                             uint32_t layer)
+                             uint32_t level)
 {
     detach(key);
 
-    if (auto texture = std::dynamic_pointer_cast<const TextureBase_4_5>(surface); texture)
+    if (auto texture_4_5 = std::dynamic_pointer_cast<const TextureBase_4_5>(surface); texture_4_5)
     {
         auto renderer = QtOpenGL_4_5_Renderer::instance();
-        if (false
-//            || std::dynamic_pointer_cast<Texture3D_4_5>(texture)
-//            || std::dynamic_pointer_cast<TextureCubemap_4_5>(texture)
-//            || std::dynamic_pointer_cast<Texture1DArray_4_5>(texture)
-//            || std::dynamic_pointer_cast<Texture2DArray_4_5>(texture)
-//            || std::dynamic_pointer_cast<TextureCubemapArray_4_5>(texture)
-           )
-        {
-            renderer->glNamedFramebufferTextureLayer(m_id,
-                                                     Conversions::FrameBufferAttachment2GL(key),
-                                                     texture->id(),
-                                                     static_cast<GLint>(level),
-                                                     static_cast<GLint>(layer));
-        }
-        else
-        {
-            renderer->glNamedFramebufferTexture(m_id, Conversions::FrameBufferAttachment2GL(key), texture->id(), static_cast<GLint>(level));
-        }
-        m_attchments[key] = { surface, level, layer };
+        renderer->glNamedFramebufferTexture(m_id, Conversions::FrameBufferAttachment2GL(key), texture_4_5->id(), static_cast<GLint>(level));
+        m_attchments[key] = { surface, level, 0u };
     }
-    else if (auto renderBuffer = std::dynamic_pointer_cast<const RenderBuffer_4_5>(surface); renderBuffer)
+    else if (auto renderBuffer_4_5 = std::dynamic_pointer_cast<const RenderBuffer_4_5>(surface); renderBuffer_4_5)
     {
         auto renderer = QtOpenGL_4_5_Renderer::instance();
         renderer->glNamedFramebufferRenderbuffer(m_id,
                                                  Conversions::FrameBufferAttachment2GL(key),
                                                  GL_RENDERBUFFER,
-                                                 renderBuffer->id());
-        m_attchments[key] = { surface, level, layer };
+                                                 renderBuffer_4_5->id());
+        m_attchments[key] = { surface, level, 0u };
+    }
+    else
+        LOG_CRITICAL << "Attachment can't be nullptr";
+}
+
+void FrameBuffer_4_5::attachLayer(core::graphics::FrameBufferAttachment key,
+                                  std::shared_ptr<const core::graphics::ITexture> texture,
+                                  uint32_t level,
+                                  uint32_t layer)
+{
+    detach(key);
+
+    if (auto texture_4_5 = std::dynamic_pointer_cast<const TextureBase_4_5>(texture); texture_4_5)
+    {
+        auto renderer = QtOpenGL_4_5_Renderer::instance();
+        renderer->glNamedFramebufferTextureLayer(m_id,
+                                                 Conversions::FrameBufferAttachment2GL(key),
+                                                 texture_4_5->id(),
+                                                 static_cast<GLint>(level),
+                                                 static_cast<GLint>(layer));
+        m_attchments[key] = { texture, level, layer };
     }
     else
         LOG_CRITICAL << "Attachment can't be nullptr";
@@ -1944,8 +1967,7 @@ void FrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment key,
 
 void FrameBuffer_4_5::detach(core::graphics::FrameBufferAttachment key)
 {
-    auto it = m_attchments.find(key);
-    if (it != m_attchments.end())
+    if (auto it = m_attchments.find(key); it != m_attchments.end())
     {
         auto renderer = QtOpenGL_4_5_Renderer::instance();
         renderer->glNamedFramebufferRenderbuffer(m_id,
@@ -1967,8 +1989,13 @@ DefaultFrameBuffer_4_5::~DefaultFrameBuffer_4_5()
 {
 }
 
-void DefaultFrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment, std::shared_ptr<const core::graphics::ISurface>, uint32_t, uint32_t)
+void DefaultFrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment, std::shared_ptr<const core::graphics::ISurface>, uint32_t)
 {
+}
+
+void DefaultFrameBuffer_4_5::attachLayer(core::graphics::FrameBufferAttachment, std::shared_ptr<const core::graphics::ITexture>, uint32_t, uint32_t)
+{
+
 }
 
 void DefaultFrameBuffer_4_5::detach(core::graphics::FrameBufferAttachment)
@@ -2046,49 +2073,49 @@ bool ProgramBase_4_5::postBuild(std::string &)
     renderer->glGetProgramInterfaceiv(m_id, GL_UNIFORM, GL_MAX_NAME_LENGTH, &m_uniformNameMaxLength);
     std::vector<GLchar> uniformName(static_cast<size_t>(m_uniformNameMaxLength));
 
-    for (GLuint i = 0; i < static_cast<GLuint>(numUniforms); ++i)
+    for (GLuint uniformIndex = 0; uniformIndex < static_cast<GLuint>(numUniforms); ++uniformIndex)
     {
-        static const std::array<GLenum, 3> properties {GL_BLOCK_INDEX, GL_TYPE, GL_LOCATION};
-        static std::array<GLint, 3> values {};
+        static const std::array<GLenum, 3> uniformProperties {GL_BLOCK_INDEX, GL_TYPE, GL_LOCATION};
+        std::array<GLint, 3> uniformValues {};
 
         renderer->glGetProgramResourceiv(m_id,
                                          GL_UNIFORM,
-                                         i,
-                                         properties.size(),
-                                         properties.data(),
-                                         values.size(),
+                                         uniformIndex,
+                                         uniformProperties.size(),
+                                         uniformProperties.data(),
+                                         uniformValues.size(),
                                          nullptr,
-                                         values.data());
+                                         uniformValues.data());
 
-        if (values[0] != -1) // Skip any uniforms that are in a block
+        if (uniformValues[0] != -1) // Skip any uniforms that are in a block
             continue;
 
-        if (values[1] == GL_UNSIGNED_INT_ATOMIC_COUNTER) // get atomic counter binding point instead of location
+        if (uniformValues[1] == GL_UNSIGNED_INT_ATOMIC_COUNTER) // get atomic counter binding point instead of location
         {
             GLint atomicCounterBufferIndex;
             renderer->glGetActiveUniformsiv(m_id,
                                             1u,
-                                            &i,
+                                            &uniformIndex,
                                             GL_UNIFORM_ATOMIC_COUNTER_BUFFER_INDEX,
                                             &atomicCounterBufferIndex);
 
             renderer->glGetActiveAtomicCounterBufferiv(m_id,
                                                        static_cast<GLuint>(atomicCounterBufferIndex),
                                                        GL_ATOMIC_COUNTER_BUFFER_BINDING,
-                                                       values.data() + 2u);
+                                                       uniformValues.data() + 2u);
         }
 
         renderer->glGetProgramResourceName(m_id,
                                            GL_UNIFORM,
-                                           i,
+                                           uniformIndex,
                                            m_uniformNameMaxLength,
                                            nullptr,
                                            uniformName.data());
 
         m_uniformsInfo.push_back({ core::graphics::IProgram::UniformIdByName(uniformName.data()),
-                                   static_cast<uint16_t>(i),
-                                   values[2],
-                                   Conversions::GL2UniformType(static_cast<GLenum>(values[1])) });
+                                   static_cast<uint16_t>(uniformIndex),
+                                   uniformValues[2u],
+                                   Conversions::GL2UniformType(static_cast<GLenum>(uniformValues[1u])) });
     }
 
     GLint numSSBOs;
@@ -2098,17 +2125,67 @@ bool ProgramBase_4_5::postBuild(std::string &)
     renderer->glGetProgramInterfaceiv(m_id, GL_SHADER_STORAGE_BLOCK, GL_MAX_NAME_LENGTH, &m_SSBONameMaxLength);
     std::vector<GLchar> SSBOName(static_cast<size_t>(m_SSBONameMaxLength));
 
-    for (GLuint i = 0; i < static_cast<GLuint>(numSSBOs); ++i)
+    renderer->glGetProgramInterfaceiv(m_id, GL_BUFFER_VARIABLE, GL_MAX_NAME_LENGTH, &m_bufferVariableNameMaxLength);
+
+    for (GLuint SSBOIndex = 0; SSBOIndex < static_cast<GLuint>(numSSBOs); ++SSBOIndex)
     {
+        static const std::array<GLenum, 1> numVariablesProperty {GL_NUM_ACTIVE_VARIABLES};
+        GLint numVariables;
+
+        renderer->glGetProgramResourceiv(m_id,
+                                         GL_SHADER_STORAGE_BLOCK,
+                                         SSBOIndex,
+                                         numVariablesProperty.size(),
+                                         numVariablesProperty.data(),
+                                         1u,
+                                         nullptr,
+                                         &numVariables);
+
+        static const std::array<GLenum, 1> variablesIndicesProperty {GL_ACTIVE_VARIABLES};
+        std::vector<GLint> variablesIndices(static_cast<GLuint>(numVariables));
+
+        renderer->glGetProgramResourceiv(m_id,
+                                         GL_SHADER_STORAGE_BLOCK,
+                                         SSBOIndex,
+                                         variablesIndicesProperty.size(),
+                                         variablesIndicesProperty.data(),
+                                         static_cast<GLsizei>(variablesIndices.size()),
+                                         nullptr,
+                                         variablesIndices.data());
+
+        std::vector<core::graphics::SSBOVariableInfo> variables;
+        variables.reserve(static_cast<size_t>(numVariables));
+
+        for (auto varIndex : variablesIndices)
+        {
+            static const std::array<GLenum, 2u> variableProperties {GL_TYPE, GL_OFFSET};
+            std::array<GLint, 2u> uniformValues {};
+
+            renderer->glGetProgramResourceiv(m_id,
+                                             GL_BUFFER_VARIABLE,
+                                             static_cast<GLuint>(varIndex),
+                                             variableProperties.size(),
+                                             variableProperties.data(),
+                                             static_cast<GLsizei>(uniformValues.size()),
+                                             nullptr,
+                                             uniformValues.data());
+
+            variables.push_back({ static_cast<uint16_t>(varIndex),
+//                                  Conversions::GL2SSBOVariableType(static_cast<GLenum>(uniformValues[0u])),
+                                  static_cast<uint16_t>(uniformValues[1u]) });
+        }
+
+
         renderer->glGetProgramResourceName(m_id,
                                            GL_SHADER_STORAGE_BLOCK,
-                                           i,
+                                           SSBOIndex,
                                            m_SSBONameMaxLength,
                                            nullptr,
                                            SSBOName.data());
 
         m_SSBOsInfo.push_back({ core::graphics::IProgram::SSBOIdByName(SSBOName.data()),
-                                static_cast<uint16_t>(i) });
+                                static_cast<uint16_t>(SSBOIndex),
+                                std::move(variables) });
     }
 
     return true;
@@ -2145,6 +2222,21 @@ std::string ProgramBase_4_5::uniformNameByIndex(uint16_t index) const
     return name.data();
 }
 
+std::string ProgramBase_4_5::SSBOVariableNameByIndex(uint16_t index) const
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+
+    std::vector<GLchar> name(static_cast<size_t>(m_uniformNameMaxLength));
+    renderer->glGetProgramResourceName(m_id,
+                                       GL_BUFFER_VARIABLE,
+                                       static_cast<GLuint>(index),
+                                       m_SSBONameMaxLength,
+                                       nullptr,
+                                       name.data());
+
+    return name.data();
+}
+
 std::string ProgramBase_4_5::SSBONameByIndex(uint16_t index) const
 {
     auto renderer = QtOpenGL_4_5_Renderer::instance();
@@ -2153,7 +2245,7 @@ std::string ProgramBase_4_5::SSBONameByIndex(uint16_t index) const
     renderer->glGetProgramResourceName(m_id,
                                        GL_SHADER_STORAGE_BLOCK,
                                        static_cast<GLuint>(index),
-                                       m_SSBONameMaxLength,
+                                       m_bufferVariableNameMaxLength,
                                        nullptr,
                                        name.data());
 
@@ -2897,8 +2989,30 @@ std::shared_ptr<core::graphics::IRenderProgram> QtOpenGL_4_5_Renderer::createRen
 
     auto renderProgram = std::make_shared<RenderProgram_4_5>();
     return createProgram(renderProgram,
-                         {std::make_pair(GL_VERTEX_SHADER, std::cref(vertexShader->data())),
-                          std::make_pair(GL_FRAGMENT_SHADER, std::cref(fragmentShader->data()))}) ?
+                         {{GL_VERTEX_SHADER, std::cref(vertexShader->data())},
+                          {GL_FRAGMENT_SHADER, std::cref(fragmentShader->data())}}) ?
+                renderProgram :
+                nullptr;
+}
+
+std::shared_ptr<core::graphics::IRenderProgram> QtOpenGL_4_5_Renderer::createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
+                                                                                           const std::shared_ptr<utils::Shader> &geometryShader,
+                                                                                           const std::shared_ptr<utils::Shader> &fragmentShader) const
+{
+    if (!vertexShader)
+        LOG_CRITICAL << "Vertex shader can't be nullptr";
+
+    if (!geometryShader)
+        LOG_CRITICAL << "Geometry shader can't be nullptr";
+
+    if (!fragmentShader)
+        LOG_CRITICAL << "Fragment shader can't be nullptr";
+
+    auto renderProgram = std::make_shared<RenderProgram_4_5>();
+    return createProgram(renderProgram,
+                         {{GL_VERTEX_SHADER, std::cref(vertexShader->data())},
+                          {GL_GEOMETRY_SHADER, std::cref(geometryShader->data())},
+                          {GL_FRAGMENT_SHADER, std::cref(fragmentShader->data())}}) ?
                 renderProgram :
                 nullptr;
 }
@@ -3082,61 +3196,6 @@ void QtOpenGL_4_5_Renderer::compute(const std::shared_ptr<core::graphics::ICompu
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
-int32_t QtOpenGL_4_5_Renderer::bindTexture(const core::graphics::PConstTexture &texture)
-{
-    auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(texture);
-    if (!textureBase)
-        LOG_CRITICAL << "Texture can't be nullptr";
-
-    glBindTextureUnit(static_cast<GLuint>(m_textureUnit), textureBase->id());
-    return m_textureUnit++;
-}
-
-int32_t QtOpenGL_4_5_Renderer::bindImage(const core::graphics::PConstImage &image)
-{
-    auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(image->texture());
-    if (!textureBase)
-        LOG_CRITICAL << "Image's texture can't be nullptr";
-
-    glBindImageTexture(static_cast<GLuint>(m_imageUnit),
-                       textureBase->id(),
-                       static_cast<GLint>(image->mipmapLevel()),
-                       GL_TRUE,
-                       0u,
-                       Conversions::ImageDataAccess2GL(image->access()),
-                       textureBase->GLinternalFormat());
-
-    return m_imageUnit++;
-}
-
-void QtOpenGL_4_5_Renderer::bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBufferRange &bufferRange)
-{
-    auto buffer = std::dynamic_pointer_cast<const Buffer_4_5>(bufferRange->buffer());
-    if (!buffer)
-        LOG_CRITICAL << "Buffer can't be nullptr";
-
-    auto size = bufferRange->size();
-    if (size == static_cast<size_t>(-1))
-        size = buffer->size() - bufferRange->offset();
-
-    glBindBufferRange(target,
-                      bindingPoint,
-                      buffer->id(),
-                      static_cast<GLintptr>(bufferRange->offset()),
-                      static_cast<GLsizeiptr>(size));
-}
-
-uint32_t QtOpenGL_4_5_Renderer::bindSSBO(const core::graphics::PConstBufferRange &bufferRange)
-{
-    bindBuffer(GL_SHADER_STORAGE_BUFFER, m_bufferUnit, bufferRange);
-    return m_bufferUnit++;
-}
-
-void QtOpenGL_4_5_Renderer::bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBufferRange &bufferRange)
-{
-    bindBuffer(GL_ATOMIC_COUNTER_BUFFER, bindingPoint, bufferRange);
-}
-
 std::shared_ptr<QtOpenGL_4_5_Renderer> QtOpenGL_4_5_Renderer::create(QOpenGLContext *context, GLuint defaultFbo)
 {
     if (auto renderer = instance(context); renderer)
@@ -3234,6 +3293,8 @@ void QtOpenGL_4_5_Renderer::setupVertexAttributes(const std::shared_ptr<RenderPr
 
 void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
                                          GLint loc,
+                                         int32_t &textureUnit,
+                                         int32_t &imageUnit,
                                          const core::PConstAbstractUniform &uniform)
 {
     if (!uniform)
@@ -3361,7 +3422,8 @@ void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
     case core::graphics::UniformType::SamplerRect:
     {
         auto textureUniform = core::uniform_cast<core::graphics::PConstTexture>(uniform)->data();
-        glProgramUniform1i(rpId, loc, bindTexture(textureUniform));
+        bindTexture(textureUnit, textureUniform);
+        glProgramUniform1i(rpId, loc, textureUnit++);
         break;
     }
     case core::graphics::UniformType::Image1D:
@@ -3374,7 +3436,8 @@ void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
     case core::graphics::UniformType::ImageRect:
     {
         auto imageUniform = core::uniform_cast<core::graphics::PConstImage>(uniform)->data();
-        glProgramUniform1i(rpId, loc, bindImage(imageUniform));
+        bindImage(imageUnit, imageUniform);
+        glProgramUniform1i(rpId, loc, imageUnit++);
         break;
     }
     case core::graphics::UniformType::AtomicCounterUint:
@@ -3397,8 +3460,8 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
                                           const glm::mat4 &modelMatrix)
 {
     auto programId = program->id();
-    m_textureUnit = 0;
-    m_imageUnit = 0;
+    int32_t textureUnit = 0;
+    int32_t imageUnit = 0;
 
     for (const auto &uniformInfo : program->uniformsInfo())
     {
@@ -3469,6 +3532,9 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
         case core::graphics::UniformId::ViewZDirection:
             uniform = renderInfo.viewZDirectionUniform();
             break;
+        case core::graphics::UniformId::ZRange:
+            uniform = renderInfo.zRangeUniform();
+            break;
         case core::graphics::UniformId::GBufferColor0Map:
             uniform = renderInfo.GBufferColor0TextureUniform();
             break;
@@ -3510,7 +3576,7 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
         if (uniformInfo.type != uniform->type())
             LOG_CRITICAL << "Uniform \"" << program->uniformNameByIndex(uniformInfo.index) << "\" has wrong type";
 
-        setupUniform(programId, uniformInfo.location, uniform);
+        setupUniform(programId, uniformInfo.location, textureUnit, imageUnit, uniform);
     }
 }
 
@@ -3519,7 +3585,7 @@ void QtOpenGL_4_5_Renderer::setupSSBOs(const std::shared_ptr<ProgramBase_4_5> &p
                                        const core::RenderInfo &renderInfo)
 {
     auto programId = program->id();
-    m_bufferUnit = 0;
+    uint32_t bufferUnit = 0u;
 
     for (const auto &ssboInfo : program->SSBOsInfo())
     {
@@ -3529,6 +3595,9 @@ void QtOpenGL_4_5_Renderer::setupSSBOs(const std::shared_ptr<ProgramBase_4_5> &p
         {
         case core::graphics::SSBOId::OITNodes:
             bufferRange = renderInfo.OITNodesBuffer();
+            break;
+        case core::graphics::SSBOId::LayeredShadowMatrices:
+            bufferRange = renderInfo.layeredShadowMatricesBuffer();
             break;
         case core::graphics::SSBOId::Undefined:
 //            if (drawable)
@@ -3543,12 +3612,64 @@ void QtOpenGL_4_5_Renderer::setupSSBOs(const std::shared_ptr<ProgramBase_4_5> &p
         if (!bufferRange)
             LOG_CRITICAL << "SSBO \"" << program->SSBONameByIndex(ssboInfo.index) << "\" has not set";
 
-        glShaderStorageBlockBinding(programId, ssboInfo.index, bindSSBO(bufferRange));
+        bindSSBO(bufferUnit, bufferRange);
+        glShaderStorageBlockBinding(programId, ssboInfo.index, bufferUnit++);
     }
 }
 
+void QtOpenGL_4_5_Renderer::bindTexture(int32_t unit, const core::graphics::PConstTexture &texture)
+{
+    auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(texture);
+    if (!textureBase)
+        LOG_CRITICAL << "Texture can't be nullptr";
+
+    glBindTextureUnit(static_cast<GLuint>(unit), textureBase->id());
+}
+
+void QtOpenGL_4_5_Renderer::bindImage(int32_t unit, const core::graphics::PConstImage &image)
+{
+    auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(image->texture());
+    if (!textureBase)
+        LOG_CRITICAL << "Image's texture can't be nullptr";
+
+    glBindImageTexture(static_cast<GLuint>(unit),
+                       textureBase->id(),
+                       static_cast<GLint>(image->mipmapLevel()),
+                       GL_TRUE,
+                       0u,
+                       Conversions::ImageDataAccess2GL(image->access()),
+                       textureBase->GLinternalFormat());
+}
+
+void QtOpenGL_4_5_Renderer::bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBufferRange &bufferRange)
+{
+    auto buffer = std::dynamic_pointer_cast<const Buffer_4_5>(bufferRange->buffer());
+    if (!buffer)
+        LOG_CRITICAL << "Buffer can't be nullptr";
+
+    auto size = bufferRange->size();
+    if (size == static_cast<size_t>(-1))
+        size = buffer->size() - bufferRange->offset();
+
+    glBindBufferRange(target,
+                      bindingPoint,
+                      buffer->id(),
+                      static_cast<GLintptr>(bufferRange->offset()),
+                      static_cast<GLsizeiptr>(size));
+}
+
+void QtOpenGL_4_5_Renderer::bindSSBO(uint32_t unit, const core::graphics::PConstBufferRange &bufferRange)
+{
+    bindBuffer(GL_SHADER_STORAGE_BUFFER, unit, bufferRange);
+}
+
+void QtOpenGL_4_5_Renderer::bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBufferRange &bufferRange)
+{
+    bindBuffer(GL_ATOMIC_COUNTER_BUFFER, bindingPoint, bufferRange);
+}
+
 bool QtOpenGL_4_5_Renderer::createProgram(std::shared_ptr<ProgramBase_4_5> program,
-        const std::vector<std::pair<GLenum, std::reference_wrapper<const std::string>>> &shadersData) const
+                                          const std::unordered_map<GLenum, std::reference_wrapper<const std::string>> &shadersData) const
 {
     static const std::unordered_map<GLenum, std::string> s_shaderTypesTable {
         {GL_COMPUTE_SHADER, "Compute"},
@@ -3564,31 +3685,31 @@ bool QtOpenGL_4_5_Renderer::createProgram(std::shared_ptr<ProgramBase_4_5> progr
 
     auto renderer = QtOpenGL_4_5_Renderer::instance();
 
-    std::vector<GLuint> shadersIds(shadersData.size(), 0u);
+    std::vector<GLuint> shadersIds;
     bool isOk = true;
 
-    for (size_t i = 0; i < shadersData.size(); ++i)
+    for (auto const& [type, shader] : shadersData)
     {
-        const auto &shader = shadersData[i];
-        const char *data = shader.second.get().c_str();
+        const char *data = shader.get().c_str();
 
-        shadersIds[i] = renderer->glCreateShader(shader.first);
-        renderer->glShaderSource(shadersIds[i], 1, &data, nullptr);
-        renderer->glCompileShader(shadersIds[i]);
+        auto id = renderer->glCreateShader(type);
+        renderer->glShaderSource(id, 1, &data, nullptr);
+        renderer->glCompileShader(id);
         GLint compiled;
-        renderer->glGetShaderiv(shadersIds[i], GL_COMPILE_STATUS, &compiled);
+        renderer->glGetShaderiv(id, GL_COMPILE_STATUS, &compiled);
         if (!compiled) {
             GLint infoLen = 0;
-            renderer->glGetShaderiv(shadersIds[i], GL_INFO_LOG_LENGTH, &infoLen);
+            renderer->glGetShaderiv(id, GL_INFO_LOG_LENGTH, &infoLen);
             if(infoLen > 1)
             {
                 char *infoLog = static_cast<char*>(malloc(sizeof(char) * static_cast<unsigned int>(infoLen)));
-                renderer->glGetShaderInfoLog(shadersIds[i], infoLen, nullptr, infoLog);
-                LOG_ERROR << s_shaderTypesTable.at(shader.first) << " shader compile error: " << infoLog;
+                renderer->glGetShaderInfoLog(id, infoLen, nullptr, infoLog);
+                LOG_ERROR << s_shaderTypesTable.at(type) << " shader compile error: " << infoLog;
                 free(infoLog);
             }
             isOk = false;
         }
+        shadersIds.push_back(id);
     }
 
     auto programId = program->id();

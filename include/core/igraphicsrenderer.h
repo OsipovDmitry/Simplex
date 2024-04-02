@@ -124,6 +124,7 @@ ENUMCLASS(UniformId, uint16_t,
           ViewXDirection,
           ViewYDirection,
           ViewZDirection,
+          ZRange,
           BackgroundColorMap,
           BackgroundBaseColor,
           BackgroundRoughness,
@@ -154,7 +155,10 @@ ENUMCLASS(UniformId, uint16_t,
           IBLBRDFLutMap,
           IBLDiffuseMap,
           IBLSpecularMap,
-          IBLContribution)
+          IBLContribution,
+          ShadowDepthMap,
+          ShadowColorMap,
+          ShadowMatrix)
 
 ENUMCLASS(UniformType, uint16_t,
           Undefined,
@@ -201,6 +205,7 @@ ENUMCLASS(UniformType, uint16_t,
 ENUMCLASS(SSBOId, uint16_t,
           Undefined,
           BonesBuffer,
+          LayeredShadowMatrices,
           OITNodes)
 
 struct AttributeInfo
@@ -220,31 +225,19 @@ struct UniformInfo
     UniformType type;
 };
 
+struct SSBOVariableInfo
+{
+    uint16_t index;
+    //SSBOVariableType type;
+    uint16_t offset;
+};
+
 struct SSBOInfo
 {
     SSBOId id;
     uint16_t index;
+    std::vector<SSBOVariableInfo> variables;
 };
-
-ENUMCLASS(PBRComponent, uint16_t,
-          BaseColor,
-          BaseColorMap,
-          Metalness,
-          MetalnessMap,
-          Roughness,
-          RoughnessMap,
-          NormalMap,
-          NormalMapScale,
-          OcclusionMap,
-          OcclusionMapStrength)
-
-ENUMCLASS(LightComponent, uint16_t,
-          None)
-
-ENUMCLASS(BackgroundComponent, uint16_t,
-          ColorMap,
-          BaseColor,
-          Roughness)
 
 ENUMCLASS(FaceType, uint16_t,
           Front, Back, FrontAndBack)
@@ -309,7 +302,10 @@ public:
     virtual std::shared_ptr<IBuffer> buffer() = 0;
 
     virtual size_t offset() const = 0;
+    virtual void setOffset(size_t) = 0;
+
     virtual size_t size() const = 0;
+    virtual void setSize(size_t) = 0;
 };
 
 class IVertexArray
@@ -368,6 +364,13 @@ public:
                              utils::PixelComponentType type,
                              const void *data) = 0;
 
+    virtual void subImage(uint32_t level,
+                          const glm::uvec3 &offset,
+                          const glm::uvec3 &size,
+                          uint32_t &numComponents,
+                          utils::PixelComponentType &type,
+                          void *data) const = 0;
+
     virtual void generateMipmaps() = 0;
     virtual void setBorderColor(const glm::vec4&) = 0;
     virtual void setWrapMode(TextureWrapMode) = 0;
@@ -417,7 +420,8 @@ public:
 
     virtual const Attachments &attachments() const = 0;
     virtual bool attachment(FrameBufferAttachment, AttachmentInfo&) const = 0;
-    virtual void attach(FrameBufferAttachment, std::shared_ptr<const ISurface>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
+    virtual void attach(FrameBufferAttachment, std::shared_ptr<const ISurface>, uint32_t level = 0u) = 0;
+    virtual void attachLayer(FrameBufferAttachment, std::shared_ptr<const ITexture>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
     virtual void detach(FrameBufferAttachment) = 0;
 
     virtual const FrameBufferClearColor &clearColor(uint32_t) const = 0;
@@ -484,6 +488,7 @@ public:
     virtual const std::vector<SSBOInfo> &SSBOsInfo() const = 0;
 
     virtual std::string uniformNameByIndex(uint16_t) const = 0;
+    virtual std::string SSBOVariableNameByIndex(uint16_t) const = 0;
     virtual std::string SSBONameByIndex(uint16_t) const = 0;
 
     static UniformType uniformTypeByTextureType(TextureType);
@@ -491,10 +496,6 @@ public:
 
     static UniformId UniformIdByName(const std::string&);
     static SSBOId SSBOIdByName(const std::string&);
-
-    static UniformId uniformIdByPBRComponent(PBRComponent);
-    static UniformId uniformIdByLightComponent(LightComponent);
-    static UniformId uniformIdByBackgroundComponent(BackgroundComponent);
 };
 
 class IRenderProgram : public virtual IProgram
@@ -604,6 +605,9 @@ public:
                                                               PixelInternalFormat) const = 0;
     virtual std::shared_ptr<IFrameBuffer> createFrameBuffer() const = 0;
     virtual std::shared_ptr<IRenderProgram> createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
+                                                                const std::shared_ptr<utils::Shader> &fragmentShader) const = 0;
+    virtual std::shared_ptr<IRenderProgram> createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
+                                                                const std::shared_ptr<utils::Shader> &geometryShader,
                                                                 const std::shared_ptr<utils::Shader> &fragmentShader) const = 0;
     virtual std::shared_ptr<IComputeProgram> createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const = 0;
 
@@ -756,6 +760,7 @@ inline UniformId IProgram::UniformIdByName(const std::string &name)
         { "u_viewXDirection", UniformId::ViewXDirection },
         { "u_viewYDirection", UniformId::ViewYDirection },
         { "u_viewZDirection", UniformId::ViewZDirection },
+        { "u_zRange", UniformId::ZRange },
         { "u_backgroundColorMap", UniformId::BackgroundColorMap },
         { "u_backgroundBaseColor", UniformId::BackgroundBaseColor },
         { "u_backgroundRoughness", UniformId::BackgroundRoughness },
@@ -786,7 +791,10 @@ inline UniformId IProgram::UniformIdByName(const std::string &name)
         { "u_IBLBRDFLutMap", UniformId::IBLBRDFLutMap },
         { "u_IBLDiffuseMap", UniformId::IBLDiffuseMap },
         { "u_IBLSpecularMap", UniformId::IBLSpecularMap },
-        { "u_IBLContribution", UniformId::IBLContribution }
+        { "u_IBLContribution", UniformId::IBLContribution },
+        { "u_shadowDepthMap", UniformId::ShadowDepthMap },
+        { "u_shadowColorMap", UniformId::ShadowColorMap },
+        { "u_shadowMatrix", UniformId::ShadowMatrix }
     };
 
     auto it = s_table.find(name);
@@ -797,42 +805,12 @@ inline SSBOId IProgram::SSBOIdByName(const std::string &name)
 {
     static const std::unordered_map<std::string, SSBOId> s_table {
         { "ssbo_bonesBuffer", SSBOId::BonesBuffer },
-        { "ssbo_OITNodes", SSBOId::OITNodes }
+        { "ssbo_OITNodes", SSBOId::OITNodes },
+        { "ssbo_layeredShadowMatricesBuffer", SSBOId::LayeredShadowMatrices }
     };
 
     auto it = s_table.find(name);
     return (it == s_table.end()) ? SSBOId::Undefined : it->second;
-}
-
-inline UniformId IProgram::uniformIdByPBRComponent(PBRComponent value)
-{
-    static const std::unordered_map<PBRComponent, UniformId> s_table {
-        { PBRComponent::BaseColor, UniformId::BaseColor },
-        { PBRComponent::BaseColorMap, UniformId::BaseColorMap },
-        { PBRComponent::Metalness, UniformId::Metalness },
-        { PBRComponent::MetalnessMap, UniformId::MetalnessMap },
-        { PBRComponent::Roughness, UniformId::Roughness },
-        { PBRComponent::RoughnessMap, UniformId::RoughnessMap },
-        { PBRComponent::NormalMap, UniformId::NormalMap },
-        { PBRComponent::NormalMapScale, UniformId::NormalMapScale },
-        { PBRComponent::OcclusionMap, UniformId::OcclusionMap },
-        { PBRComponent::OcclusionMapStrength, UniformId::OcclusionMapStrength },
-    };
-
-    auto it = s_table.find(value);
-    return (it == s_table.end()) ? UniformId::Undefined : it->second;
-}
-
-inline UniformId IProgram::uniformIdByBackgroundComponent(BackgroundComponent value)
-{
-    static const std::unordered_map<BackgroundComponent, UniformId> s_table {
-        { BackgroundComponent::ColorMap, UniformId::BackgroundColorMap },
-        { BackgroundComponent::BaseColor, UniformId::BackgroundBaseColor },
-        { BackgroundComponent::Roughness, UniformId::BackgroundRoughness },
-    };
-
-    auto it = s_table.find(value);
-    return (it == s_table.end()) ? UniformId::Undefined : it->second;
 }
 
 }

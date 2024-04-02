@@ -80,22 +80,22 @@ std::shared_ptr<Drawable> &GraphicsEnginePrivate::finalScreenQuadDrawable()
     return m_finalScreenQuadDrawable;
 }
 
-std::shared_ptr<StandardDrawable> &GraphicsEnginePrivate::nodeBoundingBoxDrawable()
+std::shared_ptr<PBRDrawable> &GraphicsEnginePrivate::nodeBoundingBoxDrawable()
 {
     return m_nodeBoundingBoxDrawable;
 }
 
-std::shared_ptr<StandardDrawable> &GraphicsEnginePrivate::cameraNodeCameraDrawable()
+std::shared_ptr<PBRDrawable> &GraphicsEnginePrivate::cameraNodeCameraDrawable()
 {
     return m_cameraNodeCameraDrawable;
 }
 
-std::shared_ptr<StandardDrawable> &GraphicsEnginePrivate::cameraNodeFrustumDrawable()
+std::shared_ptr<PBRDrawable> &GraphicsEnginePrivate::cameraNodeFrustumDrawable()
 {
     return m_cameraNodeFrustumDrawable;
 }
 
-std::shared_ptr<StandardDrawable> &GraphicsEnginePrivate::drawableNodeLocalBoundingBoxDrawable()
+std::shared_ptr<PBRDrawable> &GraphicsEnginePrivate::drawableNodeLocalBoundingBoxDrawable()
 {
     return m_drawableNodeLocalBoundingBoxDrawable;
 }

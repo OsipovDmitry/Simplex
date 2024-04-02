@@ -9,7 +9,6 @@ float DrawablePrivate::s_defaultAlphaCutoff = 0.f;
 
 DrawablePrivate::DrawablePrivate(const std::shared_ptr<graphics::IVertexArray> &vao)
     : m_vertexArray(vao)
-    , m_isDoubleSided(false)
 {}
 
 DrawablePrivate::~DrawablePrivate() = default;
@@ -29,7 +28,7 @@ std::unordered_map<std::string, PAbstractUniform> &DrawablePrivate::userUniforms
     return m_userUniforms;
 }
 
-std::unordered_map<graphics::SSBOId, std::shared_ptr<graphics::IBufferRange>> &DrawablePrivate::SSBOs()
+std::unordered_map<graphics::SSBOId, std::shared_ptr<const graphics::IBufferRange> > &DrawablePrivate::SSBOs()
 {
     return m_SSBOs;
 }

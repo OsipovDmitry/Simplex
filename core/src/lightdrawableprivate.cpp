@@ -5,18 +5,12 @@ namespace simplex
 namespace core
 {
 
-LightDrawablePrivate::LightDrawablePrivate(const std::shared_ptr<graphics::IVertexArray> &vao, LightDrawableType type)
+LightDrawablePrivate::LightDrawablePrivate(const std::shared_ptr<graphics::IVertexArray> &vao)
     : DrawablePrivate(vao)
-    , m_type(type)
 {
 }
 
 LightDrawablePrivate::~LightDrawablePrivate() = default;
-
-LightDrawableType &LightDrawablePrivate::type()
-{
-    return m_type;
-}
 
 }
 }

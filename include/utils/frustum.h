@@ -16,13 +16,6 @@ namespace utils
 {
 
 template<typename T>
-struct FrustumCornersInfoT
-{
-    std::array<glm::vec<3u, T>, 8u> corners;
-    glm::vec<3u, T> center;
-};
-
-template<typename T>
 struct FrustumT
 {
     static_assert(std::numeric_limits<T>::is_iec559, "The base type of Frustum must be floating point");
@@ -57,7 +50,7 @@ public:
         return true;
     }
 
-    static FrustumCornersInfoT<T> calculateCornersInfo(const glm::mat<4, 4, T> &vpInverse)
+    static FrustumCornersT<T> calculateCorners(const glm::mat<4, 4, T> &vpInverse)
     {
         static const std::array<glm::vec<4u, T>, 8u> s_frustumCorners {
             glm::vec<4u, T>(static_cast<T>(-1), static_cast<T>(1), static_cast<T>(-1), static_cast<T>(1)),
@@ -70,19 +63,13 @@ public:
             glm::vec<4u, T>(static_cast<T>(-1), static_cast<T>(-1), static_cast<T>(1), static_cast<T>(1))
         };
 
-        std::array<glm::vec<3u, T>, 8u> corners;
-        glm::vec<3u, T> center(static_cast<T>(0));
-
+        FrustumCornersT<T> result;
         for (uint32_t i = 0u; i < s_frustumCorners.size(); ++i)
         {
             auto corner = vpInverse * s_frustumCorners[i];
-            corners[i] = glm::vec<3u, T>(corner / corner[3u]);
-            center += corners[i];
+            result[i] = glm::vec<3u, T>(corner / corner[3u]);
         }
-
-        center /= static_cast<T>(corners.size());
-
-        return {corners, center};
+        return result;
     }
 
     std::vector<PlaneType> planes;

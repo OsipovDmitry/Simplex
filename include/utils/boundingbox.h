@@ -73,6 +73,8 @@ public:
     BoundingBoxT<L, T> &operator += (const BoundingBoxT<L, T> &b);
     BoundingBoxT<L, T> &operator += (const PointType &v);
 
+    BoundingBoxT<L, T> &operator *= (const BoundingBoxT<L, T> &b);
+
     static BoundingBoxT<L, T> fromMinMax(const PointType &minP, const PointType &maxP) { return BoundingBoxT<L, T>(minP, maxP); }
     static BoundingBoxT<L, T> fromCenterHalfSize(const PointType &cP, const PointType &hs) { return BoundingBoxT<L, T>(cP-hs, cP+hs); }
     static BoundingBoxT<L, T> empty() { return BoundingBoxT<L, T>(PointType(std::numeric_limits<T>::max()),
@@ -98,6 +100,12 @@ template <glm::length_t L, typename T>
 inline BoundingBoxT<L, T> operator +(const typename BoundingBoxT<L, T>::PointType &v, const BoundingBoxT<L, T> &b)
 {
     return b + v;
+}
+
+template <glm::length_t L, typename T>
+inline BoundingBoxT<L, T> operator *(const BoundingBoxT<L, T> &b1, const BoundingBoxT<L, T> &b2)
+{
+    return BoundingBoxT<L, T>(glm::max(b1.minPoint(), b2.minPoint()), glm::min(b1.maxPoint(), b2.maxPoint()));
 }
 
 template <glm::length_t L, typename T>
@@ -131,6 +139,9 @@ inline BoundingBoxT<L, T> &BoundingBoxT<L, T>::operator +=(const BoundingBoxT<L,
 
 template <glm::length_t L, typename T>
 inline BoundingBoxT<L, T> &BoundingBoxT<L, T>::operator +=(const typename BoundingBoxT<L, T>::PointType &v) { *this = *this + v; return *this; }
+
+template <glm::length_t L, typename T>
+inline BoundingBoxT<L, T> &BoundingBoxT<L, T>::operator *=(const BoundingBoxT<L, T> &b) { *this = *this * b; return *this; }
 
 } // namespace
 } // namespace

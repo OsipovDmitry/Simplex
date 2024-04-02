@@ -16,6 +16,8 @@ public:
     DirectionalLightNode(const std::string&);
     ~DirectionalLightNode() override;
 
+    LightType type() const override;
+
     std::shared_ptr<DirectionalLightNode> asDirectionalLightNode() override;
     std::shared_ptr<const DirectionalLightNode> asDirectionalLightNode() const override;
 
@@ -27,10 +29,10 @@ public:
 protected:
     glm::mat4x4 doAreaMatrix() const override;
     utils::BoundingBox doAreaBoundingBox() const override;
-    utils::Transform doShadowViewTransform(const utils::FrustumCornersInfo&) const override;
-    glm::mat4x4 doShadowProjectionMatrix(const utils::Transform &shadowViewTransform,
-                                                 const utils::FrustumCornersInfo&,
-                                                 const utils::Range&) const override;
+
+    glm::mat4x4 doUpdateLayeredShadowMatrices(const utils::FrustumCorners&,
+                                              const utils::Range&,
+                                              std::vector<glm::mat4x4>&) const override;
 
 };
 

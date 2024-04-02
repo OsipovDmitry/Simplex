@@ -80,6 +80,45 @@ public:
     void resize(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&);
 };
 
+class ShadowFrameBuffer : public FrameBufferWrapper
+{
+public:
+    ShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer>&);
+
+    uint32_t numLayers() const;
+
+    void setForOpaquePass();
+    void setForTransparentPass();
+
+    void resize(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&, bool);
+    graphics::PConstTexture colorTexture() const;
+    graphics::PConstTexture depthTexture() const;
+
+protected:
+    virtual graphics::PTexture doColorTexture(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&) const = 0;
+    virtual graphics::PTexture doDepthTexture(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&) const = 0;
+};
+
+class ShadowFrameBuffer2D : public ShadowFrameBuffer
+{
+public:
+    ShadowFrameBuffer2D(const std::shared_ptr<graphics::IRenderer>&);
+
+protected:
+    graphics::PTexture doColorTexture(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&) const override;
+    graphics::PTexture doDepthTexture(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&) const override;
+};
+
+class ShadowFrameBufferCube : public ShadowFrameBuffer
+{
+public:
+    ShadowFrameBufferCube(const std::shared_ptr<graphics::IRenderer>&);
+
+protected:
+    graphics::PTexture doColorTexture(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&) const override;
+    graphics::PTexture doDepthTexture(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&) const override;
+};
+
 }
 }
 

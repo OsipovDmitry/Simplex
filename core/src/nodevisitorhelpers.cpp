@@ -82,6 +82,16 @@ bool FrustumCullingNodeVisitor::visit(const std::shared_ptr<Node> &node)
     return m_transformedFrustum.contain(node->boundingBox());
 }
 
+const utils::Frustum &FrustumCullingNodeVisitor::frustum() const
+{
+    return m_frustum;
+}
+
+void FrustumCullingNodeVisitor::setFrustum(const utils::Frustum &value)
+{
+    m_frustum = value;
+}
+
 // DrawableNodesCollector
 
 DrawableNodesCollector::DrawableNodesCollector(const utils::Frustum &frustum)
@@ -98,19 +108,19 @@ bool DrawableNodesCollector::visit(const std::shared_ptr<Node> &node)
         if (auto drawableNode = node->asDrawableNode(); drawableNode)
         {
             if (m_transformedFrustum.contain(drawableNode->localBoundingBox()))
-                m_drawableNodes.push_back(drawableNode);
+                m_drawableNodes.insert(drawableNode);
         }
     }
 
     return result;
 }
 
-const std::deque<std::shared_ptr<DrawableNode>> &DrawableNodesCollector::drawableNodes() const
+const DrawableNodesCollector::Collection &DrawableNodesCollector::drawableNodes() const
 {
     return const_cast<DrawableNodesCollector*>(this)->drawableNodes();
 }
 
-std::deque<std::shared_ptr<DrawableNode>> &DrawableNodesCollector::drawableNodes()
+DrawableNodesCollector::Collection &DrawableNodesCollector::drawableNodes()
 {
     return m_drawableNodes;
 }
@@ -124,6 +134,13 @@ LightNodesCollector::LightNodesCollector(const utils::Frustum &frustum)
 
 bool LightNodesCollector::visit(const std::shared_ptr<Node> &node)
 {
+    if (auto lightNode = node->asLightNode(); lightNode)
+        if (lightNode->asDirectionalLightNode() || lightNode->asIBLLightNode())
+        {
+            m_lightNodes.insert(lightNode);
+            return true;
+        }
+
     auto result = FrustumCullingNodeVisitor::visit(node);
 
     if (result)
@@ -131,28 +148,30 @@ bool LightNodesCollector::visit(const std::shared_ptr<Node> &node)
         if (auto lightNode = node->asLightNode(); lightNode)
         {
             if (m_transformedFrustum.contain(lightNode->areaBoundingBox()))
-                m_lightNodes.push_back(lightNode);
+                m_lightNodes.insert(lightNode);
         }
     }
 
     return result;
 }
 
-const std::deque<std::shared_ptr<LightNode>> &LightNodesCollector::lightNodes() const
+const LightNodesCollector::Collection &LightNodesCollector::lightNodes() const
 {
     return m_lightNodes;
 }
 
-std::deque<std::shared_ptr<LightNode>> &LightNodesCollector::lightNodes()
+LightNodesCollector::Collection &LightNodesCollector::lightNodes()
 {
     return m_lightNodes;
 }
 
 // ZRangeNodeVisitor
 
-ZRangeNodeVisitor::ZRangeNodeVisitor(const utils::OpenFrustum &openFrustum)
+ZRangeNodeVisitor::ZRangeNodeVisitor(const utils::OpenFrustum &openFrustum, bool drawables, bool lights)
     : FrustumCullingNodeVisitor(openFrustum)
     , m_zRange()
+    , m_accountDrawables(drawables)
+    , m_accountLights(lights)
 {
 }
 
@@ -165,9 +184,9 @@ bool ZRangeNodeVisitor::visit(const std::shared_ptr<Node> &node)
         const auto &transformedNearPlane = m_transformedFrustum.planes[utils::Frustum::castFromPlanes(utils::Frustum::Planes::Near)];
         utils::Range distances;
 
-        if (auto drawableNode = node->asDrawableNode(); drawableNode)
+        if (auto drawableNode = node->asDrawableNode(); m_accountDrawables && drawableNode)
             distances = drawableNode->localBoundingBox().pairDistancesToPlane(transformedNearPlane);
-        else if (auto lightNode = node->asLightNode(); lightNode)
+        else if (auto lightNode = node->asLightNode(); m_accountLights && lightNode)
             distances = lightNode->areaBoundingBox().pairDistancesToPlane(transformedNearPlane);
 
         if (distances.farValue() > 0.f)
@@ -187,7 +206,22 @@ bool ZRangeNodeVisitor::visit(const std::shared_ptr<Node> &node)
     return result;
 }
 
+const utils::Frustum &ZRangeNodeVisitor::openFrustum() const
+{
+    return frustum();
+}
+
+void ZRangeNodeVisitor::setOpenFrustum(const utils::OpenFrustum &value)
+{
+    setFrustum(value);
+}
+
 const utils::Range &ZRangeNodeVisitor::zRange() const
+{
+    return m_zRange;
+}
+
+utils::Range &ZRangeNodeVisitor::zRange()
 {
     return m_zRange;
 }
@@ -207,19 +241,16 @@ bool DirtyGlobalTransformNodeVisitor::visit(const std::shared_ptr<Node> &node)
 
 // DirtyBoundingBoxNodeVisitor
 
-DirtyBoundingBoxNodeVisitor::DirtyBoundingBoxNodeVisitor(const std::unordered_set<BoundingBoxPolicy> &policies)
+DirtyBoundingBoxNodeVisitor::DirtyBoundingBoxNodeVisitor()
     : NodeVisitor()
-    , m_policies(policies)
 {
 }
 
 bool DirtyBoundingBoxNodeVisitor::visit(const std::shared_ptr<Node> &node)
 {
-    if (m_policies.count(node->boundingBoxPolicy()))
-        node->m().isBoundingBoxDirty() = true;
+    node->m().isBoundingBoxDirty() = true;
     return true;
 }
-
 
 } // namespace
 } // namespace

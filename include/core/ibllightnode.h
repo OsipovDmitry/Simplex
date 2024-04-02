@@ -16,6 +16,8 @@ public:
     IBLLightNode(const std::string&);
     ~IBLLightNode() override;
 
+    LightType type() const override;
+
     std::shared_ptr<IBLLightNode> asIBLLightNode() override;
     std::shared_ptr<const IBLLightNode> asIBLLightNode() const override;
 
@@ -36,6 +38,9 @@ public:
 protected:
     glm::mat4x4 doAreaMatrix() const override;
     utils::BoundingBox doAreaBoundingBox() const override;
+    glm::mat4x4 doUpdateLayeredShadowMatrices(const utils::FrustumCorners&,
+                                              const utils::Range&,
+                                              std::vector<glm::mat4x4>&) const override;
 
 };
 

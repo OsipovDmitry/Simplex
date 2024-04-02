@@ -30,8 +30,20 @@ std::shared_ptr<const PerspectiveClipSpace> AbstractClipSpace::asPerspectiveClip
     return nullptr;
 }
 
-OrthoClipSpace::OrthoClipSpace()
-{}
+OrthoClipSpace::OrthoClipSpace(float height)
+{
+    setHeight(height);
+}
+
+float OrthoClipSpace::height() const
+{
+    return m_height;
+}
+
+void OrthoClipSpace::setHeight(float value)
+{
+    m_height = value;
+}
 
 std::shared_ptr<OrthoClipSpace> OrthoClipSpace::asOrthoClipSpace()
 {
@@ -46,7 +58,10 @@ std::shared_ptr<const OrthoClipSpace> OrthoClipSpace::asOrthoClipSpace() const
 
 glm::mat4 OrthoClipSpace::projectionMatrix(float aspect, const Range &zRange) const
 {
-    return glm::ortho(-aspect, aspect, -1.f, 1.f, zRange.nearValue(), zRange.farValue());
+    const float halfHeight = m_height * .5f;
+    const float halfWidth = halfHeight * aspect;
+
+    return glm::ortho(-halfWidth, halfWidth, -halfHeight, halfHeight, zRange.nearValue(), zRange.farValue());
 }
 
 PerspectiveClipSpace::PerspectiveClipSpace(float fov)
@@ -59,9 +74,9 @@ float PerspectiveClipSpace::fov() const
     return m_fov;
 }
 
-void PerspectiveClipSpace::setFov(float fov)
+void PerspectiveClipSpace::setFov(float value)
 {
-    m_fov = fov;
+    m_fov = value;
 }
 
 std::shared_ptr<PerspectiveClipSpace> PerspectiveClipSpace::asPerspectiveClipSpace()

@@ -13,13 +13,9 @@ namespace core
 class LightDrawablePrivate : public DrawablePrivate
 {
 public:
-    LightDrawablePrivate(const std::shared_ptr<graphics::IVertexArray>&, LightDrawableType);
-    ~LightDrawablePrivate() override;
+    LightDrawablePrivate(const std::shared_ptr<graphics::IVertexArray>&);
+    ~LightDrawablePrivate() override;  
 
-    LightDrawableType &type();
-
-private:
-    LightDrawableType m_type;
 };
 
 }

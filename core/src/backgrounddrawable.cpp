@@ -60,19 +60,21 @@ void BackgroundDrawable::setRoughness(float value)
     getOrCreateUniform(graphics::UniformId::BackgroundRoughness) = makeUniform(value);
 }
 
-graphics::BackgroundComponentsSet BackgroundDrawable::backgroundComponentsSet(const std::shared_ptr<const Drawable> &drawable)
+std::unordered_set<BackgroundComponent> BackgroundDrawable::backgroundComponentsSet() const
 {
-    graphics::BackgroundComponentsSet result;
+    return componentsSet<BackgroundComponent>(uniformIdByBackgroundComponent);
+}
 
-    for (uint16_t i = 0u; i < graphics::numElementsBackgroundComponent(); ++i)
-    {
-        auto backgroundComponent = graphics::castToBackgroundComponent(i);
-        if (auto uniformId = graphics::IProgram::uniformIdByBackgroundComponent(backgroundComponent);
-                (uniformId != graphics::UniformId::Undefined) && drawable->uniform(uniformId))
-            result.insert(backgroundComponent);
-    }
+graphics::UniformId BackgroundDrawable::uniformIdByBackgroundComponent(BackgroundComponent value)
+{
+    static const std::unordered_map<BackgroundComponent, graphics::UniformId> s_table {
+        { BackgroundComponent::ColorMap, graphics::UniformId::BackgroundColorMap },
+        { BackgroundComponent::BaseColor, graphics::UniformId::BackgroundBaseColor },
+        { BackgroundComponent::Roughness, graphics::UniformId::BackgroundRoughness },
+    };
 
-    return result;
+    auto it = s_table.find(value);
+    return (it == s_table.end()) ? graphics::UniformId::Undefined : it->second;
 }
 
 }

@@ -17,6 +17,8 @@ namespace core
 IBLLightNode::IBLLightNode(const std::string &name)
     : LightNode(std::make_unique<IBLLightNodePrivate>(name))
 {
+    setShadingMode(LightShadingMode::Disabled);
+
     if (IBLLightNodePrivate::lightAreaVertexArray().expired())
         LOG_CRITICAL << "IBL light area vertex array is expired";
 
@@ -29,11 +31,8 @@ IBLLightNode::IBLLightNode(const std::string &name)
     if (IBLLightNodePrivate::defaultSpecularMap().expired())
         LOG_CRITICAL << "IBL default specular texture is expired";
 
-    auto &mPrivate = m();
-    mPrivate.boundingBoxPolicy() = BoundingBoxPolicy::Root;
-
-    auto drawable = std::make_shared<LightDrawable>(IBLLightNodePrivate::lightAreaVertexArray().lock(), LightDrawableType::IBL);
-    mPrivate.areaDrawable() = drawable;
+    auto drawable = std::make_shared<LightDrawable>(IBLLightNodePrivate::lightAreaVertexArray().lock());
+    m().areaDrawable() = drawable;
     drawable->getOrCreateUniform(graphics::UniformId::IBLBRDFLutMap) = makeUniform(IBLLightNodePrivate::defaultBRDFLutMap().lock());
     drawable->getOrCreateUniform(graphics::UniformId::IBLDiffuseMap) = makeUniform(IBLLightNodePrivate::defaultDiffuseMap().lock());
     drawable->getOrCreateUniform(graphics::UniformId::IBLSpecularMap) = makeUniform(IBLLightNodePrivate::defaultSpecularMap().lock());
@@ -41,6 +40,11 @@ IBLLightNode::IBLLightNode(const std::string &name)
 }
 
 IBLLightNode::~IBLLightNode() = default;
+
+LightType IBLLightNode::type() const
+{
+    return LightType::IBL;
+}
 
 std::shared_ptr<IBLLightNode> IBLLightNode::asIBLLightNode()
 {
@@ -106,6 +110,11 @@ glm::mat4x4 IBLLightNode::doAreaMatrix() const
 utils::BoundingBox IBLLightNode::doAreaBoundingBox() const
 {
     return utils::BoundingBox::empty(); // it is not used because bb policy is Root
+}
+
+glm::mat4x4 IBLLightNode::doUpdateLayeredShadowMatrices(const utils::FrustumCorners &, const utils::Range &, std::vector<glm::mat4x4> &) const
+{
+    return glm::mat4x4(1.f); // no shadow for IBL
 }
 
 }

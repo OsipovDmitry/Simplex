@@ -21,12 +21,14 @@ DirectionalLightNode::DirectionalLightNode(const std::string &name)
     if (DirectionalLightNodePrivate::lightAreaVertexArray().expired())
         LOG_CRITICAL << "Directional light area vertex array is expired";
 
-    auto &mPrivate = m();
-    mPrivate.boundingBoxPolicy() = BoundingBoxPolicy::Root;
-
-    auto drawable = std::make_shared<LightDrawable>(DirectionalLightNodePrivate::lightAreaVertexArray().lock(), LightDrawableType::Directional);
-    mPrivate.areaDrawable() = drawable;
+    auto drawable = std::make_shared<LightDrawable>(DirectionalLightNodePrivate::lightAreaVertexArray().lock());
+    m().areaDrawable() = drawable;
     drawable->getOrCreateUniform(graphics::UniformId::LightColor) = makeUniform(glm::vec3(1.f));
+}
+
+LightType DirectionalLightNode::type() const
+{
+    return LightType::Directional;
 }
 
 DirectionalLightNode::~DirectionalLightNode() = default;
@@ -67,30 +69,38 @@ utils::BoundingBox DirectionalLightNode::doAreaBoundingBox() const
     return utils::BoundingBox::empty(); // it is not used because bb policy is Root
 }
 
-utils::Transform DirectionalLightNode::doShadowViewTransform(const utils::FrustumCornersInfo &cameraFrustumCornersInfo) const
+glm::mat4x4 DirectionalLightNode::doUpdateLayeredShadowMatrices(const utils::FrustumCorners &cameraFrustumCorners,
+                                                                const utils::Range &zRange,
+                                                                std::vector<glm::mat4x4> &layeredShadowMatrices) const
 {
-    const auto lightDirection = glm::normalize(glm::vec3(globalTransform() * glm::vec4(0.f, 0.f, -1.f, 0.f)));
-    auto bbRange = (globalTransform() * boundingBox()).projectOnLine(cameraFrustumCornersInfo.center, lightDirection);
-    bbRange.setNearValue(bbRange.nearValue() /*- 1.f*/);
+    static const auto s_directionInLightSpace = glm::vec3(0.f, 0.f, -1.f);
+    const auto direction = glm::normalize(glm::vec3(globalTransform() * glm::vec4(s_directionInLightSpace, 0.f)));
+    const auto up = glm::abs(direction.y) < .999f ? glm::vec3(0.f, 1.f, 0.f) : glm::vec3(1.f, 0.f, 0.f);
 
-    const auto up = glm::abs(lightDirection.y) < .999f ? glm::vec3(0.f, 1.f, 0.f) : glm::vec3(1.f, 0.f, 0.f);
-    return utils::Transform(1.f,
-                            glm::quatLookAt(lightDirection, up),
-                            cameraFrustumCornersInfo.center + bbRange.nearValue() * lightDirection).inverted();
-}
+    utils::BoundingBox cameraFrustumBB;
+    for (const auto &corner : cameraFrustumCorners)
+        cameraFrustumBB += corner;
 
-glm::mat4x4 DirectionalLightNode::doShadowProjectionMatrix(const utils::Transform &shadowViewTransform,
-                                                           const utils::FrustumCornersInfo &cameraFrustumCornersInfo,
-                                                           const utils::Range &zRange) const
-{
-    utils::BoundingBox lightFrustumBB;
-    for (const auto &corner : cameraFrustumCornersInfo.corners)
-        lightFrustumBB += shadowViewTransform * corner;
+    const auto sceneRootNode = rootNode();
+    const auto sceneBB = sceneRootNode->globalTransform() * sceneRootNode->boundingBox();
 
-    return glm::ortho(lightFrustumBB.minPoint().x, lightFrustumBB.maxPoint().x,
-                      lightFrustumBB.minPoint().y, lightFrustumBB.maxPoint().y,
-                      /*1.f, -lightFrustumBB.minPoint().z*/
-                      zRange.nearValue(), zRange.farValue());
+    const auto shadowBB = cameraFrustumBB * sceneBB;
+    const auto shadowBBCenter = shadowBB.center();
+
+    const auto sceneBBProjRange = sceneBB.projectOnLine(shadowBBCenter, direction);
+
+    const auto viewTransform = utils::Transform(1.f,
+                                                glm::quatLookAt(direction, up),
+                                                shadowBBCenter + direction * sceneBBProjRange.nearValue()).inverted();
+
+    const auto transformedShadowBBHalfSize = (viewTransform * shadowBB).halfSize();
+    const auto projectionMatrix = glm::ortho(-transformedShadowBBHalfSize.x, transformedShadowBBHalfSize.x,
+                                             -transformedShadowBBHalfSize.y, transformedShadowBBHalfSize.y,
+                                             zRange.nearValue(), zRange.farValue());
+
+    const auto result = projectionMatrix * viewTransform;
+    layeredShadowMatrices = { result };
+    return result;
 }
 
 }

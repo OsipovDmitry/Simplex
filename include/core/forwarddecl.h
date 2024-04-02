@@ -27,13 +27,8 @@ enum class UniformType : uint16_t;
 enum class SSBOId : uint16_t;
 struct AttributeInfo;
 struct UniformInfo;
+struct SSBOVariableInfo;
 struct SSBOInfo;
-enum class PBRComponent : uint16_t;
-using PBRComponentsSet = std::unordered_set<PBRComponent>;
-enum class LightComponent : uint16_t;
-using LightComponentsSet = std::unordered_set<LightComponent>;
-enum class BackgroundComponent : uint16_t;
-using BackgroundComponentsSet = std::unordered_set<BackgroundComponent>;
 enum class FaceType : uint16_t;
 enum class ComparingFunc : uint16_t;
 enum class StencilOperation : uint16_t;
@@ -90,18 +85,23 @@ using PUniform = std::shared_ptr<Uniform<T>>;
 
 enum class DrawableAlphaMode : uint16_t;
 class Drawable;
-class StandardDrawable;
-enum class LightDrawableType : uint16_t;
-class LightDrawable;
-class BackgroundDrawable;
 
-enum class BoundingBoxPolicy : uint16_t;
+enum class PBRComponent : uint16_t;
+class PBRDrawable;
+
+enum class LightComponent : uint16_t;
+class LightDrawable;
+
+enum class BackgroundComponent : uint16_t;
+class BackgroundDrawable;
 
 class Scene;
 class Node;
 class SceneRootNode;
 class CameraNode;
 class DrawableNode;
+enum class LightType : uint16_t;
+enum class LightShadingMode : uint16_t;
 class LightNode;
 class PointLightNode;
 class SpotLightNode;

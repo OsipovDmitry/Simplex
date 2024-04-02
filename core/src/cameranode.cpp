@@ -45,9 +45,9 @@ void CameraNode::setRenderingEnabled(bool enabled)
     m().isRenderingEnabled() = enabled;
 }
 
-void CameraNode::setOrthoProjection()
+void CameraNode::setOrthoProjection(float height)
 {
-    m().clipSpace() = std::make_shared<utils::OrthoClipSpace>();
+    m().clipSpace() = std::make_shared<utils::OrthoClipSpace>(height);
 }
 
 void CameraNode::setPerspectiveProjection(float fov)
@@ -130,13 +130,13 @@ void CameraNode::setCullPlanesLimits(const utils::Range &values)
     m().cullPlanesLimits() = values;
 }
 
-bool CameraNode::canAttach(std::shared_ptr<Node>)
+bool CameraNode::canAttach(const std::shared_ptr<Node>&)
 {
     LOG_ERROR << "It's forbidden to attach to camera node \"" << name() << "\"";
     return false;
 }
 
-bool CameraNode::canDetach(std::shared_ptr<Node>)
+bool CameraNode::canDetach(const std::shared_ptr<Node>&)
 {
     LOG_ERROR << "It's forbidden to detach from camera node \"" << name() << "\"";
     return false;

@@ -41,8 +41,7 @@ public:
     const debug::GraphicsEngineInformation &debugInformation() const;
 
     void setF(int);
-
-    bool debug = false;
+    bool b = false;
 
 private:
     std::unique_ptr<GraphicsEnginePrivate> m_;

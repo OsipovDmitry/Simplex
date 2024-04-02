@@ -14,6 +14,9 @@ public:
     IBLLightNodePrivate(const std::string &name);
     ~IBLLightNodePrivate() override;
 
+    std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer>&) const override;
+    const glm::mat4x4 &shadowBiasMatrix() const override;
+
     static std::weak_ptr<graphics::IVertexArray> &lightAreaVertexArray();
     static std::weak_ptr<const graphics::ITexture> &defaultBRDFLutMap();
     static std::weak_ptr<const graphics::ITexture> &defaultDiffuseMap();

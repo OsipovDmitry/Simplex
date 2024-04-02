@@ -28,6 +28,7 @@ public:
     PUniform<glm::vec3> &viewXDirectionUniform();
     PUniform<glm::vec3> &viewYDirectionUniform();
     PUniform<glm::vec3> &viewZDirectionUniform();
+    PUniform<glm::vec2> &zRangeUniform();
 
     PUniform<graphics::PConstTexture> &GBufferColor0TextureUniform();
     PUniform<graphics::PConstTexture> &GBufferColor1TextureUniform();
@@ -38,6 +39,8 @@ public:
     PUniform<graphics::PConstBufferRange> &OITNodesCounterUniform();
     PUniform<graphics::PConstImage> &OITDepthImageUniform();
     PUniform<graphics::PConstImage> &OITIndicesImageUniform();
+
+    graphics::PConstBufferRange& layeredShadowMatricesBuffer();
 
     PUniform<graphics::PConstTexture> &lightBufferColorTextureUniform();
     PUniform<graphics::PConstTexture> &finalBufferColorTextureUniform();
@@ -53,6 +56,7 @@ private:
     PUniform<glm::vec3> m_viewXDirectionUniform;
     PUniform<glm::vec3> m_viewYDirectionUniform;
     PUniform<glm::vec3> m_viewZDirectionUniform;
+    PUniform<glm::vec2> m_zRangeUniform;
 
     PUniform<graphics::PConstTexture> m_GBufferColor0TextureUniform;
     PUniform<graphics::PConstTexture> m_GBufferColor1TextureUniform;
@@ -63,6 +67,8 @@ private:
     PUniform<graphics::PConstBufferRange> m_OITNodesCounterUniform;
     PUniform<graphics::PConstImage> m_OITDepthImageUniform;
     PUniform<graphics::PConstImage> m_OITIndicesImageUniform;
+
+    graphics::PConstBufferRange m_layeredShadowMatricesBuffer;
 
     PUniform<graphics::PConstTexture> m_lightBufferColorTextureUniform;
     PUniform<graphics::PConstTexture> m_finalBufferColorTextureUniform;

@@ -27,7 +27,7 @@ public:
     bool isRenderingEnabled() const;
     void setRenderingEnabled(bool);
 
-    void setOrthoProjection();
+    void setOrthoProjection(float height);
     void setPerspectiveProjection(float fov);
     glm::mat4x4 calculateProjectionMatrix(float aspect, const utils::Range&) const;
 
@@ -38,8 +38,8 @@ public:
     void setCullPlanesLimits(const utils::Range&);
 
 protected:
-    bool canAttach(std::shared_ptr<Node>) override;
-    bool canDetach(std::shared_ptr<Node>) override;
+    bool canAttach(const std::shared_ptr<Node>&) override;
+    bool canDetach(const std::shared_ptr<Node>&) override;
 
 
     void doDetach() override;

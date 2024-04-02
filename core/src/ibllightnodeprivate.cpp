@@ -16,6 +16,17 @@ IBLLightNodePrivate::IBLLightNodePrivate(const std::string &name)
 {
 }
 
+std::shared_ptr<ShadowFrameBuffer> IBLLightNodePrivate::createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer> &) const
+{
+    return nullptr;
+}
+
+const glm::mat4x4 &IBLLightNodePrivate::shadowBiasMatrix() const
+{
+    static const glm::mat4x4 s_biasMatrix(1.f);
+    return s_biasMatrix;
+}
+
 IBLLightNodePrivate::~IBLLightNodePrivate() = default;
 
 std::weak_ptr<graphics::IVertexArray> &IBLLightNodePrivate::lightAreaVertexArray()

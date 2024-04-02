@@ -334,6 +334,123 @@ void PostprocessFrameBuffer::resize(const std::shared_ptr<graphics::IRenderer> &
 {
 }
 
+ShadowFrameBuffer::ShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+    : FrameBufferWrapper(graphicsRenderer->createFrameBuffer())
+{
+    setForOpaquePass();
+}
+
+void ShadowFrameBuffer::setForOpaquePass()
+{
+    m_frameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Depth});
+    m_frameBuffer->setClearDepthStencil(1.f, 0x00u);
+    m_frameBuffer->setDrawBuffers({});
+
+    m_frameBuffer->setFaceCulling(true, graphics::FaceType::Front);
+    m_frameBuffer->setColorMasks(false);
+    m_frameBuffer->setDepthTest(true);
+    m_frameBuffer->setDepthMask(true);
+    m_frameBuffer->setStencilTest(false);
+    m_frameBuffer->setBlending(false);
+}
+
+void ShadowFrameBuffer::setForTransparentPass()
+{
+    m_frameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Color0});
+    m_frameBuffer->setClearColor(0u, glm::vec4(1.f));
+    m_frameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
+
+    m_frameBuffer->setFaceCulling(false);
+    m_frameBuffer->setColorMasks(true);
+    m_frameBuffer->setDepthTest(true);
+    m_frameBuffer->setDepthMask(false);
+    m_frameBuffer->setStencilTest(false);
+    m_frameBuffer->setBlending(true);
+    m_frameBuffer->setBlendEquation(0u, graphics::BlendEquation::Add, graphics::BlendEquation::Add);
+    m_frameBuffer->setBlendFactor(0u,
+                                  graphics::BlendFactor::Zero, graphics::BlendFactor::SrcColor,
+                                  graphics::BlendFactor::Zero, graphics::BlendFactor::SrcAlpha);
+
+}
+
+void ShadowFrameBuffer::resize(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer, const glm::uvec2 &viewportSize, bool hasColorMap)
+{
+    auto depthTexture = doDepthTexture(graphicsRenderer, viewportSize);
+    depthTexture->setFilterMode(graphics::TextureFilterMode::Point);
+    depthTexture->setWrapMode(graphics::TextureWrapMode::ClampToBorder);
+    depthTexture->setBorderColor(glm::vec4(1.f));
+
+    m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Depth, depthTexture);
+
+    if (hasColorMap)
+    {
+        auto colorTexture = doColorTexture(graphicsRenderer, viewportSize);
+        colorTexture->setFilterMode(graphics::TextureFilterMode::Point);
+        colorTexture->setWrapMode(graphics::TextureWrapMode::ClampToBorder);
+        colorTexture->setBorderColor(glm::vec4(1.f));
+
+        m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Color0, colorTexture);
+    }
+    else
+    {
+        m_frameBuffer->detach(core::graphics::FrameBufferAttachment::Color0);
+    }
+}
+
+graphics::PConstTexture ShadowFrameBuffer::colorTexture() const
+{
+    graphics::PConstTexture result;
+
+    if (graphics::IFrameBuffer::AttachmentInfo info; m_frameBuffer->attachment(core::graphics::FrameBufferAttachment::Color0, info))
+        result = std::dynamic_pointer_cast<const graphics::ITexture>(info.renderSurface);
+
+    return result;
+}
+
+graphics::PConstTexture ShadowFrameBuffer::depthTexture() const
+{
+    graphics::PConstTexture result;
+
+    if (graphics::IFrameBuffer::AttachmentInfo info; m_frameBuffer->attachment(core::graphics::FrameBufferAttachment::Depth, info))
+        result = std::dynamic_pointer_cast<const graphics::ITexture>(info.renderSurface);
+
+    return result;
+}
+
+ShadowFrameBuffer2D::ShadowFrameBuffer2D(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+    : ShadowFrameBuffer(graphicsRenderer)
+{
+}
+
+graphics::PTexture ShadowFrameBuffer2D::doColorTexture(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+                                                       const glm::uvec2 &viewportSize) const
+{
+    return graphicsRenderer->createTexture2DEmpty(viewportSize.x, viewportSize.y, core::graphics::PixelInternalFormat::R11F_G11F_B10F);
+}
+
+graphics::PTexture ShadowFrameBuffer2D::doDepthTexture(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+                                                       const glm::uvec2 &viewportSize) const
+{
+    return graphicsRenderer->createTexture2DEmpty(viewportSize.x, viewportSize.y, core::graphics::PixelInternalFormat::Depth32F);
+}
+
+ShadowFrameBufferCube::ShadowFrameBufferCube(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+    : ShadowFrameBuffer(graphicsRenderer)
+{
+}
+
+graphics::PTexture ShadowFrameBufferCube::doColorTexture(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+                                                         const glm::uvec2 &viewportSize) const
+{
+    return graphicsRenderer->createTextureCubeEmpty(viewportSize.x, viewportSize.y, core::graphics::PixelInternalFormat::R11F_G11F_B10F);
+}
+
+graphics::PTexture ShadowFrameBufferCube::doDepthTexture(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+                                                         const glm::uvec2 &viewportSize) const
+{
+    return graphicsRenderer->createTextureCubeEmpty(viewportSize.x, viewportSize.y, core::graphics::PixelInternalFormat::Depth32F);
+}
+
 
 }
 }

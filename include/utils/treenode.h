@@ -33,7 +33,7 @@ public:
         m_children.clear();
     }
 
-    bool attach(std::shared_ptr<T> node)
+    bool attach(const std::shared_ptr<T> &node)
     {
         if (!canAttach(node))
             return false;
@@ -46,7 +46,7 @@ public:
         return true;
     }
 
-    bool detach(std::shared_ptr<T> node)
+    bool detach(const std::shared_ptr<T> &node)
     {
         if (node->m_parent != this)
             return false;
@@ -62,7 +62,7 @@ public:
         return true;
     }
 
-    int32_t relationDegree(std::shared_ptr<const T> grandParent) const
+    int32_t relationDegree(const std::shared_ptr<T> &grandParent) const
     {
         int32_t degree = 0;
         auto thisNode = this;
@@ -78,8 +78,8 @@ public:
     std::vector<std::shared_ptr<T>> &children() { return m_children; }
 
 protected:
-    virtual bool canAttach(std::shared_ptr<T>) { return true; }
-    virtual bool canDetach(std::shared_ptr<T>) { return true; }
+    virtual bool canAttach(const std::shared_ptr<T>&) { return true; }
+    virtual bool canDetach(const std::shared_ptr<T>&) { return true; }
 
     virtual void doAttach() {}
     virtual void doDetach() {}

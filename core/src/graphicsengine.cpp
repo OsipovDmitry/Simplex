@@ -20,7 +20,7 @@
 #include <core/spotlightnode.h>
 #include <core/directionallightnode.h>
 #include <core/drawablenode.h>
-#include <core/standarddrawable.h>
+#include <core/pbrdrawable.h>
 #include <core/backgrounddrawable.h>
 #include <core/lightdrawable.h>
 #include <core/nodevisitor.h>
@@ -143,10 +143,6 @@ const std::string &GraphicsEngine::name() const
 
 void GraphicsEngine::update(uint64_t time, uint32_t dt)
 {
-    static utils::Transform vm;
-    static glm::mat4x4 pm;
-    static bool isR = false;
-
     auto &debugInfo = m_->debugInformation();
     debugInfo.graphicsEngineName = name();
     debugInfo.scenesInformation.clear();
@@ -195,76 +191,74 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
 
             camera->resize(screenSize);
 
-            const auto cameraViewportSize = camera->viewportSize();
+            const auto &cameraViewportSize = camera->viewportSize();
             const auto cameraViewport = glm::uvec4(0u, 0u, cameraViewportSize);
-            float aspectRatio = static_cast<float>(cameraViewportSize[0]) / static_cast<float>(cameraViewportSize[1]);
-            /*const*/ auto cameraViewTransform = camera->globalTransform().inverted();
+            const float cameraViewportAspectRatio = static_cast<float>(cameraViewportSize[0u]) / static_cast<float>(cameraViewportSize[1u]);
+            const auto &cameraCullPlanesLimits = camera->cullPlanesLimits();
 
-            ZRangeNodeVisitor zRangeNodeVisitor(utils::OpenFrustum(camera->calculateProjectionMatrix(aspectRatio, utils::Range(0.f, 1.f)) *
-                                                                   cameraViewTransform));
+            const auto cameraViewTransform = camera->globalTransform().inverted();
+
+            ZRangeNodeVisitor zRangeNodeVisitor(utils::OpenFrustum(camera->calculateProjectionMatrix(
+                                                                       cameraViewportAspectRatio,
+                                                                       utils::Range(cameraCullPlanesLimits.nearValue(),
+                                                                                    cameraCullPlanesLimits.nearValue() + 1.f)) *
+                                                                   cameraViewTransform),
+                                                true, true);
             rootNode->acceptDown(zRangeNodeVisitor);
+            zRangeNodeVisitor.zRange() += cameraCullPlanesLimits.nearValue();
 
-            utils::Range cameraZRange(.5f, 1.f);
+            utils::Range cameraZRange(cameraCullPlanesLimits.nearValue(), cameraCullPlanesLimits.nearValue() + 1.f);
             if (!zRangeNodeVisitor.zRange().isEmpty())
             {
-                const auto &cameraCullPlanesLimits = camera->cullPlanesLimits();
-
                 cameraZRange.setNearValue(glm::max(cameraCullPlanesLimits.nearValue(), zRangeNodeVisitor.zRange().nearValue() * 0.95f));
                 cameraZRange.setFarValue(glm::min(cameraCullPlanesLimits.farValue(), zRangeNodeVisitor.zRange().farValue() * 1.05f));
             }
 
-            /*const*/ auto cameraProjectionMatrix = camera->calculateProjectionMatrix(aspectRatio, cameraZRange);
+            const auto cameraProjectionMatrix = camera->calculateProjectionMatrix(cameraViewportAspectRatio, cameraZRange);
 
+            RenderInfo cameraRenderInfo;
+            cameraRenderInfo.setViewMatrix(cameraViewTransform);
+            cameraRenderInfo.setProjectionMatrix(cameraProjectionMatrix);
+            cameraRenderInfo.setZRange(glm::vec2(cameraZRange.nearValue(), cameraZRange.farValue()));
 
-            if (isR)
-            {
-                cameraViewTransform = vm;
-                cameraProjectionMatrix = pm;
-            }
+            cameraRenderInfo.setGBuffer(cameraPrivate.gFrameBuffer()->color0Texture(),
+                                        cameraPrivate.gFrameBuffer()->color1Texture(),
+                                        cameraPrivate.gFrameBuffer()->color2Texture(),
+                                        cameraPrivate.gFrameBuffer()->depthTexture());
 
-            RenderInfo renderInfo;
-            renderInfo.setViewMatrix(cameraViewTransform);
-            renderInfo.setProjectionMatrix(cameraProjectionMatrix);
+            cameraRenderInfo.setOITBuffer(cameraPrivate.oitFrameBuffer()->oitDepthImage(),
+                                          cameraPrivate.oitFrameBuffer()->oitIndicesImage(),
+                                          m_->OITNodesBuffer(),
+                                          m_->OITNodesCounter());
 
-            renderInfo.setGBuffer(cameraPrivate.gFrameBuffer()->color0Texture(),
-                                  cameraPrivate.gFrameBuffer()->color1Texture(),
-                                  cameraPrivate.gFrameBuffer()->color2Texture(),
-                                  cameraPrivate.gFrameBuffer()->depthTexture());
+            cameraRenderInfo.setLightBufferColorTexture(cameraPrivate.lightFrameBuffer()->colorTexture());
+            cameraRenderInfo.setFinalBufferColorTexture(cameraPrivate.finalFrameBuffer()->colorTexture());
 
-            renderInfo.setOITBuffer(cameraPrivate.oitFrameBuffer()->oitDepthImage(),
-                                    cameraPrivate.oitFrameBuffer()->oitIndicesImage(),
-                                    m_->OITNodesBuffer(),
-                                    m_->OITNodesCounter());
+            const auto cameraFrustum = utils::Frustum(cameraRenderInfo.viewProjectionMatrixUniform()->data());
+            const auto cameraFrustumCorners = utils::Frustum::calculateCorners(cameraRenderInfo.viewProjectionMatrixInverseUniform()->data());
 
-            renderInfo.setLightBufferColorTexture(cameraPrivate.lightFrameBuffer()->colorTexture());
-            renderInfo.setFinalBufferColorTexture(cameraPrivate.finalFrameBuffer()->colorTexture());
-
-            const auto cameraFrustum = utils::Frustum(renderInfo.viewProjectionMatrixUniform()->data());
-            const auto cameraFrustumCornersInfo = utils::Frustum::calculateCornersInfo(renderInfo.viewProjectionMatrixInverseUniform()->data());
-
-            DrawableNodesCollector drawableNodesCollector(cameraFrustum);
-            rootNode->acceptDown(drawableNodesCollector);
+            DrawableNodesCollector cameraDrawableNodesCollector(cameraFrustum);
+            rootNode->acceptDown(cameraDrawableNodesCollector);
 
             LightNodesCollector lightNodesCollector(cameraFrustum);
             rootNode->acceptDown(lightNodesCollector);
 
             // render opaque geometry to G-buffer
             renderer->clearRenderData();
-            for (const auto &drawableNode : drawableNodesCollector.drawableNodes())
+            for (const auto &drawableNode : cameraDrawableNodesCollector.drawableNodes())
                 for (const auto &drawable : drawableNode->drawables())
                 {
-                    const auto alphaMode = drawable->alphaMode();
-                    if ((alphaMode == DrawableAlphaMode::Opaque) || (alphaMode == DrawableAlphaMode::Mask))
+                    if (drawable->alphaMode() == DrawableAlphaMode::Opaque)
                     {
                         renderer->addRenderData(programsManager->loadOrGetOpaqueGeometryPassRenderProgram(
-                                                    Drawable::vertexAttrubitesSet(drawable),
-                                                    StandardDrawable::PBRComponentsSet(drawable)),
+                                                    drawable->vertexAttrubitesSet(),
+                                                    PBRDrawable::PBRComponentsSet(drawable)),
                                                 drawable,
                                                 drawableNode->globalTransform());
                         ++numOpaqueDrawablesRendered;
                     }
                 }
-            renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(), renderInfo, cameraViewport);
+            renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(), cameraRenderInfo, cameraViewport);
 
             // reset OIT counter buffer
             auto nodecCounterBuffer = m_->OITNodesCounter()->buffer();
@@ -273,23 +267,23 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
 
             // clear OIT images
             renderer->compute(programsManager->loadOrGetOITClearPassComputeProgram(),
-                              renderInfo,
+                              cameraRenderInfo,
                               glm::uvec3(cameraViewportSize, 1u));
 
             // render transparent geometry to OIT-buffer
             renderer->clearRenderData();
-            for (const auto &drawableNode : drawableNodesCollector.drawableNodes())
+            for (const auto &drawableNode : cameraDrawableNodesCollector.drawableNodes())
                 for (const auto &drawable : drawableNode->drawables())
                     if (drawable->alphaMode() == DrawableAlphaMode::Transparent)
                     {
                         renderer->addRenderData(programsManager->loadOrGetTransparentGeometryPassRenderProgram(
-                                                    Drawable::vertexAttrubitesSet(drawable),
-                                                    StandardDrawable::PBRComponentsSet(drawable)),
+                                                    drawable->vertexAttrubitesSet(),
+                                                    PBRDrawable::PBRComponentsSet(drawable)),
                                                 drawable,
                                                 drawableNode->globalTransform());
                         ++numTransparentDrawablesRendered;
                     }
-            renderer->render(cameraPrivate.oitFrameBuffer()->frameBuffer(), renderInfo, cameraViewport);
+            renderer->render(cameraPrivate.oitFrameBuffer()->frameBuffer(), cameraRenderInfo, cameraViewport);
 
             // get number of transparent pixels rendered
             if (auto nodesCounterBufferData = nodecCounterBuffer->map(graphics::IBuffer::MapAccess::ReadOnly); nodesCounterBufferData)
@@ -297,101 +291,165 @@ void GraphicsEngine::update(uint64_t time, uint32_t dt)
 
             // sort OIT nodes
             renderer->compute(programsManager->loadOrGetOITSortNodesPassComputeProgram(),
-                              renderInfo,
+                              cameraRenderInfo,
                               glm::uvec3(cameraViewportSize, 1u));
 
             // clear light color buffer
             cameraPrivate.lightFrameBuffer()->setForClearPass();
             renderer->clearRenderData();
-            renderer->render(cameraPrivate.lightFrameBuffer()->frameBuffer(), renderInfo, cameraViewport);
+            renderer->render(cameraPrivate.lightFrameBuffer()->frameBuffer(), cameraRenderInfo, cameraViewport);
 
             // render lights areas
             for (const auto &lightNode : lightNodesCollector.lightNodes())
             {
+                auto &lightPrivate = lightNode->m();
+
                 if (!lightNode->isLightingEnabled())
                     continue;
 
-                if (lightNode->isShadingEnabled())
-                {
-                    const auto shadowViewTransform = lightNode->calculateShadowViewTransform(cameraFrustumCornersInfo);
-                    ZRangeNodeVisitor shadowZRangeNodeVisitor(
-                                utils::OpenFrustum(lightNode->calculateShadowProjectionMatrix(shadowViewTransform,
-                                                                                              cameraFrustumCornersInfo,
-                                                                                              utils::Range(0.f, 1.f)) *
-                                                   shadowViewTransform));
-                    rootNode->acceptDown(shadowZRangeNodeVisitor);
+                auto lightType = lightNode->type();
+                auto shadingMode = lightNode->shadingMode();
 
-                    utils::Range shadowZRange(.5f, 1.f);
+                if (shadingMode != LightShadingMode::Disabled)
+                {
+                    const auto &shadowMapSize = lightNode->shadowMapSize();
+                    const auto shadowViewport = glm::uvec4(0u, 0u, shadowMapSize);
+                    const auto &shadowCullPlanesLimits = lightNode->shadowCullPlanesLimits();
+
+                    auto layeredShadowMatrices = lightNode->updateLayeredShadowMatrices(cameraFrustumCorners,
+                                                                                        utils::Range(shadowCullPlanesLimits.nearValue(),
+                                                                                                     shadowCullPlanesLimits.nearValue() + 1.f));
+
+                    ZRangeNodeVisitor shadowZRangeNodeVisitor(utils::OpenFrustum(glm::mat4x4(1.f)), true, false);
+                    for (const auto &shadowMatrix : layeredShadowMatrices)
+                    {
+                        shadowZRangeNodeVisitor.setOpenFrustum(utils::OpenFrustum(shadowMatrix));
+                        rootNode->acceptDown(shadowZRangeNodeVisitor);
+                    }
+                    shadowZRangeNodeVisitor.zRange() += shadowCullPlanesLimits.nearValue();
+
+                    utils::Range shadowZRange(shadowCullPlanesLimits.nearValue(), shadowCullPlanesLimits.nearValue() + 1.f);
                     if (!shadowZRangeNodeVisitor.zRange().isEmpty())
                     {
-                        shadowZRange.setNearValue(shadowZRangeNodeVisitor.zRange().nearValue() * 0.95f);
-                        shadowZRange.setFarValue(shadowZRangeNodeVisitor.zRange().farValue() * 1.05f);
+                        shadowZRange.setNearValue(glm::max(shadowCullPlanesLimits.nearValue(), shadowZRangeNodeVisitor.zRange().nearValue() * 0.95f));
+                        shadowZRange.setFarValue(glm::min(shadowCullPlanesLimits.farValue(), shadowZRangeNodeVisitor.zRange().farValue() * 1.05f));
                     }
 
-                    const auto shadowProjectionMatrix = lightNode->calculateShadowProjectionMatrix(shadowViewTransform,
-                                                                                                   cameraFrustumCornersInfo,
-                                                                                                   shadowZRange);
+                    layeredShadowMatrices = lightNode->updateLayeredShadowMatrices(cameraFrustumCorners, shadowZRange);
 
-                    if (debug)
+                    DrawableNodesCollector shadowDrawableNodesCollector(utils::Frustum(glm::mat4x4(1.f)));
+                    for (const auto &shadowMatrix : layeredShadowMatrices)
                     {
-                        vm = shadowViewTransform;
-                        pm = shadowProjectionMatrix;
-                        debug = false;
-                        isR = true;
-                        return;
+                        shadowDrawableNodesCollector.setFrustum(utils::Frustum(shadowMatrix));
+                        rootNode->acceptDown(shadowDrawableNodesCollector);
                     }
 
+                    RenderInfo shadowRenderInfo;
+                    shadowRenderInfo.setLayeredShadowMatricesBuffer(lightPrivate.layeredShadowMatricesBuffer());
+                    shadowRenderInfo.setZRange(glm::vec2(shadowZRange.nearValue(), shadowZRange.farValue()));
+
+                    lightNode->updateShadowFrameBuffer();
+
+                    // render opaque shadow
+                    lightPrivate.shadowFrameBuffer()->setForOpaquePass();
+                    renderer->clearRenderData();
+                    for (const auto &drawableNode : shadowDrawableNodesCollector.drawableNodes())
+                        for (const auto &drawable : drawableNode->drawables())
+                        {
+                            if ((shadingMode == LightShadingMode::OpaqueAndTransparent) || (drawable->alphaMode() == DrawableAlphaMode::Opaque))
+                                renderer->addRenderData(programsManager->loadOrGetShadowRenderProgram(
+                                                            drawable->vertexAttrubitesSet(),
+                                                            PBRDrawable::PBRComponentsSet(drawable),
+                                                            shadingMode),
+                                                        drawable,
+                                                        drawableNode->globalTransform());
+                        }
+                    renderer->render(lightPrivate.shadowFrameBuffer()->frameBuffer(), shadowRenderInfo, shadowViewport);
+
+                    // render transparent shadow
+                    if (shadingMode == LightShadingMode::Color)
+                    {
+                        lightPrivate.shadowFrameBuffer()->setForTransparentPass();
+                        renderer->clearRenderData();
+                        for (const auto &drawableNode : shadowDrawableNodesCollector.drawableNodes())
+                            for (const auto &drawable : drawableNode->drawables())
+                            {
+                                if (drawable->alphaMode() == DrawableAlphaMode::Transparent)
+                                    renderer->addRenderData(programsManager->loadOrGetShadowRenderProgram(
+                                                                drawable->vertexAttrubitesSet(),
+                                                                PBRDrawable::PBRComponentsSet(drawable),
+                                                                shadingMode),
+                                                            drawable,
+                                                            drawableNode->globalTransform());
+                            }
+                        renderer->render(lightPrivate.shadowFrameBuffer()->frameBuffer(), shadowRenderInfo, shadowViewport);
+                    }
                 }
 
                 auto modelMatrix = lightNode->globalTransform() * lightNode->areaMatrix();
-                const auto &drawable = lightNode->areaDrawable();
-                auto attributesSet = Drawable::vertexAttrubitesSet(drawable);
+                const auto &lightDrawable = lightNode->areaDrawable();
+                auto attributesSet = lightDrawable->vertexAttrubitesSet();
 
                 // stencil pass
                 cameraPrivate.lightFrameBuffer()->setForStencilPass();
                 renderer->clearRenderData();
-                renderer->addRenderData(programsManager->loadOrGetStencilPassRenderProgram(attributesSet),
-                                        drawable,
+                renderer->addRenderData(programsManager->loadOrGetStencilPassRenderProgram(attributesSet,
+                                                                                           lightType),
+                                        lightDrawable,
                                         modelMatrix);
-                renderer->render(cameraPrivate.lightFrameBuffer()->frameBuffer(), renderInfo, cameraViewport);
+                renderer->render(cameraPrivate.lightFrameBuffer()->frameBuffer(), cameraRenderInfo, cameraViewport);
 
                 // light pass
                 cameraPrivate.lightFrameBuffer()->setForLightPass();
                 renderer->clearRenderData();
                 renderer->addRenderData(programsManager->loadOrGetLightPassRenderProgram(attributesSet,
-                                                                                         LightDrawable::lightComponentsSet(drawable),
-                                                                                         drawable->type()),
-                                        drawable,
+                                                                                         lightDrawable->lightComponentsSet(),
+                                                                                         lightType,
+                                                                                         shadingMode),
+                                        lightDrawable,
                                         modelMatrix);
-                renderer->render(cameraPrivate.lightFrameBuffer()->frameBuffer(), renderInfo, cameraViewport);
+                renderer->render(cameraPrivate.lightFrameBuffer()->frameBuffer(), cameraRenderInfo, cameraViewport);
                 ++numLightsRendered;
+
+                //scene->backgroundDrawable()->setColorMap(lightPrivate.shadowFrameBuffer()->depthTexture());
             }
 
             // render background layer
             cameraPrivate.finalFrameBuffer()->setForBackgroundPass();
             renderer->clearRenderData();
             renderer->addRenderData(programsManager->loadOrGetBackgroundPassRenderProgram(
-                                        Drawable::vertexAttrubitesSet(backgroundDrawable),
-                                        BackgroundDrawable::backgroundComponentsSet(backgroundDrawable)),
+                                        backgroundDrawable->vertexAttrubitesSet(),
+                                        backgroundDrawable->backgroundComponentsSet()),
                                     backgroundDrawable);
-            renderer->render(cameraPrivate.finalFrameBuffer()->frameBuffer(), renderInfo, cameraViewport);
+            renderer->render(cameraPrivate.finalFrameBuffer()->frameBuffer(), cameraRenderInfo, cameraViewport);
 
             // render foreground layer
             cameraPrivate.finalFrameBuffer()->setForForegroundPass();
             renderer->clearRenderData();
             renderer->addRenderData(programsManager->loadOrGetForegroundPassRenderProgram(
-                                        Drawable::vertexAttrubitesSet(m_->screenQuadDrawable())),
+                                        m_->screenQuadDrawable()->vertexAttrubitesSet()),
                                     m_->screenQuadDrawable());
-            renderer->render(cameraPrivate.finalFrameBuffer()->frameBuffer(), renderInfo, cameraViewport);
+            renderer->render(cameraPrivate.finalFrameBuffer()->frameBuffer(), cameraRenderInfo, cameraViewport);
 
             // postprocess
             renderer->clearRenderData();
             renderer->addRenderData(programsManager->loadOrGetPostprocessPassRenderProgram(
-                                        Drawable::vertexAttrubitesSet(m_->screenQuadDrawable())),
+                                        m_->screenQuadDrawable()->vertexAttrubitesSet()),
                                     m_->screenQuadDrawable());
-            renderer->render(cameraPrivate.postprocessFrameBuffer()->frameBuffer(), renderInfo, cameraViewport);
+            renderer->render(cameraPrivate.postprocessFrameBuffer()->frameBuffer(), cameraRenderInfo, cameraViewport);
 
             sceneInfo.camerasInformation.push_back(cameraInfo);
+
+            if (b)
+            {
+                if (!lightNodesCollector.lightNodes().empty())
+                    renderer->blitFrameBuffer(
+                                lightNodesCollector.lightNodes().begin()->get()->m().shadowFrameBuffer()->frameBuffer(),
+                                cameraPrivate.postprocessFrameBuffer()->frameBuffer(),
+                                glm::uvec4(0u, 0u, lightNodesCollector.lightNodes().begin()->get()->shadowMapSize()),
+                                glm::uvec4(0u, 0u, lightNodesCollector.lightNodes().begin()->get()->shadowMapSize()),
+                                true, false, false, false);
+            }
         }
 
         debugInfo.scenesInformation.push_back(sceneInfo);
@@ -525,7 +583,7 @@ std::shared_ptr<Scene> GraphicsEngine::loadGLTFSceneFromFile(const std::filesyst
                 if (rawCamera.type == "perspective")
                     cameraNode->setPerspectiveProjection(static_cast<float>(rawCamera.perspective.yfov));
                 else if (rawCamera.type == "orthographic")
-                    cameraNode->setOrthoProjection();
+                    cameraNode->setOrthoProjection(static_cast<float>(rawCamera.orthographic.ymag));
                 else
                     LOG_CRITICAL << "Undefined type of camera";
 
@@ -605,7 +663,7 @@ std::shared_ptr<Scene> GraphicsEngine::loadGLTFSceneFromFile(const std::filesyst
                         vao->addPrimitiveSet(std::make_shared<utils::DrawArrays>(primitiveType, 0u, numVertices));
                     }
 
-                    auto standardDrawable = std::make_shared<StandardDrawable>(vao, boundingBox);
+                    auto standardDrawable = std::make_shared<PBRDrawable>(vao, boundingBox);
                     standardDrawable->setORMSwizzleMask(glm::uvec4(0u, 1u, 2u, 3u));
                     drawableNode->addDrawable(standardDrawable);
 
@@ -817,6 +875,17 @@ const debug::GraphicsEngineInformation &GraphicsEngine::debugInformation() const
 
 void GraphicsEngine::setF(int i)
 {
+    if (i == -1)
+    {
+        b = !b;
+//        for (auto &child : scenes()[0]->sceneRootNode()->children())
+//            if (auto lightNode = child->asLightNode(); lightNode)
+//            {
+//                lightNode->setShadingMode(castToLightShadingMode((castFromLightShadingMode(lightNode->shadingMode()) + 1) % numElementsLightShadingMode()));
+//            }
+        return;
+    }
+
     m_->finalScreenQuadDrawable()->getOrCreateUserUniform("i") = makeUniform(i);
 }
 

@@ -18,10 +18,6 @@ namespace simplex
 namespace core
 {
 
-ENUMCLASS(BoundingBoxPolicy, uint16_t,
-          Standard,
-          Root)
-
 class NodePrivate;
 class CORE_SHARED_EXPORT Node : public INamedObject, public utils::TreeNode<Node>, public std::enable_shared_from_this<Node>
 {
@@ -43,9 +39,6 @@ public:
     void setTransform(const utils::Transform&);
 
     const utils::BoundingBox &boundingBox() const;
-
-    BoundingBoxPolicy boundingBoxPolicy() const;
-    void setBoundingBoxPolicy(BoundingBoxPolicy);
 
     void acceptUp(NodeVisitor&);
     void acceptDown(NodeVisitor&);

@@ -42,10 +42,10 @@ public:
     std::shared_ptr<Drawable> &screenQuadDrawable();
 
     std::shared_ptr<Drawable> &finalScreenQuadDrawable();
-    std::shared_ptr<StandardDrawable> &nodeBoundingBoxDrawable();
-    std::shared_ptr<StandardDrawable> &cameraNodeCameraDrawable();
-    std::shared_ptr<StandardDrawable> &cameraNodeFrustumDrawable();
-    std::shared_ptr<StandardDrawable> &drawableNodeLocalBoundingBoxDrawable();
+    std::shared_ptr<PBRDrawable> &nodeBoundingBoxDrawable();
+    std::shared_ptr<PBRDrawable> &cameraNodeCameraDrawable();
+    std::shared_ptr<PBRDrawable> &cameraNodeFrustumDrawable();
+    std::shared_ptr<PBRDrawable> &drawableNodeLocalBoundingBoxDrawable();
 
 private:
     std::string m_name;
@@ -74,10 +74,10 @@ private:
     std::shared_ptr<Drawable> m_screenQuadDrawable;
 
     std::shared_ptr<Drawable> m_finalScreenQuadDrawable;
-    std::shared_ptr<StandardDrawable> m_nodeBoundingBoxDrawable;
-    std::shared_ptr<StandardDrawable> m_cameraNodeCameraDrawable;
-    std::shared_ptr<StandardDrawable> m_cameraNodeFrustumDrawable;
-    std::shared_ptr<StandardDrawable> m_drawableNodeLocalBoundingBoxDrawable;
+    std::shared_ptr<PBRDrawable> m_nodeBoundingBoxDrawable;
+    std::shared_ptr<PBRDrawable> m_cameraNodeCameraDrawable;
+    std::shared_ptr<PBRDrawable> m_cameraNodeFrustumDrawable;
+    std::shared_ptr<PBRDrawable> m_drawableNodeLocalBoundingBoxDrawable;
 };
 
 }

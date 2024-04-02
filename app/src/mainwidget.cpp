@@ -109,8 +109,7 @@ void MainWidget::onTimeout()
     simplex::core::NodeCollector<simplex::core::CameraNode> cameraCollector;
     scenes.front()->sceneRootNode()->acceptDown(cameraCollector);
 
-    if (!debug2)
-        cameraCollector.nodes().front()->setTransform(cameraTransform);
+    cameraCollector.nodes().front()->setTransform(cameraTransform);
 
     ui->m_renderWidget->update();
 }
@@ -151,7 +150,17 @@ void MainWidget::keyPressEvent(QKeyEvent *event)
         break;
     case Qt::Key::Key_Space:
     {
-        debug();
+        if (ui->m_renderWidget->application().expired())
+            return;
+
+        auto app = ui->m_renderWidget->application().lock();
+        auto testApplication = std::dynamic_pointer_cast<TestApplication>(app);
+        if (!testApplication)
+            return;
+
+        auto graphicsEngine = testApplication->graphicsEngine();
+        graphicsEngine->setF(-1);
+
         break;
     }
     default:
@@ -194,21 +203,5 @@ void MainWidget::keyReleaseEvent(QKeyEvent *event)
     }
 
     event->accept();
-}
-
-void MainWidget::debug()
-{
-    if (ui->m_renderWidget->application().expired())
-        return;
-
-    auto app = ui->m_renderWidget->application().lock();
-    auto testApplication = std::dynamic_pointer_cast<TestApplication>(app);
-    if (!testApplication)
-        return;
-
-    auto graphicsEngine = testApplication->graphicsEngine();
-    graphicsEngine->debug = true;
-    debug2 = true;
-
 }
 

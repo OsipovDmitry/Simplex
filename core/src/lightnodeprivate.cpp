@@ -11,6 +11,7 @@ LightNodePrivate::LightNodePrivate(const std::string &name)
     , m_areaDrawable()
     , m_isAreaMatrixDirty(true)
     , m_isAreaBoundingBoxDirty(true)
+    , m_isShadowFrameBufferDirty(true)
 {
 }
 
@@ -21,9 +22,19 @@ bool &LightNodePrivate::isLightingEnabled()
     return m_isLightingEnabled;
 }
 
-bool &LightNodePrivate::isShadingEnabled()
+LightShadingMode &LightNodePrivate::shadingMode()
 {
-    return m_isShadingEnabled;
+    return m_shadingMode;
+}
+
+glm::uvec2 &LightNodePrivate::shadowMapSize()
+{
+    return m_shadowMapSize;
+}
+
+utils::Range &LightNodePrivate::shadowCullPlanesLimits()
+{
+    return m_shadowCullPlanesLimits;
 }
 
 std::shared_ptr<LightDrawable> &LightNodePrivate::areaDrawable()
@@ -49,6 +60,21 @@ bool &LightNodePrivate::isAreaBoundingBoxDirty()
 utils::BoundingBox &LightNodePrivate::areaBoundingBox()
 {
     return m_areaBoundingBox;
+}
+
+bool &LightNodePrivate::isShadowFrameBufferDirty()
+{
+    return m_isShadowFrameBufferDirty;
+}
+
+std::shared_ptr<ShadowFrameBuffer> &LightNodePrivate::shadowFrameBuffer()
+{
+    return m_shadowFrameBuffer;
+}
+
+graphics::PBufferRange &LightNodePrivate::layeredShadowMatricesBuffer()
+{
+    return m_layeredShadowMatricesBuffer;
 }
 
 }

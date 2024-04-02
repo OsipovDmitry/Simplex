@@ -87,7 +87,10 @@ public:
     std::shared_ptr<core::graphics::IBuffer> buffer() override;
 
     size_t offset() const override;
+    void setOffset(size_t) override;
+
     size_t size() const override;
+    void setSize(size_t) override;
 
 private:
     std::shared_ptr<core::graphics::IBuffer> m_buffer;
@@ -156,6 +159,13 @@ public:
 
     glm::uvec3 mipmapSize(uint32_t level = 0) const override;
     uint32_t numMipmapLevels() const override;
+
+    void subImage(uint32_t level,
+                  const glm::uvec3 &offset,
+                  const glm::uvec3 &size,
+                  uint32_t &numComponents,
+                  utils::PixelComponentType &type,
+                  void *data) const override;
 
     void generateMipmaps() override;
     void setBorderColor(const glm::vec4&) override;
@@ -459,8 +469,11 @@ public:
 
     void attach(core::graphics::FrameBufferAttachment,
                 std::shared_ptr<const core::graphics::ISurface>,
-                uint32_t level = 0u,
-                uint32_t layer = 0u) override;
+                uint32_t level = 0u) override;
+    void attachLayer(core::graphics::FrameBufferAttachment,
+                     std::shared_ptr<const core::graphics::ITexture>,
+                     uint32_t level = 0u,
+                     uint32_t layer = 0u) override;
     void detach(core::graphics::FrameBufferAttachment) override;
 };
 
@@ -471,7 +484,11 @@ public:
     DefaultFrameBuffer_4_5(GLuint);
     ~DefaultFrameBuffer_4_5() override;
 
-    void attach(core::graphics::FrameBufferAttachment, std::shared_ptr<const core::graphics::ISurface>, uint32_t = 0u, uint32_t = 0u) override;
+    void attach(core::graphics::FrameBufferAttachment, std::shared_ptr<const core::graphics::ISurface>, uint32_t = 0u) override;
+    void attachLayer(core::graphics::FrameBufferAttachment,
+                     std::shared_ptr<const core::graphics::ITexture>,
+                     uint32_t = 0u,
+                     uint32_t = 0u) override;
     void detach(core::graphics::FrameBufferAttachment) override;
 
     void setClearColor(uint32_t, const glm::vec4&) override;
@@ -498,6 +515,7 @@ public:
     const std::vector<core::graphics::SSBOInfo> &SSBOsInfo() const override;
 
     std::string uniformNameByIndex(uint16_t) const override;
+    std::string SSBOVariableNameByIndex(uint16_t) const override;
     std::string SSBONameByIndex(uint16_t) const override;
 
 protected:
@@ -508,6 +526,7 @@ protected:
 
     GLint m_uniformNameMaxLength;
     GLint m_SSBONameMaxLength;
+    GLint m_bufferVariableNameMaxLength;
 };
 
 class RenderProgram_4_5 : public core::graphics::IRenderProgram, public ProgramBase_4_5
@@ -642,6 +661,9 @@ public:
     std::shared_ptr<core::graphics::IFrameBuffer> createFrameBuffer() const override;
     std::shared_ptr<core::graphics::IRenderProgram> createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
                                                                         const std::shared_ptr<utils::Shader> &fragmentShader) const override;
+    std::shared_ptr<core::graphics::IRenderProgram> createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
+                                                                        const std::shared_ptr<utils::Shader> &geometryShader,
+                                                                        const std::shared_ptr<utils::Shader> &fragmentShader) const override;
     std::shared_ptr<core::graphics::IComputeProgram> createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const override;
 
     void resize(uint32_t, uint32_t) override;
@@ -654,12 +676,6 @@ public:
     void render(const std::shared_ptr<core::graphics::IFrameBuffer>&, const core::RenderInfo&, const glm::uvec4&) override;
     void compute(const std::shared_ptr<core::graphics::IComputeProgram>&, const core::RenderInfo&, const glm::uvec3&) override;
 
-    int32_t bindTexture(const core::graphics::PConstTexture&);
-    int32_t bindImage(const core::graphics::PConstImage&);
-    void bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBufferRange&);
-    uint32_t bindSSBO(const core::graphics::PConstBufferRange&);
-    void bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBufferRange&);
-
     static std::shared_ptr<QtOpenGL_4_5_Renderer> create(QOpenGLContext*, GLuint);
     static std::shared_ptr<QtOpenGL_4_5_Renderer> instance(QOpenGLContext* = nullptr);
 
@@ -669,7 +685,7 @@ private:
 
     void setupVertexAttributes(const std::shared_ptr<RenderProgram_4_5>&,
                                const std::shared_ptr<const VertexArray_4_5>&);
-    void setupUniform(GLuint rpId, GLint loc, const core::PConstAbstractUniform&);
+    void setupUniform(GLuint rpId, GLint loc, int32_t&, int32_t&, const core::PConstAbstractUniform&);
     void setupUniforms(const std::shared_ptr<ProgramBase_4_5>&,
                        const std::shared_ptr<const core::Drawable>&,
                        const core::RenderInfo&,
@@ -679,16 +695,19 @@ private:
                     const std::shared_ptr<const core::Drawable>&,
                     const core::RenderInfo&);
 
+    void bindTexture(int32_t, const core::graphics::PConstTexture&);
+    void bindImage(int32_t, const core::graphics::PConstImage&);
+    void bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBufferRange&);
+    void bindSSBO(uint32_t, const core::graphics::PConstBufferRange&);
+    void bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBufferRange&);
+
     bool createProgram(std::shared_ptr<ProgramBase_4_5>,
-                       const std::vector<std::pair<GLenum, std::reference_wrapper<const std::string>>>&) const;
+                       const std::unordered_map<GLenum, std::reference_wrapper<const std::string>>&) const;
 
     std::shared_ptr<DefaultFrameBuffer_4_5> m_defaultFrameBuffer;
 
     std::deque<std::tuple<glm::mat4x4, std::shared_ptr<RenderProgram_4_5>, std::shared_ptr<const core::Drawable>>> m_renderData;
     glm::uvec2 m_viewportSize;
-    int32_t m_textureUnit;
-    int32_t m_imageUnit;
-    uint32_t m_bufferUnit;
 
     static std::unordered_map<QOpenGLContext*, std::weak_ptr<QtOpenGL_4_5_Renderer>> s_instances;
 };

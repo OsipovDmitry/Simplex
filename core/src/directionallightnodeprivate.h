@@ -14,6 +14,9 @@ public:
     DirectionalLightNodePrivate(const std::string &name);
     ~DirectionalLightNodePrivate() override;
 
+    std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer>&) const override;
+    const glm::mat4x4 &shadowBiasMatrix() const override;
+
     static std::weak_ptr<graphics::IVertexArray> &lightAreaVertexArray();
 
 private:

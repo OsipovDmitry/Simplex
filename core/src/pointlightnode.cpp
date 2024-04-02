@@ -1,4 +1,5 @@
 #include <utils/logger.h>
+#include <utils/frustum.h>
 
 #include <core/igraphicsrenderer.h>
 #include <core/uniform.h>
@@ -24,10 +25,15 @@ PointLightNode::PointLightNode(const std::string &name)
     if (PointLightNodePrivate::lightAreaVertexArray().expired())
         LOG_CRITICAL << "Point light area vertex array is expired";
 
-    auto drawable = std::make_shared<LightDrawable>(PointLightNodePrivate::lightAreaVertexArray().lock(), LightDrawableType::Point);
+    auto drawable = std::make_shared<LightDrawable>(PointLightNodePrivate::lightAreaVertexArray().lock());
     drawable->getOrCreateUniform(graphics::UniformId::LightColor) = makeUniform(glm::vec3(1.f));
     drawable->getOrCreateUniform(graphics::UniformId::LightRadiuses) = makeUniform(glm::vec2(1.f, 2.f));
     m().areaDrawable() = drawable;
+}
+
+LightType PointLightNode::type() const
+{
+    return LightType::Point;
 }
 
 PointLightNode::~PointLightNode() = default;
@@ -80,6 +86,29 @@ glm::mat4x4 PointLightNode::doAreaMatrix() const
 utils::BoundingBox PointLightNode::doAreaBoundingBox() const
 {
     return areaMatrix() * PointLightNodePrivate::lightAreaBoundingBox();
+}
+
+glm::mat4x4 PointLightNode::doUpdateLayeredShadowMatrices(const utils::FrustumCorners &cameraFrustumCorners,
+                                                          const utils::Range &zRange,
+                                                          std::vector<glm::mat4x4> &layeredShadowMatrices) const
+{
+    static const std::array<glm::mat4x4, 6u> layeredLookAt {
+        glm::lookAt(glm::vec3(0.f), glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)),
+        glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f,-1.f, 0.f)),
+        glm::lookAt(glm::vec3(0.f), glm::vec3( 0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)),
+        glm::lookAt(glm::vec3(0.f), glm::vec3( 0.f,-1.f, 0.f), glm::vec3(0.f, 0.f,-1.f)),
+        glm::lookAt(glm::vec3(0.f), glm::vec3( 0.f, 0.f, 1.f), glm::vec3(0.f,-1.f, 0.f)),
+        glm::lookAt(glm::vec3(0.f), glm::vec3( 0.f, 0.f,-1.f), glm::vec3(0.f,-1.f, 0.f))
+    };
+
+    const auto viewTransform = globalTransform().inverted();
+    const auto layeredProjectionMatrix = glm::perspective(glm::half_pi<float>(), 1.f, zRange.nearValue(), zRange.farValue());
+
+    layeredShadowMatrices.resize(layeredLookAt.size());
+    for (uint32_t i = 0u; i < layeredShadowMatrices.size(); ++i)
+        layeredShadowMatrices[i] = layeredProjectionMatrix * layeredLookAt[i] * viewTransform;
+
+    return viewTransform;
 }
 
 }

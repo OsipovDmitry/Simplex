@@ -38,6 +38,9 @@ public:
     const PUniform<glm::mat4x4> &viewProjectionMatrixUniform() const;
     const PUniform<glm::mat4x4> &viewProjectionMatrixInverseUniform() const;
 
+    const PUniform<glm::vec2> &zRangeUniform() const;
+    void setZRange(const glm::vec2&);
+
     const PUniform<graphics::PConstTexture> &GBufferColor0TextureUniform() const;
     const PUniform<graphics::PConstTexture> &GBufferColor1TextureUniform() const;
     const PUniform<graphics::PConstTexture> &GBufferColor2TextureUniform() const;
@@ -55,6 +58,9 @@ public:
                       const graphics::PConstImage& indicesImage,
                       const graphics::PConstBufferRange& nodesBuffer,
                       const graphics::PConstBufferRange& nodesCounter);
+
+    const graphics::PConstBufferRange& layeredShadowMatricesBuffer() const;
+    void setLayeredShadowMatricesBuffer(const graphics::PConstBufferRange&);
 
     const PUniform<graphics::PConstTexture> &lightBufferColorTextureUniform() const;
     void setLightBufferColorTexture(const graphics::PConstTexture&);

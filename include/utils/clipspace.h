@@ -29,12 +29,18 @@ public:
 class UTILS_SHARED_EXPORT OrthoClipSpace : public AbstractClipSpace
 {
 public:
-    OrthoClipSpace();
+    OrthoClipSpace(float height);
+
+    float height() const;
+    void setHeight(float);
 
     std::shared_ptr<OrthoClipSpace> asOrthoClipSpace() override;
     std::shared_ptr<const OrthoClipSpace> asOrthoClipSpace() const override;
 
     glm::mat4 projectionMatrix(float aspect, const utils::Range &zRange) const override;
+
+protected:
+    float m_height;
 };
 
 class UTILS_SHARED_EXPORT PerspectiveClipSpace : public AbstractClipSpace

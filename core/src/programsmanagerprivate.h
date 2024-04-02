@@ -34,45 +34,41 @@ public:
                                                NameKey&,
                                                uint16_t);
 
-    static void preparePBRComponentsDefines(const graphics::PBRComponentsSet&,
+    static void preparePBRComponentsDefines(const std::unordered_set<PBRComponent>&,
                                             utils::ShaderDefines&);
-    static uint16_t preparePBRComponentsKey(const graphics::PBRComponentsSet&,
+    static uint16_t preparePBRComponentsKey(const std::unordered_set<PBRComponent>&,
                                             NameKey&,
                                             uint16_t);
 
-    static void prepareBackgroundComponentsDefines(const graphics::BackgroundComponentsSet&,
+    static void prepareLightShadingModeDefines(LightShadingMode,
+                                               utils::ShaderDefines&);
+    static uint16_t prepareLightShadingModeKey(LightShadingMode,
+                                               NameKey&,
+                                               uint16_t);
+
+    static void prepareLightTypeDefines(LightType,
+                                        utils::ShaderDefines&);
+    static uint16_t prepareLightTypeKey(LightType,
+                                        NameKey&,
+                                        uint16_t);
+
+    static void prepareBackgroundComponentsDefines(const std::unordered_set<BackgroundComponent>&,
                                                    utils::ShaderDefines&);
-    static uint16_t prepareBackgroundComponentsKey(const graphics::BackgroundComponentsSet&,
+    static uint16_t prepareBackgroundComponentsKey(const std::unordered_set<BackgroundComponent>&,
                                                    NameKey&,
                                                    uint16_t);
 
-    static void prepareLightComponentsDefines(const graphics::LightComponentsSet&,
-                                              LightDrawableType,
+    static void prepareLightComponentsDefines(const std::unordered_set<LightComponent>&,
                                               utils::ShaderDefines&);
-    static uint16_t prepareLightComponentsKey(const graphics::LightComponentsSet&,
-                                              LightDrawableType,
+    static uint16_t prepareLightComponentsKey(const std::unordered_set<LightComponent>&,
                                               NameKey&,
                                               uint16_t);
-
-    static void prepareDefinesAndKeyForGeometryPassRenderProgram(const utils::VertexAttributesSet&,
-                                                                 const graphics::PBRComponentsSet&,
-                                                                 utils::ShaderDefines&,
-                                                                 NameKey&);
-    static void prepareDefinesAndKeyForBackgroundPassRenderProgram(const utils::VertexAttributesSet&,
-                                                                   const graphics::BackgroundComponentsSet&,
-                                                                   utils::ShaderDefines&,
-                                                                   NameKey&);
-
-    static void prepareDefinesAndKeyForLightPassRenderProgram(const utils::VertexAttributesSet&,
-                                                              const graphics::LightComponentsSet&,
-                                                              LightDrawableType,
-                                                              utils::ShaderDefines&,
-                                                              NameKey&);
 
     static const std::string &opaqueGeometryPassRenderProgramName();
     static const std::string &transparentGeometryPassRenderProgramName();
     static const std::string &OITClearPassComputeProgramName();
     static const std::string &OITSortNodesPassComputeProgramName();
+    static const std::string &shadowRenderProgramName();
     static const std::string &stencilPassRenderProgramName();
     static const std::string &lightPassRenderProgramName();
     static const std::string &backgroundPassRenderProgramName();
@@ -85,6 +81,9 @@ public:
     static const std::filesystem::path &transparentGeometryPassFragmnetShaderPath();
     static const std::filesystem::path &OITClearPassComputeShaderPath();
     static const std::filesystem::path &OITSortNodesPassComputeShaderPath();
+    static const std::filesystem::path &shadowVertexShaderPath();
+    static const std::filesystem::path &shadowGeometryShaderPath();
+    static const std::filesystem::path &shadowFragmnetShaderPath();
     static const std::filesystem::path &stencilPassVertexShaderPath();
     static const std::filesystem::path &stencilPassFragmnetShaderPath();
     static const std::filesystem::path &lightPassVertexShaderPath();
@@ -108,6 +107,7 @@ private:
     static const std::string s_transparentGeometryPassRenderProgramName;
     static const std::string s_OITClearPassComputeProgramName;
     static const std::string s_OITSortNodesPassComputeProgramName;
+    static const std::string s_shadowRenderProgramName;
     static const std::string s_stencilPassRenderProgramName;
     static const std::string s_lightPassRenderProgramName;
     static const std::string s_backgroundPassRenderProgramName;
@@ -120,6 +120,9 @@ private:
     static const std::filesystem::path s_transparentGeometryPassFragmnetShaderPath;
     static const std::filesystem::path s_OITClearPassComputeShaderPath;
     static const std::filesystem::path s_OITSortNodesPassComputeShaderPath;
+    static const std::filesystem::path s_shadowVertexShaderPath;
+    static const std::filesystem::path s_shadowGeometryShaderPath;
+    static const std::filesystem::path s_shadowFragmnetShaderPath;
     static const std::filesystem::path s_stencilPassVertexShaderPath;
     static const std::filesystem::path s_stencilPassFragmnetShaderPath;
     static const std::filesystem::path s_lightPassVertexShaderPath;

@@ -1,5 +1,5 @@
-#ifndef CORE_STANDARDDRAWABLEPRIVATE_H
-#define CORE_STANDARDDRAWABLEPRIVATE_H
+#ifndef CORE_PBRDRAWABLEPRIVATE_H
+#define CORE_PBRDRAWABLEPRIVATE_H
 
 #include <utils/glm/vec4.hpp>
 
@@ -10,10 +10,10 @@ namespace simplex
 namespace core
 {
 
-class StandardDrawablePrivate : public DrawablePrivate
+class PBRDrawablePrivate : public DrawablePrivate
 {
 public:
-    StandardDrawablePrivate(const std::shared_ptr<graphics::IVertexArray>&, const utils::BoundingBox&);
+    PBRDrawablePrivate(const std::shared_ptr<graphics::IVertexArray>&, const utils::BoundingBox&);
 
     utils::BoundingBox &boundingBox();
 
@@ -38,4 +38,4 @@ private:
 }
 }
 
-#endif // CORE_STANDARDDRAWABLEPRIVATE_H
+#endif // CORE_PBRDRAWABLEPRIVATE_H

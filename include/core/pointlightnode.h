@@ -18,6 +18,8 @@ public:
     PointLightNode(const std::string&);
     ~PointLightNode() override;
 
+    LightType type() const override;
+
     std::shared_ptr<PointLightNode> asPointLightNode() override;
     std::shared_ptr<const PointLightNode> asPointLightNode() const override;
 
@@ -30,6 +32,9 @@ public:
 protected:
     glm::mat4x4 doAreaMatrix() const override;
     utils::BoundingBox doAreaBoundingBox() const override;
+    glm::mat4x4 doUpdateLayeredShadowMatrices(const utils::FrustumCorners&,
+                                              const utils::Range&,
+                                              std::vector<glm::mat4x4>&) const override;
 
 };
 

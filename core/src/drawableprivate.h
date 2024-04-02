@@ -23,7 +23,7 @@ public:
     std::shared_ptr<graphics::IVertexArray> &vertexArray();
     std::unordered_map<graphics::UniformId, PAbstractUniform> &uniforms();
     std::unordered_map<std::string, PAbstractUniform> &userUniforms();
-    std::unordered_map<graphics::SSBOId, std::shared_ptr<graphics::IBufferRange>> &SSBOs();
+    std::unordered_map<graphics::SSBOId, std::shared_ptr<const graphics::IBufferRange>> &SSBOs();
     bool &isDoubleSided();
 
     static float &defaultAlphaCutoff();
@@ -32,7 +32,7 @@ protected:
     std::shared_ptr<graphics::IVertexArray> m_vertexArray;
     std::unordered_map<graphics::UniformId, PAbstractUniform> m_uniforms;
     std::unordered_map<std::string, PAbstractUniform> m_userUniforms;
-    std::unordered_map<graphics::SSBOId, std::shared_ptr<graphics::IBufferRange>> m_SSBOs;
+    std::unordered_map<graphics::SSBOId, std::shared_ptr<const graphics::IBufferRange>> m_SSBOs;
     bool m_isDoubleSided;
 
     static float s_defaultAlphaCutoff;

@@ -50,9 +50,7 @@ DrawableAlphaMode Drawable::alphaMode() const
 {
     auto result = DrawableAlphaMode::Opaque;
 
-    if (alphaCutoff() > 0.f)
-        result = DrawableAlphaMode::Mask;
-    else if (vertexArray()->vertexAttributeNumComponents(utils::VertexAttribute::Color) > 3u)
+    if (vertexArray()->vertexAttributeNumComponents(utils::VertexAttribute::Color) > 3u)
         result = DrawableAlphaMode::Transparent;
     else
         result = DrawableAlphaMode::Opaque;
@@ -84,7 +82,12 @@ PAbstractUniform Drawable::uniform(graphics::UniformId id)
 PAbstractUniform &Drawable::getOrCreateUniform(graphics::UniformId id)
 {
     auto it = m_->uniforms().find(id);
-    return it != m_->uniforms().end() ? it->second : (m_->uniforms()[id] = std::shared_ptr<AbstractUniform>());
+    return it != m_->uniforms().end() ? it->second : (m_->uniforms()[id] = PAbstractUniform());
+}
+
+void Drawable::removeUniform(graphics::UniformId id)
+{
+    m_->uniforms().erase(id);
 }
 
 PConstAbstractUniform Drawable::userUniform(const std::string& name) const
@@ -101,7 +104,12 @@ PAbstractUniform Drawable::userUniform(const std::string& name)
 PAbstractUniform &Drawable::getOrCreateUserUniform(const std::string& name)
 {
     auto it = m_->userUniforms().find(name);
-    return it != m_->userUniforms().end() ? it->second : (m_->userUniforms()[name] = std::shared_ptr<AbstractUniform>());
+    return it != m_->userUniforms().end() ? it->second : (m_->userUniforms()[name] = PAbstractUniform());
+}
+
+void Drawable::removeUserUniform(const std::string &name)
+{
+    m_->userUniforms().erase(name);
 }
 
 graphics::PConstBufferRange Drawable::SSBO(graphics::SSBOId id) const
@@ -110,22 +118,34 @@ graphics::PConstBufferRange Drawable::SSBO(graphics::SSBOId id) const
     return it != m_->SSBOs().end() ? it->second : nullptr;
 }
 
-utils::VertexAttributesSet Drawable::vertexAttrubitesSet(const std::shared_ptr<const Drawable> &drawable)
+graphics::PConstBufferRange &Drawable::getOrCreateSSBO(graphics::SSBOId id)
+{
+    auto it = m_->SSBOs().find(id);
+    return it != m_->SSBOs().end() ? it->second : (m_->SSBOs()[id] = graphics::PConstBufferRange());
+}
+
+void Drawable::removeSSBO(graphics::SSBOId id)
+{
+    m_->SSBOs().erase(id);
+}
+
+utils::VertexAttributesSet Drawable::vertexAttrubitesSet() const
 {
     utils::VertexAttributesSet result;
 
-    auto vao = drawable->vertexArray();
-    for (uint16_t i = 0u; i < utils::numElementsVertexAttribute(); ++i)
+    auto vao = vertexArray();
+    for (typename std::underlying_type<utils::VertexAttribute>::type i = 0u; i < utils::numElementsVertexAttribute(); ++i)
         if (auto attrib = utils::castToVertexAttribute(i); vao->vertexAttributeBindingIndex(attrib) != static_cast<uint32_t>(-1))
             result.insert(attrib);
 
     return result;
 }
 
-Drawable::Drawable(std::unique_ptr<DrawablePrivate> drawablPrivate)
-    : m_(std::move(drawablPrivate))
+Drawable::Drawable(std::unique_ptr<DrawablePrivate> drawablePrivate)
+    : m_(std::move(drawablePrivate))
 {
     setAlphaCutoff(DrawablePrivate::defaultAlphaCutoff());
+    setDoubleSided(false);
 }
 
 }

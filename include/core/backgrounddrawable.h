@@ -12,6 +12,11 @@ namespace simplex
 namespace core
 {
 
+ENUMCLASS(BackgroundComponent, uint16_t,
+          ColorMap,
+          BaseColor,
+          Roughness)
+
 class BackgroundDrawablePrivate;
 class CORE_SHARED_EXPORT BackgroundDrawable : public Drawable
 {
@@ -31,7 +36,9 @@ public:
     float roughness() const;
     void setRoughness(float);
 
-    static graphics::BackgroundComponentsSet backgroundComponentsSet(const std::shared_ptr<const Drawable>&);
+    std::unordered_set<BackgroundComponent> backgroundComponentsSet() const;
+
+    static graphics::UniformId uniformIdByBackgroundComponent(BackgroundComponent);
 };
 
 }

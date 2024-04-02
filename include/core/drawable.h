@@ -9,6 +9,7 @@
 
 #include <core/coreglobal.h>
 #include <core/forwarddecl.h>
+#include <core/igraphicsrenderer.h>
 
 namespace simplex
 {
@@ -17,7 +18,6 @@ namespace core
 
 ENUMCLASS(DrawableAlphaMode, uint16_t,
           Opaque,
-          Mask,
           Transparent)
 
 class DrawablePrivate;
@@ -45,20 +45,43 @@ public:
     PConstAbstractUniform uniform(graphics::UniformId) const;
     PAbstractUniform uniform(graphics::UniformId);
     PAbstractUniform &getOrCreateUniform(graphics::UniformId);
+    void removeUniform(graphics::UniformId);
 
     PConstAbstractUniform userUniform(const std::string&) const;
     PAbstractUniform userUniform(const std::string&);
     PAbstractUniform &getOrCreateUserUniform(const std::string&);
+    void removeUserUniform(const std::string&);
 
     graphics::PConstBufferRange SSBO(graphics::SSBOId) const;
+    graphics::PConstBufferRange &getOrCreateSSBO(graphics::SSBOId);
+    void removeSSBO(graphics::SSBOId);
 
-    static utils::VertexAttributesSet vertexAttrubitesSet(const std::shared_ptr<const Drawable>&);
+    utils::VertexAttributesSet vertexAttrubitesSet() const;
+
+    template<typename T, typename UniformIdConvertMethod>
+    std::unordered_set<T> componentsSet(UniformIdConvertMethod method) const;
 
 protected:
     Drawable(std::unique_ptr<DrawablePrivate>);
 
     std::unique_ptr<DrawablePrivate> m_;
 };
+
+template<typename T, typename UniformIdByComponentMethod>
+std::unordered_set<T> Drawable::componentsSet(UniformIdByComponentMethod method) const
+{
+    std::unordered_set<T> result;
+
+    for (typename std::underlying_type<T>::type i = 0u; i < utils::numElementsEnumClass<T>(); ++i)
+    {
+        auto component = utils::castToEnumClass<T>(i);
+        if (graphics::UniformId uniformId = method(component);
+                (uniformId != graphics::UniformId::Undefined) && uniform(uniformId))
+            result.insert(component);
+    }
+
+    return result;
+}
 
 }
 }

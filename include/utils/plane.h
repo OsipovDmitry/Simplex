@@ -38,17 +38,28 @@ public:
 
     PointType anyPoint(T distanceToPlane = 0.0) const { return normal() * (distanceToPlane + dist()); }
 
-    T distanceTo(const PointType &v) const { return glm::dot(*this, BaseType(v, 1.0)); }
+    T distanceTo(const PointType &v) const { return glm::dot(*this, BaseType(v, static_cast<T>(1))); }
+
+    bool intersectLine(const PointType &orig, const PointType &dir, T &tRes) const;
 };
 
 template<glm::length_t L, typename T>
 inline PlaneT<L, T> operator *(const TransformT<L, T> &t, const PlaneT<L, T> &p)
 {
-    const auto anyPoint0 = t * p.anyPoint(0.0);
-    const auto anyPoint1 = t * p.anyPoint(1.0);
+    const auto anyPoint0 = t * p.anyPoint(static_cast<T>(0));
+    const auto anyPoint1 = t * p.anyPoint(static_cast<T>(1));
 
     const auto newNormal = glm::normalize(anyPoint1 - anyPoint0);
     return PlaneT<L, T>(newNormal, glm::dot(newNormal, anyPoint0));
+}
+
+template<glm::length_t L, typename T>
+inline bool PlaneT<L, T>::intersectLine(const PlaneT<L, T>::PointType &orig, const PlaneT<L, T>::PointType &dir, T &tRes) const
+{
+    const auto denom = glm::dot(normal(), glm::normalize(dir));
+    if (glm::abs(denom) < glm::epsilon<T>()) return false;
+    tRes = distanceTo(orig) / denom;
+    return true;
 }
 
 } // namespace

@@ -2,11 +2,12 @@
 #define UTILS_FORWARDDECL_H
 
 #include <cstdint>
+#include <array>
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
 
-#include <utils/glm/detail/setup.hpp>
+#include <utils/glm/detail/qualifier.hpp>
 
 namespace simplex
 {
@@ -59,8 +60,8 @@ using Plane = PlaneT<3, float>;
 template <glm::length_t L, typename T> struct BoundingBoxT;
 using BoundingBox = BoundingBoxT<3, float>;
 
-template<typename T> struct FrustumCornersInfoT;
-using FrustumCornersInfo = FrustumCornersInfoT<float>;
+template<typename T> using FrustumCornersT = std::array<glm::vec<3u, T>, 8u>;
+using FrustumCorners = FrustumCornersT<float>;
 
 template<typename T> struct FrustumT;
 using Frustum = FrustumT<float>;

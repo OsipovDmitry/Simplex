@@ -4,6 +4,7 @@
 #include <core/forwarddecl.h>
 
 #include "nodeprivate.h"
+#include "framebufferhelpers.h"
 
 namespace simplex
 {
@@ -17,7 +18,10 @@ public:
     ~LightNodePrivate() override;
 
     bool &isLightingEnabled();
-    bool &isShadingEnabled();
+    LightShadingMode &shadingMode();
+
+    glm::uvec2 &shadowMapSize();
+    utils::Range &shadowCullPlanesLimits();
 
     std::shared_ptr<LightDrawable> &areaDrawable();
 
@@ -27,9 +31,20 @@ public:
     bool &isAreaBoundingBoxDirty();
     utils::BoundingBox &areaBoundingBox();
 
+    bool &isShadowFrameBufferDirty();
+    std::shared_ptr<ShadowFrameBuffer> &shadowFrameBuffer();
+
+    graphics::PBufferRange &layeredShadowMatricesBuffer();
+
+    virtual std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer>&) const = 0;
+    virtual const glm::mat4x4 &shadowBiasMatrix() const = 0;
+
 private:
     bool m_isLightingEnabled;
-    bool m_isShadingEnabled;
+    LightShadingMode m_shadingMode;
+
+    glm::uvec2 m_shadowMapSize;
+    utils::Range m_shadowCullPlanesLimits;
 
     std::shared_ptr<LightDrawable> m_areaDrawable;
 
@@ -38,6 +53,12 @@ private:
 
     bool m_isAreaBoundingBoxDirty;
     utils::BoundingBox m_areaBoundingBox;
+
+    bool m_isShadowFrameBufferDirty;
+    std::shared_ptr<ShadowFrameBuffer> m_shadowFrameBuffer;
+
+    graphics::PBufferRange m_layeredShadowMatricesBuffer;
+
 };
 
 }

@@ -1,7 +1,7 @@
 #ifndef CORE_NODEVISITORHELPERS_H
 #define CORE_NODEVISITORHELPERS_H
 
-#include <deque>
+#include <unordered_set>
 
 #include <utils/forwarddecl.h>
 #include <utils/frustum.h>
@@ -71,6 +71,9 @@ public:
 
     bool visit(const std::shared_ptr<Node>&) override;
 
+    const utils::Frustum &frustum() const;
+    void setFrustum(const utils::Frustum&);
+
 protected:
     utils::Frustum m_frustum;
     utils::Frustum m_transformedFrustum;
@@ -81,15 +84,17 @@ protected:
 class DrawableNodesCollector : public FrustumCullingNodeVisitor
 {
 public:
+    using Collection = std::unordered_set<std::shared_ptr<DrawableNode>>;
+
     DrawableNodesCollector(const utils::Frustum&);
 
     bool visit(const std::shared_ptr<Node>&) override;
 
-    const std::deque<std::shared_ptr<DrawableNode>> &drawableNodes() const;
-    std::deque<std::shared_ptr<DrawableNode>> &drawableNodes();
+    const Collection &drawableNodes() const;
+    Collection &drawableNodes();
 
 protected:
-    std::deque<std::shared_ptr<DrawableNode>> m_drawableNodes;
+    Collection m_drawableNodes;
 };
 
 // LightNodesCollector
@@ -97,32 +102,41 @@ protected:
 class LightNodesCollector : public FrustumCullingNodeVisitor
 {
 public:
+    using Collection = std::unordered_set<std::shared_ptr<LightNode>>;
+
     LightNodesCollector(const utils::Frustum&);
 
     bool visit(const std::shared_ptr<Node>&) override;
 
-    const std::deque<std::shared_ptr<LightNode>> &lightNodes() const;
-    std::deque<std::shared_ptr<LightNode>> &lightNodes();
+    const Collection &lightNodes() const;
+    Collection &lightNodes();
 
 protected:
-    std::deque<std::shared_ptr<LightNode>> m_lightNodes;
+    Collection m_lightNodes;
 };
-
-
 
 // ZRangeNodeVisitor
 
 class ZRangeNodeVisitor : public FrustumCullingNodeVisitor
 {
 public:
-    ZRangeNodeVisitor(const utils::OpenFrustum&); // zNear of input frustum must be 0.0
+    ZRangeNodeVisitor(const utils::OpenFrustum&, bool drawables, bool lights);
 
     bool visit(const std::shared_ptr<Node>&) override;
 
+    //const utils::Frustum &frustum() const = delete;
+    //void setFrustum(const utils::Frustum&) = delete;
+
+    const utils::Frustum &openFrustum() const;
+    void setOpenFrustum(const utils::OpenFrustum&);
+
     const utils::Range &zRange() const;
+    utils::Range &zRange();
 
 protected:
     utils::Range m_zRange;
+    bool m_accountDrawables;
+    bool m_accountLights;
 };
 
 // DirtyGlobalTransformNodeVisitor
@@ -140,12 +154,9 @@ public:
 class DirtyBoundingBoxNodeVisitor : public NodeVisitor
 {
 public:
-    DirtyBoundingBoxNodeVisitor(const std::unordered_set<BoundingBoxPolicy>&);
+    DirtyBoundingBoxNodeVisitor();
 
     bool visit(const std::shared_ptr<Node>&) override;
-
-protected:
-    std::unordered_set<BoundingBoxPolicy> m_policies;
 
 };
 

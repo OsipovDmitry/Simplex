@@ -1,8 +1,10 @@
 #include <utils/glm/integer.hpp>
 #include <utils/mesh.h>
 
-#include <core/igraphicsrenderer.h>
+#include <core/lightnode.h>
+#include <core/pbrdrawable.h>
 #include <core/lightdrawable.h>
+#include <core/backgrounddrawable.h>
 
 #include "programsmanagerprivate.h"
 
@@ -17,6 +19,7 @@ const std::string ProgramsManagerPrivate::s_opaqueGeometryPassRenderProgramName 
 const std::string ProgramsManagerPrivate::s_transparentGeometryPassRenderProgramName = "TransparentGeometryPass";
 const std::string ProgramsManagerPrivate::s_OITClearPassComputeProgramName = "OITClearPass";
 const std::string ProgramsManagerPrivate::s_OITSortNodesPassComputeProgramName = "OITSortNodesPass";
+const std::string ProgramsManagerPrivate::s_shadowRenderProgramName = "ShadowPass";
 const std::string ProgramsManagerPrivate::s_stencilPassRenderProgramName = "StencilPass";
 const std::string ProgramsManagerPrivate::s_lightPassRenderProgramName = "LightPass";
 const std::string ProgramsManagerPrivate::s_backgroundPassRenderProgramName = "BackgroundPass";
@@ -29,6 +32,9 @@ const std::filesystem::path ProgramsManagerPrivate::s_opaqueGeometryPassFragmnet
 const std::filesystem::path ProgramsManagerPrivate::s_transparentGeometryPassFragmnetShaderPath = "D:/res/shaders/deferred_transparent_geometry_pass.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_OITClearPassComputeShaderPath = "D:/res/shaders/oit_clear.comp";
 const std::filesystem::path ProgramsManagerPrivate::s_OITSortNodesPassComputeShaderPath = "D:/res/shaders/oit_sort.comp";
+const std::filesystem::path ProgramsManagerPrivate::s_shadowVertexShaderPath = "D:/res/shaders/shadow.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_shadowGeometryShaderPath = "D:/res/shaders/shadow.geom";
+const std::filesystem::path ProgramsManagerPrivate::s_shadowFragmnetShaderPath = "D:/res/shaders/shadow.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_stencilPassVertexShaderPath = "D:/res/shaders/deferred_stencil_pass.vert";
 const std::filesystem::path ProgramsManagerPrivate::s_stencilPassFragmnetShaderPath = "D:/res/shaders/deferred_stencil_pass.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_lightPassVertexShaderPath = "D:/res/shaders/deferred_light_pass.vert";
@@ -91,10 +97,10 @@ uint16_t ProgramsManagerPrivate::prepareVertexAttributesKey(const utils::VertexA
     return firstKeyIndex + utils::numElementsVertexAttribute();
 }
 
-void ProgramsManagerPrivate::preparePBRComponentsDefines(const graphics::PBRComponentsSet &PBRComponentsSet,
+void ProgramsManagerPrivate::preparePBRComponentsDefines(const std::unordered_set<PBRComponent> &PBRComponentsSet,
                                                          utils::ShaderDefines &defines)
 {
-    static const std::array<std::string, graphics::numElementsPBRComponent()> s_table {
+    static const std::array<std::string, numElementsPBRComponent()> s_table {
         "HAS_BASE_COLOR",
         "HAS_BASE_COLOR_MAP",
         "HAS_METALNESS",
@@ -107,123 +113,115 @@ void ProgramsManagerPrivate::preparePBRComponentsDefines(const graphics::PBRComp
         "HAS_OCCLUSION_MAP_STRENGTH",
     };
 
-    for (uint16_t i = 0u; i < graphics::numElementsPBRComponent(); ++i)
-        if (PBRComponentsSet.count(graphics::castToPBRComponent(i)))
+    for (uint16_t i = 0u; i < numElementsPBRComponent(); ++i)
+        if (PBRComponentsSet.count(castToPBRComponent(i)))
             defines.insert({s_table[i], ""});
 }
 
-uint16_t ProgramsManagerPrivate::preparePBRComponentsKey(const graphics::PBRComponentsSet &PBRComponentsSet,
+uint16_t ProgramsManagerPrivate::preparePBRComponentsKey(const std::unordered_set<PBRComponent> &PBRComponentsSet,
                                                          NameKey &nameKey,
                                                          uint16_t firstKeyIndex)
 {
-    for (uint16_t i = 0u; i < graphics::numElementsPBRComponent(); ++i)
-        nameKey.set(firstKeyIndex + i, PBRComponentsSet.count(graphics::castToPBRComponent(i)));
-    return firstKeyIndex + graphics::numElementsPBRComponent();
+    for (uint16_t i = 0u; i < numElementsPBRComponent(); ++i)
+        nameKey.set(firstKeyIndex + i, PBRComponentsSet.count(castToPBRComponent(i)));
+    return firstKeyIndex + numElementsPBRComponent();
 }
 
-void ProgramsManagerPrivate::prepareBackgroundComponentsDefines(const graphics::BackgroundComponentsSet &backgroundComponentsSet,
-                                                                utils::ShaderDefines &defines)
+void ProgramsManagerPrivate::prepareLightShadingModeDefines(LightShadingMode shadingMode,
+                                                            utils::ShaderDefines &defines)
 {
-    static const std::array<std::string, graphics::numElementsPBRComponent()> s_table {
-        "HAS_BACKGROUND_COLOR_MAP",
-        "HAS_BACKGROUND_BASE_COLOR",
-        "HAS_BACKGROUND_ROUGHNESS",
+    static const std::array<std::string, numElementsLightShadingMode()> s_typesTable {
+        "SHADING_MODE_DISABLED",
+        "SHADING_MODE_OPAQUE",
+        "SHADING_MODE_OPAQUE_AND_TRANSPARENT",
+        "SHADING_MODE_COLOR"
     };
 
-    for (uint16_t i = 0u; i < graphics::numElementsBackgroundComponent(); ++i)
-        if (backgroundComponentsSet.count(graphics::castToBackgroundComponent(i)))
-            defines.insert({s_table[i], ""});
+    defines.insert({s_typesTable[castFromLightShadingMode(shadingMode)], ""});
 }
 
-uint16_t ProgramsManagerPrivate::prepareBackgroundComponentsKey(const graphics::BackgroundComponentsSet &backgroundComponentsSet,
-                                                                NameKey &nameKey,
-                                                                uint16_t firstKeyIndex)
+uint16_t ProgramsManagerPrivate::prepareLightShadingModeKey(LightShadingMode shadingMode,
+                                                            NameKey &nameKey,
+                                                            uint16_t firstKeyIndex)
 {
-    for (uint16_t i = 0u; i < graphics::numElementsBackgroundComponent(); ++i)
-        nameKey.set(firstKeyIndex + i, backgroundComponentsSet.count(graphics::castToBackgroundComponent(i)));
-    return firstKeyIndex + graphics::numElementsPBRComponent();
+    static_assert(numElementsLightShadingMode() > 0u);
+    static const auto typeBitsCount = glm::findMSB(numElementsLightShadingMode());
+    for (int i = 0; i < typeBitsCount; ++i)
+        nameKey.set(firstKeyIndex + static_cast<size_t>(i), glm::bitfieldExtract(castFromLightShadingMode(shadingMode), i, 1u));
+
+    firstKeyIndex += typeBitsCount;
+
+    return firstKeyIndex;
 }
 
-void ProgramsManagerPrivate::prepareLightComponentsDefines(const graphics::LightComponentsSet &lightComponentsSet,
-                                                           LightDrawableType lightDrawableType,
-                                                           utils::ShaderDefines &defines)
+void ProgramsManagerPrivate::prepareLightTypeDefines(LightType lightType,
+                                                     utils::ShaderDefines &defines)
 {
-    static const std::array<std::string, graphics::numElementsLightComponent()> s_componentsTable {
-    };
-
-    for (uint16_t i = 0; i < graphics::numElementsLightComponent(); ++i)
-        if (lightComponentsSet.count(graphics::castToLightComponent(i)))
-            defines.insert({s_componentsTable[i], ""});
-
-    static const std::array<std::string, numElementsLightDrawableType()> s_typesTable {
+    static const std::array<std::string, numElementsLightType()> s_typesTable {
         "POINT_LIGHT_TYPE",
         "SPOT_LIGHT_TYPE",
         "DIRECTIONAL_LIGHT_TYPE",
         "IBL_TYPE"
     };
 
-    defines.insert({s_typesTable[castFromLightDrawableType(lightDrawableType)], ""});
+    defines.insert({s_typesTable[castFromLightType(lightType)], ""});
 }
 
-uint16_t ProgramsManagerPrivate::prepareLightComponentsKey(const graphics::LightComponentsSet &lightComponentsSet,
-                                                           LightDrawableType lightDrawableType,
-                                                           NameKey &nameKey,
-                                                           uint16_t firstKeyIndex)
+uint16_t ProgramsManagerPrivate::prepareLightTypeKey(LightType lightType,
+                                                     NameKey &nameKey,
+                                                     uint16_t firstKeyIndex)
 {
-    for (uint16_t i = 0u; i < graphics::numElementsLightComponent(); ++i)
-        nameKey.set(firstKeyIndex + i, lightComponentsSet.count(graphics::castToLightComponent(i)));
-
-    firstKeyIndex += graphics::numElementsLightComponent();
-
-    static_assert(numElementsLightDrawableType() > 0u);
-    static const auto typeBitsCount = glm::findMSB(numElementsLightDrawableType());
+    static_assert(numElementsLightType() > 0u);
+    static const auto typeBitsCount = glm::findMSB(numElementsLightType());
     for (int i = 0; i < typeBitsCount; ++i)
-        nameKey.set(firstKeyIndex + static_cast<size_t>(i), glm::bitfieldExtract(castFromLightDrawableType(lightDrawableType), i, 1u));
-
-    firstKeyIndex += numElementsLightDrawableType();
+        nameKey.set(firstKeyIndex + static_cast<size_t>(i), glm::bitfieldExtract(castFromLightType(lightType), i, 1u));
+    firstKeyIndex += typeBitsCount;
 
     return firstKeyIndex;
 }
 
-void ProgramsManagerPrivate::prepareDefinesAndKeyForGeometryPassRenderProgram(const utils::VertexAttributesSet& attribsSet,
-                                                                              const graphics::PBRComponentsSet &PBRComponentsSet,
-                                                                              utils::ShaderDefines &defines,
-                                                                              NameKey &key)
+void ProgramsManagerPrivate::prepareBackgroundComponentsDefines(const std::unordered_set<BackgroundComponent> &backgroundComponentsSet,
+                                                                utils::ShaderDefines &defines)
 {
-    prepareVertexAttributesDefines(attribsSet, defines);
-    preparePBRComponentsDefines(PBRComponentsSet, defines);
+    static const std::array<std::string, numElementsBackgroundComponent()> s_table {
+        "HAS_BACKGROUND_COLOR_MAP",
+        "HAS_BACKGROUND_BASE_COLOR",
+        "HAS_BACKGROUND_ROUGHNESS",
+    };
 
-    uint16_t bit = 0u;
-    bit = prepareVertexAttributesKey(attribsSet, key, bit);
-    bit = preparePBRComponentsKey(PBRComponentsSet, key, bit);
+    for (uint16_t i = 0u; i < numElementsBackgroundComponent(); ++i)
+        if (backgroundComponentsSet.count(castToBackgroundComponent(i)))
+            defines.insert({s_table[i], ""});
 }
 
-void ProgramsManagerPrivate::prepareDefinesAndKeyForBackgroundPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
-                                                                                const graphics::BackgroundComponentsSet &backgroundComponentsSet,
-                                                                                utils::ShaderDefines &defines,
-                                                                                NameKey &key)
+uint16_t ProgramsManagerPrivate::prepareBackgroundComponentsKey(const std::unordered_set<BackgroundComponent> &backgroundComponentsSet,
+                                                                NameKey &nameKey,
+                                                                uint16_t firstKeyIndex)
 {
-    prepareVertexAttributesDefines(attribsSet, defines);
-    prepareBackgroundComponentsDefines(backgroundComponentsSet, defines);
-
-    uint16_t bit = 0u;
-    bit = prepareVertexAttributesKey(attribsSet, key, bit);
-    bit = prepareBackgroundComponentsKey(backgroundComponentsSet, key, bit);
+    for (uint16_t i = 0u; i < numElementsBackgroundComponent(); ++i)
+        nameKey.set(firstKeyIndex + i, backgroundComponentsSet.count(castToBackgroundComponent(i)));
+    return firstKeyIndex + numElementsBackgroundComponent();
 }
 
-void ProgramsManagerPrivate::prepareDefinesAndKeyForLightPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
-                                                                           const graphics::LightComponentsSet &lightComponentsSet,
-                                                                           LightDrawableType lightDrawableType,
-                                                                           utils::ShaderDefines &defines,
-                                                                           NameKey &key)
+void ProgramsManagerPrivate::prepareLightComponentsDefines(const std::unordered_set<LightComponent> &lightComponentSet,
+                                                           utils::ShaderDefines &defines)
 {
-    prepareVertexAttributesDefines(attribsSet, defines);
-    prepareLightComponentsDefines(lightComponentsSet, lightDrawableType, defines);
-    defines.insert({"DIELECTRIC_SPECULAR", std::to_string(s_dielectricSpecular)});
+    static const std::array<std::string, numElementsLightComponent()> s_table {
+        "NONE",
+    };
 
-    uint16_t bit = 0u;
-    bit = prepareVertexAttributesKey(attribsSet, key, bit);
-    bit = prepareLightComponentsKey(lightComponentsSet, lightDrawableType, key, bit);
+    for (uint16_t i = 0u; i < numElementsLightComponent(); ++i)
+        if (lightComponentSet.count(castToLightComponent(i)))
+            defines.insert({s_table[i], ""});
+}
+
+uint16_t ProgramsManagerPrivate::prepareLightComponentsKey(const std::unordered_set<LightComponent> &lightComponentSet,
+                                                           NameKey &nameKey,
+                                                           uint16_t firstKeyIndex)
+{
+    for (uint16_t i = 0u; i < numElementsLightComponent(); ++i)
+        nameKey.set(firstKeyIndex + i, lightComponentSet.count(castToLightComponent(i)));
+    return firstKeyIndex + numElementsLightComponent();
 }
 
 const std::string &ProgramsManagerPrivate::opaqueGeometryPassRenderProgramName()
@@ -244,6 +242,11 @@ const std::string &ProgramsManagerPrivate::OITClearPassComputeProgramName()
 const std::string &ProgramsManagerPrivate::OITSortNodesPassComputeProgramName()
 {
     return s_OITSortNodesPassComputeProgramName;
+}
+
+const std::string &ProgramsManagerPrivate::shadowRenderProgramName()
+{
+    return s_shadowRenderProgramName;
 }
 
 const std::string &ProgramsManagerPrivate::stencilPassRenderProgramName()
@@ -299,6 +302,21 @@ const std::filesystem::path &ProgramsManagerPrivate::OITClearPassComputeShaderPa
 const std::filesystem::path &ProgramsManagerPrivate::OITSortNodesPassComputeShaderPath()
 {
     return s_OITSortNodesPassComputeShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::shadowVertexShaderPath()
+{
+    return s_shadowVertexShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::shadowGeometryShaderPath()
+{
+    return s_shadowGeometryShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::shadowFragmnetShaderPath()
+{
+    return s_shadowFragmnetShaderPath;
 }
 
 const std::filesystem::path &ProgramsManagerPrivate::stencilPassVertexShaderPath()
