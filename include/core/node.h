@@ -5,7 +5,6 @@
 
 #include <utils/forwarddecl.h>
 #include <utils/noncopyble.h>
-#include <utils/enumclass.h>
 #include <utils/pimpl.h>
 #include <utils/treenode.h>
 
@@ -21,18 +20,18 @@ namespace core
 class NodePrivate;
 class CORE_SHARED_EXPORT Node : public INamedObject, public utils::TreeNode<Node>, public std::enable_shared_from_this<Node>
 {
-    PIMPL(Node)
+    PRIVATE_IMPL(Node)
 public:
     Node(const std::string&);
     ~Node() override;
 
     const std::string &name() const override;
 
-    std::shared_ptr<const Node> rootNode() const;
     std::shared_ptr<Node> rootNode();
+    std::shared_ptr<const Node> rootNode() const;
 
-    std::shared_ptr<const Scene> scene() const;
     std::shared_ptr<Scene> scene();
+    std::shared_ptr<const Scene> scene() const;
 
     const utils::Transform &globalTransform() const;
     const utils::Transform &transform() const;
@@ -52,25 +51,23 @@ public:
     virtual std::shared_ptr<CameraNode> asCameraNode();
     virtual std::shared_ptr<const CameraNode> asCameraNode() const;
 
-    virtual std::shared_ptr<DrawableNode> asDrawableNode();
-    virtual std::shared_ptr<const DrawableNode> asDrawableNode() const;
+    virtual std::shared_ptr<VisualDrawableNode> asVisualDrawableNode();
+    virtual std::shared_ptr<const VisualDrawableNode> asVisualDrawableNode() const;
 
     virtual std::shared_ptr<LightNode> asLightNode();
     virtual std::shared_ptr<const LightNode> asLightNode() const;
 
-    virtual void doUpdate(uint64_t, uint32_t);
-    virtual utils::BoundingBox doBoundingBox() const;
-    virtual void doBeforeTransformChanged();
-    virtual void doAfterTransformChanged();
+    virtual std::shared_ptr<SoundNode> asSoundNode();
+    virtual std::shared_ptr<const SoundNode> asSoundNode() const;
+
+    virtual std::shared_ptr<ListenerNode> asListenerNode();
+    virtual std::shared_ptr<const ListenerNode> asListenerNode() const;
 
 protected:
     Node(std::unique_ptr<NodePrivate>);
 
-    void doAttach() override;
-    void doDetach() override;
-
-    void dirtyGlobalTransform();
-    void dirtyBoundingBox();
+    void doAttach() override final;
+    void doDetach() override final;
 
     std::unique_ptr<NodePrivate> m_;
 

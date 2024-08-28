@@ -10,7 +10,8 @@ HEADERS += \
     $$files("../include/utils/glm/*", true) \
     $$files("../include/utils/rapidjson/*", true) \
     $$files("../include/utils/*.h", true) \
-    $$files("src/stb/*.", true) \
+    $$files("src/stb/*.h", true) \
+    $$files("src/wave/*.h", true) \
     $$files("src/*.h", true)
 
 SOURCES += \

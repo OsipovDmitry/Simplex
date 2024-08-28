@@ -1,13 +1,17 @@
 #include <utils/logger.h>
 
-#include <core/igraphicsrenderer.h>
-#include <core/uniform.h>
+#include <core/applicationbase.h>
+#include <core/graphicsengine.h>
+#include <core/texturesmanager.h>
 #include <core/scene.h>
 #include <core/scenerootnode.h>
 #include <core/ibllightnode.h>
-#include <core/lightdrawable.h>
+#include <core/settings.h>
+#include <core/uniform.h>
 
+#include "graphicsengineprivate.h"
 #include "ibllightnodeprivate.h"
+#include "lightdrawable.h"
 
 namespace simplex
 {
@@ -15,28 +19,27 @@ namespace core
 {
 
 IBLLightNode::IBLLightNode(const std::string &name)
-    : LightNode(std::make_unique<IBLLightNodePrivate>(name))
+    : LightNode(std::make_unique<IBLLightNodePrivate>(*this, name))
 {
-    setShadingMode(LightShadingMode::Disabled);
+    auto app = ApplicationBase::currentApplication();
+    if (!app)
+        LOG_CRITICAL << "Application can't be nullptr";
 
-    if (IBLLightNodePrivate::lightAreaVertexArray().expired())
-        LOG_CRITICAL << "IBL light area vertex array is expired";
+    auto graphicsEngine = app->findEngine<GraphicsEngine>("");
+    if (!graphicsEngine)
+        LOG_CRITICAL << "Graphics engine can't be nullptr";
 
-    if (IBLLightNodePrivate::defaultBRDFLutMap().expired())
-        LOG_CRITICAL << "IBL default BRDF Lut texture is expired";
+    auto &mPrivate = m();
+    mPrivate.areaDrawable() = std::make_shared<LightDrawable>(graphicsEngine->m().directionalLightAreaVertexArray());
 
-    if (IBLLightNodePrivate::defaultDiffuseMap().expired())
-        LOG_CRITICAL << "IBL default diffuse texture is expired";
+    auto texturesManager = graphicsEngine->texturesManager();
 
-    if (IBLLightNodePrivate::defaultSpecularMap().expired())
-        LOG_CRITICAL << "IBL default specular texture is expired";
+    setBRDFLutMap(texturesManager->loadOrGetDefaultIBLBRDFLutTexture());
+    setDuffuseMap(texturesManager->loadOrGetDefaultIBLDiffuseTexture());
+    setSpecularMap(texturesManager->loadOrGetDefaultIBLSpecularTexture());
+    setContribution(settings::Settings::instance().graphics().ibl().contribution());
 
-    auto drawable = std::make_shared<LightDrawable>(IBLLightNodePrivate::lightAreaVertexArray().lock());
-    m().areaDrawable() = drawable;
-    drawable->getOrCreateUniform(graphics::UniformId::IBLBRDFLutMap) = makeUniform(IBLLightNodePrivate::defaultBRDFLutMap().lock());
-    drawable->getOrCreateUniform(graphics::UniformId::IBLDiffuseMap) = makeUniform(IBLLightNodePrivate::defaultDiffuseMap().lock());
-    drawable->getOrCreateUniform(graphics::UniformId::IBLSpecularMap) = makeUniform(IBLLightNodePrivate::defaultSpecularMap().lock());
-    drawable->getOrCreateUniform(graphics::UniformId::IBLContribution) = makeUniform(IBLLightNodePrivate::defaultContribution());
+    shadow().setMode(ShadingMode::Disabled);
 }
 
 IBLLightNode::~IBLLightNode() = default;
@@ -48,73 +51,76 @@ LightType IBLLightNode::type() const
 
 std::shared_ptr<IBLLightNode> IBLLightNode::asIBLLightNode()
 {
-    return std::dynamic_pointer_cast<IBLLightNode>(shared_from_this());
+    auto wp = weak_from_this();
+    return wp.expired() ? nullptr : std::dynamic_pointer_cast<IBLLightNode>(wp.lock());
 }
 
 std::shared_ptr<const IBLLightNode> IBLLightNode::asIBLLightNode() const
 {
-    return std::dynamic_pointer_cast<const IBLLightNode>(shared_from_this());
+    return const_cast<IBLLightNode*>(this)->asIBLLightNode();
 }
 
-const graphics::PConstTexture &IBLLightNode::BRDFLutTexture() const
+graphics::PConstTexture IBLLightNode::BRDFLutMap() const
 {
-    return uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(graphics::UniformId::IBLBRDFLutMap))->data();
+    auto uni = uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(UniformId::IBLBRDFLutMap));
+    return uni ? uni->data() : nullptr;
 }
 
-void IBLLightNode::setBRDFLutTexture(const graphics::PConstTexture &value)
+void IBLLightNode::setBRDFLutMap(const graphics::PConstTexture &value)
 {
-    uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(graphics::UniformId::IBLBRDFLutMap))->data() = value;
+    static UniformId s_uniformId = UniformId::IBLBRDFLutMap;
+
+    if (value)
+        m().areaDrawable()->getOrCreateUniform(s_uniformId) = makeUniform(value);
+    else
+        m().areaDrawable()->removeUniform(s_uniformId);
 }
 
-const graphics::PConstTexture &IBLLightNode::duffuseTexture() const
+graphics::PConstTexture IBLLightNode::duffuseMap() const
 {
-    return uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(graphics::UniformId::IBLDiffuseMap))->data();
+    auto uni = uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(UniformId::IBLDiffuseMap));
+    return uni ? uni->data() : nullptr;
 }
 
-void IBLLightNode::setDuffuseTexture(const graphics::PConstTexture &value)
+void IBLLightNode::setDuffuseMap(const graphics::PConstTexture &value)
 {
-    uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(graphics::UniformId::IBLDiffuseMap))->data() = value;
+    static UniformId s_uniformId = UniformId::IBLDiffuseMap;
+
+    if (value)
+        m().areaDrawable()->getOrCreateUniform(s_uniformId) = makeUniform(value);
+    else
+        m().areaDrawable()->removeUniform(s_uniformId);
 }
 
-const graphics::PConstTexture &IBLLightNode::specularTexture() const
+graphics::PConstTexture IBLLightNode::specularMap() const
 {
-    return uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(graphics::UniformId::IBLSpecularMap))->data();
+    auto uni = uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(UniformId::IBLSpecularMap));
+    return uni ? uni->data() : nullptr;
 }
 
-void IBLLightNode::setSpecularTexture(const graphics::PConstTexture &value)
+void IBLLightNode::setSpecularMap(const graphics::PConstTexture &value)
 {
-    uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(graphics::UniformId::IBLSpecularMap))->data() = value;
+
+    static UniformId s_uniformId = UniformId::IBLSpecularMap;
+
+    if (value)
+        m().areaDrawable()->getOrCreateUniform(s_uniformId) = makeUniform(value);
+    else
+        m().areaDrawable()->removeUniform(s_uniformId);
 }
 
 float IBLLightNode::contribution() const
 {
-    return uniform_cast<float>(m().areaDrawable()->uniform(graphics::UniformId::IBLContribution))->data();
+    auto uni = uniform_cast<float>(m().areaDrawable()->uniform(UniformId::IBLContribution));
+    return uni ? uni->data() : settings::Settings::instance().graphics().ibl().contribution();
 }
 
 void IBLLightNode::setContribution(float value)
 {
-    uniform_cast<float>(m().areaDrawable()->uniform(graphics::UniformId::IBLContribution))->data() = value;
-}
+    if (value < 0.f)
+        LOG_CRITICAL << "IBL contribution value can't be negative";
 
-void IBLLightNode::doAfterTransformChanged()
-{
-    recalculateAreaBoundingBox();
-    m().isAreaMatrixDirty() = true;
-}
-
-glm::mat4x4 IBLLightNode::doAreaMatrix() const
-{
-    return glm::mat4x4(1.f); // it is not used because bb policy is Root
-}
-
-utils::BoundingBox IBLLightNode::doAreaBoundingBox() const
-{
-    return utils::BoundingBox::empty(); // it is not used because bb policy is Root
-}
-
-glm::mat4x4 IBLLightNode::doUpdateLayeredShadowMatrices(const utils::FrustumCorners &, const utils::Range &, std::vector<glm::mat4x4> &) const
-{
-    return glm::mat4x4(1.f); // no shadow for IBL
+    m().areaDrawable()->getOrCreateUniform(UniformId::IBLContribution) = makeUniform(value);
 }
 
 }

@@ -1,8 +1,9 @@
-#ifndef QTOPENGL_1_0_RENDERER_H
-#define QTOPENGL_1_0_RENDERER_H
+#ifndef QTOPENGL_4_5_RENDERER_H
+#define QTOPENGL_4_5_RENDERER_H
 
 #include <tuple>
 #include <deque>
+#include <list>
 
 #include <QOpenGLFunctions_4_5_Core>
 
@@ -156,15 +157,18 @@ public:
     glm::uvec2 size() const override;
     core::graphics::PixelInternalFormat internalFormat() const override;
     bool hasAlpha() const override;
+    bool hasDepth() const override;
 
     glm::uvec3 mipmapSize(uint32_t level = 0) const override;
     uint32_t numMipmapLevels() const override;
+    uint32_t numFaces() const override;
 
     void subImage(uint32_t level,
                   const glm::uvec3 &offset,
                   const glm::uvec3 &size,
-                  uint32_t &numComponents,
-                  utils::PixelComponentType &type,
+                  uint32_t numComponents,
+                  utils::PixelComponentType type,
+                  size_t bufSize,
                   void *data) const override;
 
     void generateMipmaps() override;
@@ -172,6 +176,8 @@ public:
     void setWrapMode(core::graphics::TextureWrapMode) override;
     void setFilterMode(core::graphics::TextureFilterMode) override;
     void setSwizzleMask(const core::graphics::TextureSwizzleMask&) override;
+
+    core::graphics::PTexture copy() const override;
 
 protected:
     GLuint m_id;
@@ -193,6 +199,8 @@ public:
                      utils::PixelComponentType type,
                      const void *data) override;
 
+    core::graphics::PTexture copyEmpty() const override;
+
 };
 
 class Texture2D_4_5 : public TextureBase_4_5
@@ -210,6 +218,8 @@ public:
                      uint32_t numComponents,
                      utils::PixelComponentType type,
                      const void *data) override;
+
+    core::graphics::PTexture copyEmpty() const override;
 
 };
 
@@ -229,6 +239,8 @@ public:
                      utils::PixelComponentType type,
                      const void *data) override;
 
+    core::graphics::PTexture copyEmpty() const override;
+
 };
 
 class TextureCube_4_5 : public TextureBase_4_5
@@ -240,12 +252,16 @@ public:
 
     core::graphics::TextureType type() const override;
 
+    uint32_t numFaces() const override;
+
     void setSubImage(uint32_t level,
                      const glm::uvec3 &offset, // offset.z is face to update
                      const glm::uvec3 &size, // size.z is number of faces to update
                      uint32_t numComponents,
                      utils::PixelComponentType type,
                      const void *data) override;
+
+    core::graphics::PTexture copyEmpty() const override;
 
 };
 
@@ -265,6 +281,8 @@ public:
                      utils::PixelComponentType type,
                      const void *data) override;
 
+    core::graphics::PTexture copyEmpty() const override;
+
 };
 
 class Texture2DArray_4_5 : public TextureBase_4_5
@@ -283,6 +301,8 @@ public:
                      utils::PixelComponentType type,
                      const void *data) override;
 
+    core::graphics::PTexture copyEmpty() const override;
+
 };
 
 class TextureCubeArray_4_5 : public TextureBase_4_5
@@ -294,12 +314,16 @@ public:
 
     core::graphics::TextureType type() const override;
 
+    uint32_t numFaces() const override;
+
     void setSubImage(uint32_t level,
                      const glm::uvec3 &offset, // offset.z is first layer-face to update
                      const glm::uvec3 &size, // size.z is number of layer-faces to update
                      uint32_t numComponents,
                      utils::PixelComponentType type,
                      const void *data) override;
+
+    core::graphics::PTexture copyEmpty() const override;
 
 };
 
@@ -318,24 +342,28 @@ public:
                      uint32_t numComponents,
                      utils::PixelComponentType type,
                      const void *data) override;
+
+    core::graphics::PTexture copyEmpty() const override;
 };
 
 class Image_4_5 : public core::graphics::IImage
 {
 public:
-    Image_4_5(std::shared_ptr<core::graphics::ITexture>, DataAccess, uint32_t);
+    Image_4_5(DataAccess, const core::graphics::PConstTexture&, uint32_t);
     ~Image_4_5() override;
 
-    std::shared_ptr<const core::graphics::ITexture> texture() const override;
-    std::shared_ptr<core::graphics::ITexture> texture() override;
-
     DataAccess access() const override;
+    void setAccess(DataAccess) override;
 
     uint32_t mipmapLevel() const override;
+    core::graphics::PixelInternalFormat format() const override;
+    core::graphics::PConstTexture texture() const override;
+    void setTexture(const core::graphics::PConstTexture&, uint32_t) override;
 
 protected:
-    std::shared_ptr<core::graphics::ITexture> m_texture;
+    core::graphics::PConstTexture m_texture;
     uint32_t m_level;
+    core::graphics::PixelInternalFormat m_format;
     DataAccess m_access;
 };
 
@@ -351,6 +379,7 @@ public:
     glm::uvec2 size() const override;
     core::graphics::PixelInternalFormat internalFormat() const override;
     bool hasAlpha() const override;
+    bool hasDepth() const override;
 
 protected:
     GLuint m_id = 0;
@@ -430,7 +459,7 @@ public:
 protected:
     GLuint m_id;
 
-    Attachments m_attchments;
+    Attachments m_attachments;
 
     std::array<core::graphics::FrameBufferClearColor, core::graphics::FrameBufferColorAttachmentsCount()> m_clearColor;
     float m_clearDepth;
@@ -572,8 +601,8 @@ public:
 
     const std::string &name() const override;
 
-    std::shared_ptr<core::graphics::IFrameBuffer> defaultFrameBuffer() override;
-    std::shared_ptr<const core::graphics::IFrameBuffer> defaultFrameBuffer() const override;
+    bool makeCurrent(const std::shared_ptr<core::IRenderWidget>&) override;
+    bool doneCurrent(const std::shared_ptr<core::IRenderWidget>&) override;
 
     void blitFrameBuffer(std::shared_ptr<const core::graphics::IFrameBuffer> src,
                          std::shared_ptr<core::graphics::IFrameBuffer> dst,
@@ -581,6 +610,18 @@ public:
                          const glm::uvec4 &dstViewport,
                          bool colorMsk, bool depthMask, bool stencilMask,
                          bool linearFilter = false) override;
+
+    bool registerVertexAttribute(const std::string&, utils::VertexAttribute) override;
+    bool unregisterVertexAttribute(const std::string&) override;
+    utils::VertexAttribute vertexAttributeByName(const std::string&) const override;
+
+    bool registerUniformId(const std::string&, uint16_t) override;
+    bool unregisterUniformId(const std::string&) override;
+    uint16_t uniformIdByName(const std::string&) const override;
+
+    bool registerSSBOId(const std::string&, uint16_t) override;
+    bool unregisterSSBOId(const std::string&) override;
+    uint16_t SSBOIdByName(const std::string&) const override;
 
     std::shared_ptr<core::graphics::IBuffer> createBuffer(size_t = 0u,
                                                           const void* = nullptr) const override;
@@ -652,9 +693,9 @@ public:
                                                                    core::graphics::PixelInternalFormat) const override;
     std::shared_ptr<core::graphics::ITexture> createTextureRect(const std::shared_ptr<utils::Image>&,
                                                                 core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined) const override;
-    std::shared_ptr<core::graphics::IImage> createImage(const std::shared_ptr<core::graphics::ITexture>&,
-                                                    core::graphics::IImage::DataAccess,
-                                                    uint32_t level = 0u) const override;
+    std::shared_ptr<core::graphics::IImage> createImage(core::graphics::IImage::DataAccess,
+                                                        const core::graphics::PConstTexture&,
+                                                        uint32_t level = 0u) const override;
     std::shared_ptr<core::graphics::IRenderBuffer> createRenderBuffer(uint32_t width,
                                                                       uint32_t height,
                                                                       core::graphics::PixelInternalFormat) const override;
@@ -666,34 +707,37 @@ public:
                                                                         const std::shared_ptr<utils::Shader> &fragmentShader) const override;
     std::shared_ptr<core::graphics::IComputeProgram> createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const override;
 
+    const core::graphics::SupportedImageFormats &supportedImageFormats() const override;
+
     void resize(uint32_t, uint32_t) override;
-    const glm::uvec2 &viewportSize() const override;
+    const glm::uvec2 &screenSize() const override;
 
     void clearRenderData() override;
     void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
                        const std::shared_ptr<const core::Drawable>&,
                        const glm::mat4x4& = glm::mat4x4(1.f)) override;
-    void render(const std::shared_ptr<core::graphics::IFrameBuffer>&, const core::RenderInfo&, const glm::uvec4&) override;
-    void compute(const std::shared_ptr<core::graphics::IComputeProgram>&, const core::RenderInfo&, const glm::uvec3&) override;
+    void render(const std::shared_ptr<core::graphics::IFrameBuffer>&,
+                const glm::uvec4 &viewport,
+                const glm::mat4x4 &viewMatrix,
+                const glm::mat4x4 &projectionMatrix,
+                const core::PConstStateSet&) override;
+    void compute(const std::shared_ptr<core::graphics::IComputeProgram>&,
+                 const glm::uvec3&,
+                 const core::PConstStateSet&) override;
 
-    static std::shared_ptr<QtOpenGL_4_5_Renderer> create(QOpenGLContext*, GLuint);
+    static std::shared_ptr<QtOpenGL_4_5_Renderer> create(QOpenGLContext*);
     static std::shared_ptr<QtOpenGL_4_5_Renderer> instance(QOpenGLContext* = nullptr);
 
 private:
-    QtOpenGL_4_5_Renderer(QOpenGLContext*, GLuint);
-    void makeDefaultFrameBuffer(GLuint);
+    QtOpenGL_4_5_Renderer(QOpenGLContext*);
 
     void setupVertexAttributes(const std::shared_ptr<RenderProgram_4_5>&,
                                const std::shared_ptr<const VertexArray_4_5>&);
     void setupUniform(GLuint rpId, GLint loc, int32_t&, int32_t&, const core::PConstAbstractUniform&);
     void setupUniforms(const std::shared_ptr<ProgramBase_4_5>&,
-                       const std::shared_ptr<const core::Drawable>&,
-                       const core::RenderInfo&,
-                       const glm::vec2&,
-                       const glm::mat4&);
+                       const std::list<core::PConstStateSet>&);
     void setupSSBOs(const std::shared_ptr<ProgramBase_4_5>&,
-                    const std::shared_ptr<const core::Drawable>&,
-                    const core::RenderInfo&);
+                    const std::list<core::PConstStateSet>&);
 
     void bindTexture(int32_t, const core::graphics::PConstTexture&);
     void bindImage(int32_t, const core::graphics::PConstImage&);
@@ -704,10 +748,12 @@ private:
     bool createProgram(std::shared_ptr<ProgramBase_4_5>,
                        const std::unordered_map<GLenum, std::reference_wrapper<const std::string>>&) const;
 
-    std::shared_ptr<DefaultFrameBuffer_4_5> m_defaultFrameBuffer;
+    std::unordered_map<std::string, utils::VertexAttribute> m_attributeIds;
+    std::unordered_map<std::string, uint16_t> m_uniformIds;
+    std::unordered_map<std::string, uint16_t> m_SSBOIds;
 
     std::deque<std::tuple<glm::mat4x4, std::shared_ptr<RenderProgram_4_5>, std::shared_ptr<const core::Drawable>>> m_renderData;
-    glm::uvec2 m_viewportSize;
+    glm::uvec2 m_screenSize;
 
     static std::unordered_map<QOpenGLContext*, std::weak_ptr<QtOpenGL_4_5_Renderer>> s_instances;
 };
@@ -715,4 +761,4 @@ private:
 }
 }
 
-#endif // QTOPENGL_1_0_RENDERER_H
+#endif // QTOPENGL_4_5_RENDERER_H

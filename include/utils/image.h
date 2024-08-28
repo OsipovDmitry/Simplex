@@ -33,14 +33,18 @@ public:
 
     bool saveToFile(const std::filesystem::path&);
 
-    static std::shared_ptr<Image> loadFromData(uint32_t, uint32_t, uint32_t, PixelComponentType, const void*);
+    static std::shared_ptr<Image> loadFromData(uint32_t width,
+                                               uint32_t height,
+                                               uint32_t numComponents,
+                                               PixelComponentType componentType,
+                                               const void *data);
     static std::shared_ptr<Image> loadFromFile(const std::filesystem::path&);
 
 private:
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_numComponents;
-    PixelComponentType m_type;
+    PixelComponentType m_componentType;
     void *m_data;
 
 };

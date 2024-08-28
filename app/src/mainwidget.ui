@@ -38,14 +38,6 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="simplex::qt::QtRenderWidget" name="m_renderWidget" native="true">
-       <property name="minimumSize">
-        <size>
-         <width>128</width>
-         <height>128</height>
-        </size>
-       </property>
-      </widget>
       <widget class="QSplitter" name="splitter">
        <property name="orientation">
         <enum>Qt::Vertical</enum>
@@ -118,7 +110,7 @@
          </property>
         </item>
        </widget>
-       <widget class="QWidget" name="m_debugWidget" native="true">
+       <widget class="QWidget" name="m_lightInfoWidget" native="true">
         <layout class="QVBoxLayout" name="verticalLayout">
          <property name="spacing">
           <number>3</number>
@@ -136,38 +128,68 @@
           <number>3</number>
          </property>
          <item>
-          <widget class="QLabel" name="m_graphicsEngineInfo">
-           <property name="text">
-            <string>TextLabel</string>
+          <layout class="QGridLayout" name="gridLayout" rowstretch="0,0" columnstretch="0,0">
+           <property name="spacing">
+            <number>3</number>
            </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QComboBox" name="m_scenesInfo"/>
-         </item>
-         <item>
-          <widget class="QComboBox" name="m_camerasInfo"/>
-         </item>
-         <item>
-          <widget class="QLabel" name="m_numOpaqueDrawables">
-           <property name="text">
-            <string>TextLabel</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="m_numTransparentDrawables">
-           <property name="text">
-            <string>TextLabel</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="m_numTransparentPixels">
-           <property name="text">
-            <string>TextLabel</string>
-           </property>
-          </widget>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Shadow Mode</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QComboBox" name="m_shadowModeBox">
+             <item>
+              <property name="text">
+               <string>Disabled</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Opaque</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Opaque And Transparent</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Color</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_2">
+             <property name="text">
+              <string>Shadow Filter</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1">
+            <widget class="QComboBox" name="m_shadowFilterBox">
+             <item>
+              <property name="text">
+               <string>Point</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>PCF</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>VSM</string>
+              </property>
+             </item>
+            </widget>
+           </item>
+          </layout>
          </item>
          <item>
           <spacer name="verticalSpacer">
@@ -191,14 +213,6 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>simplex::qt::QtRenderWidget</class>
-   <extends>QWidget</extends>
-   <header>qt/qtrenderwidget.h</header>
-   <container>1</container>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>

@@ -2,6 +2,7 @@
 #define CORE_POINTLIGHTNODE_H
 
 #include <utils/glm/vec2.hpp>
+#include <utils/glm/vec3.hpp>
 
 #include <core/lightnode.h>
 
@@ -13,7 +14,7 @@ namespace core
 class PointLightNodePrivate;
 class CORE_SHARED_EXPORT PointLightNode : public LightNode
 {
-    PIMPL(PointLightNode)
+    PRIVATE_IMPL(PointLightNode)
 public:
     PointLightNode(const std::string&);
     ~PointLightNode() override;
@@ -28,13 +29,6 @@ public:
 
     const glm::vec2 &radiuses() const;
     void setRadiuses(const glm::vec2&);
-
-protected:
-    glm::mat4x4 doAreaMatrix() const override;
-    utils::BoundingBox doAreaBoundingBox() const override;
-    glm::mat4x4 doUpdateLayeredShadowMatrices(const utils::FrustumCorners&,
-                                              const utils::Range&,
-                                              std::vector<glm::mat4x4>&) const override;
 
 };
 

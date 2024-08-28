@@ -66,6 +66,7 @@ public:
     graphics::UniformType type() const override { return core::graphics::UniformType::AtomicCounterUint; }
 };
 
+template<> inline graphics::UniformType toUniformType<bool>() { return graphics::UniformType::Bool; }
 template<> inline graphics::UniformType toUniformType<float>() { return graphics::UniformType::Single; }
 template<> inline graphics::UniformType toUniformType<glm::vec2>() { return graphics::UniformType::SingleVec2; }
 template<> inline graphics::UniformType toUniformType<glm::vec3>() { return graphics::UniformType::SingleVec3; }
@@ -96,16 +97,26 @@ PUniform<T> makeUniform(const T &value) {
 }
 
 template <typename T>
-std::shared_ptr<Uniform<T>> uniform_cast(const std::shared_ptr<AbstractUniform> &uniform)
+std::shared_ptr<Uniform<T>> uniform_cast(const PAbstractUniform &uniform)
 {
     return std::dynamic_pointer_cast<Uniform<T>>(uniform);
 }
 
 template <typename T>
-std::shared_ptr<const Uniform<T>> uniform_cast(const std::shared_ptr<const AbstractUniform> &uniform)
+std::shared_ptr<const Uniform<T>> uniform_cast(const PConstAbstractUniform &uniform)
 {
     return std::dynamic_pointer_cast<const Uniform<T>>(uniform);
 }
+
+//inline const std::string &uniformNameByUniformId(UniformId id)
+//{
+//    static const std::string s_undefinedId = "";
+//    static const std::unordered_map<UniformId, std::string> s_table {
+
+//    };
+
+//    return s_table.count(id) ? s_table.at(id) : s_undefinedId;
+//}
 
 }
 }

@@ -1,48 +1,55 @@
 #include <utils/glm/integer.hpp>
+#include <utils/logger.h>
 #include <utils/mesh.h>
 
+#include <core/igraphicsrenderer.h>
 #include <core/lightnode.h>
-#include <core/pbrdrawable.h>
-#include <core/lightdrawable.h>
-#include <core/backgrounddrawable.h>
+#include <core/ssao.h>
+#include <core/shadow.h>
+#include <core/visualdrawable.h>
 
 #include "programsmanagerprivate.h"
+#include "backgrounddrawable.h"
+#include "lightdrawable.h"
 
 namespace simplex
 {
 namespace core
 {
 
-float ProgramsManagerPrivate::s_dielectricSpecular = 0.04f;
-
-const std::string ProgramsManagerPrivate::s_opaqueGeometryPassRenderProgramName = "OpaqueGeometryPass";
-const std::string ProgramsManagerPrivate::s_transparentGeometryPassRenderProgramName = "TransparentGeometryPass";
-const std::string ProgramsManagerPrivate::s_OITClearPassComputeProgramName = "OITClearPass";
-const std::string ProgramsManagerPrivate::s_OITSortNodesPassComputeProgramName = "OITSortNodesPass";
-const std::string ProgramsManagerPrivate::s_shadowRenderProgramName = "ShadowPass";
+const std::string ProgramsManagerPrivate::s_geometryPassRenderProgramName = "GeometryPass";
 const std::string ProgramsManagerPrivate::s_stencilPassRenderProgramName = "StencilPass";
 const std::string ProgramsManagerPrivate::s_lightPassRenderProgramName = "LightPass";
+const std::string ProgramsManagerPrivate::s_OITClearPassComputeProgramName = "OITClearPass";
+const std::string ProgramsManagerPrivate::s_OITSortNodesPassComputeProgramName = "OITSortNodesPass";
+const std::string ProgramsManagerPrivate::s_SSAORenderProgramName = "SSAOPass";
+const std::string ProgramsManagerPrivate::s_blurRenderProgramName = "BlurPass";
+const std::string ProgramsManagerPrivate::s_bilaterialBlurRenderProgramName = "BilaterialBlurPass";
+const std::string ProgramsManagerPrivate::s_shadowRenderProgramName = "ShadowPass";
 const std::string ProgramsManagerPrivate::s_backgroundPassRenderProgramName = "BackgroundPass";
-const std::string ProgramsManagerPrivate::s_foregroundPassRenderProgramName = "ForegroundPass";
 const std::string ProgramsManagerPrivate::s_finalPassRenderProgramName = "FinalPass";
 const std::string ProgramsManagerPrivate::s_postprocessPassRenderProgramName = "PostprocessPass";
 
 const std::filesystem::path ProgramsManagerPrivate::s_geometryPassVertexShaderPath = "D:/res/shaders/deferred_geometry_pass.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_opaqueGeometryPassFragmnetShaderPath = "D:/res/shaders/deferred_opaque_geometry_pass.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_transparentGeometryPassFragmnetShaderPath = "D:/res/shaders/deferred_transparent_geometry_pass.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_OITClearPassComputeShaderPath = "D:/res/shaders/oit_clear.comp";
-const std::filesystem::path ProgramsManagerPrivate::s_OITSortNodesPassComputeShaderPath = "D:/res/shaders/oit_sort.comp";
-const std::filesystem::path ProgramsManagerPrivate::s_shadowVertexShaderPath = "D:/res/shaders/shadow.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_shadowGeometryShaderPath = "D:/res/shaders/shadow.geom";
-const std::filesystem::path ProgramsManagerPrivate::s_shadowFragmnetShaderPath = "D:/res/shaders/shadow.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_geometryPassFragmnetShaderPath = "D:/res/shaders/deferred_geometry_pass.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_stencilPassVertexShaderPath = "D:/res/shaders/deferred_stencil_pass.vert";
 const std::filesystem::path ProgramsManagerPrivate::s_stencilPassFragmnetShaderPath = "D:/res/shaders/deferred_stencil_pass.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_lightPassVertexShaderPath = "D:/res/shaders/deferred_light_pass.vert";
 const std::filesystem::path ProgramsManagerPrivate::s_lightPassFragmnetShaderPath = "D:/res/shaders/deferred_light_pass.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_OITClearPassComputeShaderPath = "D:/res/shaders/oit_clear.comp";
+const std::filesystem::path ProgramsManagerPrivate::s_OITSortNodesPassComputeShaderPath = "D:/res/shaders/oit_sort.comp";
+const std::filesystem::path ProgramsManagerPrivate::s_SSAOVertexShaderPath = "D:/res/shaders/ssao.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_SSAOFragmnetShaderPath = "D:/res/shaders/ssao.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_blurVertexShaderPath = "D:/res/shaders/blur.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_blurFragmnetShaderPath = "D:/res/shaders/blur.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_blurComputeShaderPath = "D:/res/shaders/blur.comp";;
+const std::filesystem::path ProgramsManagerPrivate::s_bilaterialBlurVertexShaderPath = "D:/res/shaders/bilaterial_blur.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_bilaterialBlurFragmnetShaderPath = "D:/res/shaders/bilaterial_blur.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_shadowVertexShaderPath = "D:/res/shaders/shadow.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_shadowGeometryShaderPath = "D:/res/shaders/shadow.geom";
+const std::filesystem::path ProgramsManagerPrivate::s_shadowFragmnetShaderPath = "D:/res/shaders/shadow.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_backgroundPassVertexShaderPath = "D:/res/shaders/background.vert";
 const std::filesystem::path ProgramsManagerPrivate::s_backgroundPassFragmnetShaderPath = "D:/res/shaders/background.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_foregroundPassVertexShaderPath = "D:/res/shaders/foreground.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_foregroundPassFragmnetShaderPath = "D:/res/shaders/foreground.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_finalPassVertexShaderPath = "D:/res/shaders/final.vert";
 const std::filesystem::path ProgramsManagerPrivate::s_finalPassFragmnetShaderPath = "D:/res/shaders/final.frag";
 const std::filesystem::path ProgramsManagerPrivate::s_postprocessPassVertexShaderPath = "D:/res/shaders/postprocess.vert";
@@ -65,12 +72,19 @@ std::unordered_map<std::string, std::shared_ptr<graphics::IProgram>> &ProgramsMa
     return m_resources;
 }
 
-float &ProgramsManagerPrivate::dielectricSpecular()
+void ProgramsManagerPrivate::prepareTransparentDefines(bool value, utils::ShaderDefines &defines)
 {
-    return s_dielectricSpecular;
+    if (value)
+        defines.insert({"IS_TRANSPARENT", ""});
 }
 
-void ProgramsManagerPrivate::prepareVertexAttributesDefines(const utils::VertexAttributesSet &attribsSet,
+uint16_t ProgramsManagerPrivate::prepareTransparentKey(bool value, NameKey &nameKey, uint16_t firstKeyIndex)
+{
+    nameKey.set(firstKeyIndex, value);
+    return firstKeyIndex + 1u;
+}
+
+void ProgramsManagerPrivate::prepareVertexAttributesDefines(const utils::VertexAttributeSet &attribsSet,
                                                             utils::ShaderDefines &defines)
 {
     static const std::array<std::string, utils::numElementsVertexAttribute()> s_table {
@@ -88,7 +102,7 @@ void ProgramsManagerPrivate::prepareVertexAttributesDefines(const utils::VertexA
             defines.insert({s_table[i], std::to_string(i)});
 }
 
-uint16_t ProgramsManagerPrivate::prepareVertexAttributesKey(const utils::VertexAttributesSet &attribsSet,
+uint16_t ProgramsManagerPrivate::prepareVertexAttributesKey(const utils::VertexAttributeSet &attribsSet,
                                                             NameKey &nameKey,
                                                             uint16_t firstKeyIndex)
 {
@@ -97,57 +111,185 @@ uint16_t ProgramsManagerPrivate::prepareVertexAttributesKey(const utils::VertexA
     return firstKeyIndex + utils::numElementsVertexAttribute();
 }
 
-void ProgramsManagerPrivate::preparePBRComponentsDefines(const std::unordered_set<PBRComponent> &PBRComponentsSet,
-                                                         utils::ShaderDefines &defines)
+void ProgramsManagerPrivate::prepareImageTypeDefines(graphics::TextureType textureType,
+                                                     const std::string &definePrefix,
+                                                     utils::ShaderDefines &defines)
 {
-    static const std::array<std::string, numElementsPBRComponent()> s_table {
-        "HAS_BASE_COLOR",
-        "HAS_BASE_COLOR_MAP",
-        "HAS_METALNESS",
-        "HAS_METALNESS_MAP",
-        "HAS_ROUGHNESS",
-        "HAS_ROUGHNESS_MAP",
-        "HAS_NORMAL_MAP",
-        "HAS_NORMAL_MAP_SCALE",
-        "HAS_OCCLUSION_MAP",
-        "HAS_OCCLUSION_MAP_STRENGTH",
+    static const std::unordered_map<graphics::TextureType, std::string> s_table {
+        { graphics::TextureType::Type1D, "1D" },
+        { graphics::TextureType::Type2D, "2D" },
+        { graphics::TextureType::Type3D, "3D" },
+        { graphics::TextureType::TypeCube, "CUBE" },
+        { graphics::TextureType::Type1DArray, "1D_ARRAY" },
+        { graphics::TextureType::Type2DArray, "2D_ARRAY" },
+        { graphics::TextureType::TypeCubeArray, "CUBE_ARRAY" },
+        { graphics::TextureType::TypeRect, "RECT" },
     };
 
-    for (uint16_t i = 0u; i < numElementsPBRComponent(); ++i)
-        if (PBRComponentsSet.count(castToPBRComponent(i)))
-            defines.insert({s_table[i], ""});
+    if (auto it = s_table.find(textureType); it != s_table.end())
+        defines.insert({definePrefix + "_TYPE_" + it->second, ""});
+    else
+        LOG_CRITICAL << "Unset texture type define";
 }
 
-uint16_t ProgramsManagerPrivate::preparePBRComponentsKey(const std::unordered_set<PBRComponent> &PBRComponentsSet,
-                                                         NameKey &nameKey,
-                                                         uint16_t firstKeyIndex)
+uint16_t ProgramsManagerPrivate::prepareImageTypeKey(graphics::TextureType textureType,
+                                                     NameKey &nameKey,
+                                                     uint16_t firstKeyIndex)
 {
-    for (uint16_t i = 0u; i < numElementsPBRComponent(); ++i)
-        nameKey.set(firstKeyIndex + i, PBRComponentsSet.count(castToPBRComponent(i)));
-    return firstKeyIndex + numElementsPBRComponent();
+    static_assert(graphics::numElementsTextureType() > 0u);
+    static const auto typeBitsCount = glm::findMSB(graphics::numElementsTextureType()) + 1;
+    for (int i = 0; i < typeBitsCount; ++i)
+        nameKey.set(firstKeyIndex + static_cast<size_t>(i), glm::bitfieldExtract(graphics::castFromTextureType(textureType), i, 1u));
+
+    firstKeyIndex += typeBitsCount;
+
+    return firstKeyIndex;
 }
 
-void ProgramsManagerPrivate::prepareLightShadingModeDefines(LightShadingMode shadingMode,
-                                                            utils::ShaderDefines &defines)
+void ProgramsManagerPrivate::prepareImageFormatDefines(const graphics::SupportedImageFormats &supportedFormats,
+                                                       graphics::PixelInternalFormat format,
+                                                       const std::string &definePrefix,
+                                                       utils::ShaderDefines &defines)
 {
-    static const std::array<std::string, numElementsLightShadingMode()> s_typesTable {
+    if (auto it = supportedFormats.find(format); it != supportedFormats.end())
+        defines.insert({definePrefix + "_FORMAT", it->second});
+    else
+        LOG_CRITICAL << "Unsupported image format";
+}
+
+uint16_t ProgramsManagerPrivate::prepareImageFormatKey(const graphics::SupportedImageFormats &supportedFormats,
+                                                       graphics::PixelInternalFormat format,
+                                                       NameKey &nameKey,
+                                                       uint16_t firstKeyIndex)
+{
+    assert(supportedFormats.size() > 0u);
+    const auto typeBitsCount = glm::findMSB(supportedFormats.size()) + 1;
+
+    auto it = supportedFormats.find(format);
+    if (it == supportedFormats.end())
+        LOG_CRITICAL << "Unsupported image format";
+
+    const auto d = static_cast<typename std::underlying_type<graphics::PixelInternalFormat>::type>(std::distance(supportedFormats.begin(), it));
+    for (int i = 0; i < typeBitsCount; ++i)
+        nameKey.set(firstKeyIndex + static_cast<size_t>(i), glm::bitfieldExtract(d, i, 1u));
+
+    firstKeyIndex += typeBitsCount;
+
+    return firstKeyIndex;
+}
+
+void ProgramsManagerPrivate::prepareVisualDrawableComponentsDefines(const UniformCollection &uniformCollection,
+                                                                    utils::ShaderDefines &defines)
+{
+    static const std::unordered_map<UniformId, std::string> s_table {
+        { UniformId::AlphaCutoff, "HAS_ALPHA_CUTOFF" },
+        { UniformId::BaseColor, "HAS_BASE_COLOR" },
+        { UniformId::BaseColorMap, "HAS_BASE_COLOR_MAP" },
+        { UniformId::Emission, "HAS_EMISSION" },
+        { UniformId::EmissionMap, "HAS_EMISSION_MAP" },
+        { UniformId::OcclusionMap, "HAS_OCCLUSION_MAP" },
+        { UniformId::OcclusionMapStrength, "HAS_OCCLUSION_MAP_STRENGTH" },
+        { UniformId::Roughness, "HAS_ROUGHNESS" },
+        { UniformId::RoughnessMap, "HAS_ROUGHNESS_MAP" },
+        { UniformId::Metalness, "HAS_METALNESS" },
+        { UniformId::MetalnessMap, "HAS_METALNESS_MAP" },
+        { UniformId::NormalMap, "HAS_NORMAL_MAP" },
+        { UniformId::NormalMapScale, "HAS_NORMAL_MAP_SCALE" },
+    };
+
+    for (auto component : VisualDrawable::componentSet())
+        if (uniformCollection.count(component))
+        {
+            if (auto it = s_table.find(component); it != s_table.end())
+                defines.insert({it->second, ""});
+            else
+                LOG_CRITICAL << "Unset uniform id define";
+        }
+}
+
+uint16_t ProgramsManagerPrivate::prepareVisualDrawableComponentsKey(const UniformCollection &uniformCollection,
+                                                                    NameKey &nameKey,
+                                                                    uint16_t firstKeyIndex)
+{
+    for (auto component : VisualDrawable::componentSet())
+        nameKey.set(firstKeyIndex++, uniformCollection.count(component));
+    return firstKeyIndex;
+}
+
+void ProgramsManagerPrivate::prepareSSAOModeDefines(SSAOMode mode,
+                                                    utils::ShaderDefines &defines)
+{
+    static const std::array<std::string, numElementsSSAOMode()> s_typesTable {
+        "SSAO_MODE_DISABLED",
+        "SSAO_MODE_OPAQUE",
+        "SSAO_MODE_OPAQUE_AND_TRANSPARENT",
+        "SSAO_MODE_COLOR"
+    };
+
+    defines.insert({ s_typesTable[castFromSSAOMode(mode)], "" });
+}
+
+uint16_t ProgramsManagerPrivate::prepareSSAOModeKey(SSAOMode mode,
+                                                    NameKey &nameKey,
+                                                    uint16_t firstKeyIndex)
+{
+    static_assert(numElementsSSAOMode() > 0u);
+    static const auto typeBitsCount = glm::findMSB(numElementsSSAOMode()) + 1;
+    for (int i = 0; i < typeBitsCount; ++i)
+        nameKey.set(firstKeyIndex + static_cast<size_t>(i), glm::bitfieldExtract(castFromSSAOMode(mode), i, 1u));
+
+    firstKeyIndex += typeBitsCount;
+
+    return firstKeyIndex;
+}
+
+void ProgramsManagerPrivate::prepareShadingModeDefines(ShadingMode shadingMode,
+                                                       utils::ShaderDefines &defines)
+{
+    static const std::array<std::string, numElementsShadingMode()> s_typesTable {
         "SHADING_MODE_DISABLED",
         "SHADING_MODE_OPAQUE",
         "SHADING_MODE_OPAQUE_AND_TRANSPARENT",
         "SHADING_MODE_COLOR"
     };
 
-    defines.insert({s_typesTable[castFromLightShadingMode(shadingMode)], ""});
+    defines.insert({ s_typesTable[castFromShadingMode(shadingMode)], "" });
 }
 
-uint16_t ProgramsManagerPrivate::prepareLightShadingModeKey(LightShadingMode shadingMode,
-                                                            NameKey &nameKey,
-                                                            uint16_t firstKeyIndex)
+uint16_t ProgramsManagerPrivate::prepareShadingModeKey(ShadingMode shadingMode,
+                                                       NameKey &nameKey,
+                                                       uint16_t firstKeyIndex)
 {
-    static_assert(numElementsLightShadingMode() > 0u);
-    static const auto typeBitsCount = glm::findMSB(numElementsLightShadingMode());
+    static_assert(numElementsShadingMode() > 0u);
+    static const auto typeBitsCount = glm::findMSB(numElementsShadingMode()) + 1;
     for (int i = 0; i < typeBitsCount; ++i)
-        nameKey.set(firstKeyIndex + static_cast<size_t>(i), glm::bitfieldExtract(castFromLightShadingMode(shadingMode), i, 1u));
+        nameKey.set(firstKeyIndex + static_cast<size_t>(i), glm::bitfieldExtract(castFromShadingMode(shadingMode), i, 1u));
+
+    firstKeyIndex += typeBitsCount;
+
+    return firstKeyIndex;
+}
+
+void ProgramsManagerPrivate::prepareShadingFilterDefines(ShadingFilter shadingFilter,
+                                                         utils::ShaderDefines &defines)
+{
+    static const std::array<std::string, numElementsShadingFilter()> s_typesTable {
+        "SHADING_FILTER_POINT",
+        "SHADING_FILTER_PCF",
+        "SHADING_FILTER_VSM"
+    };
+
+    defines.insert({ s_typesTable[castFromShadingFilter(shadingFilter)], "" });
+}
+
+uint16_t ProgramsManagerPrivate::prepareShadingFilterKey(ShadingFilter shadingFilter,
+                                                         NameKey &nameKey,
+                                                         uint16_t firstKeyIndex)
+{
+    static_assert(numElementsShadingFilter() > 0u);
+    static const auto typeBitsCount = glm::findMSB(numElementsShadingFilter()) + 1;
+    for (int i = 0; i < typeBitsCount; ++i)
+        nameKey.set(firstKeyIndex + static_cast<size_t>(i), glm::bitfieldExtract(castFromShadingFilter(shadingFilter), i, 1u));
 
     firstKeyIndex += typeBitsCount;
 
@@ -172,7 +314,7 @@ uint16_t ProgramsManagerPrivate::prepareLightTypeKey(LightType lightType,
                                                      uint16_t firstKeyIndex)
 {
     static_assert(numElementsLightType() > 0u);
-    static const auto typeBitsCount = glm::findMSB(numElementsLightType());
+    static const auto typeBitsCount = glm::findMSB(numElementsLightType()) + 1;
     for (int i = 0; i < typeBitsCount; ++i)
         nameKey.set(firstKeyIndex + static_cast<size_t>(i), glm::bitfieldExtract(castFromLightType(lightType), i, 1u));
     firstKeyIndex += typeBitsCount;
@@ -180,68 +322,62 @@ uint16_t ProgramsManagerPrivate::prepareLightTypeKey(LightType lightType,
     return firstKeyIndex;
 }
 
-void ProgramsManagerPrivate::prepareBackgroundComponentsDefines(const std::unordered_set<BackgroundComponent> &backgroundComponentsSet,
+void ProgramsManagerPrivate::prepareBackgroundComponentsDefines(const UniformCollection &uniformCollection,
                                                                 utils::ShaderDefines &defines)
 {
-    static const std::array<std::string, numElementsBackgroundComponent()> s_table {
-        "HAS_BACKGROUND_COLOR_MAP",
-        "HAS_BACKGROUND_BASE_COLOR",
-        "HAS_BACKGROUND_ROUGHNESS",
+    static const std::unordered_map<UniformId, std::string> s_table {
+        { UniformId::BackgroundColor, "HAS_BACKGROUND_COLOR" },
+        { UniformId::BackgroundColorMap, "HAS_BACKGROUND_COLOR_MAP" },
+        { UniformId::BackgroundRoughness, "HAS_BACKGROUND_ROUGHNESS" }
     };
 
-    for (uint16_t i = 0u; i < numElementsBackgroundComponent(); ++i)
-        if (backgroundComponentsSet.count(castToBackgroundComponent(i)))
-            defines.insert({s_table[i], ""});
+    for (auto component : BackgroundDrawable::componentSet())
+        if (uniformCollection.count(component))
+        {
+            if (auto it = s_table.find(component); it != s_table.end())
+                defines.insert({it->second, ""});
+            else
+                LOG_CRITICAL << "Unset unifrom id define";
+        }
 }
 
-uint16_t ProgramsManagerPrivate::prepareBackgroundComponentsKey(const std::unordered_set<BackgroundComponent> &backgroundComponentsSet,
+uint16_t ProgramsManagerPrivate::prepareBackgroundComponentsKey(const UniformCollection &uniformCollection,
                                                                 NameKey &nameKey,
                                                                 uint16_t firstKeyIndex)
 {
-    for (uint16_t i = 0u; i < numElementsBackgroundComponent(); ++i)
-        nameKey.set(firstKeyIndex + i, backgroundComponentsSet.count(castToBackgroundComponent(i)));
-    return firstKeyIndex + numElementsBackgroundComponent();
+    for (auto component : BackgroundDrawable::componentSet())
+        nameKey.set(firstKeyIndex++, uniformCollection.count(component));
+    return firstKeyIndex;
 }
 
-void ProgramsManagerPrivate::prepareLightComponentsDefines(const std::unordered_set<LightComponent> &lightComponentSet,
+void ProgramsManagerPrivate::prepareLightComponentsDefines(const UniformCollection &uniformCollection,
                                                            utils::ShaderDefines &defines)
 {
-    static const std::array<std::string, numElementsLightComponent()> s_table {
-        "NONE",
+    static const std::unordered_map<UniformId, std::string> s_table {
     };
 
-    for (uint16_t i = 0u; i < numElementsLightComponent(); ++i)
-        if (lightComponentSet.count(castToLightComponent(i)))
-            defines.insert({s_table[i], ""});
+    for (auto component : LightDrawable::componentSet())
+        if (uniformCollection.count(component))
+        {
+            if (auto it = s_table.find(component); it != s_table.end())
+                defines.insert({it->second, ""});
+            else
+                LOG_CRITICAL << "Unset unifrom id define";
+        }
 }
 
-uint16_t ProgramsManagerPrivate::prepareLightComponentsKey(const std::unordered_set<LightComponent> &lightComponentSet,
+uint16_t ProgramsManagerPrivate::prepareLightComponentsKey(const UniformCollection &uniformCollection,
                                                            NameKey &nameKey,
                                                            uint16_t firstKeyIndex)
 {
-    for (uint16_t i = 0u; i < numElementsLightComponent(); ++i)
-        nameKey.set(firstKeyIndex + i, lightComponentSet.count(castToLightComponent(i)));
-    return firstKeyIndex + numElementsLightComponent();
+    for (auto component : LightDrawable::componentSet())
+        nameKey.set(firstKeyIndex++, uniformCollection.count(component));
+    return firstKeyIndex;
 }
 
-const std::string &ProgramsManagerPrivate::opaqueGeometryPassRenderProgramName()
+const std::string &ProgramsManagerPrivate::geometryPassRenderProgramName()
 {
-    return s_opaqueGeometryPassRenderProgramName;
-}
-
-const std::string &ProgramsManagerPrivate::transparentGeometryPassRenderProgramName()
-{
-    return s_transparentGeometryPassRenderProgramName;
-}
-
-const std::string &ProgramsManagerPrivate::OITClearPassComputeProgramName()
-{
-    return s_OITClearPassComputeProgramName;
-}
-
-const std::string &ProgramsManagerPrivate::OITSortNodesPassComputeProgramName()
-{
-    return s_OITSortNodesPassComputeProgramName;
+    return s_geometryPassRenderProgramName;
 }
 
 const std::string &ProgramsManagerPrivate::shadowRenderProgramName()
@@ -254,6 +390,31 @@ const std::string &ProgramsManagerPrivate::stencilPassRenderProgramName()
     return s_stencilPassRenderProgramName;
 }
 
+const std::string &ProgramsManagerPrivate::OITClearPassComputeProgramName()
+{
+    return s_OITClearPassComputeProgramName;
+}
+
+const std::string &ProgramsManagerPrivate::OITSortNodesPassComputeProgramName()
+{
+    return s_OITSortNodesPassComputeProgramName;
+}
+
+const std::string &ProgramsManagerPrivate::SSAORenderProgramName()
+{
+    return s_SSAORenderProgramName;
+}
+
+const std::string &ProgramsManagerPrivate::blurRenderProgramName()
+{
+    return s_blurRenderProgramName;
+}
+
+const std::string &ProgramsManagerPrivate::bilaterialBlurRenderProgramName()
+{
+    return s_bilaterialBlurRenderProgramName;
+}
+
 const std::string &ProgramsManagerPrivate::lightPassRenderProgramName()
 {
     return s_lightPassRenderProgramName;
@@ -262,11 +423,6 @@ const std::string &ProgramsManagerPrivate::lightPassRenderProgramName()
 const std::string &ProgramsManagerPrivate::backgroundPassRenderProgramName()
 {
     return s_backgroundPassRenderProgramName;
-}
-
-const std::string &ProgramsManagerPrivate::foregroundPassRenderProgramName()
-{
-    return s_foregroundPassRenderProgramName;
 }
 
 const std::string &ProgramsManagerPrivate::finalPassRenderProgramName()
@@ -284,39 +440,9 @@ const std::filesystem::path &ProgramsManagerPrivate::geometryPassVertexShaderPat
     return s_geometryPassVertexShaderPath;
 }
 
-const std::filesystem::path &ProgramsManagerPrivate::opaqueGeometryPassFragmnetShaderPath()
+const std::filesystem::path &ProgramsManagerPrivate::geometryPassFragmnetShaderPath()
 {
-    return s_opaqueGeometryPassFragmnetShaderPath;
-}
-
-const std::filesystem::path &ProgramsManagerPrivate::transparentGeometryPassFragmnetShaderPath()
-{
-    return s_transparentGeometryPassFragmnetShaderPath;
-}
-
-const std::filesystem::path &ProgramsManagerPrivate::OITClearPassComputeShaderPath()
-{
-    return s_OITClearPassComputeShaderPath;
-}
-
-const std::filesystem::path &ProgramsManagerPrivate::OITSortNodesPassComputeShaderPath()
-{
-    return s_OITSortNodesPassComputeShaderPath;
-}
-
-const std::filesystem::path &ProgramsManagerPrivate::shadowVertexShaderPath()
-{
-    return s_shadowVertexShaderPath;
-}
-
-const std::filesystem::path &ProgramsManagerPrivate::shadowGeometryShaderPath()
-{
-    return s_shadowGeometryShaderPath;
-}
-
-const std::filesystem::path &ProgramsManagerPrivate::shadowFragmnetShaderPath()
-{
-    return s_shadowFragmnetShaderPath;
+    return s_geometryPassFragmnetShaderPath;
 }
 
 const std::filesystem::path &ProgramsManagerPrivate::stencilPassVertexShaderPath()
@@ -339,6 +465,66 @@ const std::filesystem::path &ProgramsManagerPrivate::lightPassFragmnetShaderPath
     return s_lightPassFragmnetShaderPath;
 }
 
+const std::filesystem::path &ProgramsManagerPrivate::OITClearPassComputeShaderPath()
+{
+    return s_OITClearPassComputeShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::OITSortNodesPassComputeShaderPath()
+{
+    return s_OITSortNodesPassComputeShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::SSAOVertexShaderPath()
+{
+    return s_SSAOVertexShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::SSAOFragmnetShaderPath()
+{
+    return s_SSAOFragmnetShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::blurVertexShaderPath()
+{
+    return s_blurVertexShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::blurFragmnetShaderPath()
+{
+    return s_blurFragmnetShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::blurComputeShaderPath()
+{
+    return s_blurComputeShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::bilaterialBlurVertexShaderPath()
+{
+    return s_bilaterialBlurVertexShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::bilaterialBlurFragmnetShaderPath()
+{
+    return s_bilaterialBlurFragmnetShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::shadowVertexShaderPath()
+{
+    return s_shadowVertexShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::shadowGeometryShaderPath()
+{
+    return s_shadowGeometryShaderPath;
+}
+
+const std::filesystem::path &ProgramsManagerPrivate::shadowFragmnetShaderPath()
+{
+    return s_shadowFragmnetShaderPath;
+}
+
 const std::filesystem::path &ProgramsManagerPrivate::backgroundPassVertexShaderPath()
 {
     return s_backgroundPassVertexShaderPath;
@@ -347,16 +533,6 @@ const std::filesystem::path &ProgramsManagerPrivate::backgroundPassVertexShaderP
 const std::filesystem::path &ProgramsManagerPrivate::backgroundPassFragmnetShaderPath()
 {
     return s_backgroundPassFragmnetShaderPath;
-}
-
-const std::filesystem::path &ProgramsManagerPrivate::foregroundPassVertexShaderPath()
-{
-    return s_foregroundPassVertexShaderPath;
-}
-
-const std::filesystem::path &ProgramsManagerPrivate::foregroundPassFragmnetShaderPath()
-{
-    return s_foregroundPassFragmnetShaderPath;
 }
 
 const std::filesystem::path &ProgramsManagerPrivate::finalPassVertexShaderPath()

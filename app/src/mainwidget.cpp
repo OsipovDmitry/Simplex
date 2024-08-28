@@ -1,20 +1,23 @@
 #include <QTimer>
 #include <QKeyEvent>
 
+#include <utils/logger.h>
 #include <utils/transform.h>
 #include <utils/glm/gtc/constants.hpp>
 
+#include <core/applicationbase.h>
 #include <core/graphicsengine.h>
 #include <core/nodecollector.h>
 #include <core/scene.h>
 #include <core/scenerootnode.h>
 #include <core/cameranode.h>
+#include <core/soundnode.h>
 #include <core/debuginformation.h>
+
+#include <qt/qtopenglwidget.h>
 
 #include "mainwidget.h"
 #include "ui_mainwidget.h"
-#include "testapplication.h"
-
 
 #include <utils/frustum.h>
 #include <core/lightnode.h>
@@ -24,14 +27,20 @@ MainWidget::MainWidget(QWidget *parent) :
     ui(new Ui::MainWidget)
 {
     ui->setupUi(this);
-    ui->splitter_3->setStretchFactor(0, 7);
+
+    m_renderWidget = simplex::qt::QtOpenGLWidget::getOrCreate("OpenGLWidget");
+    ui->splitter_2->insertWidget(0, m_renderWidget.get());
+
+    ui->splitter_3->setStretchFactor(0, 3);
     ui->splitter_3->setStretchFactor(1, 1);
-    ui->splitter_2->setStretchFactor(0, 10);
+    ui->splitter_2->setStretchFactor(0, 3);
     ui->splitter_2->setStretchFactor(1, 1);
 
     setWindowTitle("Simplex 3D Engine");
 
     QObject::connect(ui->m_renderTypeList, &QListWidget::currentRowChanged, this, &MainWidget::renderTypeChanged);
+    QObject::connect(ui->m_shadowModeBox, &QComboBox::currentIndexChanged, this, &MainWidget::shadowModeChanged);
+    QObject::connect(ui->m_shadowFilterBox, &QComboBox::currentIndexChanged, this, &MainWidget::shadowFilterChanged);
 
     auto timer = new QTimer(this);
     timer->setInterval(16);
@@ -44,6 +53,7 @@ MainWidget::MainWidget(QWidget *parent) :
 MainWidget::~MainWidget()
 {
     delete ui;
+    m_renderWidget = nullptr;
 }
 
 QListWidget *MainWidget::renderTypeList()
@@ -51,22 +61,24 @@ QListWidget *MainWidget::renderTypeList()
     return ui->m_renderTypeList;
 }
 
-simplex::qt::QtRenderWidget *MainWidget::renderWidget()
+simplex::qt::QtOpenGLWidget *MainWidget::renderWidget()
 {
-    return ui->m_renderWidget;
+    return m_renderWidget.get();
+}
+
+QComboBox *MainWidget::shadowModeBox()
+{
+    return ui->m_shadowModeBox;
+}
+
+QComboBox *MainWidget::shadowFilterBox()
+{
+    return ui->m_shadowFilterBox;
 }
 
 void MainWidget::onTimeout()
 {
     setFocus();
-
-    if (ui->m_renderWidget->application().expired())
-        return;
-
-    auto app = ui->m_renderWidget->application().lock();
-    auto testApplication = std::dynamic_pointer_cast<TestApplication>(app);
-    if (!testApplication)
-        return;
 
     if (m_isUpPressed)
         m_cameraAngles.x += 0.03f;
@@ -84,7 +96,7 @@ void MainWidget::onTimeout()
     m_cameraAngles.x = glm::min(m_cameraAngles.x, +glm::half_pi<float>());
     m_cameraAngles.y = glm::mod(m_cameraAngles.y, glm::two_pi<float>());
 
-    auto cameraRotation = simplex::utils::Transform::fromRotation(glm::quat(glm::vec3(m_cameraAngles, 0.0f)));
+    auto cameraRotation = simplex::utils::Transform::makeRotation(glm::quat(glm::vec3(m_cameraAngles, 0.0f)));
     auto cameraFowrardDir = cameraRotation * glm::vec3(0.0f, 0.0f, -1.0f);
     auto cameraRightDir = cameraRotation * glm::vec3(1.0f, 0.0f, 0.0f);
 
@@ -100,24 +112,28 @@ void MainWidget::onTimeout()
     if (m_isAPressed)
         m_cameraPosition -= cameraRightDir * 0.1f;
 
-    auto cameraTranslation = simplex::utils::Transform::fromTranslation(m_cameraPosition);
+    auto cameraTranslation = simplex::utils::Transform::makeTranslation(m_cameraPosition);
     auto cameraTransform = cameraTranslation * cameraRotation;
 
-    auto graphicsEngine = testApplication->graphicsEngine();
-    const auto &scenes = graphicsEngine->scenes();
+    if (auto application = m_renderWidget->application())
+    {
+        const auto &scenes = application->scenes();
+        if (!scenes.empty())
+        {
+            simplex::core::NodeCollector<simplex::core::CameraNode> cameraCollector;
+            (*scenes.begin())->sceneRootNode()->acceptDown(cameraCollector);
 
-    simplex::core::NodeCollector<simplex::core::CameraNode> cameraCollector;
-    scenes.front()->sceneRootNode()->acceptDown(cameraCollector);
+            cameraCollector.nodes().front()->setTransform(cameraTransform);
+        }
+    }
 
-    cameraCollector.nodes().front()->setTransform(cameraTransform);
-
-    ui->m_renderWidget->update();
+    m_renderWidget->update();
 }
 
 void MainWidget::setRenderMode(bool state)
 {
     ui->m_loggerTextEdit->setVisible(state);
-    ui->m_debugWidget->setVisible(state);
+    ui->m_lightInfoWidget->setVisible(state);
 }
 
 void MainWidget::keyPressEvent(QKeyEvent *event)
@@ -150,15 +166,8 @@ void MainWidget::keyPressEvent(QKeyEvent *event)
         break;
     case Qt::Key::Key_Space:
     {
-        if (ui->m_renderWidget->application().expired())
-            return;
-
-        auto app = ui->m_renderWidget->application().lock();
-        auto testApplication = std::dynamic_pointer_cast<TestApplication>(app);
-        if (!testApplication)
-            return;
-
-        auto graphicsEngine = testApplication->graphicsEngine();
+        auto application = m_renderWidget->application();
+        auto graphicsEngine = application->findEngine<simplex::core::GraphicsEngine>();
         graphicsEngine->setF(-1);
 
         break;

@@ -26,25 +26,57 @@ public:
     std::shared_ptr<graphics::IRenderer> &renderer();
     std::unordered_map<std::string, std::shared_ptr<graphics::IProgram>> &resources();
 
-    static float &dielectricSpecular();
+    static void prepareTransparentDefines(bool,
+                                          utils::ShaderDefines&);
+    static uint16_t prepareTransparentKey(bool,
+                                          NameKey&,
+                                          uint16_t);
 
-    static void prepareVertexAttributesDefines(const utils::VertexAttributesSet&,
+    static void prepareVertexAttributesDefines(const utils::VertexAttributeSet&,
                                                utils::ShaderDefines&);
-    static uint16_t prepareVertexAttributesKey(const utils::VertexAttributesSet&,
+    static uint16_t prepareVertexAttributesKey(const utils::VertexAttributeSet&,
                                                NameKey&,
                                                uint16_t);
 
-    static void preparePBRComponentsDefines(const std::unordered_set<PBRComponent>&,
+    static void prepareImageTypeDefines(graphics::TextureType,
+                                        const std::string&,
+                                        utils::ShaderDefines&);
+    static uint16_t prepareImageTypeKey(graphics::TextureType,
+                                        NameKey&,
+                                        uint16_t);
+
+    static void prepareImageFormatDefines(const graphics::SupportedImageFormats&,
+                                          graphics::PixelInternalFormat,
+                                          const std::string&,
+                                          utils::ShaderDefines&);
+    static uint16_t prepareImageFormatKey(const graphics::SupportedImageFormats&,
+                                          graphics::PixelInternalFormat,
+                                          NameKey&,
+                                          uint16_t);
+
+    static void prepareVisualDrawableComponentsDefines(const UniformCollection&,
+                                                       utils::ShaderDefines&);
+    static uint16_t prepareVisualDrawableComponentsKey(const UniformCollection&,
+                                                       NameKey&,
+                                                       uint16_t);
+
+    static void prepareSSAOModeDefines(SSAOMode,
+                                       utils::ShaderDefines&);
+    static uint16_t prepareSSAOModeKey(SSAOMode,
+                                       NameKey&,
+                                       uint16_t);
+
+    static void prepareShadingModeDefines(ShadingMode,
+                                          utils::ShaderDefines&);
+    static uint16_t prepareShadingModeKey(ShadingMode,
+                                          NameKey&,
+                                          uint16_t);
+
+    static void prepareShadingFilterDefines(ShadingFilter,
                                             utils::ShaderDefines&);
-    static uint16_t preparePBRComponentsKey(const std::unordered_set<PBRComponent>&,
+    static uint16_t prepareShadingFilterKey(ShadingFilter,
                                             NameKey&,
                                             uint16_t);
-
-    static void prepareLightShadingModeDefines(LightShadingMode,
-                                               utils::ShaderDefines&);
-    static uint16_t prepareLightShadingModeKey(LightShadingMode,
-                                               NameKey&,
-                                               uint16_t);
 
     static void prepareLightTypeDefines(LightType,
                                         utils::ShaderDefines&);
@@ -52,46 +84,51 @@ public:
                                         NameKey&,
                                         uint16_t);
 
-    static void prepareBackgroundComponentsDefines(const std::unordered_set<BackgroundComponent>&,
+    static void prepareBackgroundComponentsDefines(const UniformCollection&,
                                                    utils::ShaderDefines&);
-    static uint16_t prepareBackgroundComponentsKey(const std::unordered_set<BackgroundComponent>&,
+    static uint16_t prepareBackgroundComponentsKey(const UniformCollection&,
                                                    NameKey&,
                                                    uint16_t);
 
-    static void prepareLightComponentsDefines(const std::unordered_set<LightComponent>&,
+    static void prepareLightComponentsDefines(const UniformCollection&,
                                               utils::ShaderDefines&);
-    static uint16_t prepareLightComponentsKey(const std::unordered_set<LightComponent>&,
+    static uint16_t prepareLightComponentsKey(const UniformCollection&,
                                               NameKey&,
                                               uint16_t);
 
-    static const std::string &opaqueGeometryPassRenderProgramName();
-    static const std::string &transparentGeometryPassRenderProgramName();
-    static const std::string &OITClearPassComputeProgramName();
-    static const std::string &OITSortNodesPassComputeProgramName();
-    static const std::string &shadowRenderProgramName();
+    static const std::string &geometryPassRenderProgramName();
     static const std::string &stencilPassRenderProgramName();
     static const std::string &lightPassRenderProgramName();
+    static const std::string &OITClearPassComputeProgramName();
+    static const std::string &OITSortNodesPassComputeProgramName();
+    static const std::string &SSAORenderProgramName();
+    static const std::string &blurRenderProgramName();
+    static const std::string &bilaterialBlurRenderProgramName();
+    static const std::string &shadowRenderProgramName();
     static const std::string &backgroundPassRenderProgramName();
-    static const std::string &foregroundPassRenderProgramName();
     static const std::string &finalPassRenderProgramName();
     static const std::string &postprocessPassRenderProgramName();
 
     static const std::filesystem::path &geometryPassVertexShaderPath();
-    static const std::filesystem::path &opaqueGeometryPassFragmnetShaderPath();
-    static const std::filesystem::path &transparentGeometryPassFragmnetShaderPath();
-    static const std::filesystem::path &OITClearPassComputeShaderPath();
-    static const std::filesystem::path &OITSortNodesPassComputeShaderPath();
-    static const std::filesystem::path &shadowVertexShaderPath();
-    static const std::filesystem::path &shadowGeometryShaderPath();
-    static const std::filesystem::path &shadowFragmnetShaderPath();
+    static const std::filesystem::path &geometryPassFragmnetShaderPath();
     static const std::filesystem::path &stencilPassVertexShaderPath();
     static const std::filesystem::path &stencilPassFragmnetShaderPath();
     static const std::filesystem::path &lightPassVertexShaderPath();
     static const std::filesystem::path &lightPassFragmnetShaderPath();
+    static const std::filesystem::path &OITClearPassComputeShaderPath();
+    static const std::filesystem::path &OITSortNodesPassComputeShaderPath();
+    static const std::filesystem::path &SSAOVertexShaderPath();
+    static const std::filesystem::path &SSAOFragmnetShaderPath();
+    static const std::filesystem::path &blurVertexShaderPath();
+    static const std::filesystem::path &blurFragmnetShaderPath();
+    static const std::filesystem::path &blurComputeShaderPath();
+    static const std::filesystem::path &bilaterialBlurVertexShaderPath();
+    static const std::filesystem::path &bilaterialBlurFragmnetShaderPath();
+    static const std::filesystem::path &shadowVertexShaderPath();
+    static const std::filesystem::path &shadowGeometryShaderPath();
+    static const std::filesystem::path &shadowFragmnetShaderPath();
     static const std::filesystem::path &backgroundPassVertexShaderPath();
     static const std::filesystem::path &backgroundPassFragmnetShaderPath();
-    static const std::filesystem::path &foregroundPassVertexShaderPath();
-    static const std::filesystem::path &foregroundPassFragmnetShaderPath();
     static const std::filesystem::path &finalPassVertexShaderPath();
     static const std::filesystem::path &finalPassFragmnetShaderPath();
     static const std::filesystem::path &postprocessPassVertexShaderPath();
@@ -101,36 +138,39 @@ private:
     std::shared_ptr<graphics::IRenderer> m_renderer;
     std::unordered_map<std::string, std::shared_ptr<graphics::IProgram>> m_resources;
 
-    static float s_dielectricSpecular;
-
-    static const std::string s_opaqueGeometryPassRenderProgramName;
-    static const std::string s_transparentGeometryPassRenderProgramName;
-    static const std::string s_OITClearPassComputeProgramName;
-    static const std::string s_OITSortNodesPassComputeProgramName;
-    static const std::string s_shadowRenderProgramName;
-    static const std::string s_stencilPassRenderProgramName;
+    static const std::string s_geometryPassRenderProgramName;
     static const std::string s_lightPassRenderProgramName;
     static const std::string s_backgroundPassRenderProgramName;
-    static const std::string s_foregroundPassRenderProgramName;
+    static const std::string s_OITClearPassComputeProgramName;
+    static const std::string s_OITSortNodesPassComputeProgramName;
+    static const std::string s_SSAORenderProgramName;
+    static const std::string s_blurRenderProgramName;
+    static const std::string s_bilaterialBlurRenderProgramName;
+    static const std::string s_shadowRenderProgramName;
+    static const std::string s_stencilPassRenderProgramName;
     static const std::string s_finalPassRenderProgramName;
     static const std::string s_postprocessPassRenderProgramName;
 
     static const std::filesystem::path s_geometryPassVertexShaderPath;
-    static const std::filesystem::path s_opaqueGeometryPassFragmnetShaderPath;
-    static const std::filesystem::path s_transparentGeometryPassFragmnetShaderPath;
-    static const std::filesystem::path s_OITClearPassComputeShaderPath;
-    static const std::filesystem::path s_OITSortNodesPassComputeShaderPath;
-    static const std::filesystem::path s_shadowVertexShaderPath;
-    static const std::filesystem::path s_shadowGeometryShaderPath;
-    static const std::filesystem::path s_shadowFragmnetShaderPath;
+    static const std::filesystem::path s_geometryPassFragmnetShaderPath;
     static const std::filesystem::path s_stencilPassVertexShaderPath;
     static const std::filesystem::path s_stencilPassFragmnetShaderPath;
     static const std::filesystem::path s_lightPassVertexShaderPath;
     static const std::filesystem::path s_lightPassFragmnetShaderPath;
+    static const std::filesystem::path s_OITClearPassComputeShaderPath;
+    static const std::filesystem::path s_OITSortNodesPassComputeShaderPath;
+    static const std::filesystem::path s_SSAOVertexShaderPath;
+    static const std::filesystem::path s_SSAOFragmnetShaderPath;
+    static const std::filesystem::path s_blurVertexShaderPath;
+    static const std::filesystem::path s_blurFragmnetShaderPath;
+    static const std::filesystem::path s_blurComputeShaderPath;
+    static const std::filesystem::path s_bilaterialBlurVertexShaderPath;
+    static const std::filesystem::path s_bilaterialBlurFragmnetShaderPath;
+    static const std::filesystem::path s_shadowVertexShaderPath;
+    static const std::filesystem::path s_shadowGeometryShaderPath;
+    static const std::filesystem::path s_shadowFragmnetShaderPath;
     static const std::filesystem::path s_backgroundPassVertexShaderPath;
     static const std::filesystem::path s_backgroundPassFragmnetShaderPath;
-    static const std::filesystem::path s_foregroundPassVertexShaderPath;
-    static const std::filesystem::path s_foregroundPassFragmnetShaderPath;
     static const std::filesystem::path s_finalPassVertexShaderPath;
     static const std::filesystem::path s_finalPassFragmnetShaderPath;
     static const std::filesystem::path s_postprocessPassVertexShaderPath;

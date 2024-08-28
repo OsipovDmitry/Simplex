@@ -1,6 +1,8 @@
 #ifndef CORE_DIRECTIONALLIGHTNODE_H
 #define CORE_DIRECTIONALLIGHTNODE_H
 
+#include <utils/glm/vec3.hpp>
+
 #include <core/lightnode.h>
 
 namespace simplex
@@ -11,7 +13,7 @@ namespace core
 class DirectionalLightNodePrivate;
 class CORE_SHARED_EXPORT DirectionalLightNode : public LightNode
 {
-    PIMPL(DirectionalLightNode)
+    PRIVATE_IMPL(DirectionalLightNode)
 public:
     DirectionalLightNode(const std::string&);
     ~DirectionalLightNode() override;
@@ -23,17 +25,6 @@ public:
 
     const glm::vec3 &color() const;
     void setColor(const glm::vec3&);
-
-    void doAfterTransformChanged() override;
-
-protected:
-    glm::mat4x4 doAreaMatrix() const override;
-    utils::BoundingBox doAreaBoundingBox() const override;
-
-    glm::mat4x4 doUpdateLayeredShadowMatrices(const utils::FrustumCorners&,
-                                              const utils::Range&,
-                                              std::vector<glm::mat4x4>&) const override;
-
 };
 
 }

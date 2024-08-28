@@ -1,4 +1,4 @@
-#ifndef CORE_PROGRAMSMANAGER_H
+﻿#ifndef CORE_PROGRAMSMANAGER_H
 #define CORE_PROGRAMSMANAGER_H
 
 #include <memory>
@@ -38,35 +38,42 @@ public:
                                                                        const utils::ShaderDefines&,
                                                                        const std::string& = "autogen");
 
-    std::shared_ptr<graphics::IRenderProgram> loadOrGetOpaqueGeometryPassRenderProgram(const utils::VertexAttributesSet&,
-                                                                                       const std::unordered_set<PBRComponent>&);
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetGeometryPassRenderProgram(const utils::VertexAttributeSet&,
+                                                                                 const UniformCollection&,
+                                                                                 bool);
 
-    std::shared_ptr<graphics::IRenderProgram> loadOrGetTransparentGeometryPassRenderProgram(const utils::VertexAttributesSet&,
-                                                                                            const std::unordered_set<PBRComponent>&);
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetStencilPassRenderProgram(const utils::VertexAttributeSet&,
+                                                                                LightType);
+
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetLightPassRenderProgram(const utils::VertexAttributeSet&,
+                                                                              const UniformCollection&,
+                                                                              LightType,
+                                                                              ShadingMode,
+                                                                              ShadingFilter,
+                                                                              SSAOMode);
 
     std::shared_ptr<graphics::IComputeProgram> loadOrGetOITClearPassComputeProgram();
     std::shared_ptr<graphics::IComputeProgram> loadOrGetOITSortNodesPassComputeProgram();
 
-    std::shared_ptr<graphics::IRenderProgram> loadOrGetShadowRenderProgram(const utils::VertexAttributesSet&,
-                                                                           const std::unordered_set<PBRComponent>&,
-                                                                           LightShadingMode);
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetSSAORenderProgram(const utils::VertexAttributeSet&,
+                                                                         SSAOMode);
 
-    std::shared_ptr<graphics::IRenderProgram> loadOrGetStencilPassRenderProgram(const utils::VertexAttributesSet&,
-                                                                                LightType);
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetBlurRenderProgram(const utils::VertexAttributeSet&);
+    std::shared_ptr<graphics::IComputeProgram> loadOrGetBlurComputeProgram(graphics::TextureType,
+                                                                           graphics::PixelInternalFormat);
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetBilaterialBlurRenderProgram(const utils::VertexAttributeSet&);
 
-    std::shared_ptr<graphics::IRenderProgram> loadOrGetLightPassRenderProgram(const utils::VertexAttributesSet&,
-                                                                              const std::unordered_set<LightComponent>&,
-                                                                              LightType,
-                                                                              LightShadingMode);
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetShadowRenderProgram(const utils::VertexAttributeSet&,
+                                                                           const UniformCollection&,
+                                                                           ShadingMode,
+                                                                           ShadingFilter);
 
-    std::shared_ptr<graphics::IRenderProgram> loadOrGetBackgroundPassRenderProgram(const utils::VertexAttributesSet&,
-                                                                                   const std::unordered_set<BackgroundComponent>&);
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetBackgroundPassRenderProgram(const utils::VertexAttributeSet&,
+                                                                                   const UniformCollection&);
 
-    std::shared_ptr<graphics::IRenderProgram> loadOrGetForegroundPassRenderProgram(const utils::VertexAttributesSet&);
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetFinalPassRenderProgram(const utils::VertexAttributeSet&);
 
-    std::shared_ptr<graphics::IRenderProgram> loadOrGetFinalPassRenderProgram(const utils::VertexAttributesSet&);
-
-    std::shared_ptr<graphics::IRenderProgram> loadOrGetPostprocessPassRenderProgram(const utils::VertexAttributesSet&);
+    std::shared_ptr<graphics::IRenderProgram> loadOrGetPostprocessPassRenderProgram(const utils::VertexAttributeSet&);
 
 private:
     std::unique_ptr<ProgramsManagerPrivate> m_;

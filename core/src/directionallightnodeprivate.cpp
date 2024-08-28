@@ -1,33 +1,69 @@
+#include <core/directionallightnode.h>
+
 #include "directionallightnodeprivate.h"
+#include "directionalshadowprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-std::weak_ptr<graphics::IVertexArray> DirectionalLightNodePrivate::s_lightAreaVertexArray;
-
-DirectionalLightNodePrivate::DirectionalLightNodePrivate(const std::string &name)
-    : LightNodePrivate(name)
+DirectionalLightNodePrivate::DirectionalLightNodePrivate(DirectionalLightNode &directionalLightNode, const std::string &name)
+    : LightNodePrivate(directionalLightNode, name, std::make_unique<DirectionalShadowPrivate>())
 {
+}
+
+void DirectionalLightNodePrivate::doAfterTransformChanged()
+{
+    dirtyAreaMatrix();
+    dirtyAreaBoundingBox();
 }
 
 DirectionalLightNodePrivate::~DirectionalLightNodePrivate() = default;
 
-std::shared_ptr<ShadowFrameBuffer> DirectionalLightNodePrivate::createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer) const
+LightNodePrivate::ShadowTransform DirectionalLightNodePrivate::doShadowTransform(const utils::Frustum::Points &cameraFrustumPoints)
 {
-    return std::make_shared<ShadowFrameBuffer2D>(graphicsRenderer);
+    static const auto s_directionInLightSpace = glm::vec3(0.f, 0.f, -1.f);
+    const auto direction = glm::normalize(glm::vec3(d_.globalTransform() * glm::vec4(s_directionInLightSpace, 0.f)));
+    const auto up = glm::abs(direction.y) < (1.f - utils::epsilon<float>()) ? glm::vec3(0.f, 1.f, 0.f) : glm::vec3(1.f, 0.f, 0.f);
+
+    utils::BoundingBox cameraFrustumBB;
+    for (const auto &[index, corner] : cameraFrustumPoints)
+        cameraFrustumBB += corner;
+
+    const auto sceneRootNode = d_.rootNode();
+    const auto sceneBB = sceneRootNode->globalTransform() * sceneRootNode->boundingBox();
+
+    const auto shadowBB = cameraFrustumBB * sceneBB;
+    const auto shadowBBCenter = shadowBB.center();
+
+    const auto sceneBBProjRange = sceneBB.projectOnLine(utils::Line(shadowBBCenter, direction));
+
+    const auto viewTransform = utils::Transform(1.f,
+                                                glm::quatLookAt(direction, up),
+                                                shadowBBCenter + direction * sceneBBProjRange.nearValue()).inverted();
+
+    const auto transformedShadowBBHalfSize = (viewTransform * shadowBB).halfSize();
+    const auto clipSpace = utils::ClipSpace::makeOrtho(-transformedShadowBBHalfSize.x, transformedShadowBBHalfSize.x,
+                                                       -transformedShadowBBHalfSize.y, transformedShadowBBHalfSize.y);
+
+    ShadowTransform result;
+    result.frustumViewTransform = viewTransform;
+    result.frustumClipSpace = clipSpace;
+    result.layeredViewTransforms = { viewTransform };
+    result.clipSpase = clipSpace;
+    result.cullPlanesLimits = m_shadow.cullPlanesLimits();
+    return result;
 }
 
-const glm::mat4x4 &DirectionalLightNodePrivate::shadowBiasMatrix() const
+glm::mat4x4 DirectionalLightNodePrivate::doAreaMatrix()
 {
-    static const glm::mat4x4 s_biasMatrix = utils::Transform::fromTranslation(glm::vec3(.5f)) * utils::Transform::fromScale(.5f);
-    return s_biasMatrix;
+    return glm::mat4x4(1.f); // it is not used because bb policy is Root
 }
 
-std::weak_ptr<graphics::IVertexArray> &DirectionalLightNodePrivate::lightAreaVertexArray()
+utils::BoundingBox DirectionalLightNodePrivate::doAreaBoundingBox()
 {
-    return s_lightAreaVertexArray;
+    return utils::BoundingBox::empty(); // it is not used because bb policy is Root
 }
 
 }

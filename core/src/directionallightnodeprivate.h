@@ -11,17 +11,16 @@ namespace core
 class DirectionalLightNodePrivate : public LightNodePrivate
 {
 public:
-    DirectionalLightNodePrivate(const std::string &name);
+    DirectionalLightNodePrivate(DirectionalLightNode&, const std::string&);
     ~DirectionalLightNodePrivate() override;
 
-    std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer>&) const override;
-    const glm::mat4x4 &shadowBiasMatrix() const override;
-
-    static std::weak_ptr<graphics::IVertexArray> &lightAreaVertexArray();
+    void doAfterTransformChanged() override;
 
 private:
-    static std::weak_ptr<graphics::IVertexArray> s_lightAreaVertexArray;
+    ShadowTransform doShadowTransform(const utils::Frustum::Points&) override;
 
+    glm::mat4x4 doAreaMatrix() override;
+    utils::BoundingBox doAreaBoundingBox() override;
 };
 
 }

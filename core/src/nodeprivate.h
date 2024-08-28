@@ -16,20 +16,36 @@ namespace core
 class NodePrivate
 {
 public:
-    NodePrivate(const std::string &name);
+    NodePrivate(Node&, const std::string &name);
     virtual ~NodePrivate();
 
-    const std::string &name() const;
+    const Node &node() const;
 
-    bool &isGlobalTransformDirty();
-    bool &isBoundingBoxDirty();
+    const std::string &name() const;
 
     utils::Transform &transform();
     utils::Transform &globalTransform();
 
     utils::BoundingBox &boundingBox();
 
+    virtual void doUpdate(uint64_t, uint32_t);
+    virtual utils::BoundingBox doBoundingBox();
+    virtual void doBeforeTransformChanged();
+    virtual void doAfterTransformChanged();
+    virtual void doAttachToParent();
+    virtual void doAttachToScene();
+    virtual void doDetachFromParent();
+    virtual void doDetachFromScene();
+
+    bool &isGlobalTransfomDirty();
+    bool &isBoundingBoxDirty();
+
+    void dirtyGlobalTransform();
+    void dirtyBoundingBox();
+
 protected:
+    Node &d_;
+
     std::string m_name;
 
     utils::Transform m_transform;
@@ -37,9 +53,8 @@ protected:
 
     utils::BoundingBox m_boundingBox;
 
-    bool m_globalTransfomDirty;
-    bool m_boundingBoxDirty;
-
+    bool m_isGlobalTransfomDirty;
+    bool m_isBoundingBoxDirty;
 };
 
 }

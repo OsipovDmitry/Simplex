@@ -19,6 +19,8 @@ class Settings;
 enum class PixelComponentType : uint16_t;
 class Image;
 
+class Sound;
+
 enum class PrimitiveType : uint16_t;
 enum class DrawElementsIndexType : uint16_t;
 class PrimitiveSet;
@@ -27,7 +29,7 @@ class DrawElements;
 
 enum class VertexComponentType : uint16_t;
 enum class VertexAttribute : uint16_t;
-using VertexAttributesSet = std::unordered_set<VertexAttribute>;
+using VertexAttributeSet = std::unordered_set<VertexAttribute>;
 
 class Buffer;
 class VertexBuffer;
@@ -41,10 +43,6 @@ class Shader;
 
 class TextFile;
 
-class AbstractClipSpace;
-class OrthoClipSpace;
-class PerspectiveClipSpace;
-
 class SortedObject;
 struct SortedObjectComparator;
 
@@ -57,17 +55,24 @@ using Transform = TransformT<3, float>;
 template<glm::length_t L, typename T> struct PlaneT;
 using Plane = PlaneT<3, float>;
 
+template<glm::length_t L, typename T> struct LineT;
+using Line = LineT<3, float>;
+
+template<glm::length_t L, typename T> struct LineSegmentT;
+using LineSegment = LineSegmentT<3, float>;
+
 template <glm::length_t L, typename T> struct BoundingBoxT;
 using BoundingBox = BoundingBoxT<3, float>;
 
-template<typename T> using FrustumCornersT = std::array<glm::vec<3u, T>, 8u>;
-using FrustumCorners = FrustumCornersT<float>;
+enum class ClipSpaceType : uint16_t;
+template<typename T> struct ClipSpaceT;
+using ClipSpace = ClipSpaceT<float>;
 
 template<typename T> struct FrustumT;
 using Frustum = FrustumT<float>;
 
-template<typename T> struct OpenFrustumT;
-using OpenFrustum = OpenFrustumT<float>;
+//template<typename T> struct OpenFrustumT;
+//using OpenFrustum = OpenFrustumT<float>;
 
 }
 }

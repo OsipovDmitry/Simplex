@@ -42,7 +42,7 @@ inline bool checkImage(const std::shared_ptr<Image> &image)
 
     if (image->numComponents() != 3u)
     {
-        LOG_ERROR << "omponents count of image must be 3";
+        LOG_ERROR << "Components count of image must be 3";
         return false;
     }
 

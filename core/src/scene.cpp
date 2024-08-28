@@ -2,21 +2,18 @@
 #include <utils/mesh.h>
 #include <utils/meshpainter.h>
 
-#include <core/igraphicsrenderer.h>
 #include <core/graphicsengine.h>
 #include <core/scene.h>
 #include <core/scenerootnode.h>
-#include <core/backgrounddrawable.h>
+#include <core/listenernode.h>
+#include <core/settings.h>
 
 #include "sceneprivate.h"
-#include "backgrounddrawableprivate.h"
 
 namespace simplex
 {
 namespace core
 {
-
-const std::string SceneRootNodeName = "SceneRootNode";
 
 Scene::~Scene() = default;
 
@@ -25,19 +22,15 @@ const std::string &Scene::name() const
     return m_->name();
 }
 
-std::weak_ptr<const GraphicsEngine> Scene::graphicsEngine() const
+std::shared_ptr<ApplicationBase> Scene::application()
 {
-    return const_cast<Scene*>(this)->graphicsEngine();
+    auto wpApplication = m().application();
+    return wpApplication.expired() ? nullptr : wpApplication.lock();
 }
 
-std::weak_ptr<GraphicsEngine> Scene::graphicsEngine()
+std::shared_ptr<const ApplicationBase> Scene::application() const
 {
-    return m_->graphicsEngine();
-}
-
-std::shared_ptr<const SceneRootNode> Scene::sceneRootNode() const
-{
-    return const_cast<Scene*>(this)->sceneRootNode();
+    return const_cast<Scene*>(this)->application();
 }
 
 std::shared_ptr<SceneRootNode> Scene::sceneRootNode()
@@ -45,23 +38,38 @@ std::shared_ptr<SceneRootNode> Scene::sceneRootNode()
     return m_->sceneRootNode();
 }
 
-std::shared_ptr<const BackgroundDrawable> Scene::backgroundDrawable() const
+std::shared_ptr<const SceneRootNode> Scene::sceneRootNode() const
 {
-    return const_cast<Scene*>(this)->backgroundDrawable();
+    return const_cast<Scene*>(this)->sceneRootNode();
 }
 
-std::shared_ptr<BackgroundDrawable> Scene::backgroundDrawable()
+std::shared_ptr<ListenerNode> Scene::listenerNode()
 {
-    return m_->backgroundDrawable();
+    return m_->listenerNode();
 }
 
-Scene::Scene(const std::weak_ptr<GraphicsEngine> &graphicsEngine, const std::string &name)
-    : m_(std::make_unique<ScenePrivate>(graphicsEngine, name, std::shared_ptr<SceneRootNode>(new SceneRootNode(SceneRootNodeName))))
+std::shared_ptr<const ListenerNode> Scene::listenerNode() const
 {
-    if (BackgroundDrawablePrivate::screenQuadVertexArray().expired())
-        LOG_CRITICAL << "Background screen quad vertex array is expired";
+    return const_cast<Scene*>(this)->listenerNode();
+}
 
-    m_->backgroundDrawable() = std::make_shared<BackgroundDrawable>(BackgroundDrawablePrivate::screenQuadVertexArray().lock());
+Background &Scene::background()
+{
+    return m_->background();
+}
+
+const Background &Scene::background() const
+{
+    return const_cast<Scene*>(this)->background();
+}
+
+Scene::Scene(const std::weak_ptr<ApplicationBase> &application, const std::string &name)
+    : m_(std::make_unique<ScenePrivate>(application, name))
+{
+    m_->listenerNode() = std::shared_ptr<ListenerNode>(new ListenerNode(settings::Settings::instance().application().scene().listenerNodeName()));
+
+    m_->sceneRootNode() = std::shared_ptr<SceneRootNode>(new SceneRootNode(settings::Settings::instance().application().scene().sceneRootNodeName()));
+    m_->sceneRootNode()->attach(m_->listenerNode());
 }
 
 

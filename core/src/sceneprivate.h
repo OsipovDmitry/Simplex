@@ -5,28 +5,33 @@
 #include <memory>
 
 #include <core/forwarddecl.h>
+#include <core/background.h>
 
 namespace simplex
 {
 namespace core
 {
 
+class BackgroundDrawable;
+
 class ScenePrivate
 {
 public:
-    ScenePrivate(const std::weak_ptr<GraphicsEngine> &graphicsEngine, const std::string &name, const std::shared_ptr<SceneRootNode> &node);
+    ScenePrivate(const std::weak_ptr<ApplicationBase>&, const std::string&);
 
     const std::string &name() const;
 
-    std::weak_ptr<GraphicsEngine> &graphicsEngine();
+    std::weak_ptr<ApplicationBase> &application();
     std::shared_ptr<SceneRootNode> &sceneRootNode();
-    std::shared_ptr<BackgroundDrawable> &backgroundDrawable();
+    std::shared_ptr<ListenerNode> &listenerNode();
+    Background &background();
 
 private:
     std::string m_name;
-    std::weak_ptr<GraphicsEngine> m_graphicsEngine;
+    std::weak_ptr<ApplicationBase> m_application;
     std::shared_ptr<SceneRootNode> m_sceneRootNode;
-    std::shared_ptr<BackgroundDrawable> m_backgroundDrawable;
+    std::shared_ptr<ListenerNode> m_listenerNode;
+    Background m_background;
 
 };
 

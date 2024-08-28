@@ -6,7 +6,6 @@
 #include <unordered_map>
 #include <string>
 
-#include <utils/forwarddecl.h>
 #include <core/forwarddecl.h>
 
 namespace simplex

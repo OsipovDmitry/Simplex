@@ -5,10 +5,9 @@ namespace simplex
 namespace core
 {
 
-ScenePrivate::ScenePrivate(const std::weak_ptr<GraphicsEngine> &graphicsEngine, const std::string &name, const std::shared_ptr<SceneRootNode> &node)
+ScenePrivate::ScenePrivate(const std::weak_ptr<ApplicationBase> &application, const std::string &name)
     : m_name(name)
-    , m_graphicsEngine(graphicsEngine)
-    , m_sceneRootNode(node)
+    , m_application(application)
 {
 }
 
@@ -17,9 +16,9 @@ const std::string &ScenePrivate::name() const
     return m_name;
 }
 
-std::weak_ptr<GraphicsEngine> &ScenePrivate::graphicsEngine()
+std::weak_ptr<ApplicationBase> &ScenePrivate::application()
 {
-    return m_graphicsEngine;
+    return m_application;
 }
 
 std::shared_ptr<SceneRootNode> &ScenePrivate::sceneRootNode()
@@ -27,9 +26,14 @@ std::shared_ptr<SceneRootNode> &ScenePrivate::sceneRootNode()
     return m_sceneRootNode;
 }
 
-std::shared_ptr<BackgroundDrawable> &ScenePrivate::backgroundDrawable()
+std::shared_ptr<ListenerNode> &ScenePrivate::listenerNode()
 {
-    return m_backgroundDrawable;
+    return m_listenerNode;
+}
+
+Background &ScenePrivate::background()
+{
+    return m_background;
 }
 
 }

@@ -1,56 +1,36 @@
 #include <QApplication>
-#include <QPointer>
-#include <QListWidget>
-#include <QTextEdit>
+#include <QComboBox>
 
-#include <utils/logger.h>
+#include <core/shadow.h>
 
-#include <core/graphicsengine.h>
-
-#include <qt/qtrenderwidget.h>
+#include <qt/qtopenglwidget.h>
+#include <openal/openaldevice.h>
 
 #include "mainwidget.h"
 #include "testapplication.h"
-
-class LoggerOutput : public simplex::utils::Logger::Output
-{
-public:
-    LoggerOutput(QTextEdit *textEdit) : simplex::utils::Logger::Output(), m_textEdit(textEdit) {}
-    void operator <<(const std::string &s) override {
-        if (m_textEdit)
-        {
-            m_textEdit->insertPlainText(QString::fromStdString(s) + "\n");
-
-//            auto cursor = m_textEdit->textCursor();
-//            cursor.setPosition(QTextCursor::End);
-//            m_textEdit->setTextCursor(cursor);
-        }
-    }
-
-private:
-    QPointer<QTextEdit> m_textEdit;
-};
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-    auto mainWidget = new MainWidget();
-    mainWidget->setRenderMode(false);
-    auto renderWidget = mainWidget->renderWidget();
+    auto openALDevice = simplex::openal::OpenALDevice::getOrCreate();
 
+    auto mainWidget = new MainWidget();
+    mainWidget->setRenderMode(true);
     mainWidget->showMaximized();
 
-    auto testApplication = std::make_shared<TestApplication>(renderWidget->graphicsRenderer());
-    renderWidget->setApplication(testApplication);
+    auto testApplication = std::make_shared<TestApplication>(mainWidget->renderWidget(), openALDevice);
+    mainWidget->renderWidget()->setApplication(testApplication);
 
-    QObject::connect(mainWidget, &MainWidget::renderTypeChanged, [testApplication](int row) {
-        testApplication->graphicsEngine()->setF(row);
-    });
-    mainWidget->renderTypeList()->setCurrentRow(7);
+    QObject::connect(mainWidget, &MainWidget::shadowModeChanged, [testApplication](int value) {testApplication->setShadowMode(simplex::core::castToShadingMode(value));});
+    QObject::connect(mainWidget, &MainWidget::shadowFilterChanged, [testApplication](int value) {testApplication->setShadowFilter(simplex::core::castToShadingFilter(value));});
+    testApplication->setShadowMode(simplex::core::castToShadingMode(mainWidget->shadowModeBox()->currentIndex()));
+    testApplication->setShadowFilter(simplex::core::castToShadingFilter(mainWidget->shadowFilterBox()->currentIndex()));
 
     auto result = QApplication::exec();
+    mainWidget->disconnect();
 
+    testApplication.reset();
     delete mainWidget;
 
     return result;

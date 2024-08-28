@@ -34,7 +34,7 @@ Image::Image()
     : m_width(0u)
     , m_height(0u)
     , m_numComponents(0u)
-    , m_type(PixelComponentType::Undefined)
+    , m_componentType(PixelComponentType::Undefined)
     , m_data(nullptr)
 {
 }
@@ -61,7 +61,7 @@ uint32_t Image::numComponents() const
 
 PixelComponentType Image::type() const
 {
-    return m_type;
+    return m_componentType;
 }
 
 const void *Image::data() const
@@ -125,28 +125,32 @@ bool Image::saveToFile(const std::filesystem::path &filename)
     return result;
 }
 
-std::shared_ptr<Image> Image::loadFromData(uint32_t w, uint32_t h, uint32_t n, PixelComponentType t, const void *d)
+std::shared_ptr<Image> Image::loadFromData(uint32_t width,
+                                           uint32_t height,
+                                           uint32_t numComponents,
+                                           PixelComponentType componentType,
+                                           const void *data)
 {
-    if (w * h == 0)
+    if (width * height == 0)
         LOG_CRITICAL << "Width and height can't be 0";
 
-    if ((n < 1) ||  (n > 4))
+    if ((numComponents < 1) ||  (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
-    if (t == PixelComponentType::Undefined)
+    if (componentType == PixelComponentType::Undefined)
         LOG_CRITICAL << "Undefined pixel component type";
 
     auto result = std::make_shared<Image>();
-    result->m_width = w;
-    result->m_height = h;
-    result->m_numComponents = n;
-    result->m_type = t;
+    result->m_width = width;
+    result->m_height = height;
+    result->m_numComponents = numComponents;
+    result->m_componentType = componentType;
 
-    size_t dataSize = w * h * n * sizeOfPixelComponentType(t);
+    size_t dataSize = width * height * numComponents * sizeOfPixelComponentType(componentType);
     result->m_data = std::malloc(dataSize);
 
-    if (d)
-        std::memcpy(result->m_data,  d, dataSize);
+    if (data)
+        std::memcpy(result->m_data,  data, dataSize);
 
     return result;
 }
@@ -183,7 +187,7 @@ std::shared_ptr<Image> Image::loadFromFile(const std::filesystem::path &filename
     result->m_height = static_cast<uint32_t>(h);
     result->m_numComponents = static_cast<uint32_t>(n);
     result->m_data = d;
-    result->m_type = t;
+    result->m_componentType = t;
 
     return result;
 }

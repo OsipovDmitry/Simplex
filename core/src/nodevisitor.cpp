@@ -11,7 +11,7 @@ NodeVisitor::NodeVisitor()
 
 NodeVisitor::~NodeVisitor() = default;
 
-bool NodeVisitor::visit(const std::shared_ptr<Node> &)
+bool NodeVisitor::visit(Node &)
 {
     return true;
 }

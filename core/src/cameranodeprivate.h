@@ -2,43 +2,62 @@
 #define CORE_CAMERANODEPRIVATE_H
 
 #include <utils/clipspace.h>
-#include <utils/range.h>
+
+#include <core/ssao.h>
 
 #include "nodeprivate.h"
-#include "framebufferhelpers.h"
 
 namespace simplex
 {
 namespace core
 {
 
+class GFrameBuffer;
+class SSAOFrameBuffer;
+class BlurFrameBuffer;
+class PostprocessFrameBuffer;
+
 class CameraNodePrivate : public NodePrivate
 {
 public:
-    CameraNodePrivate(const std::string&);
+    CameraNodePrivate(CameraNode&, const std::string&);
     ~CameraNodePrivate() override;
 
-    std::shared_ptr<utils::AbstractClipSpace> &clipSpace();
     bool &isRenderingEnabled();
 
-    glm::uvec2 &viewportSize();
+    std::shared_ptr<graphics::IFrameBuffer> &userFrameBuffer();
+
+    utils::ClipSpaceType &clipSpaceType();
+    float &clipSpaceVerticalParam();
+    utils::ClipSpace &clipSpace();
+
     utils::Range &cullPlanesLimits();
+
+    SSAO &ssao();
+
     std::shared_ptr<GFrameBuffer> &gFrameBuffer();
-    std::shared_ptr<OITFrameBuffer> &oitFrameBuffer();
-    std::shared_ptr<LightFrameBuffer> &lightFrameBuffer();
-    std::shared_ptr<FinalFrameBuffer> &finalFrameBuffer();
+    std::shared_ptr<SSAOFrameBuffer> &ssaoFrameBuffer();
+    std::shared_ptr<BlurFrameBuffer> &ssaoBlurFrameBuffer();
     std::shared_ptr<PostprocessFrameBuffer> &postprocessFrameBuffer();
 
+    void resize(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&);
+
 private:
-    std::shared_ptr<utils::AbstractClipSpace> m_clipSpace;
     bool m_isRenderingEnabled;
 
-    glm::uvec2 m_viewportSize;
+    std::shared_ptr<graphics::IFrameBuffer> m_userFrameBuffer;
+
+    utils::ClipSpaceType m_clipSpaceType;
+    float m_clipSpaceVerticalParam;
+    utils::ClipSpace m_clipSpace;
+
     utils::Range m_cullPlanesLimits;
+
+    SSAO m_ssao;
+
     std::shared_ptr<GFrameBuffer> m_gFrameBuffer;
-    std::shared_ptr<OITFrameBuffer> m_oitFrameBuffer;
-    std::shared_ptr<LightFrameBuffer> m_lightFrameBuffer;
-    std::shared_ptr<FinalFrameBuffer> m_finalFrameBuffer;
+    std::shared_ptr<SSAOFrameBuffer> m_ssaoFrameBuffer;
+    std::shared_ptr<BlurFrameBuffer> m_ssaoBlurFrameBuffer;
     std::shared_ptr<PostprocessFrameBuffer> m_postprocessFrameBuffer;
 };
 

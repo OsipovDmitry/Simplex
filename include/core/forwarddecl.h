@@ -5,15 +5,48 @@
 #include <memory>
 #include <array>
 #include <unordered_set>
+#include <unordered_map>
+#include <set>
+#include <string>
 
 namespace simplex
 {
 namespace core
 {
 
+namespace debug
+{
+struct CameraInformation;
+struct SceneInformation;
+struct Information;
+}
+
+namespace settings
+{
+class Application;
+class Camera;
+class Background;
+class Flat;
+class PBR;
+class IBL;
+class Shadow;
+class SSAO;
+class Blur;
+class NodeBoundingBox;
+class VisualDrawableNodeLocalBoundingBox;
+class VisualDrawableBoundingBox;
+class LightNodeAreaBoundingBox;
+class DebugRendering;
+class Graphics;
+class Audio;
+class Physics;
+class Settings;
+}
+
 namespace graphics
 {
 enum class PixelInternalFormat : uint16_t;
+using SupportedImageFormats = std::unordered_map<PixelInternalFormat, std::string>;
 enum class TextureType : uint16_t;
 enum class TextureWrapMode : uint16_t;
 enum class TextureFilterMode : uint16_t;
@@ -22,9 +55,7 @@ using TextureSwizzleMask = std::array<TextureSwizzle, 4u>;
 enum class FrameBufferAttachment : uint16_t;
 union FrameBufferClearColorValue;
 enum class FrameBufferClearColorType : uint16_t;
-enum class UniformId : uint16_t;
 enum class UniformType : uint16_t;
-enum class SSBOId : uint16_t;
 struct AttributeInfo;
 struct UniformInfo;
 struct SSBOVariableInfo;
@@ -58,22 +89,27 @@ using PConstImage = std::shared_ptr<const IImage>;
 using PImage = std::shared_ptr<IImage>;
 }
 
-namespace debug
+namespace audio
 {
-class GraphicsEngineInformation;
+enum class BufferFormat : uint16_t;
+enum class SourceState : uint16_t;
+enum class AttenuationModel : uint16_t;
+class IBuffer;
+class ISource;
+class IListener;
+class IRenderer;
 }
 
-class Settings;
-
 class INamedObject;
-class IApplication;
 class IEngine;
+
+class IRenderWidget;
+class ApplicationBase;
 
 class RenderInfo;
 
-class ApplicationBase;
-
 class GraphicsEngine;
+class AudioEngine;
 
 class AbstractUniform;
 using PAbstractUniform = std::shared_ptr<AbstractUniform>;
@@ -83,36 +119,48 @@ template <typename T> class Uniform;
 template<typename T>
 using PUniform = std::shared_ptr<Uniform<T>>;
 
-enum class DrawableAlphaMode : uint16_t;
-class Drawable;
+enum class UniformId : uint16_t;
+using UniformCollection = std::unordered_map<UniformId, PAbstractUniform>;
+using UserUniformCollection = std::unordered_map<std::string, PAbstractUniform>;
+enum class SSBOId : uint16_t;
+using SSBOCollection = std::unordered_map<SSBOId, graphics::PConstBufferRange>;
+class StateSet;
+using PStateSet = std::shared_ptr<StateSet>;
+using PConstStateSet = std::shared_ptr<const StateSet>;
 
-enum class PBRComponent : uint16_t;
+class Drawable;
+using DrawableComponentSet = std::set<UniformId>;
+class VisualDrawable;
+class FlatDrawable;
 class PBRDrawable;
 
-enum class LightComponent : uint16_t;
-class LightDrawable;
-
-enum class BackgroundComponent : uint16_t;
-class BackgroundDrawable;
+class Background;
+class Shadow;
+class SSAO;
 
 class Scene;
 class Node;
 class SceneRootNode;
+enum class SSAOMode : uint16_t;
 class CameraNode;
-class DrawableNode;
+class VisualDrawableNode;
 enum class LightType : uint16_t;
-enum class LightShadingMode : uint16_t;
+enum class ShadingMode : uint16_t;
+enum class ShadingFilter : uint16_t;
 class LightNode;
 class PointLightNode;
 class SpotLightNode;
 class DirectionalLightNode;
 class IBLLightNode;
+class SoundNode;
+class ListenerNode;
 
 class NodeVisitor;
 template <typename NodeClass> class NodeCollector;
 
 class TexturesManager;
 class ProgramsManager;
+class SoundsManager;
 
 }
 }

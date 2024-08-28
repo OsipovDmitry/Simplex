@@ -16,11 +16,12 @@ namespace simplex
 {
 namespace qt
 {
-class QtRenderWidget;
+class QtOpenGLWidget;
 }
 }
 
 class QListWidget;
+class QComboBox;;
 
 class MainWidget : public QWidget
 {
@@ -31,7 +32,9 @@ public:
     ~MainWidget() override;
 
     QListWidget *renderTypeList();
-    simplex::qt::QtRenderWidget *renderWidget();
+    simplex::qt::QtOpenGLWidget *renderWidget();
+    QComboBox *shadowModeBox();
+    QComboBox *shadowFilterBox();
 
     void onTimeout();
 
@@ -43,9 +46,12 @@ protected:
 
 signals:
     void renderTypeChanged(int);
+    void shadowModeChanged(int);
+    void shadowFilterChanged(int);
 
 private:
     Ui::MainWidget *ui;
+    std::shared_ptr<simplex::qt::QtOpenGLWidget> m_renderWidget;
 
     bool m_isWPressed = false;
     bool m_isSPressed = false;
@@ -56,8 +62,8 @@ private:
     bool m_isLeftPressed = false;
     bool m_isRightPressed = false;
 
-    glm::vec3 m_cameraPosition = glm::vec3(-0.17f, 1.17f, 3.0f);
-    glm::vec2 m_cameraAngles = glm::vec2(-0.18f, 6.01f);
+    glm::vec3 m_cameraPosition = glm::vec3(0.f, 1.f, 0.f);//glm::vec3(-0.17f, 1.17f, 3.0f);
+    glm::vec2 m_cameraAngles = glm::vec2(0.f);//glm::vec2(-0.18f, 6.01f);
 };
 
 #endif // MAINWIDGET_H

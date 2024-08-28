@@ -35,9 +35,6 @@ public:
 
     bool attach(const std::shared_ptr<T> &node)
     {
-        if (!canAttach(node))
-            return false;
-
         if (node->m_parent)
             node->m_parent->detach(node);
         node->m_parent = dynamic_cast<T*>(this);
@@ -52,8 +49,6 @@ public:
             return false;
         auto it = std::find(m_children.begin(), m_children.end(), node);
         if (it == m_children.end())
-            return false;
-        if (!canDetach(node))
             return false;
 
         node->TreeNode<T>::doDetach();
@@ -78,9 +73,6 @@ public:
     std::vector<std::shared_ptr<T>> &children() { return m_children; }
 
 protected:
-    virtual bool canAttach(const std::shared_ptr<T>&) { return true; }
-    virtual bool canDetach(const std::shared_ptr<T>&) { return true; }
-
     virtual void doAttach() {}
     virtual void doDetach() {}
 

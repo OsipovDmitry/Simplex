@@ -20,7 +20,7 @@ public:
     NodeVisitor();
     virtual ~NodeVisitor();
 
-    virtual bool visit(const std::shared_ptr<Node>&);
+    virtual bool visit(Node&);
 
 };
 

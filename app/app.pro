@@ -15,6 +15,7 @@ FORMS += \
 LIBS += \
     -lutils \
     -lcore \
-    -lqt
+    -lqt \
+    -lopenal
 
 RESOURCES +=

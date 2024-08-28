@@ -2,6 +2,7 @@
 #define CORE_SPOTLIGHTNODE_H
 
 #include <utils/glm/vec2.hpp>
+#include <utils/glm/vec3.hpp>
 
 #include <core/lightnode.h>
 
@@ -13,7 +14,7 @@ namespace core
 class SpotLightNodePrivate;
 class CORE_SHARED_EXPORT SpotLightNode : public LightNode
 {
-    PIMPL(SpotLightNode)
+    PRIVATE_IMPL(SpotLightNode)
 public:
     SpotLightNode(const std::string&);
     ~SpotLightNode() override;
@@ -32,12 +33,6 @@ public:
     const glm::vec2 &halfAngles() const;
     void setHalfAngles(const glm::vec2&);
 
-protected:
-    glm::mat4x4 doAreaMatrix() const override;
-    utils::BoundingBox doAreaBoundingBox() const override;
-    glm::mat4x4 doUpdateLayeredShadowMatrices(const utils::FrustumCorners&,
-                                              const utils::Range&,
-                                              std::vector<glm::mat4x4>&) const override;
 };
 
 }

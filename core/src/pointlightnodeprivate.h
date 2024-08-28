@@ -10,19 +10,17 @@ namespace core
 
 class PointLightNodePrivate : public LightNodePrivate
 {
+    PUBLIC_IMPL(PointLightNode)
+
 public:
-    PointLightNodePrivate(const std::string &name);
+    PointLightNodePrivate(PointLightNode&, const std::string&);
     ~PointLightNodePrivate() override;
 
-    std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer>&) const override;
-    const glm::mat4x4 &shadowBiasMatrix() const override;
-
-    static std::weak_ptr<graphics::IVertexArray> &lightAreaVertexArray();
-    static utils::BoundingBox &lightAreaBoundingBox();
-
 private:
-    static std::weak_ptr<graphics::IVertexArray> s_lightAreaVertexArray;
-    static utils::BoundingBox s_lightAreaBoundingBox;
+    ShadowTransform doShadowTransform(const utils::Frustum::Points&) override;
+
+    glm::mat4x4 doAreaMatrix() override;
+    utils::BoundingBox doAreaBoundingBox() override;
 
 };
 

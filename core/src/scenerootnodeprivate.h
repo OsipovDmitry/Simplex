@@ -1,7 +1,5 @@
-#ifndef SCENEROOTNODEPRIVATE_H
-#define SCENEROOTNODEPRIVATE_H
-
-#include <core/forwarddecl.h>
+#ifndef CORE_SCENEROOTNODEPRIVATE_H
+#define CORE_SCENEROOTNODEPRIVATE_H
 
 #include "nodeprivate.h"
 
@@ -13,11 +11,14 @@ namespace core
 class SceneRootNodePrivate : public NodePrivate
 {
 public:
-    SceneRootNodePrivate(const std::string &name)
-        : NodePrivate(name)
-    {}
+    SceneRootNodePrivate(SceneRootNode &sceneRootNode, const std::string &name);
 
-    std::weak_ptr<Scene> &scene() { return m_scene; }
+    ~SceneRootNodePrivate() override;
+
+    void doAttachToParent() override;
+    void doDetachFromParent() override;
+
+    std::weak_ptr<Scene> &scene();
 
 private:
     std::weak_ptr<Scene> m_scene;
@@ -27,4 +28,4 @@ private:
 }
 }
 
-#endif // SCENEROOTNODEPRIVATE_H
+#endif // CORE_SCENEROOTNODEPRIVATE_H

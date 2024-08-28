@@ -1,4 +1,4 @@
-#ifndef CORE_DRAWABLEPRIVATE_H
+﻿#ifndef CORE_DRAWABLEPRIVATE_H
 #define CORE_DRAWABLEPRIVATE_H
 
 #include <memory>
@@ -9,33 +9,26 @@
 
 #include <core/forwarddecl.h>
 
+#include "statesetprivate.h"
+
 namespace simplex
 {
 namespace core
 {
 
-class DrawablePrivate
+class DrawablePrivate : public StateSetPrivate
 {
 public:
     DrawablePrivate(const std::shared_ptr<graphics::IVertexArray>&);
-    virtual ~DrawablePrivate();
+    ~DrawablePrivate() override;
 
     std::shared_ptr<graphics::IVertexArray> &vertexArray();
-    std::unordered_map<graphics::UniformId, PAbstractUniform> &uniforms();
-    std::unordered_map<std::string, PAbstractUniform> &userUniforms();
-    std::unordered_map<graphics::SSBOId, std::shared_ptr<const graphics::IBufferRange>> &SSBOs();
-    bool &isDoubleSided();
 
-    static float &defaultAlphaCutoff();
+    bool &isDoubleSided();
 
 protected:
     std::shared_ptr<graphics::IVertexArray> m_vertexArray;
-    std::unordered_map<graphics::UniformId, PAbstractUniform> m_uniforms;
-    std::unordered_map<std::string, PAbstractUniform> m_userUniforms;
-    std::unordered_map<graphics::SSBOId, std::shared_ptr<const graphics::IBufferRange>> m_SSBOs;
     bool m_isDoubleSided;
-
-    static float s_defaultAlphaCutoff;
 
 };
 

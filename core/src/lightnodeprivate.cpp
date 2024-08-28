@@ -1,40 +1,45 @@
+#include <core/lightnode.h>
+
 #include "lightnodeprivate.h"
+#include "shadowprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-LightNodePrivate::LightNodePrivate(const std::string &name)
-    : NodePrivate(name)
+LightNodePrivate::LightNodePrivate(LightNode &lightNode, const std::string &name, std::unique_ptr<ShadowPrivate> shadowPrivate)
+    : NodePrivate(lightNode, name)
+    , m_shadow(std::move(shadowPrivate))
     , m_isLightingEnabled(true)
+    , m_shadowTransform()
     , m_areaDrawable()
     , m_isAreaMatrixDirty(true)
     , m_isAreaBoundingBoxDirty(true)
-    , m_isShadowFrameBufferDirty(true)
 {
 }
 
 LightNodePrivate::~LightNodePrivate() = default;
+
+utils::BoundingBox LightNodePrivate::doBoundingBox()
+{
+    return areaBoundingBox();
+}
 
 bool &LightNodePrivate::isLightingEnabled()
 {
     return m_isLightingEnabled;
 }
 
-LightShadingMode &LightNodePrivate::shadingMode()
+Shadow &LightNodePrivate::shadow()
 {
-    return m_shadingMode;
+    return m_shadow;
 }
 
-glm::uvec2 &LightNodePrivate::shadowMapSize()
+LightNodePrivate::ShadowTransform &LightNodePrivate::shadowTransform(const utils::Frustum::Points &cameraFrustumPoints)
 {
-    return m_shadowMapSize;
-}
-
-utils::Range &LightNodePrivate::shadowCullPlanesLimits()
-{
-    return m_shadowCullPlanesLimits;
+    m_shadowTransform = doShadowTransform(cameraFrustumPoints);
+    return m_shadowTransform;
 }
 
 std::shared_ptr<LightDrawable> &LightNodePrivate::areaDrawable()
@@ -42,39 +47,40 @@ std::shared_ptr<LightDrawable> &LightNodePrivate::areaDrawable()
     return m_areaDrawable;
 }
 
-bool &LightNodePrivate::isAreaMatrixDirty()
+const glm::mat4x4 &LightNodePrivate::areaMatrix()
 {
-    return m_isAreaMatrixDirty;
-}
-
-glm::mat4x4 &LightNodePrivate::areaMatrix()
-{
+    if (m_isAreaMatrixDirty)
+    {
+        m_areaMatrix = doAreaMatrix();
+        m_isAreaMatrixDirty = false;
+    }
     return m_areaMatrix;
 }
 
-bool &LightNodePrivate::isAreaBoundingBoxDirty()
+const utils::BoundingBox &LightNodePrivate::areaBoundingBox()
 {
-    return m_isAreaBoundingBoxDirty;
-}
-
-utils::BoundingBox &LightNodePrivate::areaBoundingBox()
-{
+    if (m_isAreaBoundingBoxDirty)
+    {
+        m_areaBoundingBox = doAreaBoundingBox();
+        m_isAreaBoundingBoxDirty = false;
+    }
     return m_areaBoundingBox;
 }
 
-bool &LightNodePrivate::isShadowFrameBufferDirty()
+void LightNodePrivate::dirtyAreaMatrix()
 {
-    return m_isShadowFrameBufferDirty;
+    m_isAreaMatrixDirty = true;
 }
 
-std::shared_ptr<ShadowFrameBuffer> &LightNodePrivate::shadowFrameBuffer()
+void LightNodePrivate::dirtyAreaBoundingBox()
 {
-    return m_shadowFrameBuffer;
+    m_isAreaBoundingBoxDirty = true;
+    dirtyBoundingBox();
 }
 
-graphics::PBufferRange &LightNodePrivate::layeredShadowMatricesBuffer()
+LightNodePrivate::ShadowTransform LightNodePrivate::doShadowTransform(const utils::Frustum::Points&)
 {
-    return m_layeredShadowMatricesBuffer;
+    return ShadowTransform();
 }
 
 }

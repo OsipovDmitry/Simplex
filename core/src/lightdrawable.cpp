@@ -1,8 +1,7 @@
-#include <core/lightdrawable.h>
-#include <core/igraphicsrenderer.h>
+#include <core/settings.h>
 #include <core/uniform.h>
 
-#include "lightdrawableprivate.h"
+#include "lightdrawable.h"
 
 namespace simplex
 {
@@ -10,21 +9,28 @@ namespace core
 {
 
 LightDrawable::LightDrawable(const std::shared_ptr<graphics::IVertexArray> &vao)
-    : Drawable(std::make_unique<LightDrawablePrivate>(vao))
+    : Drawable(vao)
 {
     setDoubleSided(true);
+    setDielecticSpecular(settings::Settings::instance().graphics().pbr().dielectricSpecular());
 }
 
 LightDrawable::~LightDrawable() = default;
 
-DrawableAlphaMode LightDrawable::alphaMode() const
+float LightDrawable::dielectricSpecular() const
 {
-    return DrawableAlphaMode::Opaque;
+    auto uni = uniform_cast<float>(uniform(UniformId::LightDielecticSpecular));
+    return uni ? uni->data() : settings::Settings::instance().graphics().pbr().dielectricSpecular();
+}
+
+void LightDrawable::setDielecticSpecular(float value)
+{
+    getOrCreateUniform(UniformId::LightDielecticSpecular) = makeUniform(value);
 }
 
 void LightDrawable::setShadowDepthMap(const graphics::PConstTexture &value)
 {
-    static graphics::UniformId s_uniformId = graphics::UniformId::ShadowDepthMap;
+    static UniformId s_uniformId = UniformId::ShadowDepthMap;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -34,7 +40,7 @@ void LightDrawable::setShadowDepthMap(const graphics::PConstTexture &value)
 
 void LightDrawable::setShadowColorMap(const graphics::PConstTexture &value)
 {
-    static graphics::UniformId s_uniformId = graphics::UniformId::ShadowColorMap;
+    static UniformId s_uniformId = UniformId::ShadowColorMap;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -42,23 +48,26 @@ void LightDrawable::setShadowColorMap(const graphics::PConstTexture &value)
         removeUniform(s_uniformId);
 }
 
-void LightDrawable::setShadowMatrix(const glm::mat4x4 &value)
+void LightDrawable::setShadowViewMatrix(const glm::mat4x4 &vm)
 {
-    getOrCreateUniform(graphics::UniformId::ShadowMatrix) = makeUniform(value);
+    getOrCreateUniform(UniformId::ShadowViewMatrix) = makeUniform(vm);
 }
 
-std::unordered_set<LightComponent> LightDrawable::lightComponentsSet() const
+void LightDrawable::setShadowProjectionMatrix(const glm::mat4x4 &pm)
 {
-    return componentsSet<LightComponent>(uniformIdByLightComponent);
+    getOrCreateUniform(UniformId::ShadowProjectionMatrix) = makeUniform(pm);
 }
 
-graphics::UniformId LightDrawable::uniformIdByLightComponent(LightComponent value)
+void LightDrawable::setShadowDepthBias(float value)
 {
-    static const std::unordered_map<LightComponent, graphics::UniformId> s_table {
+    getOrCreateUniform(UniformId::ShadowDepthBias) = makeUniform(value);
+}
+
+DrawableComponentSet LightDrawable::componentSet()
+{
+    static const DrawableComponentSet s_set {
     };
-
-    auto it = s_table.find(value);
-    return (it == s_table.end()) ? graphics::UniformId::Undefined : it->second;
+    return s_set;
 }
 
 

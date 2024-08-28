@@ -1,63 +1,69 @@
 #ifndef CORE_LIGHTNODEPRIVATE_H
 #define CORE_LIGHTNODEPRIVATE_H
 
-#include <core/forwarddecl.h>
+#include <utils/frustum.h>
+#include <utils/clipspace.h>
+
+#include <core/shadow.h>
 
 #include "nodeprivate.h"
-#include "framebufferhelpers.h"
 
 namespace simplex
 {
 namespace core
 {
 
+class ShadowPrivate;
+class LightDrawable;
+
 class LightNodePrivate : public NodePrivate
 {
 public:
-    LightNodePrivate(const std::string &name);
+    struct ShadowTransform
+    {
+        utils::Transform frustumViewTransform;
+        utils::ClipSpace frustumClipSpace;
+
+        std::vector<utils::Transform> layeredViewTransforms;
+        utils::ClipSpace clipSpase;
+        utils::Range cullPlanesLimits;
+    };
+
+    LightNodePrivate(LightNode&, const std::string&, std::unique_ptr<ShadowPrivate>);
     ~LightNodePrivate() override;
 
+    utils::BoundingBox doBoundingBox() override;
+
     bool &isLightingEnabled();
-    LightShadingMode &shadingMode();
 
-    glm::uvec2 &shadowMapSize();
-    utils::Range &shadowCullPlanesLimits();
+    Shadow &shadow();
 
+    ShadowTransform &shadowTransform(const utils::Frustum::Points&);
     std::shared_ptr<LightDrawable> &areaDrawable();
+    const glm::mat4x4 &areaMatrix();
+    const utils::BoundingBox &areaBoundingBox();
 
-    bool &isAreaMatrixDirty();
-    glm::mat4x4 &areaMatrix();
+    void dirtyAreaMatrix();
+    void dirtyAreaBoundingBox();
 
-    bool &isAreaBoundingBoxDirty();
-    utils::BoundingBox &areaBoundingBox();
-
-    bool &isShadowFrameBufferDirty();
-    std::shared_ptr<ShadowFrameBuffer> &shadowFrameBuffer();
-
-    graphics::PBufferRange &layeredShadowMatricesBuffer();
-
-    virtual std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer>&) const = 0;
-    virtual const glm::mat4x4 &shadowBiasMatrix() const = 0;
+protected:
+    Shadow m_shadow;
 
 private:
     bool m_isLightingEnabled;
-    LightShadingMode m_shadingMode;
 
-    glm::uvec2 m_shadowMapSize;
-    utils::Range m_shadowCullPlanesLimits;
-
+    ShadowTransform m_shadowTransform;
     std::shared_ptr<LightDrawable> m_areaDrawable;
-
-    bool m_isAreaMatrixDirty;
     glm::mat4x4 m_areaMatrix;
-
-    bool m_isAreaBoundingBoxDirty;
     utils::BoundingBox m_areaBoundingBox;
 
-    bool m_isShadowFrameBufferDirty;
-    std::shared_ptr<ShadowFrameBuffer> m_shadowFrameBuffer;
+    bool m_isAreaMatrixDirty;
+    bool m_isAreaBoundingBoxDirty;
 
-    graphics::PBufferRange m_layeredShadowMatricesBuffer;
+    virtual ShadowTransform doShadowTransform(const utils::Frustum::Points&);
+
+    virtual glm::mat4x4 doAreaMatrix() = 0;
+    virtual utils::BoundingBox doAreaBoundingBox() = 0;
 
 };
 

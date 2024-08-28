@@ -44,7 +44,10 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetRenderProgra
     auto fShader = utils::Shader::loadFromFile(fShaderFileName, defines);
 
     auto renderProgram = m_->renderer()->createRenderProgram(vShader, fShader);
-    m_->resources()[name] = renderProgram;
+    if (renderProgram)
+        m_->resources()[name] = renderProgram;
+    else
+        LOG_CRITICAL << "Failed to load render program: " << vShaderFileName << ", " << fShaderFileName;
 
     return renderProgram;
 }
@@ -77,7 +80,10 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetRenderProgra
     auto fShader = utils::Shader::loadFromFile(fShaderFileName, defines);
 
     auto renderProgram = m_->renderer()->createRenderProgram(vShader, gShader, fShader);
-    m_->resources()[name] = renderProgram;
+    if (renderProgram)
+        m_->resources()[name] = renderProgram;
+    else
+        LOG_CRITICAL << "Failed to load render program: " << vShaderFileName << ", " << gShaderFileName << ", " << fShaderFileName;
 
     return renderProgram;
 }
@@ -106,86 +112,36 @@ std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetComputeProg
     auto cShader = utils::Shader::loadFromFile(cShaderFileName, defines);
 
     auto computeProgram = m_->renderer()->createComputeProgram(cShader);
-    m_->resources()[name] = computeProgram;
+    if (computeProgram)
+        m_->resources()[name] = computeProgram;
+    else
+        LOG_CRITICAL << "Failed to load compute program: " << cShaderFileName;
 
     return computeProgram;
 }
 
-std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetOpaqueGeometryPassRenderProgram(
-        const utils::VertexAttributesSet &attribsSet,
-        const std::unordered_set<PBRComponent> &PBRComponentsSet)
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetGeometryPassRenderProgram(const utils::VertexAttributeSet &attribsSet,
+                                                                                              const UniformCollection &uniformCollection,
+                                                                                              bool isTransparent)
 {
     utils::ShaderDefines defines;
+    ProgramsManagerPrivate::prepareTransparentDefines(isTransparent, defines);
     ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
-    ProgramsManagerPrivate::preparePBRComponentsDefines(PBRComponentsSet, defines);
+    ProgramsManagerPrivate::prepareVisualDrawableComponentsDefines(uniformCollection, defines);
 
     ProgramsManagerPrivate::NameKey key;
     uint16_t bit = 0u;
+    bit = ProgramsManagerPrivate::prepareTransparentKey(isTransparent, key, bit);
     bit = ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, bit);
-    bit = ProgramsManagerPrivate::preparePBRComponentsKey(PBRComponentsSet, key, bit);
+    bit = ProgramsManagerPrivate::prepareVisualDrawableComponentsKey(uniformCollection, key, bit);
 
     return loadOrGetRenderProgram(ProgramsManagerPrivate::geometryPassVertexShaderPath(),
-                                  ProgramsManagerPrivate::opaqueGeometryPassFragmnetShaderPath(),
+                                  ProgramsManagerPrivate::geometryPassFragmnetShaderPath(),
                                   defines,
-                                  ProgramsManagerPrivate::opaqueGeometryPassRenderProgramName() + key.to_string());
+                                  ProgramsManagerPrivate::geometryPassRenderProgramName() + key.to_string());
 }
 
-std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetTransparentGeometryPassRenderProgram(
-        const utils::VertexAttributesSet &attribsSet,
-        const std::unordered_set<PBRComponent> &PBRComponentsSet)
-{
-    utils::ShaderDefines defines;
-    ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
-    ProgramsManagerPrivate::preparePBRComponentsDefines(PBRComponentsSet, defines);
-
-    ProgramsManagerPrivate::NameKey key;
-    uint16_t bit = 0u;
-    bit = ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, bit);
-    bit = ProgramsManagerPrivate::preparePBRComponentsKey(PBRComponentsSet, key, bit);
-
-    return loadOrGetRenderProgram(ProgramsManagerPrivate::geometryPassVertexShaderPath(),
-                                  ProgramsManagerPrivate::transparentGeometryPassFragmnetShaderPath(),
-                                  defines,
-                                  ProgramsManagerPrivate::transparentGeometryPassRenderProgramName() + key.to_string());
-}
-
-std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetOITClearPassComputeProgram()
-{
-    return loadOrGetComputeProgram(ProgramsManagerPrivate::OITClearPassComputeShaderPath(),
-                                   {},
-                                   ProgramsManagerPrivate::OITClearPassComputeProgramName());
-}
-
-std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetOITSortNodesPassComputeProgram()
-{
-    return loadOrGetComputeProgram(ProgramsManagerPrivate::OITSortNodesPassComputeShaderPath(),
-                                   {},
-                                   ProgramsManagerPrivate::OITSortNodesPassComputeProgramName());
-}
-
-std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetShadowRenderProgram(const utils::VertexAttributesSet &attribsSet,
-                                                                                        const std::unordered_set<PBRComponent> &PBRComponentsSet,
-                                                                                        LightShadingMode shadingMode)
-{
-    utils::ShaderDefines defines;
-    ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
-    ProgramsManagerPrivate::preparePBRComponentsDefines(PBRComponentsSet, defines);
-    ProgramsManagerPrivate::prepareLightShadingModeDefines(shadingMode, defines);
-
-    ProgramsManagerPrivate::NameKey key;
-    uint16_t bit = 0u;
-    bit = ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, bit);
-    bit = ProgramsManagerPrivate::preparePBRComponentsKey(PBRComponentsSet, key, bit);
-    bit = ProgramsManagerPrivate::prepareLightShadingModeKey(shadingMode, key, bit);
-
-    return loadOrGetRenderProgram(ProgramsManagerPrivate::shadowVertexShaderPath(),
-                                  ProgramsManagerPrivate::shadowGeometryShaderPath(),
-                                  ProgramsManagerPrivate::shadowFragmnetShaderPath(),
-                                  defines,
-                                  ProgramsManagerPrivate::shadowRenderProgramName() + key.to_string());
-}
-
-std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetStencilPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetStencilPassRenderProgram(const utils::VertexAttributeSet &attribsSet,
                                                                                              LightType lightType)
 {
     utils::ShaderDefines defines;
@@ -203,24 +159,29 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetStencilPassR
                                   ProgramsManagerPrivate::stencilPassRenderProgramName() + key.to_string());
 }
 
-std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetLightPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
-                                                                                           const std::unordered_set<LightComponent> &lightComponentsSet,
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetLightPassRenderProgram(const utils::VertexAttributeSet &attribsSet,
+                                                                                           const UniformCollection &uniformCollection,
                                                                                            LightType lightType,
-                                                                                           LightShadingMode shadingMode)
+                                                                                           ShadingMode shadingMode,
+                                                                                           ShadingFilter shadingFilter,
+                                                                                           SSAOMode ssaoMode)
 {
     utils::ShaderDefines defines;
     ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
-    ProgramsManagerPrivate::prepareLightComponentsDefines(lightComponentsSet, defines);
+    ProgramsManagerPrivate::prepareLightComponentsDefines(uniformCollection, defines);
     ProgramsManagerPrivate::prepareLightTypeDefines(lightType, defines);
-    ProgramsManagerPrivate::prepareLightShadingModeDefines(shadingMode, defines);
-    defines.insert({"DIELECTRIC_SPECULAR", std::to_string(ProgramsManagerPrivate::dielectricSpecular())});
+    ProgramsManagerPrivate::prepareShadingModeDefines(shadingMode, defines);
+    ProgramsManagerPrivate::prepareShadingFilterDefines(shadingFilter, defines);
+    ProgramsManagerPrivate::prepareSSAOModeDefines(ssaoMode, defines);
 
     ProgramsManagerPrivate::NameKey key;
     uint16_t bit = 0u;
     bit = ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, bit);
-    bit = ProgramsManagerPrivate::prepareLightComponentsKey(lightComponentsSet, key, bit);
+    bit = ProgramsManagerPrivate::prepareLightComponentsKey(uniformCollection, key, bit);
     bit = ProgramsManagerPrivate::prepareLightTypeKey(lightType, key, bit);
-    bit = ProgramsManagerPrivate::prepareLightShadingModeKey(shadingMode, key, bit);
+    bit = ProgramsManagerPrivate::prepareShadingModeKey(shadingMode, key, bit);
+    bit = ProgramsManagerPrivate::prepareShadingFilterKey(shadingFilter, key, bit);
+    bit = ProgramsManagerPrivate::prepareSSAOModeKey(ssaoMode, key, bit);
 
     return loadOrGetRenderProgram(ProgramsManagerPrivate::lightPassVertexShaderPath(),
                                   ProgramsManagerPrivate::lightPassFragmnetShaderPath(),
@@ -228,17 +189,123 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetLightPassRen
                                   ProgramsManagerPrivate::lightPassRenderProgramName() + key.to_string());
 }
 
-std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetBackgroundPassRenderProgram(const utils::VertexAttributesSet &attribsSet,
-                                                                                                const std::unordered_set<BackgroundComponent> &backgroundComponentsSet)
+std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetOITClearPassComputeProgram()
+{
+    return loadOrGetComputeProgram(ProgramsManagerPrivate::OITClearPassComputeShaderPath(),
+                                   {},
+                                   ProgramsManagerPrivate::OITClearPassComputeProgramName());
+}
+
+std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetOITSortNodesPassComputeProgram()
+{
+    return loadOrGetComputeProgram(ProgramsManagerPrivate::OITSortNodesPassComputeShaderPath(),
+                                   {},
+                                   ProgramsManagerPrivate::OITSortNodesPassComputeProgramName());
+}
+
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetSSAORenderProgram(const utils::VertexAttributeSet &attribsSet,
+                                                                                      SSAOMode mode)
 {
     utils::ShaderDefines defines;
     ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
-    ProgramsManagerPrivate::prepareBackgroundComponentsDefines(backgroundComponentsSet, defines);
+    ProgramsManagerPrivate::prepareSSAOModeDefines(mode, defines);
 
     ProgramsManagerPrivate::NameKey key;
     uint16_t bit = 0u;
     bit = ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, bit);
-    bit = ProgramsManagerPrivate::prepareBackgroundComponentsKey(backgroundComponentsSet, key, bit);
+    bit = ProgramsManagerPrivate::prepareSSAOModeKey(mode, key, bit);
+
+    return loadOrGetRenderProgram(ProgramsManagerPrivate::SSAOVertexShaderPath(),
+                                  ProgramsManagerPrivate::SSAOFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::SSAORenderProgramName() + key.to_string());
+}
+
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetBlurRenderProgram(const utils::VertexAttributeSet &attribsSet)
+{
+    utils::ShaderDefines defines;
+    ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
+
+    ProgramsManagerPrivate::NameKey key;
+    uint16_t bit = 0u;
+    bit = ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, bit);
+
+    return loadOrGetRenderProgram(ProgramsManagerPrivate::blurVertexShaderPath(),
+                                  ProgramsManagerPrivate::blurFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::blurRenderProgramName() + key.to_string());
+}
+
+std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetBlurComputeProgram(graphics::TextureType textureType,
+                                                                                        graphics::PixelInternalFormat imageFormat)
+{
+    const auto &supportedFormats = m_->renderer()->supportedImageFormats();
+
+    utils::ShaderDefines defines;
+    ProgramsManagerPrivate::prepareImageTypeDefines(textureType, "SOURCE_IMAGE", defines);
+    ProgramsManagerPrivate::prepareImageFormatDefines(supportedFormats, imageFormat, "SOURCE_IMAGE", defines);
+
+    ProgramsManagerPrivate::NameKey key;
+    uint16_t bit = 0u;
+    bit = ProgramsManagerPrivate::prepareImageTypeKey(textureType, key, bit);
+    bit = ProgramsManagerPrivate::prepareImageFormatKey(supportedFormats, imageFormat, key, bit);
+
+    return loadOrGetComputeProgram(ProgramsManagerPrivate::blurComputeShaderPath(),
+                                   defines,
+                                   ProgramsManagerPrivate::blurRenderProgramName() + key.to_string());
+}
+
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetBilaterialBlurRenderProgram(const utils::VertexAttributeSet &attribsSet)
+{
+    utils::ShaderDefines defines;
+    ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
+
+    ProgramsManagerPrivate::NameKey key;
+    uint16_t bit = 0u;
+    bit = ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, bit);
+
+    return loadOrGetRenderProgram(ProgramsManagerPrivate::bilaterialBlurVertexShaderPath(),
+                                  ProgramsManagerPrivate::bilaterialBlurFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::bilaterialBlurRenderProgramName() + key.to_string());
+}
+
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetShadowRenderProgram(const utils::VertexAttributeSet &attribsSet,
+                                                                                        const UniformCollection &uniformCollection,
+                                                                                        ShadingMode shadingMode,
+                                                                                        ShadingFilter shadingFilter)
+{
+    utils::ShaderDefines defines;
+    ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
+    ProgramsManagerPrivate::prepareVisualDrawableComponentsDefines(uniformCollection, defines);
+    ProgramsManagerPrivate::prepareShadingModeDefines(shadingMode, defines);
+    ProgramsManagerPrivate::prepareShadingFilterDefines(shadingFilter, defines);
+
+    ProgramsManagerPrivate::NameKey key;
+    uint16_t bit = 0u;
+    bit = ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, bit);
+    bit = ProgramsManagerPrivate::prepareVisualDrawableComponentsKey(uniformCollection, key, bit);
+    bit = ProgramsManagerPrivate::prepareShadingModeKey(shadingMode, key, bit);
+    bit = ProgramsManagerPrivate::prepareShadingFilterKey(shadingFilter, key, bit);
+
+    return loadOrGetRenderProgram(ProgramsManagerPrivate::shadowVertexShaderPath(),
+                                  ProgramsManagerPrivate::shadowGeometryShaderPath(),
+                                  ProgramsManagerPrivate::shadowFragmnetShaderPath(),
+                                  defines,
+                                  ProgramsManagerPrivate::shadowRenderProgramName() + key.to_string());
+}
+
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetBackgroundPassRenderProgram(const utils::VertexAttributeSet &attribsSet,
+                                                                                                const UniformCollection &uniformCollection)
+{
+    utils::ShaderDefines defines;
+    ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
+    ProgramsManagerPrivate::prepareBackgroundComponentsDefines(uniformCollection, defines);
+
+    ProgramsManagerPrivate::NameKey key;
+    uint16_t bit = 0u;
+    bit = ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, bit);
+    bit = ProgramsManagerPrivate::prepareBackgroundComponentsKey(uniformCollection, key, bit);
 
     return loadOrGetRenderProgram(ProgramsManagerPrivate::backgroundPassVertexShaderPath(),
                                   ProgramsManagerPrivate::backgroundPassFragmnetShaderPath(),
@@ -246,21 +313,7 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetBackgroundPa
                                   ProgramsManagerPrivate::backgroundPassRenderProgramName() + key.to_string());
 }
 
-std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetForegroundPassRenderProgram(const utils::VertexAttributesSet &attribsSet)
-{
-    utils::ShaderDefines defines;
-    ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
-
-    ProgramsManagerPrivate::NameKey key;
-    ProgramsManagerPrivate::prepareVertexAttributesKey(attribsSet, key, 0u);
-
-    return loadOrGetRenderProgram(ProgramsManagerPrivate::foregroundPassVertexShaderPath(),
-                                  ProgramsManagerPrivate::foregroundPassFragmnetShaderPath(),
-                                  defines,
-                                  ProgramsManagerPrivate::foregroundPassRenderProgramName() + key.to_string());
-}
-
-std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetFinalPassRenderProgram(const utils::VertexAttributesSet &attribsSet)
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetFinalPassRenderProgram(const utils::VertexAttributeSet &attribsSet)
 {
     utils::ShaderDefines defines;
     ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);
@@ -274,7 +327,7 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetFinalPassRen
                                   ProgramsManagerPrivate::finalPassRenderProgramName() + key.to_string());
 }
 
-std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetPostprocessPassRenderProgram(const utils::VertexAttributesSet &attribsSet)
+std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetPostprocessPassRenderProgram(const utils::VertexAttributeSet &attribsSet)
 {
     utils::ShaderDefines defines;
     ProgramsManagerPrivate::prepareVertexAttributesDefines(attribsSet, defines);

@@ -3,12 +3,10 @@
 
 #include <string>
 #include <memory>
-#include <vector>
 
-#include <utils/glm/vec4.hpp>
+#include <utils/boundingbox.h>
 
 #include <core/forwarddecl.h>
-#include <core/debuginformation.h>
 
 namespace simplex
 {
@@ -22,62 +20,64 @@ public:
 
     std::string &name();
 
-    debug::GraphicsEngineInformation &debugInformation();
-
     std::shared_ptr<graphics::IRenderer> &renderer();
     std::shared_ptr<TexturesManager> &texturesManager();
     std::shared_ptr<ProgramsManager> &programsManager();
 
-    std::shared_ptr<core::graphics::IBufferRange> &OITNodesBuffer();
-    std::shared_ptr<core::graphics::IBufferRange> &OITNodesCounter();
-
-    std::vector<std::shared_ptr<Scene>> &scenes();
+    graphics::PBufferRange &fragmentsBuffer();
+    graphics::PBufferRange &fragmentsCounter();
 
     std::shared_ptr<graphics::IVertexArray> &screenQuadVertexArray();
 
     std::shared_ptr<graphics::IVertexArray> &pointLightAreaVertexArray();
+    utils::BoundingBox &pointLightAreaBoundingBox();
+
     std::shared_ptr<graphics::IVertexArray> &spotLightAreaVertexArray();
+    utils::BoundingBox &spotLightAreaBoundingBox();
+
     std::shared_ptr<graphics::IVertexArray> &directionalLightAreaVertexArray();
 
     std::shared_ptr<Drawable> &screenQuadDrawable();
 
-    std::shared_ptr<Drawable> &finalScreenQuadDrawable();
-    std::shared_ptr<PBRDrawable> &nodeBoundingBoxDrawable();
-    std::shared_ptr<PBRDrawable> &cameraNodeCameraDrawable();
-    std::shared_ptr<PBRDrawable> &cameraNodeFrustumDrawable();
-    std::shared_ptr<PBRDrawable> &drawableNodeLocalBoundingBoxDrawable();
+    std::shared_ptr<FlatDrawable> &nodeBoundingBoxDrawable();
+    std::shared_ptr<FlatDrawable> &visualDrawableNodeLocalBoundingBoxDrawable();
+    std::shared_ptr<FlatDrawable> &visualDrawableBoundingBoxDrawable();
+    std::shared_ptr<FlatDrawable> &lightNodeAreaBoundingBoxDrawable();
+
+    static const std::string &vertexAttributeNameById(utils::VertexAttribute);
+    static const std::string &uniformNameById(UniformId);
+    static const std::string &SSBONameById(SSBOId);
 
 private:
     std::string m_name;
-
-    debug::GraphicsEngineInformation m_debugInformation;
 
     std::shared_ptr<graphics::IRenderer> m_renderer;
     std::shared_ptr<TexturesManager> m_texturesManager;
     std::shared_ptr<ProgramsManager> m_programsManager;
 
-    glm::vec4 m_defaultBaseColor;
-    float m_defaultMetallness;
-    float m_defaultRoughness;
-
-    std::shared_ptr<core::graphics::IBufferRange> m_OITNodesBuffer;
-    std::shared_ptr<core::graphics::IBufferRange> m_OITNodesCounter;
-
-    std::vector<std::shared_ptr<Scene>> m_scenes;
+    graphics::PBufferRange m_fragmentsBuffer;
+    graphics::PBufferRange m_fragmentsCounter;
 
     std::shared_ptr<graphics::IVertexArray> m_screenQuadVertexArray;
 
     std::shared_ptr<graphics::IVertexArray> m_pointLightAreaVertexArray;
+    utils::BoundingBox m_pointLightAreaBoundingBox;
+
     std::shared_ptr<graphics::IVertexArray> m_spotLightAreaVertexArray;
+    utils::BoundingBox m_spotLightAreaBoundingBox;
+
     std::shared_ptr<graphics::IVertexArray> m_directionalLightAreaVertexArray;
 
     std::shared_ptr<Drawable> m_screenQuadDrawable;
 
+    std::shared_ptr<FlatDrawable> m_nodeBoundingBoxDrawable;
+    std::shared_ptr<FlatDrawable> m_visualDrawableNodeLocalBoundingBoxDrawable;
+    std::shared_ptr<FlatDrawable> m_visualDrawableBoundingBoxDrawable;
+    std::shared_ptr<FlatDrawable> m_lightNodeAreaBoundingBoxDrawable;
+
+    graphics::PTexture m_defaultSSAOTexture;
+
     std::shared_ptr<Drawable> m_finalScreenQuadDrawable;
-    std::shared_ptr<PBRDrawable> m_nodeBoundingBoxDrawable;
-    std::shared_ptr<PBRDrawable> m_cameraNodeCameraDrawable;
-    std::shared_ptr<PBRDrawable> m_cameraNodeFrustumDrawable;
-    std::shared_ptr<PBRDrawable> m_drawableNodeLocalBoundingBoxDrawable;
 };
 
 }

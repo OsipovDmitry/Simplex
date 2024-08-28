@@ -20,27 +20,30 @@ class ScenePrivate;
 class CORE_SHARED_EXPORT Scene : public INamedObject, public utils::SortedObject
 {
     NONCOPYBLE(Scene)
-    PIMPL(Scene)
+    PRIVATE_IMPL(Scene)
 public:
     ~Scene() override;
 
     const std::string &name() const override;
 
-    std::weak_ptr<const GraphicsEngine> graphicsEngine() const;
-    std::weak_ptr<GraphicsEngine> graphicsEngine();
+    std::shared_ptr<ApplicationBase> application();
+    std::shared_ptr<const ApplicationBase> application() const;
 
-    std::shared_ptr<const SceneRootNode> sceneRootNode() const;
     std::shared_ptr<SceneRootNode> sceneRootNode();
+    std::shared_ptr<const SceneRootNode> sceneRootNode() const;
 
-    std::shared_ptr<const BackgroundDrawable> backgroundDrawable() const;
-    std::shared_ptr<BackgroundDrawable> backgroundDrawable();
+    std::shared_ptr<ListenerNode> listenerNode();
+    std::shared_ptr<const ListenerNode> listenerNode() const;
+
+    Background &background();
+    const Background &background() const;
 
 private:
-    Scene(const std::weak_ptr<GraphicsEngine>&, const std::string&);
+    Scene(const std::weak_ptr<ApplicationBase>&, const std::string&);
 
     std::unique_ptr<ScenePrivate> m_;
 
-    friend class GraphicsEngine;
+    friend class ApplicationBase;
 };
 
 }

@@ -1,57 +1,34 @@
+#include <core/ibllightnode.h>
+
 #include "ibllightnodeprivate.h"
+#include "iblshadowprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-std::weak_ptr<graphics::IVertexArray> IBLLightNodePrivate::s_lightAreaVertexArray;
-std::weak_ptr<const graphics::ITexture> IBLLightNodePrivate::s_defaultBRDFLutMap;
-std::weak_ptr<const graphics::ITexture> IBLLightNodePrivate::s_defaultDiffuseMap;
-std::weak_ptr<const graphics::ITexture> IBLLightNodePrivate::s_defaultSpecularMap;
-float IBLLightNodePrivate::s_defaultContribution = .4f;
-
-IBLLightNodePrivate::IBLLightNodePrivate(const std::string &name)
-    : LightNodePrivate(name)
+IBLLightNodePrivate::IBLLightNodePrivate(IBLLightNode &iblLightNode, const std::string &name)
+    : LightNodePrivate(iblLightNode, name, std::make_unique<IBLShadowPrivate>())
 {
-}
-
-std::shared_ptr<ShadowFrameBuffer> IBLLightNodePrivate::createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer> &) const
-{
-    return nullptr;
-}
-
-const glm::mat4x4 &IBLLightNodePrivate::shadowBiasMatrix() const
-{
-    static const glm::mat4x4 s_biasMatrix(1.f);
-    return s_biasMatrix;
 }
 
 IBLLightNodePrivate::~IBLLightNodePrivate() = default;
 
-std::weak_ptr<graphics::IVertexArray> &IBLLightNodePrivate::lightAreaVertexArray()
+void IBLLightNodePrivate::doAfterTransformChanged()
 {
-    return s_lightAreaVertexArray;
+    dirtyAreaMatrix();
+    dirtyAreaBoundingBox();
 }
 
-std::weak_ptr<const graphics::ITexture> &IBLLightNodePrivate::defaultBRDFLutMap()
+glm::mat4x4 IBLLightNodePrivate::doAreaMatrix()
 {
-    return s_defaultBRDFLutMap;
+    return glm::mat4x4(1.f); // it is not used because bb policy is Root
 }
 
-std::weak_ptr<const graphics::ITexture> &IBLLightNodePrivate::defaultDiffuseMap()
+utils::BoundingBox IBLLightNodePrivate::doAreaBoundingBox()
 {
-    return s_defaultDiffuseMap;
-}
-
-std::weak_ptr<const graphics::ITexture> &IBLLightNodePrivate::defaultSpecularMap()
-{
-    return s_defaultSpecularMap;
-}
-
-float &IBLLightNodePrivate::defaultContribution()
-{
-    return s_defaultContribution;
+    return utils::BoundingBox::empty(); // it is not used because bb policy is Root
 }
 
 }

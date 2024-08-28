@@ -1,5 +1,5 @@
-﻿#ifndef IGRAPHICSRENDERER_H
-#define IGRAPHICSRENDERER_H
+﻿#ifndef CORE_IGRAPHICSRENDERER_H
+#define CORE_IGRAPHICSRENDERER_H
 
 #include <memory>
 #include <string>
@@ -101,67 +101,9 @@ ENUMCLASS(FrameBufferClearColorType, uint16_t,
 
 using FrameBufferClearColor = std::pair<FrameBufferClearColorType, FrameBufferClearColorValue>;
 
-ENUMCLASS(UniformId, uint16_t,
-          Undefined,
-          ViewportSize,
-          ModelMatrix,
-          NormalMatrix,
-          NormalMatrixInverse,
-          ViewMatrix,
-          ViewMatrixInverse,
-          ProjectionMatrix,
-          ProjectionMatrixInverse,
-          ViewProjectionMatrix,
-          ViewProjectionMatrixInverse,
-          ModelViewMatrix,
-          NormalViewMatrix,
-          ModelViewProjectionMatrix,
-          ModelPosition,
-          ModelXDirection,
-          ModelYDirection,
-          ModelZDirection,
-          ViewPosition,
-          ViewXDirection,
-          ViewYDirection,
-          ViewZDirection,
-          ZRange,
-          BackgroundColorMap,
-          BackgroundBaseColor,
-          BackgroundRoughness,
-          GBufferColor0Map,
-          GBufferColor1Map,
-          GBufferColor2Map,
-          GBufferDepthMap,
-          OITDepthImage,
-          OITIndicesImage,
-          OITNodesCounter,
-          LightBufferColorMap,
-          FinalBufferColorMap,
-          AlphaCutoff,
-          ORMSwizzleMask,
-          BaseColor,
-          BaseColorMap,
-          Metalness,
-          MetalnessMap,
-          Roughness,
-          RoughnessMap,
-          NormalMap,
-          NormalMapScale,
-          OcclusionMap,
-          OcclusionMapStrength,
-          LightColor,
-          LightRadiuses,
-          LightCosHalfAngles,
-          IBLBRDFLutMap,
-          IBLDiffuseMap,
-          IBLSpecularMap,
-          IBLContribution,
-          ShadowDepthMap,
-          ShadowColorMap,
-          ShadowMatrix)
-
 ENUMCLASS(UniformType, uint16_t,
           Undefined,
+          Bool,
           Single,
           SingleVec2,
           SingleVec3,
@@ -202,12 +144,6 @@ ENUMCLASS(UniformType, uint16_t,
           ImageRect,
           AtomicCounterUint)
 
-ENUMCLASS(SSBOId, uint16_t,
-          Undefined,
-          BonesBuffer,
-          LayeredShadowMatrices,
-          OITNodes)
-
 struct AttributeInfo
 {
     utils::VertexAttribute id;
@@ -219,7 +155,7 @@ struct AttributeInfo
 
 struct UniformInfo
 {
-    UniformId id;
+    uint16_t id;
     uint16_t index;
     int32_t location;
     UniformType type;
@@ -234,7 +170,7 @@ struct SSBOVariableInfo
 
 struct SSBOInfo
 {
-    SSBOId id;
+    uint16_t id;
     uint16_t index;
     std::vector<SSBOVariableInfo> variables;
 };
@@ -347,6 +283,7 @@ public:
     virtual glm::uvec2 size() const = 0;
     virtual PixelInternalFormat internalFormat() const = 0;
     virtual bool hasAlpha() const = 0;
+    virtual bool hasDepth() const = 0;
 };
 
 class ITexture : public ISurface
@@ -356,6 +293,7 @@ public:
 
     virtual glm::uvec3 mipmapSize(uint32_t level = 0) const = 0;
     virtual uint32_t numMipmapLevels() const = 0;
+    virtual uint32_t numFaces() const = 0;
 
     virtual void setSubImage(uint32_t level,
                              const glm::uvec3 &offset,
@@ -367,8 +305,9 @@ public:
     virtual void subImage(uint32_t level,
                           const glm::uvec3 &offset,
                           const glm::uvec3 &size,
-                          uint32_t &numComponents,
-                          utils::PixelComponentType &type,
+                          uint32_t numComponents,
+                          utils::PixelComponentType type,
+                          size_t bufSize,
                           void *data) const = 0;
 
     virtual void generateMipmaps() = 0;
@@ -377,6 +316,9 @@ public:
     virtual void setFilterMode(TextureFilterMode) = 0;
     virtual void setSwizzleMask(const TextureSwizzleMask&) = 0;
 
+    virtual PTexture copyEmpty() const = 0;
+    virtual PTexture copy() const = 0;
+
 };
 
 class IImage
@@ -384,13 +326,14 @@ class IImage
 public:
     virtual ~IImage() = default;
 
-    virtual std::shared_ptr<const ITexture> texture() const = 0;
-    virtual std::shared_ptr<ITexture> texture() = 0;
-
     ENUMCLASS(DataAccess, uint8_t, ReadOnly, WriteOnly, ReadWrite)
     virtual DataAccess access() const = 0;
+    virtual void setAccess(DataAccess) = 0;
 
     virtual uint32_t mipmapLevel() const = 0;
+    virtual PixelInternalFormat format() const = 0;
+    virtual PConstTexture texture() const = 0;
+    virtual void setTexture(const PConstTexture&, uint32_t) = 0;
 };
 
 class IRenderBuffer : public ISurface
@@ -493,9 +436,6 @@ public:
 
     static UniformType uniformTypeByTextureType(TextureType);
     static UniformType uniformTypeByImageTextureType(TextureType);
-
-    static UniformId UniformIdByName(const std::string&);
-    static SSBOId SSBOIdByName(const std::string&);
 };
 
 class IRenderProgram : public virtual IProgram
@@ -504,9 +444,6 @@ public:
     virtual int32_t attributeLocationByName(const std::string&) const = 0;
     virtual const std::vector<AttributeInfo> &attributesInfo() const = 0;
     virtual std::string attributeNameByIndex(uint16_t) const = 0;
-
-    static utils::VertexComponentType attributeVertexComponentTypeByAttributeId(utils::VertexAttribute);
-    static utils::VertexAttribute vertexAttributeByName(const std::string&);
 };
 
 class IComputeProgram : public virtual IProgram
@@ -518,8 +455,8 @@ public:
 class IRenderer : public INamedObject
 {
 public:
-    virtual std::shared_ptr<IFrameBuffer> defaultFrameBuffer() = 0;
-    virtual std::shared_ptr<const IFrameBuffer> defaultFrameBuffer() const = 0;
+    virtual bool makeCurrent(const std::shared_ptr<core::IRenderWidget>&) = 0;
+    virtual bool doneCurrent(const std::shared_ptr<core::IRenderWidget>&) = 0;
 
     virtual void blitFrameBuffer(std::shared_ptr<const IFrameBuffer> src,
                                  std::shared_ptr<IFrameBuffer> dst,
@@ -527,6 +464,18 @@ public:
                                  const glm::uvec4 &dstViewport,
                                  bool colorMsk, bool depthMask, bool stencilMask,
                                  bool linearFilter = false) = 0;
+
+    virtual bool registerVertexAttribute(const std::string&, utils::VertexAttribute) = 0;
+    virtual bool unregisterVertexAttribute(const std::string&) = 0;
+    virtual utils::VertexAttribute vertexAttributeByName(const std::string&) const = 0;
+
+    virtual bool registerUniformId(const std::string&, uint16_t) = 0;
+    virtual bool unregisterUniformId(const std::string&) = 0;
+    virtual uint16_t uniformIdByName(const std::string&) const = 0;
+
+    virtual bool registerSSBOId(const std::string&, uint16_t) = 0;
+    virtual bool unregisterSSBOId(const std::string&) = 0;
+    virtual uint16_t SSBOIdByName(const std::string&) const = 0;
 
     virtual std::shared_ptr<IBuffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
     virtual std::shared_ptr<IBufferRange> createBufferRange(const std::shared_ptr<IBuffer>&,
@@ -597,8 +546,8 @@ public:
                                                              core::graphics::PixelInternalFormat) const = 0;
     virtual std::shared_ptr<ITexture> createTextureRect(const std::shared_ptr<utils::Image>&,
                                                         core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined) const = 0;
-    virtual std::shared_ptr<IImage> createImage(const std::shared_ptr<ITexture>&,
-                                                IImage::DataAccess,
+    virtual std::shared_ptr<IImage> createImage(IImage::DataAccess,
+                                                const PConstTexture&,
                                                 uint32_t level = 0u) const = 0;
     virtual std::shared_ptr<IRenderBuffer> createRenderBuffer(uint32_t width,
                                                               uint32_t height,
@@ -611,15 +560,23 @@ public:
                                                                 const std::shared_ptr<utils::Shader> &fragmentShader) const = 0;
     virtual std::shared_ptr<IComputeProgram> createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const = 0;
 
+    virtual const SupportedImageFormats &supportedImageFormats() const = 0;
+
     virtual void resize(uint32_t, uint32_t) = 0;
-    virtual const glm::uvec2 &viewportSize() const = 0;
+    virtual const glm::uvec2 &screenSize() const = 0;
 
     virtual void clearRenderData() = 0;
     virtual void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
                                const std::shared_ptr<const Drawable>&,
                                const glm::mat4x4& = glm::mat4x4(1.f)) = 0;
-    virtual void render(const std::shared_ptr<IFrameBuffer>&, const RenderInfo&, const glm::uvec4&) = 0;
-    virtual void compute(const std::shared_ptr<IComputeProgram>&, const RenderInfo&, const glm::uvec3&) = 0;
+    virtual void render(const std::shared_ptr<IFrameBuffer>&,
+                        const glm::uvec4 &viewport,
+                        const glm::mat4x4 &viewMatrix,
+                        const glm::mat4x4 &projectionMatrix,
+                        const PConstStateSet&) = 0;
+    virtual void compute(const std::shared_ptr<IComputeProgram>&,
+                         const glm::uvec3&,
+                         const PConstStateSet&) = 0;
 };
 
 inline core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(uint32_t numComponents,
@@ -705,116 +662,8 @@ inline UniformType IProgram::uniformTypeByImageTextureType(TextureType textureTy
         return (it == s_table.end()) ? UniformType::Undefined : it->second;
 }
 
-inline utils::VertexComponentType IRenderProgram::attributeVertexComponentTypeByAttributeId(utils::VertexAttribute vertexAttribute)
-{
-    static const std::array<utils::VertexComponentType, utils::numElementsVertexAttribute()> s_table {
-        utils::VertexComponentType::Single,
-        utils::VertexComponentType::Single,
-        utils::VertexComponentType::Single,
-        utils::VertexComponentType::Uint32,
-        utils::VertexComponentType::Single,
-        utils::VertexComponentType::Single,
-        utils::VertexComponentType::Single
-    };
-
-    return s_table[utils::castFromVertexAttribute(vertexAttribute)];
-}
-
-inline utils::VertexAttribute IRenderProgram::vertexAttributeByName(const std::string &name)
-{
-    static const std::unordered_map<std::string, utils::VertexAttribute> s_table {
-        { "a_position", utils::VertexAttribute::Position },
-        { "a_normal", utils::VertexAttribute::Normal },
-        { "a_texCoord", utils::VertexAttribute::TexCoords },
-        { "a_bonesIDs", utils::VertexAttribute::BonesIDs },
-        { "a_bonesWeights", utils::VertexAttribute::BonesWeights },
-        { "a_tangent", utils::VertexAttribute::Tangent },
-        { "a_color", utils::VertexAttribute::Color },
-    };
-
-    auto it = s_table.find(name);
-    return (it == s_table.end()) ? utils::VertexAttribute::Count : it->second;
-}
-
-inline UniformId IProgram::UniformIdByName(const std::string &name)
-{
-    static const std::unordered_map<std::string, UniformId> s_table {
-        { "u_viewportSize", UniformId::ViewportSize },
-        { "u_modelMatrix", UniformId::ModelMatrix },
-        { "u_normalMatrix", UniformId::NormalMatrix },
-        { "u_normalMatrixInverse", UniformId::NormalMatrixInverse },
-        { "u_viewMatrix", UniformId::ViewMatrix },
-        { "u_viewMatrixInverse", UniformId::ViewMatrixInverse },
-        { "u_projectionMatrix", UniformId::ProjectionMatrix },
-        { "u_projectionMatrixInverse", UniformId::ProjectionMatrixInverse },
-        { "u_viewProjectionMatrix", UniformId::ViewProjectionMatrix },
-        { "u_viewProjectionMatrixInverse", UniformId::ViewProjectionMatrixInverse },
-        { "u_modelViewMatrix", UniformId::ModelViewMatrix },
-        { "u_normalViewMatrix", UniformId::NormalViewMatrix },
-        { "u_modelViewProjectionMatrix", UniformId::ModelViewProjectionMatrix },
-        { "u_modelPosition", UniformId::ModelPosition },
-        { "u_modelXDirection", UniformId::ModelXDirection },
-        { "u_modelYDirection", UniformId::ModelYDirection },
-        { "u_modelZDirection", UniformId::ModelZDirection },
-        { "u_viewPosition", UniformId::ViewPosition },
-        { "u_viewXDirection", UniformId::ViewXDirection },
-        { "u_viewYDirection", UniformId::ViewYDirection },
-        { "u_viewZDirection", UniformId::ViewZDirection },
-        { "u_zRange", UniformId::ZRange },
-        { "u_backgroundColorMap", UniformId::BackgroundColorMap },
-        { "u_backgroundBaseColor", UniformId::BackgroundBaseColor },
-        { "u_backgroundRoughness", UniformId::BackgroundRoughness },
-        { "u_GBufferColor0Map", UniformId::GBufferColor0Map },
-        { "u_GBufferColor1Map", UniformId::GBufferColor1Map },
-        { "u_GBufferColor2Map", UniformId::GBufferColor2Map },
-        { "u_GBufferDepthMap", UniformId::GBufferDepthMap },
-        { "u_OITDepthImage", UniformId::OITDepthImage },
-        { "u_OITIndicesImage", UniformId::OITIndicesImage },
-        { "ssbo_OITNodesCounter", UniformId::OITNodesCounter },
-        { "u_lightBufferColorMap", UniformId::LightBufferColorMap },
-        { "u_finalBufferColorMap", UniformId::FinalBufferColorMap },
-        { "u_alphaCutoff", UniformId::AlphaCutoff },
-        { "u_ORMSwizzleMask", UniformId::ORMSwizzleMask },
-        { "u_baseColor", UniformId::BaseColor },
-        { "u_baseColorMap", UniformId::BaseColorMap },
-        { "u_metalness", UniformId::Metalness },
-        { "u_metalnessMap", UniformId::MetalnessMap },
-        { "u_roughness", UniformId::Roughness },
-        { "u_roughnessMap", UniformId::RoughnessMap },
-        { "u_normalMap", UniformId::NormalMap },
-        { "u_normalMapScale", UniformId::NormalMapScale },
-        { "u_occlusionMap", UniformId::OcclusionMap },
-        { "u_occlusionMapStrength", UniformId::OcclusionMapStrength },
-        { "u_lightColor", UniformId::LightColor },
-        { "u_lightRadiuses", UniformId::LightRadiuses },
-        { "u_lightCosHalfAngles", UniformId::LightCosHalfAngles },
-        { "u_IBLBRDFLutMap", UniformId::IBLBRDFLutMap },
-        { "u_IBLDiffuseMap", UniformId::IBLDiffuseMap },
-        { "u_IBLSpecularMap", UniformId::IBLSpecularMap },
-        { "u_IBLContribution", UniformId::IBLContribution },
-        { "u_shadowDepthMap", UniformId::ShadowDepthMap },
-        { "u_shadowColorMap", UniformId::ShadowColorMap },
-        { "u_shadowMatrix", UniformId::ShadowMatrix }
-    };
-
-    auto it = s_table.find(name);
-    return (it == s_table.end()) ? UniformId::Undefined : it->second;
-}
-
-inline SSBOId IProgram::SSBOIdByName(const std::string &name)
-{
-    static const std::unordered_map<std::string, SSBOId> s_table {
-        { "ssbo_bonesBuffer", SSBOId::BonesBuffer },
-        { "ssbo_OITNodes", SSBOId::OITNodes },
-        { "ssbo_layeredShadowMatricesBuffer", SSBOId::LayeredShadowMatrices }
-    };
-
-    auto it = s_table.find(name);
-    return (it == s_table.end()) ? SSBOId::Undefined : it->second;
-}
-
 }
 }
 }
 
-#endif // IGRAPHICSRENDERER_H
+#endif // CORE_IGRAPHICSRENDERER_H

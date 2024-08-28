@@ -5,15 +5,32 @@
 
 #include <core/applicationbase.h>
 
+#include <qt/forwarddecl.h>
+#include <openal/forwarddecl.h>
+
 class TestApplication : public simplex::core::ApplicationBase
 {
 public:
-    TestApplication(std::shared_ptr<simplex::core::graphics::IRenderer>);
+    TestApplication(simplex::qt::QtOpenGLWidget*,
+                    const std::shared_ptr<simplex::openal::OpenALDevice>&);
 
-    std::shared_ptr<simplex::core::GraphicsEngine> graphicsEngine();
+    ~TestApplication() override;
+
+    void setShadowMode(simplex::core::ShadingMode);
+    void setShadowFilter(simplex::core::ShadingFilter);
 
 protected:
-    void doUpdate(uint64_t, uint32_t) override;
+    void doInitialize() override;
+    void doUpdate(uint64_t time, uint32_t dt) override;
+
+private:    
+    void prepareStandardScene();
+    void prepareSponzaScene();
+    void prepareChessScene();
+    void prepareEmptyRoomScene();
+
+    simplex::qt::QtOpenGLWidget *m_renderWidget;
+    std::shared_ptr<simplex::openal::OpenALDevice> m_audioDevice;
 
 };
 

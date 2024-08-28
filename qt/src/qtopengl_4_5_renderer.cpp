@@ -1,8 +1,9 @@
-﻿#include <array>
+﻿#include <QWindow>
+
+#include <array>
 #include <functional>
 
 #include <utils/glm/gtc/type_ptr.hpp>
-#include <utils/glm/gtc/matrix_inverse.hpp>
 #include <utils/glm/gtx/texture.hpp>
 #include <utils/logger.h>
 #include <utils/mesh.h>
@@ -13,7 +14,10 @@
 #include <core/drawable.h>
 #include <core/uniform.h>
 
+#include <qt/qtopenglwidget.h>
+
 #include "qtopengl_4_5_renderer.h"
+#include "mvpstateset.h"
 
 namespace simplex
 {
@@ -371,6 +375,7 @@ GLenum Conversions::UniformType2GL(core::graphics::UniformType value)
 core::graphics::UniformType Conversions::GL2UniformType(GLenum value)
 {
     static std::unordered_map<GLenum, core::graphics::UniformType> s_table {
+        { GL_BOOL, core::graphics::UniformType::Bool },
         { GL_FLOAT, core::graphics::UniformType::Single },
         { GL_FLOAT_VEC2, core::graphics::UniformType::SingleVec2 },
         { GL_FLOAT_VEC3, core::graphics::UniformType::SingleVec3 },
@@ -733,9 +738,6 @@ void VertexArray_4_5::declareVertexAttribute(utils::VertexAttribute attrib,
     if (numComponents < 1 || numComponents > 4)
         LOG_CRITICAL << "Num components must be [1..4]";
 
-    if (type != core::graphics::IRenderProgram::attributeVertexComponentTypeByAttributeId(attrib))
-        LOG_CRITICAL << "Vertex attribute has wrong component type";
-
     m_vertexDeclarations[attrib] = std::make_tuple(bindingIndex, numComponents, type, relativeOffset);
 
     auto loc = static_cast<GLuint>(attrib);
@@ -871,17 +873,14 @@ GLuint TextureBase_4_5::id() const
     return m_id;
 }
 
-void TextureBase_4_5::setSwizzleMask(const core::graphics::TextureSwizzleMask &value)
+GLenum TextureBase_4_5::GLinternalFormat() const
 {
-    const std::array<GLint, 4u> glValues {
-        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[0u])),
-        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[1u])),
-        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[2u])),
-        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[3u])),
-    };
+    GLint result;
 
     auto renderer = QtOpenGL_4_5_Renderer::instance();
-    renderer->glTextureParameteriv(m_id, GL_TEXTURE_SWIZZLE_RGBA, glValues.data());
+    renderer->glGetTextureLevelParameteriv(m_id, 0, GL_TEXTURE_INTERNAL_FORMAT, &result);
+
+    return static_cast<GLenum>(result);
 }
 
 glm::uvec2 TextureBase_4_5::size() const
@@ -904,6 +903,16 @@ bool TextureBase_4_5::hasAlpha() const
     return result != 0;
 }
 
+bool TextureBase_4_5::hasDepth() const
+{
+    GLint result;
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glGetTextureLevelParameteriv(m_id, 0, GL_TEXTURE_DEPTH_SIZE, &result);
+
+    return result != 0;
+}
+
 glm::uvec3 TextureBase_4_5::mipmapSize(uint32_t level) const
 {
     GLint w, h, d;
@@ -921,19 +930,37 @@ uint32_t TextureBase_4_5::numMipmapLevels() const
     GLint result;
 
     auto renderer = QtOpenGL_4_5_Renderer::instance();
-    renderer->glGetTextureParameteriv(m_id, GL_TEXTURE_MAX_LEVEL, &result);
+    renderer->glGetTextureParameteriv(m_id, GL_TEXTURE_IMMUTABLE_LEVELS, &result);
 
     return static_cast<uint32_t>(result);
+}
+
+uint32_t TextureBase_4_5::numFaces() const
+{
+    return 1u;
 }
 
 void TextureBase_4_5::subImage(uint32_t level,
                                const glm::uvec3 &offset,
                                const glm::uvec3 &size,
-                               uint32_t &numComponents,
-                               utils::PixelComponentType &type,
+                               uint32_t numComponents,
+                               utils::PixelComponentType type,
+                               size_t bufSize,
                                void *data) const
 {
-
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glGetTextureSubImage(m_id,
+                                   static_cast<GLint>(level),
+                                   static_cast<GLint>(offset.x),
+                                   static_cast<GLint>(offset.y),
+                                   static_cast<GLint>(offset.z),
+                                   static_cast<GLsizei>(size.x),
+                                   static_cast<GLsizei>(size.y),
+                                   static_cast<GLsizei>(size.z),
+                                   hasDepth() ? GL_DEPTH_COMPONENT : Conversions::PixelNumComponents2GL(numComponents),
+                                   Conversions::PixelComponentType2GL(type),
+                                   static_cast<GLsizei>(bufSize),
+                                   data);
 }
 
 void TextureBase_4_5::generateMipmaps()
@@ -987,14 +1014,48 @@ void TextureBase_4_5::setFilterMode(core::graphics::TextureFilterMode value)
     }
 }
 
-GLenum TextureBase_4_5::GLinternalFormat() const
+void TextureBase_4_5::setSwizzleMask(const core::graphics::TextureSwizzleMask &value)
 {
-    GLint result;
+    const std::array<GLint, 4u> glValues {
+        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[0u])),
+        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[1u])),
+        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[2u])),
+        static_cast<GLint>(Conversions::TextureSwizzle2GL(value[3u])),
+    };
 
     auto renderer = QtOpenGL_4_5_Renderer::instance();
-    renderer->glGetTextureLevelParameteriv(m_id, 0, GL_TEXTURE_INTERNAL_FORMAT, &result);
+    renderer->glTextureParameteriv(m_id, GL_TEXTURE_SWIZZLE_RGBA, glValues.data());
+}
 
-    return static_cast<GLenum>(result);
+core::graphics::PTexture TextureBase_4_5::copy() const
+{
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+
+    auto result = std::dynamic_pointer_cast<TextureBase_4_5>(copyEmpty());
+    if (!result)
+        return nullptr;
+
+    auto textureType = Conversions::TextureType2GL(type());
+    auto textureNumFaces = numFaces();
+    auto textureNumLevels = numMipmapLevels();
+
+    for (uint32_t level = 0u; level < textureNumLevels; ++level)
+    {
+        auto size = mipmapSize(level);
+        size.z *= textureNumFaces;
+
+        renderer->glCopyImageSubData(m_id,
+                                     textureType,
+                                     static_cast<GLint>(level),
+                                     0, 0, 0,
+                                     result->m_id,
+                                     textureType,
+                                     static_cast<GLint>(level),
+                                     0, 0, 0,
+                                     static_cast<GLsizei>(size.x), static_cast<GLsizei>(size.y), static_cast<GLsizei>(size.z));
+    }
+
+    return result;
 }
 
 // Texture1D_4_5
@@ -1035,6 +1096,12 @@ void Texture1D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const 
                                   data);
 }
 
+core::graphics::PTexture Texture1D_4_5::copyEmpty() const
+{
+    auto baseSize = mipmapSize();
+    return QtOpenGL_4_5_Renderer::instance()->createTexture1DEmpty(baseSize.x, internalFormat(), numMipmapLevels());
+}
+
 // Texture2D_4_5
 
 Texture2D_4_5::Texture2D_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
@@ -1072,6 +1139,12 @@ void Texture2D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const 
                                   Conversions::PixelNumComponents2GL(numComponents),
                                   Conversions::PixelComponentType2GL(type),
                                   data);
+}
+
+core::graphics::PTexture Texture2D_4_5::copyEmpty() const
+{
+    auto baseSize = mipmapSize();
+    return QtOpenGL_4_5_Renderer::instance()->createTexture2DEmpty(baseSize.x, baseSize.y, internalFormat(), numMipmapLevels());
 }
 
 // Texture3D_4_5
@@ -1114,6 +1187,12 @@ void Texture3D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const 
                                   data);
 }
 
+core::graphics::PTexture Texture3D_4_5::copyEmpty() const
+{
+    auto baseSize = mipmapSize();
+    return QtOpenGL_4_5_Renderer::instance()->createTexture3DEmpty(baseSize.x, baseSize.y, baseSize.z, internalFormat(), numMipmapLevels());
+}
+
 // TextureCube_4_5
 
 TextureCube_4_5::TextureCube_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
@@ -1135,6 +1214,11 @@ core::graphics::TextureType TextureCube_4_5::type() const
     return core::graphics::TextureType::TypeCube;
 }
 
+uint32_t TextureCube_4_5::numFaces() const
+{
+    return 6u;
+}
+
 void TextureCube_4_5::setSubImage(uint32_t level,const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
 {
     if (offset.z + size.z > 6u)
@@ -1154,6 +1238,12 @@ void TextureCube_4_5::setSubImage(uint32_t level,const glm::uvec3 &offset, const
                                   Conversions::PixelNumComponents2GL(numComponents),
                                   Conversions::PixelComponentType2GL(type),
                                   data);
+}
+
+core::graphics::PTexture TextureCube_4_5::copyEmpty() const
+{
+    auto baseSize = mipmapSize();
+    return QtOpenGL_4_5_Renderer::instance()->createTextureCubeEmpty(baseSize.x, baseSize.y, internalFormat(), numMipmapLevels());
 }
 
 // Texture1DArray_4_5
@@ -1193,6 +1283,12 @@ void Texture1DArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, c
                                   Conversions::PixelNumComponents2GL(numComponents),
                                   Conversions::PixelComponentType2GL(type),
                                   data);
+}
+
+core::graphics::PTexture Texture1DArray_4_5::copyEmpty() const
+{
+    auto baseSize = mipmapSize();
+    return QtOpenGL_4_5_Renderer::instance()->createTexture1DArrayEmpty(baseSize.x, baseSize.y, internalFormat(), numMipmapLevels());
 }
 
 // Texture2DArray_4_5
@@ -1235,6 +1331,12 @@ void Texture2DArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, c
                                   data);
 }
 
+core::graphics::PTexture Texture2DArray_4_5::copyEmpty() const
+{
+    auto baseSize = mipmapSize();
+    return QtOpenGL_4_5_Renderer::instance()->createTexture2DArrayEmpty(baseSize.x, baseSize.y, baseSize.z, internalFormat(), numMipmapLevels());
+}
+
 // TextureCubeArray_4_5
 
 TextureCubeArray_4_5::TextureCubeArray_4_5(uint32_t width, uint32_t height, uint32_t numLayers, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
@@ -1257,6 +1359,11 @@ core::graphics::TextureType TextureCubeArray_4_5::type() const
     return core::graphics::TextureType::TypeCubeArray;
 }
 
+uint32_t TextureCubeArray_4_5::numFaces() const
+{
+    return 6u;
+}
+
 void TextureCubeArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
 {
     if ((numComponents < 1) || (numComponents > 4))
@@ -1273,6 +1380,12 @@ void TextureCubeArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset,
                                   Conversions::PixelNumComponents2GL(numComponents),
                                   Conversions::PixelComponentType2GL(type),
                                   data);
+}
+
+core::graphics::PTexture TextureCubeArray_4_5::copyEmpty() const
+{
+    auto baseSize = mipmapSize();
+    return QtOpenGL_4_5_Renderer::instance()->createTextureCubeArrayEmpty(baseSize.x, baseSize.y, baseSize.z, internalFormat(), numMipmapLevels());
 }
 
 // TextureRect_4_5
@@ -1317,35 +1430,71 @@ void TextureRect_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, cons
                                   data);
 }
 
+core::graphics::PTexture TextureRect_4_5::copyEmpty() const
+{
+    auto baseSize = mipmapSize();
+    return QtOpenGL_4_5_Renderer::instance()->createTextureRectEmpty(baseSize.x, baseSize.y, internalFormat());
+}
+
 // Image_4_5
 
-Image_4_5::Image_4_5(std::shared_ptr<core::graphics::ITexture> texture, DataAccess access, uint32_t level)
-    : m_texture(texture)
-    , m_level(level)
-    , m_access(access)
+Image_4_5::Image_4_5(DataAccess access, const core::graphics::PConstTexture &texture, uint32_t level)
+    : m_texture(nullptr)
+    , m_level(0u)
+    , m_format(core::graphics::PixelInternalFormat::Undefined)
+    , m_access(DataAccess::ReadWrite)
 {
+    setAccess(access);
+
+    if (texture)
+        setTexture(texture, level);
 }
 
 Image_4_5::~Image_4_5() = default;
-
-std::shared_ptr<const core::graphics::ITexture> Image_4_5::texture() const
-{
-    return m_texture;
-}
-
-std::shared_ptr<core::graphics::ITexture> Image_4_5::texture()
-{
-    return m_texture;
-}
 
 core::graphics::IImage::DataAccess Image_4_5::access() const
 {
     return m_access;
 }
 
+void Image_4_5::setAccess(DataAccess value)
+{
+    m_access = value;
+}
+
 uint32_t Image_4_5::mipmapLevel() const
 {
     return m_level;
+}
+
+core::graphics::PixelInternalFormat Image_4_5::format() const
+{
+    return m_format;
+}
+
+core::graphics::PConstTexture Image_4_5::texture() const
+{
+    return m_texture;
+}
+
+void Image_4_5::setTexture(const core::graphics::PConstTexture &texture, uint32_t level)
+{
+    if (!texture)
+        LOG_CRITICAL << "Texture can't be nullptr";
+
+    if (level >= texture->numMipmapLevels())
+        LOG_CRITICAL << "Level must be less than texture levels count";
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    const auto &supportedFormats = renderer->supportedImageFormats();
+
+    const auto internalFormat = texture->internalFormat();
+    if (supportedFormats.find(internalFormat) == supportedFormats.end())
+        LOG_CRITICAL << "Unsupported image format";
+
+    m_texture = texture;
+    m_format = internalFormat;
+    m_level = level;
 }
 
 // RenderBuffer_4_5
@@ -1402,6 +1551,16 @@ bool RenderBuffer_4_5::hasAlpha() const
     return result != 0;
 }
 
+bool RenderBuffer_4_5::hasDepth() const
+{
+    GLint result;
+
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+    renderer->glGetNamedRenderbufferParameteriv(m_id, GL_RENDERBUFFER_DEPTH_SIZE, &result);
+
+    return result != 0;
+}
+
 // FrameBuffer_4_5
 
 FrameBufferBase_4_5::FrameBufferBase_4_5(GLuint id)
@@ -1449,7 +1608,7 @@ void FrameBufferBase_4_5::clear()
     bool depthStensilWasCleared = false;
     for (auto attachment : m_clearMask)
     {
-        if (core::graphics::IsFrameBufferColorAttachment(attachment) && m_attchments.count(attachment))
+        if (core::graphics::IsFrameBufferColorAttachment(attachment) && m_attachments.count(attachment))
         {
             auto drawBuffer = core::graphics::FrameBufferColorAttachmentIndex(attachment);
             const auto &clearColor = m_clearColor[drawBuffer];
@@ -1485,7 +1644,7 @@ void FrameBufferBase_4_5::clear()
         if ((attachment == core::graphics::FrameBufferAttachment::Depth) ||
             (attachment == core::graphics::FrameBufferAttachment::DepthStencil))
         {
-            if (m_attchments.count(core::graphics::FrameBufferAttachment::DepthStencil))
+            if (m_attachments.count(core::graphics::FrameBufferAttachment::DepthStencil))
             {
                 if (!depthStensilWasCleared)
                 {
@@ -1497,7 +1656,7 @@ void FrameBufferBase_4_5::clear()
                 }
                 depthStensilWasCleared = true;
             }
-            else if (m_attchments.count(core::graphics::FrameBufferAttachment::Depth))
+            else if (m_attachments.count(core::graphics::FrameBufferAttachment::Depth))
             {
                 renderer->glClearNamedFramebufferfv(m_id, GL_DEPTH, 0, &m_clearDepth);
             }
@@ -1507,7 +1666,7 @@ void FrameBufferBase_4_5::clear()
         if ((attachment == core::graphics::FrameBufferAttachment::Stencil) ||
             (attachment == core::graphics::FrameBufferAttachment::DepthStencil))
         {
-            if (m_attchments.count(core::graphics::FrameBufferAttachment::DepthStencil))
+            if (m_attachments.count(core::graphics::FrameBufferAttachment::DepthStencil))
             {
                 if (!depthStensilWasCleared)
                 {
@@ -1519,7 +1678,7 @@ void FrameBufferBase_4_5::clear()
                 }
                 depthStensilWasCleared = true;
             }
-            else if (m_attchments.count(core::graphics::FrameBufferAttachment::Stencil))
+            else if (m_attachments.count(core::graphics::FrameBufferAttachment::Stencil))
             {
                 renderer->glClearNamedFramebufferiv(m_id, GL_STENCIL, 0, &m_clearStencil);
             }
@@ -1536,13 +1695,13 @@ bool FrameBufferBase_4_5::isComplete() const
 
 const core::graphics::IFrameBuffer::Attachments &FrameBufferBase_4_5::attachments() const
 {
-    return m_attchments;
+    return m_attachments;
 }
 
 bool FrameBufferBase_4_5::attachment(core::graphics::FrameBufferAttachment value, AttachmentInfo &result) const
 {
-    auto it = m_attchments.find(value);
-    if (it == m_attchments.end())
+    auto it = m_attachments.find(value);
+    if (it == m_attachments.end())
         return false;
 
     result = it->second;
@@ -1618,10 +1777,15 @@ void FrameBufferBase_4_5::setDrawBuffers(const std::vector<core::graphics::Frame
     std::vector<GLenum> buffers;
     for (const auto &attachment : attachments)
     {
-        if (!core::graphics::IsFrameBufferColorAttachment(attachment))
-            LOG_CRITICAL << "Not color attachment can be draw buffer";
+        if (attachment == core::graphics::FrameBufferAttachment::Count)
+            buffers.push_back(GL_NONE);
+        else
+        {
+            if (!core::graphics::IsFrameBufferColorAttachment(attachment))
+                LOG_CRITICAL << "Not color attachment can be draw buffer";
 
-        buffers.push_back(GL_COLOR_ATTACHMENT0 + core::graphics::FrameBufferColorAttachmentIndex(attachment));
+            buffers.push_back(GL_COLOR_ATTACHMENT0 + core::graphics::FrameBufferColorAttachmentIndex(attachment));
+        }
     }
 
     auto renderer = QtOpenGL_4_5_Renderer::instance();
@@ -1929,7 +2093,7 @@ void FrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment key,
     {
         auto renderer = QtOpenGL_4_5_Renderer::instance();
         renderer->glNamedFramebufferTexture(m_id, Conversions::FrameBufferAttachment2GL(key), texture_4_5->id(), static_cast<GLint>(level));
-        m_attchments[key] = { surface, level, 0u };
+        m_attachments[key] = { surface, level, 0u };
     }
     else if (auto renderBuffer_4_5 = std::dynamic_pointer_cast<const RenderBuffer_4_5>(surface); renderBuffer_4_5)
     {
@@ -1938,7 +2102,7 @@ void FrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment key,
                                                  Conversions::FrameBufferAttachment2GL(key),
                                                  GL_RENDERBUFFER,
                                                  renderBuffer_4_5->id());
-        m_attchments[key] = { surface, level, 0u };
+        m_attachments[key] = { surface, level, 0u };
     }
     else
         LOG_CRITICAL << "Attachment can't be nullptr";
@@ -1959,7 +2123,7 @@ void FrameBuffer_4_5::attachLayer(core::graphics::FrameBufferAttachment key,
                                                  texture_4_5->id(),
                                                  static_cast<GLint>(level),
                                                  static_cast<GLint>(layer));
-        m_attchments[key] = { texture, level, layer };
+        m_attachments[key] = { texture, level, layer };
     }
     else
         LOG_CRITICAL << "Attachment can't be nullptr";
@@ -1967,14 +2131,14 @@ void FrameBuffer_4_5::attachLayer(core::graphics::FrameBufferAttachment key,
 
 void FrameBuffer_4_5::detach(core::graphics::FrameBufferAttachment key)
 {
-    if (auto it = m_attchments.find(key); it != m_attchments.end())
+    if (auto it = m_attachments.find(key); it != m_attachments.end())
     {
         auto renderer = QtOpenGL_4_5_Renderer::instance();
         renderer->glNamedFramebufferRenderbuffer(m_id,
                                                  Conversions::FrameBufferAttachment2GL(key),
                                                  GL_RENDERBUFFER,
                                                  0u);
-        m_attchments.erase(it);
+        m_attachments.erase(it);
     }
 }
 
@@ -1983,6 +2147,37 @@ void FrameBuffer_4_5::detach(core::graphics::FrameBufferAttachment key)
 DefaultFrameBuffer_4_5::DefaultFrameBuffer_4_5(GLuint defaultFbo)
     : FrameBufferBase_4_5(defaultFbo)
 {
+    auto renderer = QtOpenGL_4_5_Renderer::instance();
+
+    GLint objType = GL_NONE;
+    renderer->glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_DEPTH_STENCIL_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
+    if (objType != GL_NONE)
+        m_attachments[core::graphics::FrameBufferAttachment::DepthStencil] = {nullptr, 0, 0};
+    else
+    {
+        objType = GL_NONE;
+        renderer->glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_DEPTH_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
+        if (objType != GL_NONE)
+            m_attachments[core::graphics::FrameBufferAttachment::Depth] = {nullptr, 0, 0};
+
+        objType = GL_NONE;
+        renderer->glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_STENCIL_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
+        if (objType != GL_NONE)
+            m_attachments[core::graphics::FrameBufferAttachment::Stencil] = {nullptr, 0, 0};
+    }
+
+    std::vector<GLenum> drawBuffers;
+    for (uint16_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
+    {
+        objType = GL_NONE;
+        renderer->glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_COLOR_ATTACHMENT0 + i, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
+        if (objType != GL_NONE)
+        {
+            drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+            m_attachments[core::graphics::FrameBufferColorAttachment(i)] = {nullptr, 0, 0};
+        }
+    }
+    renderer->glNamedFramebufferDrawBuffers(defaultFbo, static_cast<GLsizei>(drawBuffers.size()), drawBuffers.data());
 }
 
 DefaultFrameBuffer_4_5::~DefaultFrameBuffer_4_5()
@@ -2112,7 +2307,7 @@ bool ProgramBase_4_5::postBuild(std::string &)
                                            nullptr,
                                            uniformName.data());
 
-        m_uniformsInfo.push_back({ core::graphics::IProgram::UniformIdByName(uniformName.data()),
+        m_uniformsInfo.push_back({ renderer->uniformIdByName(uniformName.data()),
                                    static_cast<uint16_t>(uniformIndex),
                                    uniformValues[2u],
                                    Conversions::GL2UniformType(static_cast<GLenum>(uniformValues[1u])) });
@@ -2183,7 +2378,7 @@ bool ProgramBase_4_5::postBuild(std::string &)
                                            nullptr,
                                            SSBOName.data());
 
-        m_SSBOsInfo.push_back({ core::graphics::IProgram::SSBOIdByName(SSBOName.data()),
+        m_SSBOsInfo.push_back({ renderer->SSBOIdByName(SSBOName.data()),
                                 static_cast<uint16_t>(SSBOIndex),
                                 std::move(variables) });
     }
@@ -2294,7 +2489,7 @@ bool RenderProgram_4_5::postBuild(std::string &log)
                                            nullptr,
                                            attributeName.data());
 
-        m_attributesInfo.push_back({ vertexAttributeByName(attributeName.data()),
+        m_attributesInfo.push_back({ renderer->vertexAttributeByName(attributeName.data()),
                                      static_cast<uint16_t>(i),
                                      values[1],
                                      Conversions::GL2VertexNumComponents(static_cast<GLenum>(values[0])),
@@ -2364,14 +2559,14 @@ QtOpenGL_4_5_Renderer::~QtOpenGL_4_5_Renderer()
 {
     auto context = owningContext();
     if (!context)
-        LOG_CRITICAL << "Context is nullptr";
+        LOG_CRITICAL << "Graphics context can't be nullptr";
 
     if(!s_instances.count(context))
-        LOG_CRITICAL << "Context is not founded";
+        LOG_CRITICAL << "Graphics context is not founded";
 
     s_instances.erase(context);
 
-    LOG_INFO << "GraphicsRenderer \"" << QtOpenGL_4_5_Renderer::name() << "\" has been destroyed";
+    LOG_INFO << "Graphics renderer \"" << QtOpenGL_4_5_Renderer::name() << "\" has been destroyed";
 }
 
 const std::string &QtOpenGL_4_5_Renderer::name() const
@@ -2380,14 +2575,46 @@ const std::string &QtOpenGL_4_5_Renderer::name() const
     return s_name;
 }
 
-std::shared_ptr<core::graphics::IFrameBuffer> QtOpenGL_4_5_Renderer::defaultFrameBuffer()
+bool QtOpenGL_4_5_Renderer::makeCurrent(const std::shared_ptr<core::IRenderWidget> &renderWidget)
 {
-    return m_defaultFrameBuffer;
+    auto context = owningContext();
+    if (!context)
+    {
+        LOG_CRITICAL << "Graphics context can't be nullptr";
+        return false;
+    }
+
+    if (QOpenGLContext::currentContext() == context)
+        return true;
+
+    auto qtRenderWidget = std::dynamic_pointer_cast<QtOpenGLWidget>(renderWidget);
+    if (!qtRenderWidget)
+    {
+        LOG_CRITICAL << "RenderWidget can't be nullptr";
+        return false;
+    }
+
+    // no way to get surface from QOpenGLWidget, so QOpenGLWidget::makeCurrent() is used
+    //context->makeCurrent(qtRenderWidget->surface());
+
+    qtRenderWidget->makeCurrent();
+    return true;
 }
 
-std::shared_ptr<const core::graphics::IFrameBuffer> QtOpenGL_4_5_Renderer::defaultFrameBuffer() const
+bool QtOpenGL_4_5_Renderer::doneCurrent(const std::shared_ptr<core::IRenderWidget> &renderWidget)
 {
-    return const_cast<QtOpenGL_4_5_Renderer*>(this)->defaultFrameBuffer();
+    if (QOpenGLContext::currentContext() == nullptr)
+        return true;
+
+    auto qtRenderWidget = std::dynamic_pointer_cast<QtOpenGLWidget>(renderWidget);
+    if (!qtRenderWidget)
+    {
+        LOG_CRITICAL << "RenderWidget can't be nullptr";
+        return false;
+    }
+
+    qtRenderWidget->doneCurrent();
+    return true;
 }
 
 void QtOpenGL_4_5_Renderer::blitFrameBuffer(std::shared_ptr<const core::graphics::IFrameBuffer> src,
@@ -2421,6 +2648,108 @@ void QtOpenGL_4_5_Renderer::blitFrameBuffer(std::shared_ptr<const core::graphics
                            static_cast<GLint>(dstViewport.x), static_cast<GLint>(dstViewport.y),
                            static_cast<GLint>(dstViewport.z), static_cast<GLint>(dstViewport.w),
                            mask, filter);
+}
+
+bool QtOpenGL_4_5_Renderer::registerVertexAttribute(const std::string &name, utils::VertexAttribute id)
+{
+    if (auto it = m_attributeIds.find(name); it != m_attributeIds.end())
+    {
+        LOG_ERROR << "Attribute " << name << " is already registered";
+        return false;
+    }
+
+    m_attributeIds.insert({name, id});
+    return true;
+}
+
+bool QtOpenGL_4_5_Renderer::unregisterVertexAttribute(const std::string &name)
+{
+    if (auto it = m_attributeIds.find(name); it != m_attributeIds.end())
+    {
+        m_attributeIds.erase(it);
+        return true;
+    }
+
+    LOG_ERROR << "Attribute " << name << " has not been registered";
+    return false;
+}
+
+utils::VertexAttribute QtOpenGL_4_5_Renderer::vertexAttributeByName(const std::string &name) const
+{
+    auto it = m_attributeIds.find(name);
+    return it != m_attributeIds.end() ? it->second : utils::VertexAttribute::Count;
+}
+
+bool QtOpenGL_4_5_Renderer::registerUniformId(const std::string &name, uint16_t id)
+{
+    if (auto it = m_uniformIds.find(name); it != m_uniformIds.end())
+    {
+        LOG_ERROR << "Uniform " << name << " is already registered";
+        return false;
+    }
+
+    if (id == 0u)
+    {
+        LOG_ERROR << "Uniform id can't be 0";
+        return false;
+    }
+
+    m_uniformIds.insert({name, id});
+    return true;
+}
+
+bool QtOpenGL_4_5_Renderer::unregisterUniformId(const std::string &name)
+{
+    if (auto it = m_uniformIds.find(name); it != m_uniformIds.end())
+    {
+        m_uniformIds.erase(it);
+        return true;
+    }
+
+    LOG_ERROR << "Uniform " << name << " has not been registered";
+    return false;
+}
+
+uint16_t QtOpenGL_4_5_Renderer::uniformIdByName(const std::string &name) const
+{
+    auto it = m_uniformIds.find(name);
+    return it != m_uniformIds.end() ? it->second : 0u;
+}
+
+bool QtOpenGL_4_5_Renderer::registerSSBOId(const std::string &name, uint16_t id)
+{
+    if (auto it = m_SSBOIds.find(name); it != m_SSBOIds.end())
+    {
+        LOG_ERROR << "SSBO " << name << " is already registered";
+        return false;
+    }
+
+    if (id == 0u)
+    {
+        LOG_ERROR << "SSBO id can't be 0";
+        return false;
+    }
+
+    m_SSBOIds.insert({name, id});
+    return true;
+}
+
+bool QtOpenGL_4_5_Renderer::unregisterSSBOId(const std::string &name)
+{
+    if (auto it = m_SSBOIds.find(name); it != m_SSBOIds.end())
+    {
+        m_SSBOIds.erase(it);
+        return true;
+    }
+
+    LOG_ERROR << "SSBO " << name << " has not been registered";
+    return false;
+}
+
+uint16_t QtOpenGL_4_5_Renderer::SSBOIdByName(const std::string &name) const
+{
+    auto it = m_SSBOIds.find(name);
+    return it != m_SSBOIds.end() ? it->second : 0u;
 }
 
 std::shared_ptr<core::graphics::IBuffer> QtOpenGL_4_5_Renderer::createBuffer(size_t size, const void *data) const
@@ -2953,17 +3282,11 @@ std::shared_ptr<core::graphics::ITexture> QtOpenGL_4_5_Renderer::createTextureRe
     return result;
 }
 
-std::shared_ptr<core::graphics::IImage> QtOpenGL_4_5_Renderer::createImage(const std::shared_ptr<core::graphics::ITexture> &texture,
-                                                                           core::graphics::IImage::DataAccess access,
+std::shared_ptr<core::graphics::IImage> QtOpenGL_4_5_Renderer::createImage(core::graphics::IImage::DataAccess access,
+                                                                           const core::graphics::PConstTexture &texture,
                                                                            uint32_t level) const
 {
-    if (!texture)
-        LOG_CRITICAL << "Texture can't be nullptr";
-
-    if (level >= texture->numMipmapLevels())
-        LOG_CRITICAL << "Level must be less than texture levels count";
-
-    return std::make_shared<Image_4_5>(texture, access, level);
+    return std::make_shared<Image_4_5>(access, texture, level);
 }
 
 std::shared_ptr<core::graphics::IRenderBuffer> QtOpenGL_4_5_Renderer::createRenderBuffer(uint32_t width,
@@ -3029,15 +3352,62 @@ std::shared_ptr<core::graphics::IComputeProgram> QtOpenGL_4_5_Renderer::createCo
                 nullptr;
 }
 
-void QtOpenGL_4_5_Renderer::resize(uint32_t width, uint32_t height)
+const core::graphics::SupportedImageFormats &QtOpenGL_4_5_Renderer::supportedImageFormats() const
 {
-    m_viewportSize.x = width;
-    m_viewportSize.y = height;
+    static const core::graphics::SupportedImageFormats s_supportdFormats {
+        { core::graphics::PixelInternalFormat::RGBA32F, "rgba32f" },
+        { core::graphics::PixelInternalFormat::RGBA16F, "rgba16f" },
+        { core::graphics::PixelInternalFormat::RG32F, "rg32f" },
+        { core::graphics::PixelInternalFormat::RG16F, "rg16f" },
+        { core::graphics::PixelInternalFormat::R11F_G11F_B10F, "r11f_g11f_b10f" },
+        { core::graphics::PixelInternalFormat::R32F, "r32f" },
+        { core::graphics::PixelInternalFormat::R16F, "r16f" },
+        { core::graphics::PixelInternalFormat::RGBA32UI, "rgba32ui" },
+        { core::graphics::PixelInternalFormat::RGBA16UI, "rgba16ui" },
+        { core::graphics::PixelInternalFormat::RGB10_A2UI, "rgb10a2ui" },
+        { core::graphics::PixelInternalFormat::RGBA8UI, "rgba8ui" },
+        { core::graphics::PixelInternalFormat::RG32UI, "rg32ui" },
+        { core::graphics::PixelInternalFormat::RG16UI, "rg16ui" },
+        { core::graphics::PixelInternalFormat::RG8UI, "rg8ui" },
+        { core::graphics::PixelInternalFormat::R32UI, "r32ui" },
+        { core::graphics::PixelInternalFormat::R16UI, "r18ui" },
+        { core::graphics::PixelInternalFormat::R8UI, "r8ui" },
+        { core::graphics::PixelInternalFormat::RGBA32I, "rgba32i" },
+        { core::graphics::PixelInternalFormat::RGBA16I, "rgba16i" },
+        { core::graphics::PixelInternalFormat::RGBA8I, "rgba8i" },
+        { core::graphics::PixelInternalFormat::RG32I, "rg32i" },
+        { core::graphics::PixelInternalFormat::RG16I, "rg16i" },
+        { core::graphics::PixelInternalFormat::RG8I, "rg8i" },
+        { core::graphics::PixelInternalFormat::R32I, "rg32i" },
+        { core::graphics::PixelInternalFormat::R16I, "rg16i" },
+        { core::graphics::PixelInternalFormat::R8I, "r8i" },
+        { core::graphics::PixelInternalFormat::RGBA16, "rgba16" },
+        { core::graphics::PixelInternalFormat::RGB10_A2, "rgb10a2" },
+        { core::graphics::PixelInternalFormat::RGBA8, "rgba8" },
+        { core::graphics::PixelInternalFormat::RG16, "rg16" },
+        { core::graphics::PixelInternalFormat::RG8, "rg8" },
+        { core::graphics::PixelInternalFormat::R16, "r16" },
+        { core::graphics::PixelInternalFormat::R8, "r8" },
+        { core::graphics::PixelInternalFormat::RGBA16_SNORM, "rgba16_snorm" },
+        { core::graphics::PixelInternalFormat::RGBA8_SNORM, "rgba8_snorm" },
+        { core::graphics::PixelInternalFormat::RG16_SNORM, "rg16_snorm" },
+        { core::graphics::PixelInternalFormat::RG8_SNORM, "rg8_snorm" },
+        { core::graphics::PixelInternalFormat::R16_SNORM, "r16_snorm" },
+        { core::graphics::PixelInternalFormat::R8_SNORM, "r8_snorm" }
+    };
+
+    return s_supportdFormats;
 }
 
-const glm::uvec2 &QtOpenGL_4_5_Renderer::viewportSize() const
+void QtOpenGL_4_5_Renderer::resize(uint32_t width, uint32_t height)
 {
-    return m_viewportSize;
+    m_screenSize.x = width;
+    m_screenSize.y = height;
+}
+
+const glm::uvec2 &QtOpenGL_4_5_Renderer::screenSize() const
+{
+    return m_screenSize;
 }
 
 void QtOpenGL_4_5_Renderer::clearRenderData()
@@ -3060,8 +3430,10 @@ void QtOpenGL_4_5_Renderer::addRenderData(const std::shared_ptr<core::graphics::
 }
 
 void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameBuffer> &frameBuffer,
-                                   const core::RenderInfo &renderInfo,
-                                   const glm::uvec4 &viewport)
+                                   const glm::uvec4 &viewport,
+                                   const glm::mat4x4 &viewMatrix,
+                                   const glm::mat4x4 &projectionMatrix,
+                                   const core::PConstStateSet &globalStateSet)
 {
     if (frameBuffer->faceCulling())
     {
@@ -3141,6 +3513,11 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
                static_cast<GLsizei>(viewport.z),
                static_cast<GLsizei>(viewport.w));
 
+    auto mvpStateSet = std::make_shared<MVPStateSet>();
+    mvpStateSet->setViewportSize(glm::uvec2(viewport.z, viewport.w));
+    mvpStateSet->setViewMatrix(viewMatrix);
+    mvpStateSet->setProjectionMatrix(projectionMatrix);
+
     for (auto &renderData : m_renderData)
     {
         auto &drawable = std::get<2>(renderData);
@@ -3153,10 +3530,14 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
         auto renderProgram_4_5 = std::get<1>(renderData);
         if (!renderProgram_4_5)
             LOG_CRITICAL << "Render program can't be nullptr";
+
+        mvpStateSet->setModelMatrix(std::get<0>(renderData));
+        std::list<core::PConstStateSet> stateSetList {globalStateSet, mvpStateSet, drawable};
+
         glUseProgram(renderProgram_4_5->id());
         setupVertexAttributes(renderProgram_4_5, vao_4_5);
-        setupUniforms(renderProgram_4_5, drawable, renderInfo, glm::uvec2(viewport.z, viewport.w), std::get<0>(renderData));
-        setupSSBOs(renderProgram_4_5, drawable, renderInfo);
+        setupUniforms(renderProgram_4_5, stateSetList);
+        setupSSBOs(renderProgram_4_5, stateSetList);
 
         for (auto &primitiveSet : vao_4_5->primitiveSets())
         {
@@ -3180,15 +3561,18 @@ void QtOpenGL_4_5_Renderer::render(const std::shared_ptr<core::graphics::IFrameB
 }
 
 void QtOpenGL_4_5_Renderer::compute(const std::shared_ptr<core::graphics::IComputeProgram> &computeProgram,
-                                    const core::RenderInfo &renderInfo,
-                                    const glm::uvec3 &numInvocations)
+                                    const glm::uvec3 &numInvocations,
+                                    const core::PConstStateSet &globalStateSet)
 {
     auto computeProgram_4_5 = std::dynamic_pointer_cast<ComputeProgram_4_5>(computeProgram);
     if (!computeProgram_4_5)
         LOG_CRITICAL << "Compute program can't be nullptr";
+
+    std::list<core::PConstStateSet> stateSetList {globalStateSet};
+
     glUseProgram(computeProgram_4_5->id());
-    setupUniforms(computeProgram_4_5, nullptr, renderInfo, glm::uvec2(0u), glm::mat4x4(1.0f));
-    setupSSBOs(computeProgram_4_5, nullptr, renderInfo);
+    setupUniforms(computeProgram_4_5, stateSetList);
+    setupSSBOs(computeProgram_4_5, stateSetList);
 
     auto numWorkGroups = glm::uvec3(glm::ceil(glm::vec3(numInvocations) / glm::vec3(computeProgram->workGroupSize())) + glm::vec3(.5f));
     glDispatchCompute(numWorkGroups.x, numWorkGroups.y, numWorkGroups.z);
@@ -3196,7 +3580,7 @@ void QtOpenGL_4_5_Renderer::compute(const std::shared_ptr<core::graphics::ICompu
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
-std::shared_ptr<QtOpenGL_4_5_Renderer> QtOpenGL_4_5_Renderer::create(QOpenGLContext *context, GLuint defaultFbo)
+std::shared_ptr<QtOpenGL_4_5_Renderer> QtOpenGL_4_5_Renderer::create(QOpenGLContext *context)
 {
     if (auto renderer = instance(context); renderer)
     {
@@ -3204,9 +3588,8 @@ std::shared_ptr<QtOpenGL_4_5_Renderer> QtOpenGL_4_5_Renderer::create(QOpenGLCont
         return renderer;
     }
 
-    auto renderer = std::shared_ptr<QtOpenGL_4_5_Renderer>(new QtOpenGL_4_5_Renderer(context, defaultFbo));
-
-    s_instances[context] = renderer;
+    auto renderer = std::shared_ptr<QtOpenGL_4_5_Renderer>(new QtOpenGL_4_5_Renderer(context));
+    s_instances.insert({context, renderer});
     return renderer;
 }
 
@@ -3222,57 +3605,26 @@ std::shared_ptr<QtOpenGL_4_5_Renderer> QtOpenGL_4_5_Renderer::instance(QOpenGLCo
     if (it == s_instances.end())
         return nullptr;
 
+    if (it->second.expired())
+    {
+        s_instances.erase(it);
+        return nullptr;
+    }
+
     return it->second.lock();
 }
 
-QtOpenGL_4_5_Renderer::QtOpenGL_4_5_Renderer(QOpenGLContext *context, GLuint defaultFbo)
-    : m_viewportSize(0u, 0u)
+QtOpenGL_4_5_Renderer::QtOpenGL_4_5_Renderer(QOpenGLContext *context)
+    : m_screenSize(0u, 0u)
 {
     setOwningContext(context);
     if (!initializeOpenGLFunctions())
         LOG_CRITICAL << "Can't initialize QOpenGLFunctions";
 
-    makeDefaultFrameBuffer(defaultFbo);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
-    LOG_INFO << "GraphicsRenderer \"" << QtOpenGL_4_5_Renderer::name() << "\" has been created";
-}
-
-void QtOpenGL_4_5_Renderer::makeDefaultFrameBuffer(GLuint defaultFbo)
-{
-    m_defaultFrameBuffer = std::make_shared<DefaultFrameBuffer_4_5>(defaultFbo);
-    auto &attachments = const_cast<core::graphics::IFrameBuffer::Attachments&>(m_defaultFrameBuffer->attachments());
-
-    GLint objType = GL_NONE;
-    glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_DEPTH_STENCIL_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
-    if (objType != GL_NONE)
-        attachments[core::graphics::FrameBufferAttachment::DepthStencil] = {nullptr, 0, 0};
-    else
-    {
-        objType = GL_NONE;
-        glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_DEPTH_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
-        if (objType != GL_NONE)
-            attachments[core::graphics::FrameBufferAttachment::Depth] = {nullptr, 0, 0};
-
-        objType = GL_NONE;
-        glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_STENCIL_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
-        if (objType != GL_NONE)
-            attachments[core::graphics::FrameBufferAttachment::Stencil] = {nullptr, 0, 0};
-    }
-
-    std::vector<GLenum> drawBuffers;
-    for (uint16_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
-    {
-        objType = GL_NONE;
-        glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_COLOR_ATTACHMENT0 + i, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
-        if (objType != GL_NONE)
-        {
-            drawBuffers.push_back(GL_COLOR_ATTACHMENT0 + i);
-            attachments[core::graphics::FrameBufferColorAttachment(i)] = {nullptr, 0, 0};
-        }
-    }
-    glNamedFramebufferDrawBuffers(defaultFbo, static_cast<GLsizei>(drawBuffers.size()), drawBuffers.data());
+    LOG_INFO << "Graphics renderer \"" << QtOpenGL_4_5_Renderer::name() << "\" has been created";
 }
 
 void QtOpenGL_4_5_Renderer::setupVertexAttributes(const std::shared_ptr<RenderProgram_4_5> &renderProgram,
@@ -3302,6 +3654,11 @@ void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
 
     switch (uniform->type())
     {
+    case core::graphics::UniformType::Bool:
+    {
+        glProgramUniform1i(rpId, loc, core::uniform_cast<bool>(uniform)->data());
+        break;
+    }
     case core::graphics::UniformType::Single:
     {
         glProgramUniform1f(rpId, loc, core::uniform_cast<float>(uniform)->data());
@@ -3454,120 +3811,26 @@ void QtOpenGL_4_5_Renderer::setupUniform(GLuint rpId,
 }
 
 void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5> &program,
-                                          const std::shared_ptr<const core::Drawable> &drawable,
-                                          const core::RenderInfo &renderInfo,
-                                          const glm::vec2 &viewportSize,
-                                          const glm::mat4 &modelMatrix)
+                                          const std::list<core::PConstStateSet> &stateSetList)
 {
-    auto programId = program->id();
     int32_t textureUnit = 0;
     int32_t imageUnit = 0;
 
     for (const auto &uniformInfo : program->uniformsInfo())
     {
         core::PConstAbstractUniform uniform;
+        const auto uniformId = core::castToUniformId(uniformInfo.id);
 
-        switch (uniformInfo.id)
+        for (const auto &stateSet: stateSetList)
+            if (uniform = stateSet->uniform(uniformId); uniform)
+                break;
+
+        if (!uniform)
         {
-        case core::graphics::UniformId::ViewportSize:
-            uniform = core::makeUniform(viewportSize);
-            break;
-        case core::graphics::UniformId::ModelMatrix:
-            uniform = core::makeUniform(modelMatrix);
-            break;
-        case core::graphics::UniformId::NormalMatrix:
-            uniform = core::makeUniform(glm::mat3x3(glm::inverseTranspose(modelMatrix)));
-            break;
-        case core::graphics::UniformId::NormalMatrixInverse:
-            uniform = core::makeUniform(glm::inverse(glm::mat3x3(glm::inverseTranspose(modelMatrix))));
-            break;
-        case core::graphics::UniformId::ViewMatrix:
-            uniform = renderInfo.viewMatrixUniform();
-            break;
-        case core::graphics::UniformId::ViewMatrixInverse:
-            uniform = renderInfo.viewMatrixInverseUniform();
-            break;
-        case core::graphics::UniformId::ProjectionMatrix:
-            uniform = renderInfo.projectionMatrixUniform();
-            break;
-        case core::graphics::UniformId::ProjectionMatrixInverse:
-            uniform = renderInfo.projectionMatrixInverseUniform();
-            break;
-        case core::graphics::UniformId::ViewProjectionMatrix:
-            uniform = renderInfo.viewProjectionMatrixUniform();
-            break;
-        case core::graphics::UniformId::ViewProjectionMatrixInverse:
-            uniform = renderInfo.viewProjectionMatrixInverseUniform();
-            break;
-        case core::graphics::UniformId::ModelViewMatrix:
-            uniform = core::makeUniform(renderInfo.viewMatrixUniform()->data() * modelMatrix);
-            break;
-        case core::graphics::UniformId::NormalViewMatrix:
-            uniform = core::makeUniform(glm::mat3x3(glm::inverseTranspose(renderInfo.viewMatrixUniform()->data() * modelMatrix)));
-            break;
-        case core::graphics::UniformId::ModelViewProjectionMatrix:
-            uniform = core::makeUniform(renderInfo.viewProjectionMatrixUniform()->data() * modelMatrix);
-            break;
-        case core::graphics::UniformId::ModelPosition:
-            uniform = core::makeUniform(glm::vec3(modelMatrix * glm::vec4(0.f, 0.f, 0.f, 1.f)));
-            break;
-        case core::graphics::UniformId::ModelXDirection:
-            uniform = core::makeUniform(glm::normalize(glm::vec3(modelMatrix * glm::vec4(1.f, 0.f, 0.f, 0.f))));
-            break;
-        case core::graphics::UniformId::ModelYDirection:
-            uniform = core::makeUniform(glm::normalize(glm::vec3(modelMatrix * glm::vec4(0.f, 1.f, 0.f, 0.f))));
-            break;
-        case core::graphics::UniformId::ModelZDirection:
-            uniform = core::makeUniform(glm::normalize(glm::vec3(modelMatrix * glm::vec4(0.f, 0.f, 1.f, 0.f))));
-            break;
-        case core::graphics::UniformId::ViewPosition:
-            uniform = renderInfo.viewPositionUniform();
-            break;
-        case core::graphics::UniformId::ViewXDirection:
-            uniform = renderInfo.viewXDirectionUniform();
-            break;
-        case core::graphics::UniformId::ViewYDirection:
-            uniform = renderInfo.viewYDirectionUniform();
-            break;
-        case core::graphics::UniformId::ViewZDirection:
-            uniform = renderInfo.viewZDirectionUniform();
-            break;
-        case core::graphics::UniformId::ZRange:
-            uniform = renderInfo.zRangeUniform();
-            break;
-        case core::graphics::UniformId::GBufferColor0Map:
-            uniform = renderInfo.GBufferColor0TextureUniform();
-            break;
-        case core::graphics::UniformId::GBufferColor1Map:
-            uniform = renderInfo.GBufferColor1TextureUniform();
-            break;
-        case core::graphics::UniformId::GBufferColor2Map:
-            uniform = renderInfo.GBufferColor2TextureUniform();
-            break;
-        case core::graphics::UniformId::GBufferDepthMap:
-            uniform = renderInfo.GBufferDepthTextureUniform();
-            break;
-        case core::graphics::UniformId::OITDepthImage:
-            uniform = renderInfo.OITDepthImageUniform();
-            break;
-        case core::graphics::UniformId::OITIndicesImage:
-            uniform = renderInfo.OITIndicesImageUniform();
-            break;
-        case core::graphics::UniformId::OITNodesCounter:
-            uniform = renderInfo.OITNodesCounterUniform();
-            break;
-        case core::graphics::UniformId::LightBufferColorMap:
-            uniform = renderInfo.lightBufferColorTextureUniform();
-            break;
-        case core::graphics::UniformId::FinalBufferColorMap:
-            uniform = renderInfo.finalBufferColorTextureUniform();
-            break;
-        case core::graphics::UniformId::Undefined:
-            uniform = drawable->userUniform(program->uniformNameByIndex(uniformInfo.index));
-            break;
-        default:
-            uniform = drawable->uniform(uniformInfo.id);
-            break;
+            const auto uniformName = program->uniformNameByIndex(uniformInfo.index);
+            for (const auto &stateSet: stateSetList)
+                if (uniform = stateSet->userUniform(uniformName); uniform)
+                    break;
         }
 
         if (!uniform)
@@ -3576,44 +3839,37 @@ void QtOpenGL_4_5_Renderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5>
         if (uniformInfo.type != uniform->type())
             LOG_CRITICAL << "Uniform \"" << program->uniformNameByIndex(uniformInfo.index) << "\" has wrong type";
 
-        setupUniform(programId, uniformInfo.location, textureUnit, imageUnit, uniform);
+        setupUniform(program->id(), uniformInfo.location, textureUnit, imageUnit, uniform);
     }
 }
 
 void QtOpenGL_4_5_Renderer::setupSSBOs(const std::shared_ptr<ProgramBase_4_5> &program,
-                                       const std::shared_ptr<const core::Drawable> &drawable,
-                                       const core::RenderInfo &renderInfo)
+                                       const std::list<core::PConstStateSet> &stateSetList)
 {
-    auto programId = program->id();
     uint32_t bufferUnit = 0u;
 
     for (const auto &ssboInfo : program->SSBOsInfo())
     {
         core::graphics::PConstBufferRange bufferRange;
+        const auto ssboId = core::castToSSBOId(ssboInfo.id);
 
-        switch (ssboInfo.id)
+        for (const auto &stateSet: stateSetList)
+            if (bufferRange = stateSet->SSBO(ssboId); bufferRange)
+                break;
+
+        if (!bufferRange)
         {
-        case core::graphics::SSBOId::OITNodes:
-            bufferRange = renderInfo.OITNodesBuffer();
-            break;
-        case core::graphics::SSBOId::LayeredShadowMatrices:
-            bufferRange = renderInfo.layeredShadowMatricesBuffer();
-            break;
-        case core::graphics::SSBOId::Undefined:
-//            if (drawable)
-//                bufferTange = drawable->userSSBO(program->SSBONameByIndex(ssboInfo.index));
-            break;
-        default:
-            if (drawable)
-                bufferRange = drawable->SSBO(ssboInfo.id);
-            break;
+            const auto uniformName = program->SSBONameByIndex(ssboInfo.index);
+//            for (const auto &stateSet: stateSetList)
+//                if (bufferRange = stateSet->userSSBO(uniformName); bufferRange)
+//                    break;
         }
 
         if (!bufferRange)
             LOG_CRITICAL << "SSBO \"" << program->SSBONameByIndex(ssboInfo.index) << "\" has not set";
 
         bindSSBO(bufferUnit, bufferRange);
-        glShaderStorageBlockBinding(programId, ssboInfo.index, bufferUnit++);
+        glShaderStorageBlockBinding(program->id(), ssboInfo.index, bufferUnit++);
     }
 }
 
@@ -3638,7 +3894,7 @@ void QtOpenGL_4_5_Renderer::bindImage(int32_t unit, const core::graphics::PConst
                        GL_TRUE,
                        0u,
                        Conversions::ImageDataAccess2GL(image->access()),
-                       textureBase->GLinternalFormat());
+                       Conversions::PixelInternalFormat2GL(image->format()));
 }
 
 void QtOpenGL_4_5_Renderer::bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBufferRange &bufferRange)
@@ -3706,6 +3962,9 @@ bool QtOpenGL_4_5_Renderer::createProgram(std::shared_ptr<ProgramBase_4_5> progr
                 renderer->glGetShaderInfoLog(id, infoLen, nullptr, infoLog);
                 LOG_ERROR << s_shaderTypesTable.at(type) << " shader compile error: " << infoLog;
                 free(infoLog);
+
+                LOG_INFO << s_shaderTypesTable.at(type) << " shader:";
+                LOG_INFO << data;
             }
             isOk = false;
         }

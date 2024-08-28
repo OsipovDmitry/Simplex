@@ -4,14 +4,13 @@
 #include <utils/logger.h>
 #include <utils/textfile.h>
 
-#define DEBUG_PRINT_SHADER 0
-
 namespace simplex
 {
 namespace utils
 {
 
 std::string Shader::s_version = "450 core";
+bool Shader::s_printDebugShaders = false;
 
 Shader::Shader()
 {
@@ -32,6 +31,16 @@ const std::string &Shader::version()
 void Shader::setVersion(const std::string &value)
 {
     s_version = value;
+}
+
+bool Shader::printDebugShaders()
+{
+    return s_printDebugShaders;
+}
+
+void Shader::setPrintDebugShaders(bool value)
+{
+    s_printDebugShaders = value;
 }
 
 std::shared_ptr<Shader> Shader::loadFromData(const std::string &data)
@@ -95,13 +104,12 @@ std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filena
     }
 
     for (const auto &define : defines)
-        result->m_data.insert(0, "#define " + define.first + " (" + define.second + ")\n");
+        result->m_data.insert(0, "#define " + define.first + " " + define.second + "\n");
 
     result->m_data.insert(0, versionString + " " + s_version + "\n\n");
 
-#if DEBUG_PRINT_SHADER
-    TextFile::loadFromData(result->m_data)->saveToFile(std::filesystem::path(filename.filename()));
-#endif
+    if (s_printDebugShaders)
+        TextFile::loadFromData(result->m_data)->saveToFile(std::filesystem::path(filename.filename()));
 
     return result;
 }

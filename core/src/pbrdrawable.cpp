@@ -1,10 +1,10 @@
 #include <utils/glm/ext/scalar_constants.hpp>
 
-#include <core/igraphicsrenderer.h>
+#include <core/settings.h>
 #include <core/pbrdrawable.h>
 #include <core/uniform.h>
 
-#include "pbrdrawableprivate.h"
+#include "visualdrawableprivate.h"
 
 namespace simplex
 {
@@ -12,85 +12,62 @@ namespace core
 {
 
 PBRDrawable::PBRDrawable(const std::shared_ptr<graphics::IVertexArray> &vao, const utils::BoundingBox &bb)
-    : Drawable(std::make_unique<PBRDrawablePrivate>(vao, bb))
+    : VisualDrawable(std::make_unique<VisualDrawablePrivate>(vao, bb))
 {
-    setORMSwizzleMask(PBRDrawablePrivate::defaultORMSwizzleMask());
-}
-
-const utils::BoundingBox &PBRDrawable::boundingBox() const
-{
-    return m().boundingBox();
+    setLighted(true);
+    setShadowed(true);
+    setShadowCasted(true);
+    setORMSwizzleMask(settings::Settings::instance().graphics().pbr().ORMSwizzleMask());
 }
 
 PBRDrawable::~PBRDrawable() = default;
 
-DrawableAlphaMode PBRDrawable::alphaMode() const
+void PBRDrawable::setLighted(bool value)
 {
-    auto result = Drawable::alphaMode();
-
-    if (baseColor().a < 1.f - glm::epsilon<float>())
-        result = DrawableAlphaMode::Transparent;
-
-    if (auto map = baseColorMap(); map)
-        if (map->hasAlpha())
-            result = DrawableAlphaMode::Transparent;
-
-    return result;
+    setLightedFlag(value);
 }
 
-const glm::u32vec4 &PBRDrawable::ORMSwizzleMask() const
+void PBRDrawable::setShadowed(bool value)
 {
-    auto uni = uniform_cast<glm::u32vec4>(uniform(graphics::UniformId::ORMSwizzleMask));
-    return uni ? uni->data() : PBRDrawablePrivate::defaultORMSwizzleMask();
+    setShadowedFlag(value);
 }
 
-void PBRDrawable::setORMSwizzleMask(const glm::u32vec4 &value)
+void PBRDrawable::setShadowCasted(bool value)
 {
-    getOrCreateUniform(graphics::UniformId::ORMSwizzleMask) = makeUniform(value);
+    setShadowCastedFlag(value);
+}
+
+const glm::u32vec3 &PBRDrawable::ORMSwizzleMask() const
+{
+    auto uni = uniform_cast<glm::u32vec3>(uniform(UniformId::ORMSwizzleMask));
+    return uni ? uni->data() : settings::Settings::instance().graphics().pbr().ORMSwizzleMask();
+}
+
+void PBRDrawable::setORMSwizzleMask(const glm::u32vec3 &value)
+{
+    getOrCreateUniform(UniformId::ORMSwizzleMask) = makeUniform(value);
 }
 
 const glm::vec4 &PBRDrawable::baseColor() const
 {
-    auto uni = uniform_cast<glm::vec4>(uniform(graphics::UniformId::BaseColor));
-    return uni ? uni->data() : PBRDrawablePrivate::defaultBaseColor();
+    auto uni = uniform_cast<glm::vec4>(uniform(UniformId::BaseColor));
+    return uni ? uni->data() : settings::Settings::instance().graphics().pbr().baseColor();
 }
 
 void PBRDrawable::setBaseColor(const glm::vec4 &value)
 {
-    getOrCreateUniform(graphics::UniformId::BaseColor) = makeUniform(value);
-}
-
-float PBRDrawable::metalness() const
-{
-    auto uni = uniform_cast<float>(uniform(graphics::UniformId::Metalness));
-    return uni ? uni->data() : PBRDrawablePrivate::defaultMetalness();
-}
-
-void PBRDrawable::setMetalness(float value)
-{
-    getOrCreateUniform(graphics::UniformId::Metalness) = makeUniform(value);
-}
-
-float PBRDrawable::roughness() const
-{
-    auto uni = uniform_cast<float>(uniform(graphics::UniformId::Roughness));
-    return uni ? uni->data() : PBRDrawablePrivate::defaultRoughness();
-}
-
-void PBRDrawable::setRoughness(float value)
-{
-    getOrCreateUniform(graphics::UniformId::Roughness) = makeUniform(value);
+    getOrCreateUniform(UniformId::BaseColor) = makeUniform(value);
 }
 
 graphics::PConstTexture PBRDrawable::baseColorMap() const
 {
-    auto uni = uniform_cast<graphics::PConstTexture>(uniform(graphics::UniformId::BaseColorMap));
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformId::BaseColorMap));
     return uni ? uni->data() : nullptr;
 }
 
 void PBRDrawable::setBaseColorMap(const graphics::PConstTexture &value)
 {
-    static graphics::UniformId s_uniformId = graphics::UniformId::BaseColorMap;
+    static UniformId s_uniformId = UniformId::BaseColorMap;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -98,74 +75,42 @@ void PBRDrawable::setBaseColorMap(const graphics::PConstTexture &value)
         removeUniform(s_uniformId);
 }
 
-graphics::PConstTexture PBRDrawable::metalnessMap() const
+const glm::vec3 &PBRDrawable::emission() const
 {
-    auto uni = uniform_cast<graphics::PConstTexture>(uniform(graphics::UniformId::MetalnessMap));
+    auto uni = uniform_cast<glm::vec3>(uniform(UniformId::Emission));
+    return uni ? uni->data() : settings::Settings::instance().graphics().pbr().emission();
+}
+
+void PBRDrawable::setEmission(const glm::vec3 &value)
+{
+    getOrCreateUniform(UniformId::Emission) = makeUniform(value);
+}
+
+graphics::PConstTexture PBRDrawable::emissionMap() const
+{
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformId::EmissionMap));
     return uni ? uni->data() : nullptr;
 }
 
-void PBRDrawable::setMetalnessMap(const graphics::PConstTexture &value)
+void PBRDrawable::setEmissionMap(const graphics::PConstTexture &value)
 {
-    static graphics::UniformId s_uniformId = graphics::UniformId::MetalnessMap;
+    static UniformId s_uniformId = UniformId::EmissionMap;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);
     else
         removeUniform(s_uniformId);
-}
-
-graphics::PConstTexture PBRDrawable::roughnessMap() const
-{
-    auto uni = uniform_cast<graphics::PConstTexture>(uniform(graphics::UniformId::RoughnessMap));
-    return uni ? uni->data() : nullptr;
-}
-
-void PBRDrawable::setRoughnessMap(const graphics::PConstTexture &value)
-{
-    static graphics::UniformId s_uniformId = graphics::UniformId::RoughnessMap;
-
-    if (value)
-        getOrCreateUniform(s_uniformId) = makeUniform(value);
-    else
-        removeUniform(s_uniformId);
-}
-
-graphics::PConstTexture PBRDrawable::normalMap() const
-{
-    auto uni = uniform_cast<graphics::PConstTexture>(uniform(graphics::UniformId::NormalMap));
-    return uni ? uni->data() : nullptr;
-}
-
-void PBRDrawable::setNormalMap(const graphics::PConstTexture &value)
-{
-    static graphics::UniformId s_uniformId = graphics::UniformId::NormalMap;
-
-    if (value)
-        getOrCreateUniform(s_uniformId) = makeUniform(value);
-    else
-        removeUniform(s_uniformId);
-}
-
-float PBRDrawable::normalMapScale() const
-{
-    auto uni = uniform_cast<float>(uniform(graphics::UniformId::NormalMapScale));
-    return uni ? uni->data() : PBRDrawablePrivate::defaultNormalMapScale();
-}
-
-void PBRDrawable::setNormalMapScale(float value)
-{
-    getOrCreateUniform(graphics::UniformId::NormalMapScale) = makeUniform(value);
 }
 
 graphics::PConstTexture PBRDrawable::occlusionMap() const
 {
-    auto uni = uniform_cast<graphics::PConstTexture>(uniform(graphics::UniformId::OcclusionMap));
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformId::OcclusionMap));
     return uni ? uni->data() : nullptr;
 }
 
 void PBRDrawable::setOcclusionMap(const graphics::PConstTexture &value)
 {
-    static graphics::UniformId s_uniformId = graphics::UniformId::OcclusionMap;
+    static UniformId s_uniformId = UniformId::OcclusionMap;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -175,37 +120,94 @@ void PBRDrawable::setOcclusionMap(const graphics::PConstTexture &value)
 
 float PBRDrawable::occlusionMapStrength() const
 {
-    auto uni = uniform_cast<float>(uniform(graphics::UniformId::OcclusionMapStrength));
-    return uni ? uni->data() : PBRDrawablePrivate::defaultOcclusionMapStrength();
+    auto uni = uniform_cast<float>(uniform(UniformId::OcclusionMapStrength));
+    return uni ? uni->data() : settings::Settings::instance().graphics().pbr().occlusionMapStrength();
 }
 
 void PBRDrawable::setOcclusionMapStrength(float value)
 {
-    getOrCreateUniform(graphics::UniformId::OcclusionMapStrength) = makeUniform(value);
+    getOrCreateUniform(UniformId::OcclusionMapStrength) = makeUniform(value);
 }
 
-std::unordered_set<PBRComponent> PBRDrawable::PBRComponentsSet(const std::shared_ptr<const Drawable> &drawable)
+float PBRDrawable::roughness() const
 {
-    return drawable->componentsSet<PBRComponent>(uniformIdByPBRComponent);
+    auto uni = uniform_cast<float>(uniform(UniformId::Roughness));
+    return uni ? uni->data() : settings::Settings::instance().graphics().pbr().roughness();
 }
 
-graphics::UniformId PBRDrawable::uniformIdByPBRComponent(PBRComponent value)
+void PBRDrawable::setRoughness(float value)
 {
-    static const std::unordered_map<PBRComponent, graphics::UniformId> s_table {
-        { PBRComponent::BaseColor, graphics::UniformId::BaseColor },
-        { PBRComponent::BaseColorMap, graphics::UniformId::BaseColorMap },
-        { PBRComponent::Metalness, graphics::UniformId::Metalness },
-        { PBRComponent::MetalnessMap, graphics::UniformId::MetalnessMap },
-        { PBRComponent::Roughness, graphics::UniformId::Roughness },
-        { PBRComponent::RoughnessMap, graphics::UniformId::RoughnessMap },
-        { PBRComponent::NormalMap, graphics::UniformId::NormalMap },
-        { PBRComponent::NormalMapScale, graphics::UniformId::NormalMapScale },
-        { PBRComponent::OcclusionMap, graphics::UniformId::OcclusionMap },
-        { PBRComponent::OcclusionMapStrength, graphics::UniformId::OcclusionMapStrength },
-    };
+    getOrCreateUniform(UniformId::Roughness) = makeUniform(value);
+}
 
-    auto it = s_table.find(value);
-    return (it == s_table.end()) ? graphics::UniformId::Undefined : it->second;
+graphics::PConstTexture PBRDrawable::roughnessMap() const
+{
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformId::RoughnessMap));
+    return uni ? uni->data() : nullptr;
+}
+
+void PBRDrawable::setRoughnessMap(const graphics::PConstTexture &value)
+{
+    static UniformId s_uniformId = UniformId::RoughnessMap;
+
+    if (value)
+        getOrCreateUniform(s_uniformId) = makeUniform(value);
+    else
+        removeUniform(s_uniformId);
+}
+
+float PBRDrawable::metalness() const
+{
+    auto uni = uniform_cast<float>(uniform(UniformId::Metalness));
+    return uni ? uni->data() : settings::Settings::instance().graphics().pbr().metalness();
+}
+
+void PBRDrawable::setMetalness(float value)
+{
+    getOrCreateUniform(UniformId::Metalness) = makeUniform(value);
+}
+
+graphics::PConstTexture PBRDrawable::metalnessMap() const
+{
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformId::MetalnessMap));
+    return uni ? uni->data() : nullptr;
+}
+
+void PBRDrawable::setMetalnessMap(const graphics::PConstTexture &value)
+{
+    static UniformId s_uniformId = UniformId::MetalnessMap;
+
+    if (value)
+        getOrCreateUniform(s_uniformId) = makeUniform(value);
+    else
+        removeUniform(s_uniformId);
+}
+
+graphics::PConstTexture PBRDrawable::normalMap() const
+{
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformId::NormalMap));
+    return uni ? uni->data() : nullptr;
+}
+
+void PBRDrawable::setNormalMap(const graphics::PConstTexture &value)
+{
+    static UniformId s_uniformId = UniformId::NormalMap;
+
+    if (value)
+        getOrCreateUniform(s_uniformId) = makeUniform(value);
+    else
+        removeUniform(s_uniformId);
+}
+
+float PBRDrawable::normalMapScale() const
+{
+    auto uni = uniform_cast<float>(uniform(UniformId::NormalMapScale));
+    return uni ? uni->data() : settings::Settings::instance().graphics().pbr().normalMapScale();
+}
+
+void PBRDrawable::setNormalMapScale(float value)
+{
+    getOrCreateUniform(UniformId::NormalMapScale) = makeUniform(value);
 }
 
 }

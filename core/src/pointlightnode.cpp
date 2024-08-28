@@ -1,34 +1,37 @@
 #include <utils/logger.h>
-#include <utils/frustum.h>
+#include <utils/clipspace.h>
 
-#include <core/igraphicsrenderer.h>
-#include <core/uniform.h>
+#include <core/applicationbase.h>
+#include <core/graphicsengine.h>
 #include <core/scene.h>
 #include <core/pointlightnode.h>
-#include <core/lightdrawable.h>
+#include <core/uniform.h>
 
+#include "graphicsengineprivate.h"
 #include "pointlightnodeprivate.h"
+#include "lightdrawable.h"
 
 namespace simplex
 {
 namespace core
 {
 
-inline float extendedRadius(float value)
-{
-    return value * 1.15f;
-}
-
 PointLightNode::PointLightNode(const std::string &name)
-    : LightNode(std::make_unique<PointLightNodePrivate>(name))
+    : LightNode(std::make_unique<PointLightNodePrivate>(*this, name))
 {
-    if (PointLightNodePrivate::lightAreaVertexArray().expired())
-        LOG_CRITICAL << "Point light area vertex array is expired";
+    auto app = ApplicationBase::currentApplication();
+    if (!app)
+        LOG_CRITICAL << "Application can't be nullptr";
 
-    auto drawable = std::make_shared<LightDrawable>(PointLightNodePrivate::lightAreaVertexArray().lock());
-    drawable->getOrCreateUniform(graphics::UniformId::LightColor) = makeUniform(glm::vec3(1.f));
-    drawable->getOrCreateUniform(graphics::UniformId::LightRadiuses) = makeUniform(glm::vec2(1.f, 2.f));
-    m().areaDrawable() = drawable;
+    auto graphicsEngine = app->findEngine<GraphicsEngine>("");
+    if (!graphicsEngine)
+        LOG_CRITICAL << "Graphics engine can't be nullptr";
+
+    auto &mPrivate = m();
+    mPrivate.areaDrawable() = std::make_shared<LightDrawable>(graphicsEngine->m().pointLightAreaVertexArray());
+
+    setColor(glm::vec3(1.f));
+    setRadiuses(glm::vec2(1.f, 2.f));
 }
 
 LightType PointLightNode::type() const
@@ -40,27 +43,28 @@ PointLightNode::~PointLightNode() = default;
 
 std::shared_ptr<PointLightNode> PointLightNode::asPointLightNode()
 {
-    return std::dynamic_pointer_cast<PointLightNode>(shared_from_this());
+    auto wp = weak_from_this();
+    return wp.expired() ? nullptr : std::dynamic_pointer_cast<PointLightNode>(wp.lock());
 }
 
 std::shared_ptr<const PointLightNode> PointLightNode::asPointLightNode() const
 {
-    return std::dynamic_pointer_cast<const PointLightNode>(shared_from_this());
+    return const_cast<PointLightNode*>(this)->asPointLightNode();
 }
 
 const glm::vec3 &PointLightNode::color() const
 {
-    return uniform_cast<glm::vec3>(m().areaDrawable()->uniform(graphics::UniformId::LightColor))->data();
+    return uniform_cast<glm::vec3>(m().areaDrawable()->uniform(UniformId::LightColor))->data();
 }
 
 void PointLightNode::setColor(const glm::vec3 &value)
 {
-    uniform_cast<glm::vec3>(m().areaDrawable()->uniform(graphics::UniformId::LightColor))->data() = value;
+    m().areaDrawable()->getOrCreateUniform(UniformId::LightColor) = makeUniform(value);
 }
 
 const glm::vec2 &PointLightNode::radiuses() const
 {
-    return uniform_cast<glm::vec2>(m().areaDrawable()->uniform(graphics::UniformId::LightRadiuses))->data();
+    return uniform_cast<glm::vec2>(m().areaDrawable()->uniform(UniformId::LightRadiuses))->data();
 }
 
 void PointLightNode::setRadiuses(const glm::vec2 &value)
@@ -72,43 +76,10 @@ void PointLightNode::setRadiuses(const glm::vec2 &value)
         LOG_CRITICAL << "maxRadius must be greater than minRadius";
 
     auto &mPrivate = m();
-    uniform_cast<glm::vec2>(mPrivate.areaDrawable()->uniform(graphics::UniformId::LightRadiuses))->data() = value;
+    mPrivate.areaDrawable()->getOrCreateUniform(UniformId::LightRadiuses) = makeUniform(value);
 
-    recalculateAreaBoundingBox();
-    mPrivate.isAreaMatrixDirty() = true;
-}
-
-glm::mat4x4 PointLightNode::doAreaMatrix() const
-{
-    return glm::scale(glm::mat4x4(1.f), glm::vec3(extendedRadius(radiuses()[1u])));
-}
-
-utils::BoundingBox PointLightNode::doAreaBoundingBox() const
-{
-    return areaMatrix() * PointLightNodePrivate::lightAreaBoundingBox();
-}
-
-glm::mat4x4 PointLightNode::doUpdateLayeredShadowMatrices(const utils::FrustumCorners &cameraFrustumCorners,
-                                                          const utils::Range &zRange,
-                                                          std::vector<glm::mat4x4> &layeredShadowMatrices) const
-{
-    static const std::array<glm::mat4x4, 6u> layeredLookAt {
-        glm::lookAt(glm::vec3(0.f), glm::vec3( 1.0, 0.0, 0.0), glm::vec3(0.0,-1.0, 0.0)),
-        glm::lookAt(glm::vec3(0.f), glm::vec3(-1.f, 0.f, 0.f), glm::vec3(0.f,-1.f, 0.f)),
-        glm::lookAt(glm::vec3(0.f), glm::vec3( 0.f, 1.f, 0.f), glm::vec3(0.f, 0.f, 1.f)),
-        glm::lookAt(glm::vec3(0.f), glm::vec3( 0.f,-1.f, 0.f), glm::vec3(0.f, 0.f,-1.f)),
-        glm::lookAt(glm::vec3(0.f), glm::vec3( 0.f, 0.f, 1.f), glm::vec3(0.f,-1.f, 0.f)),
-        glm::lookAt(glm::vec3(0.f), glm::vec3( 0.f, 0.f,-1.f), glm::vec3(0.f,-1.f, 0.f))
-    };
-
-    const auto viewTransform = globalTransform().inverted();
-    const auto layeredProjectionMatrix = glm::perspective(glm::half_pi<float>(), 1.f, zRange.nearValue(), zRange.farValue());
-
-    layeredShadowMatrices.resize(layeredLookAt.size());
-    for (uint32_t i = 0u; i < layeredShadowMatrices.size(); ++i)
-        layeredShadowMatrices[i] = layeredProjectionMatrix * layeredLookAt[i] * viewTransform;
-
-    return viewTransform;
+    mPrivate.dirtyAreaMatrix();
+    mPrivate.dirtyAreaBoundingBox();
 }
 
 }

@@ -14,17 +14,13 @@ SceneRootNode::~SceneRootNode()
 
 std::shared_ptr<SceneRootNode> SceneRootNode::asSceneRootNode()
 {
-    return std::dynamic_pointer_cast<SceneRootNode>(shared_from_this());
+    auto wp = weak_from_this();
+    return wp.expired() ? nullptr : std::dynamic_pointer_cast<SceneRootNode>(wp.lock());
 }
 
 std::shared_ptr<const SceneRootNode> SceneRootNode::asSceneRootNode() const
 {
-    return std::dynamic_pointer_cast<const SceneRootNode>(shared_from_this());
-}
-
-std::shared_ptr<const Scene> SceneRootNode::scene() const
-{
-    return const_cast<SceneRootNode*>(this)->scene();
+    return const_cast<SceneRootNode*>(this)->asSceneRootNode();
 }
 
 std::shared_ptr<Scene> SceneRootNode::scene()
@@ -33,8 +29,13 @@ std::shared_ptr<Scene> SceneRootNode::scene()
     return wpScene.expired() ? nullptr : wpScene.lock();
 }
 
+std::shared_ptr<const Scene> SceneRootNode::scene() const
+{
+    return const_cast<SceneRootNode*>(this)->scene();
+}
+
 SceneRootNode::SceneRootNode(const std::string &name)
-    : Node(std::make_unique<SceneRootNodePrivate>(name))
+    : Node(std::make_unique<SceneRootNodePrivate>(*this, name))
 {
 }
 

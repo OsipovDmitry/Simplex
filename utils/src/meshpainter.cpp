@@ -474,10 +474,10 @@ public:
                 switch (vertexComponentType)
                 {
                 case VertexComponentType::Single:
-                    result = calculateBoundingBoxImpl<float>(drawArrays, *vertices);
+                    result += calculateBoundingBoxImpl<float>(drawArrays, *vertices);
                     break;
                 case VertexComponentType::Double:
-                    result = calculateBoundingBoxImpl<double>(drawArrays, *vertices);
+                    result += calculateBoundingBoxImpl<double>(drawArrays, *vertices);
                     break;
                 default:
                     LOG_ERROR << "Vertex component type must be floating point";
@@ -491,10 +491,10 @@ public:
                     switch (vertexComponentType)
                     {
                     case VertexComponentType::Single:
-                        result = calculateBoundingBoxImpl<float>(drawElementsBuffer, *vertices);
+                        result += calculateBoundingBoxImpl<float>(drawElementsBuffer, *vertices);
                         break;
                     case VertexComponentType::Double:
-                        result = calculateBoundingBoxImpl<double>(drawElementsBuffer, *vertices);
+                        result += calculateBoundingBoxImpl<double>(drawElementsBuffer, *vertices);
                         break;
                     default:
                         LOG_ERROR << "Vertex component type must be floating point";
@@ -609,7 +609,7 @@ const Transform &AbstractPainter::normalTransform() const
 void AbstractPainter::setVertexTransform(const Transform &vertexTransform)
 {
     m_->transforms[VertexAttribute::Position] = vertexTransform;
-    m_->transforms[VertexAttribute::Normal] = Transform::fromRotation(vertexTransform.rotation);
+    m_->transforms[VertexAttribute::Normal] = Transform::makeRotation(vertexTransform.rotation);
 }
 
 const Transform &AbstractPainter::texCoordsTransform() const
@@ -869,21 +869,21 @@ MeshPainter &MeshPainter::drawCone(uint32_t segs)
     return *this;
 }
 
-MeshPainter &MeshPainter::drawBoundingBox()
-{
-    drawElements({{VertexAttribute::Position, s_boundingBoxVertices}},
-                 PrimitiveType::Lines,
-                 s_boundingBoxIndices,
-                 toDrawElementsIndexType<decltype(s_boundingBoxIndices)::value_type>());
-    return *this;
-}
-
 MeshPainter &MeshPainter::drawCamera()
 {
     drawElements({{VertexAttribute::Position, s_cameraVertices}},
                  PrimitiveType::Lines,
                  s_cameraIndices,
                  toDrawElementsIndexType<decltype(s_cameraIndices)::value_type>());
+    return *this;
+}
+
+MeshPainter &MeshPainter::drawBoundingBox()
+{
+    drawElements({{VertexAttribute::Position, s_boundingBoxVertices}},
+                 PrimitiveType::Lines,
+                 s_boundingBoxIndices,
+                 toDrawElementsIndexType<decltype(s_boundingBoxIndices)::value_type>());
     return *this;
 }
 

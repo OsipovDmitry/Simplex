@@ -27,12 +27,16 @@ public:
     static const std::string &version();
     static void setVersion(const std::string&);
 
+    static bool printDebugShaders();
+    static void setPrintDebugShaders(bool);
+
     static std::shared_ptr<Shader> loadFromData(const std::string&);
     static std::shared_ptr<Shader> loadFromFile(const std::filesystem::path&, const ShaderDefines& = {});
 
 private:
     std::string m_data;
     static std::string s_version;
+    static bool s_printDebugShaders;
 
 };
 
