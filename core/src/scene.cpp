@@ -63,6 +63,22 @@ const Background &Scene::background() const
     return const_cast<Scene*>(this)->background();
 }
 
+const std::unordered_set<std::shared_ptr<Animation>> &Scene::animations()
+{
+    return m_->animations();
+}
+
+void Scene::removeAnimation(const std::shared_ptr<Animation> &value)
+{
+    if (auto it = m_->animations().find(value); it != m_->animations().end())
+        m_->animations().erase(it);
+}
+
+void Scene::addAnimation(const std::shared_ptr<Animation> &value)
+{
+    m_->animations().insert(value);
+}
+
 Scene::Scene(const std::weak_ptr<ApplicationBase> &application, const std::string &name)
     : m_(std::make_unique<ScenePrivate>(application, name))
 {

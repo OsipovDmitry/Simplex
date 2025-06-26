@@ -16,32 +16,11 @@ namespace simplex
 namespace qt
 {
 
-QtOpenGLWidget::QtOpenGLWidget(const std::string &name)
-    : QOpenGLWidget()
-    , m_(std::make_unique<QtOpenGLWidgetPrivate>(name))
-{
-    QSurfaceFormat format;
-    format.setDepthBufferSize(24);
-    format.setStencilBufferSize(8);
-    format.setVersion(4, 5);
-    format.setProfile(QSurfaceFormat::CoreProfile);
-    setFormat(format);
-
-    connect(this, &QObject::objectNameChanged, [this](const QString &value) { m().name() = value.toStdString(); } );
-    setObjectName(QString::fromStdString(name));
-
-    int major = -1, minor = -1;
-    major = format.majorVersion();
-    minor = format.minorVersion();
-
-    LOG_INFO << "QtRenderWidget has been created (Name: \"" << QtOpenGLWidget::name() << "\", OpenGL context ver:" << major << "." << minor << ")";
-}
-
 QtOpenGLWidget::~QtOpenGLWidget()
 {
     m_->renderer() = nullptr;
 
-    LOG_INFO << "QtRenderWidget \"" << QtOpenGLWidget::name() << "\" has been destroyed";
+    LOG_INFO << "QtOpenGLWidget \"" << QtOpenGLWidget::name() << "\" has been destroyed";
 }
 
 const std::string &QtOpenGLWidget::name() const
@@ -120,7 +99,7 @@ void QtOpenGLWidget::resizeGL(int width, int height)
         height = pd->height();
     }
 
-    LOG_INFO << "QtRenderWidget::resizeGL(" << width << ", " << height << ")";
+    LOG_INFO << "QtOpenGLWidget::resizeGL(" << width << ", " << height << ")";
     if (auto &renderer = m_->renderer(); renderer)
         renderer->resize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 }
@@ -153,6 +132,27 @@ void QtOpenGLWidget::paintGL()
 
     if (auto app = application())
         app->update(shared_from_this(), time, dt);
+}
+
+QtOpenGLWidget::QtOpenGLWidget(const std::string &name)
+    : QOpenGLWidget()
+    , m_(std::make_unique<QtOpenGLWidgetPrivate>(name))
+{
+    QSurfaceFormat format;
+    format.setDepthBufferSize(24);
+    format.setStencilBufferSize(8);
+    format.setVersion(4, 5);
+    format.setProfile(QSurfaceFormat::CoreProfile);
+    setFormat(format);
+
+    connect(this, &QObject::objectNameChanged, [this](const QString &value) { m().name() = value.toStdString(); } );
+    setObjectName(QString::fromStdString(name));
+
+    int major = -1, minor = -1;
+    major = format.majorVersion();
+    minor = format.minorVersion();
+
+    LOG_INFO << "QtOpenGLWidget has been created (Name: \"" << QtOpenGLWidget::name() << "\", OpenGL context ver:" << major << "." << minor << ")";
 }
 
 }

@@ -221,6 +221,22 @@ inline void setVertexToBuffer(std::shared_ptr<VertexBuffer> buffer, uint32_t idx
         buffer->setVertex(idx, glm::value_ptr(glm::dvec4(v)));
         break;
     }
+    case VertexComponentType::Int8: {
+        buffer->setVertex(idx, glm::value_ptr(glm::i8vec4(v)));
+        break;
+    }
+    case VertexComponentType::Uint8: {
+        buffer->setVertex(idx, glm::value_ptr(glm::u8vec4(v)));
+        break;
+    }
+    case VertexComponentType::Int16: {
+        buffer->setVertex(idx, glm::value_ptr(glm::i16vec4(v)));
+        break;
+    }
+    case VertexComponentType::Uint16: {
+        buffer->setVertex(idx, glm::value_ptr(glm::u16vec4(v)));
+        break;
+    }
     case VertexComponentType::Int32: {
         buffer->setVertex(idx, glm::value_ptr(glm::i32vec4(v)));
         break;

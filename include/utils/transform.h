@@ -27,7 +27,7 @@ template <glm::length_t L, typename T> inline glm::mat<L+1, L+1, T> scaleMatrix(
     return result;
 }
 
-template <glm::length_t L, typename T> inline glm::mat<L+1, L+1, T> rotateMatrix(const glm::qua<T> &q) {
+template <glm::length_t L, typename T> inline glm::mat<L+1, L+1, T> rotationMatrix(const glm::qua<T> &q) {
     const auto mat3x3 = glm::mat3_cast(q);
     glm::mat<L+1, L+1, T> result(static_cast<T>(1));
     for (glm::length_t i = 0; i < L; ++i)
@@ -36,7 +36,7 @@ template <glm::length_t L, typename T> inline glm::mat<L+1, L+1, T> rotateMatrix
     return result;
 }
 
-template <glm::length_t L, typename T> inline glm::mat<L+1, L+1, T> translateMatrix(const glm::vec<L, T> &v) {
+template <glm::length_t L, typename T> inline glm::mat<L+1, L+1, T> translationMatrix(const glm::vec<L, T> &v) {
     glm::mat<L+1, L+1, T> result(static_cast<T>(1));
     result[L] = glm::vec<L+1, T>(v, static_cast<T>(1));
     return result;
@@ -115,7 +115,7 @@ inline TransformT<L, T> TransformT<L, T>::inverted() const
 template <glm::length_t L, typename T>
 inline TransformT<L, T>::operator MatrixType() const
 {
-    return translateMatrix(translation) * rotateMatrix<L>(rotation) * scaleMatrix(PointType(scale));
+    return translationMatrix(translation) * rotationMatrix<L>(rotation) * scaleMatrix(PointType(scale));
 }
 
 template <glm::length_t L, typename T>

@@ -5,6 +5,7 @@
 
 #include <utils/glm/vec3.hpp>
 #include <utils/pimpl.h>
+#include <utils/noncopyble.h>
 
 #include <core/coreglobal.h>
 #include <core/forwarddecl.h>
@@ -17,6 +18,7 @@ namespace core
 class BackgroundPrivate;
 class CORE_SHARED_EXPORT Background
 {
+    NONCOPYBLE(Background)
     PRIVATE_IMPL(Background)
 public:
     Background();

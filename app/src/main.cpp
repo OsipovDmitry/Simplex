@@ -4,14 +4,31 @@
 #include <core/shadow.h>
 
 #include <qt/qtopenglwidget.h>
+#include <qt/openglwidget.h>
 #include <openal/openaldevice.h>
 
 #include "mainwidget.h"
 #include "testapplication.h"
 
+//tmp
+#include <core/igraphicsrenderer.h>
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+//    auto w = simplex::qt::OpenGLWidget::getOrCreate("TestOpenglWidget");
+//    w->show();
+
+//    auto renderer = w->renderer();
+//    renderer->doneCurrent(w);
+//    renderer->makeCurrent(w);
+
+//    auto b = renderer->createBuffer(1024);
+//    b = nullptr;
+
+//    renderer = nullptr;
+
 
     auto openALDevice = simplex::openal::OpenALDevice::getOrCreate();
 
@@ -33,5 +50,6 @@ int main(int argc, char *argv[])
     testApplication.reset();
     delete mainWidget;
 
+//    w.reset();
     return result;
 }

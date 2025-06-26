@@ -470,8 +470,6 @@ void Listener_1_1::setOrientation(const glm::quat &value)
 
 OpenAL_1_1_Renderer::~OpenAL_1_1_Renderer()
 {
-    alcDestroyContext(m_context);
-
     LOG_INFO << "Audio renderer \"" << OpenAL_1_1_Renderer::name() << "\" has been destroyed";
 }
 
@@ -479,6 +477,11 @@ const std::string &OpenAL_1_1_Renderer::name() const
 {
     static const std::string s_name = "OpenAL_1_1_Renderer";
     return s_name;
+}
+
+ALCcontext *OpenAL_1_1_Renderer::context() const
+{
+    return m_context;
 }
 
 bool OpenAL_1_1_Renderer::makeCurrent()

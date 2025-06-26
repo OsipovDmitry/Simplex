@@ -14,14 +14,18 @@ namespace openal
 
 OpenALDevice::~OpenALDevice()
 {
+    auto &renderer = m_->renderer();
+    auto context = renderer->context();
     m_->renderer() = nullptr;
+
+    alcDestroyContext(context);
 
     const auto deviceName = OpenALDevice::name();
 
     if (!alcCloseDevice(m_->device()))
         LOG_ERROR << "Failed to destroy OpenAL device \"" << deviceName << "\"";
     else
-        LOG_INFO << "OpenAL device \"" << deviceName << "\" has been destroyed";
+        LOG_INFO << "OpenALDevice \"" << deviceName << "\" has been destroyed";
 }
 
 const std::string &OpenALDevice::name() const
@@ -93,7 +97,7 @@ OpenALDevice::OpenALDevice(const std::string &deviceName)
 {
     auto device = alcOpenDevice(deviceName.c_str());
     if (!device)
-        LOG_CRITICAL << "Failed to create OpenAL device " << deviceName;
+        LOG_CRITICAL << "Failed to create OpenALDevice " << deviceName;
 
     auto context = alcCreateContext(device, nullptr);
     if (!context)
@@ -110,7 +114,7 @@ OpenALDevice::OpenALDevice(const std::string &deviceName)
     alcGetIntegerv(device, ALC_MAJOR_VERSION, 1u, &major);
     alcGetIntegerv(device, ALC_MINOR_VERSION, 1u, &minor);
 
-    LOG_INFO << "OpenAL device has been created (Name: \"" << deviceName << "\", OpenAL context ver:" << major << "." << minor << ")";
+    LOG_INFO << "OpenALDevice has been created (Name: \"" << deviceName << "\", OpenAL context ver:" << major << "." << minor << ")";
 }
 
 

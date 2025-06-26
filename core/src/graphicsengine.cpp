@@ -153,7 +153,7 @@ const std::string &GraphicsEngine::name() const
     return m_->name();
 }
 
-void GraphicsEngine::update(const std::shared_ptr<IRenderWidget> &/*renderWidget*/,
+void GraphicsEngine::update(const std::shared_ptr<IRenderWidget> &renderWidget,
                             const std::shared_ptr<Scene> &scene,
                             uint64_t /*time*/,
                             uint32_t /*dt*/,
@@ -172,7 +172,7 @@ void GraphicsEngine::update(const std::shared_ptr<IRenderWidget> &/*renderWidget
             lightNodeAreaBoundingBoxFlag;
 
     auto renderer = m_->renderer();
-    // makeCurrent(renderWidget)
+    renderer->makeCurrent(renderWidget);
 
     auto programsManager = m_->programsManager();
 

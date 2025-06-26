@@ -107,6 +107,12 @@ uint32_t VertexBuffer::componentSize(VertexComponentType type)
     static std::array<uint32_t, numElementsVertexComponentType()> s_table {
         sizeof(float),
         sizeof(double),
+        sizeof(int8_t),
+        sizeof(uint8_t),
+                +
+
+        sizeof(int16_t),
+        sizeof(uint16_t),
         sizeof(int32_t),
         sizeof(uint32_t)
     };

@@ -15,6 +15,7 @@
 #include <core/uniform.h>
 
 #include <qt/qtopenglwidget.h>
+#include <qt/openglwidget.h>
 
 #include "qtopengl_4_5_renderer.h"
 #include "mvpstateset.h"
@@ -48,6 +49,10 @@ GLenum Conversions::VertexComponentType2GL(utils::VertexComponentType value)
     static std::array<GLenum, utils::numElementsVertexComponentType()> s_table {
         GL_FLOAT,
         GL_DOUBLE,
+        GL_BYTE,
+        GL_UNSIGNED_BYTE,
+        GL_SHORT,
+        GL_UNSIGNED_SHORT,
         GL_INT,
         GL_UNSIGNED_INT
     };
@@ -285,6 +290,10 @@ uint16_t Conversions::GL2VertexNumComponents(GLenum value)
         { GL_DOUBLE_VEC2, 2u },
         { GL_DOUBLE_VEC3, 3u },
         { GL_DOUBLE_VEC4, 4u },
+        { GL_BYTE, 1u },
+        { GL_UNSIGNED_BYTE, 1u },
+        { GL_SHORT, 1u },
+        { GL_UNSIGNED_SHORT, 1u },
         { GL_INT, 1u },
         { GL_INT_VEC2, 2u },
         { GL_INT_VEC3, 3u},
@@ -310,6 +319,10 @@ utils::VertexComponentType Conversions::GL2VertexComponentType(GLenum value)
         { GL_DOUBLE_VEC2, utils::VertexComponentType::Double },
         { GL_DOUBLE_VEC3, utils::VertexComponentType::Double },
         { GL_DOUBLE_VEC4, utils::VertexComponentType::Double },
+        { GL_BYTE, utils::VertexComponentType::Int8 },
+        { GL_UNSIGNED_BYTE, utils::VertexComponentType::Uint8 },
+        { GL_SHORT, utils::VertexComponentType::Int16 },
+        { GL_UNSIGNED_SHORT, utils::VertexComponentType::Uint16 },
         { GL_INT, utils::VertexComponentType::Int32 },
         { GL_INT_VEC2, utils::VertexComponentType::Int32 },
         { GL_INT_VEC3, utils::VertexComponentType::Int32},
@@ -765,6 +778,10 @@ void VertexArray_4_5::declareVertexAttribute(utils::VertexAttribute attrib,
                                              static_cast<GLuint>(relativeOffset));
         break;
     }
+    case utils::VertexComponentType::Int8:
+    case utils::VertexComponentType::Uint8:
+    case utils::VertexComponentType::Int16:
+    case utils::VertexComponentType::Uint16:
     case utils::VertexComponentType::Int32:
     case utils::VertexComponentType::Uint32: {
         renderer->glVertexArrayAttribIFormat(m_id,
@@ -2557,15 +2574,6 @@ glm::uvec3 ComputeProgram_4_5::workGroupSize() const
 
 QtOpenGL_4_5_Renderer::~QtOpenGL_4_5_Renderer()
 {
-    auto context = owningContext();
-    if (!context)
-        LOG_CRITICAL << "Graphics context can't be nullptr";
-
-    if(!s_instances.count(context))
-        LOG_CRITICAL << "Graphics context is not founded";
-
-    s_instances.erase(context);
-
     LOG_INFO << "Graphics renderer \"" << QtOpenGL_4_5_Renderer::name() << "\" has been destroyed";
 }
 
@@ -2587,17 +2595,17 @@ bool QtOpenGL_4_5_Renderer::makeCurrent(const std::shared_ptr<core::IRenderWidge
     if (QOpenGLContext::currentContext() == context)
         return true;
 
-    auto qtRenderWidget = std::dynamic_pointer_cast<QtOpenGLWidget>(renderWidget);
-    if (!qtRenderWidget)
+    if (auto qtRenderWidget = std::dynamic_pointer_cast<QtOpenGLWidget>(renderWidget))
+        qtRenderWidget->makeCurrent();
+    else
     {
-        LOG_CRITICAL << "RenderWidget can't be nullptr";
-        return false;
+        auto openGLWidget = std::dynamic_pointer_cast<OpenGLWidget>(renderWidget);
+        if (!openGLWidget)
+            LOG_CRITICAL << "RenderWidget can't be nullptr";
+
+        context->makeCurrent(openGLWidget->surface());
     }
 
-    // no way to get surface from QOpenGLWidget, so QOpenGLWidget::makeCurrent() is used
-    //context->makeCurrent(qtRenderWidget->surface());
-
-    qtRenderWidget->makeCurrent();
     return true;
 }
 
@@ -2606,14 +2614,20 @@ bool QtOpenGL_4_5_Renderer::doneCurrent(const std::shared_ptr<core::IRenderWidge
     if (QOpenGLContext::currentContext() == nullptr)
         return true;
 
-    auto qtRenderWidget = std::dynamic_pointer_cast<QtOpenGLWidget>(renderWidget);
-    if (!qtRenderWidget)
+    if (auto qtRenderWidget = std::dynamic_pointer_cast<QtOpenGLWidget>(renderWidget))
+        qtRenderWidget->doneCurrent();
+    else
     {
-        LOG_CRITICAL << "RenderWidget can't be nullptr";
-        return false;
+        auto context = owningContext();
+        if (!context)
+        {
+            LOG_CRITICAL << "Graphics context can't be nullptr";
+            return false;
+        }
+
+        context->doneCurrent();
     }
 
-    qtRenderWidget->doneCurrent();
     return true;
 }
 
@@ -3635,8 +3649,9 @@ void QtOpenGL_4_5_Renderer::setupVertexAttributes(const std::shared_ptr<RenderPr
         if (attributeInfo.id == utils::VertexAttribute::Count)
             continue;
 
-        if (attributeInfo.componentType != vao->vertexAttributeComponentType(attributeInfo.id))
-            LOG_CRITICAL << "Vertex attribute \"" << renderProgram->attributeNameByIndex(attributeInfo.index) << "\" has wrong component type";
+        // TODO: component type can be different for integer vertex attributes
+//        if (attributeInfo.componentType != vao->vertexAttributeComponentType(attributeInfo.id))
+//            LOG_CRITICAL << "Vertex attribute \"" << renderProgram->attributeNameByIndex(attributeInfo.index) << "\" has wrong component type";
 
         if (attributeInfo.numComponents != vao->vertexAttributeNumComponents(attributeInfo.id))
             LOG_CRITICAL << "Vertex attribute \"" << renderProgram->attributeNameByIndex(attributeInfo.index) << "\" has wrong number of components";

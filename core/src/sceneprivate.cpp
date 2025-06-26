@@ -36,5 +36,10 @@ Background &ScenePrivate::background()
     return m_background;
 }
 
+std::unordered_set<std::shared_ptr<Animation>> &ScenePrivate::animations()
+{
+    return m_animations;
+}
+
 }
 }

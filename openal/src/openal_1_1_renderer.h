@@ -132,6 +132,8 @@ public:
 
     const std::string &name() const override;
 
+    ALCcontext *context() const;
+
     bool makeCurrent() override;
     bool doneCurrent() override;
 

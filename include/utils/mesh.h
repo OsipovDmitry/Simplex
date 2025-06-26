@@ -18,6 +18,10 @@ namespace utils
 ENUMCLASS(VertexComponentType, uint16_t,
           Single,
           Double,
+          Int8,
+          Uint8,
+          Int16,
+          Uint16,
           Int32,
           Uint32)
 

@@ -62,6 +62,16 @@ bool VisualDrawable::isShadowCasted() const
     return m().isShadowCastedFlag();
 }
 
+graphics::PConstBufferRange VisualDrawable::bonesBuffer() const
+{
+    return SSBO(SSBOId::BonesBuffer);
+}
+
+void VisualDrawable::setBonesBuffer(const graphics::PConstBufferRange &value)
+{
+    getOrCreateSSBO(SSBOId::BonesBuffer) = value;
+}
+
 const DrawableComponentSet &VisualDrawable::componentSet()
 {
     static const DrawableComponentSet s_set {

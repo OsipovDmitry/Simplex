@@ -31,8 +31,6 @@ public:
     bool isDoubleSided() const;
     void setDoubleSided(bool);
 
-    static const DrawableComponentSet &componentSet();
-
 protected:
     Drawable(std::unique_ptr<DrawablePrivate>);
 

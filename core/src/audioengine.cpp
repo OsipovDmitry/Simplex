@@ -67,9 +67,28 @@ void AudioEngine::update(const std::shared_ptr<IRenderWidget> &/*renderWidget*/,
         source->setPosition(transform.translation);
         source->setDirection(transform.rotation * s_localDirection);
 
-        //
-        if (renderer->sourceState(source) != audio::SourceState::Playing)
-            renderer->playSource(source);
+        switch (soundNode->state())
+        {
+        case SoundState::Stop:
+        {
+            renderer->stopSource(source);
+            break;
+        }
+        case SoundState::Pause:
+        {
+            renderer->pauseSource(source);
+            break;
+        }
+        case SoundState::Play:
+        {
+            if (renderer->sourceState(source) != audio::SourceState::Playing)
+                renderer->playSource(source);
+            break;
+        }
+        default:
+            break;
+        }
+
     }
 }
 

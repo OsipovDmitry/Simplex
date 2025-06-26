@@ -63,7 +63,7 @@ void LightDrawable::setShadowDepthBias(float value)
     getOrCreateUniform(UniformId::ShadowDepthBias) = makeUniform(value);
 }
 
-DrawableComponentSet LightDrawable::componentSet()
+const DrawableComponentSet &LightDrawable::componentSet()
 {
     static const DrawableComponentSet s_set {
     };

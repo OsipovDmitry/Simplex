@@ -71,7 +71,7 @@ void BackgroundDrawable::setRoughness(float value)
     getOrCreateUniform(UniformId::BackgroundRoughness) = makeUniform(value);
 }
 
-DrawableComponentSet BackgroundDrawable::componentSet()
+const DrawableComponentSet &BackgroundDrawable::componentSet()
 {
     static const DrawableComponentSet s_set {
         UniformId::BackgroundColorMap,

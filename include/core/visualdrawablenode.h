@@ -27,6 +27,10 @@ public:
     void addVisualDrawable(std::shared_ptr<VisualDrawable>);
     void removeVisualDrawable(std::shared_ptr<VisualDrawable>);
 
+    std::shared_ptr<Skeleton> skeleton();
+    std::shared_ptr<const Skeleton> skeleton() const;
+    void setSkeleton(const std::shared_ptr<Skeleton>&);
+
 };
 
 }

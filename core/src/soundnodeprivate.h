@@ -14,13 +14,14 @@ public:
     SoundNodePrivate(SoundNode&, const std::string&);
     ~SoundNodePrivate() override;
 
-    void doAttachToScene() override;
     void doDetachFromScene() override;
 
     std::shared_ptr<audio::ISource> &source();
+    SoundState &state();
 
 private:
     std::shared_ptr<audio::ISource> m_source;
+    SoundState m_state;
 };
 
 }

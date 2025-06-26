@@ -3,6 +3,7 @@
 
 #include <string>
 #include <memory>
+#include <unordered_set>
 
 #include <core/forwarddecl.h>
 #include <core/background.h>
@@ -25,6 +26,7 @@ public:
     std::shared_ptr<SceneRootNode> &sceneRootNode();
     std::shared_ptr<ListenerNode> &listenerNode();
     Background &background();
+    std::unordered_set<std::shared_ptr<Animation>> &animations();
 
 private:
     std::string m_name;
@@ -32,6 +34,7 @@ private:
     std::shared_ptr<SceneRootNode> m_sceneRootNode;
     std::shared_ptr<ListenerNode> m_listenerNode;
     Background m_background;
+    std::unordered_set<std::shared_ptr<Animation>> m_animations;
 
 };
 

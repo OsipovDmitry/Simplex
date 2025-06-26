@@ -11,7 +11,7 @@
 class TestApplication : public simplex::core::ApplicationBase
 {
 public:
-    TestApplication(simplex::qt::QtOpenGLWidget*,
+    TestApplication(simplex::qt::RenderWidget*,
                     const std::shared_ptr<simplex::openal::OpenALDevice>&);
 
     ~TestApplication() override;
@@ -28,8 +28,9 @@ private:
     void prepareSponzaScene();
     void prepareChessScene();
     void prepareEmptyRoomScene();
+    void prepareRiggedFigureScene();
 
-    simplex::qt::QtOpenGLWidget *m_renderWidget;
+    simplex::qt::RenderWidget *m_renderWidget;
     std::shared_ptr<simplex::openal::OpenALDevice> m_audioDevice;
 
 };

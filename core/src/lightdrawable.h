@@ -29,7 +29,7 @@ public:
 
     void setShadowDepthBias(float);
 
-    static DrawableComponentSet componentSet();
+    static const DrawableComponentSet &componentSet();
 };
 
 }

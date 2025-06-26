@@ -1,3 +1,4 @@
+#include <core/igraphicsrenderer.h>
 #include <core/visualdrawablenode.h>
 #include <core/visualdrawable.h>
 
@@ -25,6 +26,11 @@ std::unordered_set<std::shared_ptr<VisualDrawable>> &VisualDrawableNodePrivate::
     return m_visualDrawables;
 }
 
+std::shared_ptr<Skeleton> &VisualDrawableNodePrivate::skeleton()
+{
+    return m_skeleton;
+}
+
 const utils::BoundingBox &VisualDrawableNodePrivate::localBoundingBox()
 {
     if (m_isLocalBoundingBoxDirty)
@@ -43,6 +49,11 @@ void VisualDrawableNodePrivate::dirtyLocalBoundingBox()
 {
     m_isLocalBoundingBoxDirty = true;
     dirtyBoundingBox();
+}
+
+void VisualDrawableNodePrivate::update(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+{
+
 }
 
 }

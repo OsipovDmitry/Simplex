@@ -57,7 +57,8 @@ inline std::shared_ptr<TEngine> ApplicationBase::findEngine(const std::string &e
 {
     std::shared_ptr<TEngine> result;
     for (const auto &engine : engines())
-        if (auto castedEngine = std::dynamic_pointer_cast<TEngine>(engine); castedEngine && (engineName.empty() || castedEngine->name() == engineName))
+        if (auto castedEngine = std::dynamic_pointer_cast<TEngine>(engine);
+            castedEngine && (engineName.empty() || castedEngine->name() == engineName))
         {
             result = castedEngine;
             break;

@@ -26,7 +26,7 @@ public:
     float roughness() const;
     void setRoughness(float);
 
-    static DrawableComponentSet componentSet();
+    static const DrawableComponentSet &componentSet();
 
 };
 

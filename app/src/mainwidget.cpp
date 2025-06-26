@@ -15,6 +15,7 @@
 #include <core/debuginformation.h>
 
 #include <qt/qtopenglwidget.h>
+#include <qt/openglwidget.h>
 
 #include "mainwidget.h"
 #include "ui_mainwidget.h"
@@ -28,7 +29,8 @@ MainWidget::MainWidget(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    m_renderWidget = simplex::qt::QtOpenGLWidget::getOrCreate("OpenGLWidget");
+//    m_renderWidget = simplex::qt::QtOpenGLWidget::getOrCreate("OpenGLWidget");
+    m_renderWidget = simplex::qt::RenderWidget::getOrCreate("OpenGLWidget");
     ui->splitter_2->insertWidget(0, m_renderWidget.get());
 
     ui->splitter_3->setStretchFactor(0, 3);
@@ -61,7 +63,7 @@ QListWidget *MainWidget::renderTypeList()
     return ui->m_renderTypeList;
 }
 
-simplex::qt::QtOpenGLWidget *MainWidget::renderWidget()
+simplex::qt::RenderWidget *MainWidget::renderWidget()
 {
     return m_renderWidget.get();
 }

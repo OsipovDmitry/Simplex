@@ -23,7 +23,6 @@ class QT_SHARED_EXPORT QtOpenGLWidget : public QOpenGLWidget, public std::enable
     PRIVATE_IMPL(QtOpenGLWidget)
 
 public:
-    QtOpenGLWidget(const std::string&);
     ~QtOpenGLWidget() override;
 
     const std::string &name() const override;
@@ -44,6 +43,8 @@ protected:
     void paintGL() override;
 
 private:
+    QtOpenGLWidget(const std::string&);
+
     std::unique_ptr<QtOpenGLWidgetPrivate> m_;
 };
 

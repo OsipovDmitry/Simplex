@@ -58,5 +58,15 @@ std::shared_ptr<const audio::ISource> SoundNode::source() const
     return const_cast<SoundNode*>(this)->source();
 }
 
+SoundState SoundNode::state() const
+{
+    return m().state();
+}
+
+void SoundNode::setState(SoundState value)
+{
+    m().state() = value;
+}
+
 }
 }

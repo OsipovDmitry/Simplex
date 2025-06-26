@@ -277,6 +277,8 @@ bool VisualDrawablesCollector::visit(Node &node)
     {
         if (auto visualDrawableNode = node.asVisualDrawableNode(); visualDrawableNode)
         {
+            m_visualDrawableNodesCollection.push_back(visualDrawableNode);
+
             const glm::mat4x4 modelMatrix = visualDrawableNode->globalTransform();
             for (auto &visualDrawable : visualDrawableNode->visualDrawables())
                 if (m_transformedFrustum.classifyBoundingBox(visualDrawable->boundingBox()) != -1)
@@ -287,12 +289,17 @@ bool VisualDrawablesCollector::visit(Node &node)
     return result;
 }
 
-const VisualDrawablesCollector::Collection &VisualDrawablesCollector::visualDrawables() const
+const VisualDrawablesCollector::VisualDrawableNodesCollection &VisualDrawablesCollector::visualDrawableNodesCollection() const
+{
+    return m_visualDrawableNodesCollection;
+}
+
+const VisualDrawablesCollector::VisualDrawablesCollection &VisualDrawablesCollector::visualDrawables() const
 {
     return const_cast<VisualDrawablesCollector*>(this)->visualDrawables();
 }
 
-VisualDrawablesCollector::Collection &VisualDrawablesCollector::visualDrawables()
+VisualDrawablesCollector::VisualDrawablesCollection &VisualDrawablesCollector::visualDrawables()
 {
     return m_visualDrawables;
 }

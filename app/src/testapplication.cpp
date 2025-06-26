@@ -26,6 +26,7 @@
 #include <core/soundsmanager.h>
 
 #include <qt/qtopenglwidget.h>
+#include <qt/openglwidget.h>
 #include <openal/openaldevice.h>
 
 #include "testapplication.h"
@@ -43,10 +44,10 @@ const std::string GraphicsEngineName = "Simplex3DGraphicsEngine";
 const std::string AudioEngineName = "Simplex3DAudioEngine";
 const std::string SceneName = "Scene0";
 
-TestApplication::TestApplication(simplex::qt::QtOpenGLWidget *qtRenderWidget,
+TestApplication::TestApplication(qt::RenderWidget *openGLWidget,
                                  const std::shared_ptr<simplex::openal::OpenALDevice> &openALDevice)
     : simplex::core::ApplicationBase(ApplicationName)
-    , m_renderWidget(qtRenderWidget)
+    , m_renderWidget(openGLWidget)
     , m_audioDevice(openALDevice)
 {
     auto graphicsRenderer = m_renderWidget->renderer();
@@ -71,7 +72,7 @@ TestApplication::~TestApplication()
 
 void TestApplication::doInitialize()
 {
-    prepareStandardScene();
+    prepareRiggedFigureScene();
 }
 
 void TestApplication::doUpdate(uint64_t time, uint32_t dt)
@@ -195,7 +196,7 @@ void TestApplication::prepareStandardScene()
     spotLight->setRadiuses(glm::vec2(5.f, 7.f));
     spotLight->setHalfAngles(glm::vec2(glm::pi<float>() / 6.f, glm::pi<float>() / 5.f));
     spotLight->setTransform(utils::Transform(1.f, glm::quat(glm::vec3(-glm::quarter_pi<float>(), glm::quarter_pi<float>(), 0.f)), glm::vec3(4.f, 3.f, 4.f)));
-    scene0->sceneRootNode()->attach(spotLight);
+    //scene0->sceneRootNode()->attach(spotLight);
 
     auto iblLight = std::make_shared<core::IBLLightNode>("IBL light");
     iblLight->setContribution(.1f);
@@ -250,6 +251,7 @@ void TestApplication::prepareStandardScene()
     source->setBuffer(soundsManager->loadOrGetSound("D:/res/sounds/Footsteps.wav"));
     source->setLooping(true);
     scene0->sceneRootNode()->attach(soundNode);
+    soundNode->setState(core::SoundState::Play);
 
     cameraNode0->attach(scene0->listenerNode());
 }
@@ -338,6 +340,30 @@ void TestApplication::prepareEmptyRoomScene()
     auto boxDrawableNode = std::make_shared<core::VisualDrawableNode>("Box");
     boxDrawableNode->addVisualDrawable(boxDrawable);
     scene0->sceneRootNode()->attach(boxDrawableNode);
+}
+
+void TestApplication::prepareRiggedFigureScene()
+{
+    auto scene0 = loadGLTFScene("D:/res/RiggedFigure/RiggedFigure.gltf", m_renderWidget->defaultFrameBuffer());
+
+    scene0->sceneRootNode()->attach(std::make_shared<core::CameraNode>("", m_renderWidget->defaultFrameBuffer()));
+
+    auto light1 = std::make_shared<core::IBLLightNode>("");
+    light1->setContribution(0.1f);
+    scene0->sceneRootNode()->attach(light1);
+
+    auto light2 = std::make_shared<core::PointLightNode>("");
+    light2->setTransform(utils::Transform::makeTranslation(glm::vec3(-.7f, 3.f, -.4f)));
+    light2->setRadiuses(glm::vec2(5.f, 6.f));
+    light2->setColor(glm::vec3(12.f));
+    //scene0->sceneRootNode()->attach(light2);
+
+    auto light3 = std::make_shared<core::SpotLightNode>("");
+    light3->setColor(glm::vec3(10.f));
+    light3->setRadiuses(glm::vec2(5.f, 10.f));
+    light3->setHalfAngles(glm::vec2(0.f, glm::pi<float>() / 6.f));
+    light3->setTransform(utils::Transform(1.f, glm::quat(0.888179f, -0.260215f, 0.363439f, 0.106479f), glm::vec3(-.7f, 3.f, -.4f)));
+    //scene0->sceneRootNode()->attach(light3);
 }
 
 void TestApplication::setShadowMode(simplex::core::ShadingMode value)

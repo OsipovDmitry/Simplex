@@ -2,7 +2,6 @@
 #define CORE_NODEPRIVATE_H
 
 #include <string>
-#include <memory>
 
 #include <utils/boundingbox.h>
 

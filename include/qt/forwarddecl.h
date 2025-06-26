@@ -7,6 +7,10 @@ namespace qt
 {
 
 class QtOpenGLWidget;
+class OpenGLWidget;
+
+
+using RenderWidget = QtOpenGLWidget;
 
 }
 }

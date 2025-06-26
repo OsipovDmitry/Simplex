@@ -8,6 +8,8 @@
 
 #include <core/forwarddecl.h>
 
+#include <qt/forwarddecl.h>
+
 namespace Ui {
 class MainWidget;
 }
@@ -17,6 +19,7 @@ namespace simplex
 namespace qt
 {
 class QtOpenGLWidget;
+class OpenGLWidget;
 }
 }
 
@@ -32,7 +35,7 @@ public:
     ~MainWidget() override;
 
     QListWidget *renderTypeList();
-    simplex::qt::QtOpenGLWidget *renderWidget();
+    simplex::qt::RenderWidget *renderWidget();
     QComboBox *shadowModeBox();
     QComboBox *shadowFilterBox();
 
@@ -51,7 +54,8 @@ signals:
 
 private:
     Ui::MainWidget *ui;
-    std::shared_ptr<simplex::qt::QtOpenGLWidget> m_renderWidget;
+    //std::shared_ptr<simplex::qt::QtOpenGLWidget> m_renderWidget;
+    std::shared_ptr<simplex::qt::RenderWidget> m_renderWidget;
 
     bool m_isWPressed = false;
     bool m_isSPressed = false;

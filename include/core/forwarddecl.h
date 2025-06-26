@@ -134,8 +134,10 @@ class VisualDrawable;
 class FlatDrawable;
 class PBRDrawable;
 
+class Animation;
 class Background;
 class Shadow;
+class Skeleton;
 class SSAO;
 
 class Scene;
@@ -152,6 +154,7 @@ class PointLightNode;
 class SpotLightNode;
 class DirectionalLightNode;
 class IBLLightNode;
+enum class SoundState : uint16_t;
 class SoundNode;
 class ListenerNode;
 

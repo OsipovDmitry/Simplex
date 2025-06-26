@@ -1,3 +1,6 @@
+#include <limits>
+#include <queue>
+
 #include <utils/logger.h>
 #include <utils/textfile.h>
 #include <utils/mesh.h>
@@ -17,6 +20,7 @@
 #include <core/spotlightnode.h>
 #include <core/directionallightnode.h>
 #include <core/pbrdrawable.h>
+#include <core/animation.h>
 
 #include "applicationbaseprivate.h"
 #include "sceneprivate.h"
@@ -164,366 +168,635 @@ std::shared_ptr<Scene> ApplicationBase::loadEmptyScene(const std::string &sceneN
 std::shared_ptr<Scene> ApplicationBase::loadGLTFScene(const std::filesystem::path &filename,
                                                       const std::shared_ptr<graphics::IFrameBuffer> &defaultFrameBuffer)
 {
-    static const auto insertNode = [](const std::shared_ptr<graphics::IRenderer> &renderer,
+    static const auto tinyType2NumComponents = [](int value) -> uint32_t
+    {
+        static const std::unordered_map<int, uint32_t> s_table {
+            {TINYGLTF_TYPE_SCALAR, 1u},
+            {TINYGLTF_TYPE_VEC2, 2u},
+            {TINYGLTF_TYPE_VEC3, 3u},
+            {TINYGLTF_TYPE_VEC4, 4u},
+        };
+
+        const auto it = s_table.find(value);
+        return it != s_table.end() ? it->second : 0u;
+    };
+
+    static const auto createBuffer = [](const std::shared_ptr<graphics::IRenderer> &renderer,
+                                        const tinygltf::Model &rawModel,
+                                        size_t rawBufferIndex) -> std::shared_ptr<graphics::IBuffer>
+    {
+        const auto &rawBuffer = rawModel.buffers[rawBufferIndex];
+        return renderer->createBuffer(rawBuffer.data.size(), rawBuffer.data.data());
+    };
+
+    static const auto createTexture = [](const std::shared_ptr<TexturesManager> &texturesManager,
+                                         const std::filesystem::path &absoluteParentDir,
+                                         const tinygltf::Model &rawModel,
+                                         size_t rawTextureIndex) -> graphics::PTexture
+    {
+        const auto &rawTexture = rawModel.textures[rawTextureIndex];
+        const auto &rawImage = rawModel.images[static_cast<size_t>(rawTexture.source)];
+        return texturesManager->loadOrGetTexture(absoluteParentDir / rawImage.uri);
+    };
+
+    static const auto createNode = [](const std::shared_ptr<graphics::IRenderer> &renderer,
                                       const std::shared_ptr<graphics::IFrameBuffer> &defaultFrameBuffer,
                                       const std::vector<std::shared_ptr<graphics::IBuffer>> &buffers,
                                       const std::vector<graphics::PTexture> &textures,
-                                      const std::shared_ptr<Node> &parentNode,
                                       const tinygltf::Model &rawModel,
-                                      int rawNodeIndex) -> bool
+                                      size_t rawNodeIndex) -> std::shared_ptr<Node>
     {
-        static const auto insertNodeImpl = [](const auto &impl,
-                                              const std::shared_ptr<graphics::IRenderer> &renderer,
-                                              const std::shared_ptr<graphics::IFrameBuffer> &defaultFrameBuffer,
-                                              const std::vector<std::shared_ptr<graphics::IBuffer>> &buffers,
-                                              const std::vector<graphics::PTexture> &textures,
-                                              const std::shared_ptr<Node> &parentNode,
-                                              const tinygltf::Model &rawModel,
-                                              int rawNodeIndex) -> bool
+        static const auto tinyComponentType2VertexComponentType = [](int value) -> utils::VertexComponentType
         {
-            static const auto tinyType2NumComponents = [](int value) -> uint32_t
-            {
-                static const std::unordered_map<int, uint32_t> s_table {
-                    {TINYGLTF_TYPE_SCALAR, 1u},
-                    {TINYGLTF_TYPE_VEC2, 2u},
-                    {TINYGLTF_TYPE_VEC3, 3u},
-                    {TINYGLTF_TYPE_VEC4, 4u},
-                };
-
-                const auto it = s_table.find(value);
-                return it != s_table.end() ? it->second : 0u;
+            static const std::unordered_map<int, utils::VertexComponentType> s_table {
+                {TINYGLTF_COMPONENT_TYPE_BYTE, utils::VertexComponentType::Int8},
+                {TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, utils::VertexComponentType::Uint8},
+                {TINYGLTF_COMPONENT_TYPE_SHORT, utils::VertexComponentType::Int16},
+                {TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT, utils::VertexComponentType::Uint16},
+                {TINYGLTF_COMPONENT_TYPE_INT, utils::VertexComponentType::Int32},
+                {TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT, utils::VertexComponentType::Uint32},
+                {TINYGLTF_COMPONENT_TYPE_FLOAT, utils::VertexComponentType::Single},
+                {TINYGLTF_COMPONENT_TYPE_DOUBLE, utils::VertexComponentType::Double},
             };
 
-            static const auto tinyComponentType2VertexComponentType = [](int value) -> utils::VertexComponentType
-            {
-                static const std::unordered_map<int, utils::VertexComponentType> s_table {
-                    {TINYGLTF_COMPONENT_TYPE_INT, utils::VertexComponentType::Int32},
-                    {TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT, utils::VertexComponentType::Uint32},
-                    {TINYGLTF_COMPONENT_TYPE_FLOAT, utils::VertexComponentType::Single},
-                    {TINYGLTF_COMPONENT_TYPE_DOUBLE, utils::VertexComponentType::Double},
-                };
+            const auto it = s_table.find(value);
+            return it != s_table.end() ? it->second : utils::VertexComponentType::Count;
+        };
 
-                const auto it = s_table.find(value);
-                return it != s_table.end() ? it->second : utils::VertexComponentType::Count;
+        static const auto tinyComponentType2DrawElementsIndexType = [](int value) -> utils::DrawElementsIndexType
+        {
+            static const std::unordered_map<int, utils::DrawElementsIndexType> s_table {
+                {TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, utils::DrawElementsIndexType::Uint8},
+                {TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT, utils::DrawElementsIndexType::Uint16},
+                {TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT, utils::DrawElementsIndexType::Uint32},
             };
 
-            static const auto tinyComponentType2DrawElementsIndexType = [](int value) -> utils::DrawElementsIndexType
-            {
-                static const std::unordered_map<int, utils::DrawElementsIndexType> s_table {
-                    {TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE, utils::DrawElementsIndexType::Uint8},
-                    {TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT, utils::DrawElementsIndexType::Uint16},
-                    {TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT, utils::DrawElementsIndexType::Uint32},
-                };
+            const auto it = s_table.find(value);
+            return it != s_table.end() ? it->second : utils::DrawElementsIndexType::Undefined;
+        };
 
-                const auto it = s_table.find(value);
-                return it != s_table.end() ? it->second : utils::DrawElementsIndexType::Undefined;
+        static const auto tinyAttribute2VertexAttribute = [](const std::string &value) -> utils::VertexAttribute
+        {
+            static const std::unordered_map<std::string, utils::VertexAttribute> s_table {
+                {"POSITION", utils::VertexAttribute::Position},
+                {"NORMAL", utils::VertexAttribute::Normal},
+                {"TANGENT", utils::VertexAttribute::Tangent},
+                {"TEXCOORD_0", utils::VertexAttribute::TexCoords},
+                {"COLOR_0", utils::VertexAttribute::Color},
+                {"JOINTS_0", utils::VertexAttribute::BonesIDs},
+                {"WEIGHTS_0", utils::VertexAttribute::BonesWeights},
             };
 
-            static const auto tinyAttribute2VertexAttribute = [](const std::string &value) -> utils::VertexAttribute
-            {
-                static const std::unordered_map<std::string, utils::VertexAttribute> s_table {
-                    {"POSITION", utils::VertexAttribute::Position},
-                    {"NORMAL", utils::VertexAttribute::Normal},
-                    {"TANGENT", utils::VertexAttribute::Tangent},
-                    {"TEXCOORD_0", utils::VertexAttribute::TexCoords},
-                    {"COLOR_0", utils::VertexAttribute::Color},
-                    {"JOINTS_0", utils::VertexAttribute::BonesIDs},
-                    {"WEIGHTS_0", utils::VertexAttribute::BonesWeights},
-                };
+            const auto it = s_table.find(value);
+            return it != s_table.end() ? it->second : utils::VertexAttribute::Count;
+        };
 
-                const auto it = s_table.find(value);
-                return it != s_table.end() ? it->second : utils::VertexAttribute::Count;
+        static const auto tinyMode2PrimitiveType = [](int value) -> utils::PrimitiveType
+        {
+            static const std::unordered_map<int, utils::PrimitiveType> s_table {
+                {TINYGLTF_MODE_POINTS, utils::PrimitiveType::Points},
+                {TINYGLTF_MODE_LINE, utils::PrimitiveType::Lines},
+                {TINYGLTF_MODE_LINE_STRIP, utils::PrimitiveType::LineStrip},
+                {TINYGLTF_MODE_TRIANGLES, utils::PrimitiveType::Triangles},
+                {TINYGLTF_MODE_TRIANGLE_STRIP, utils::PrimitiveType::TriangleStrip},
+                {TINYGLTF_MODE_TRIANGLE_FAN, utils::PrimitiveType::TriangleFan},
             };
 
-            static const auto tinyMode2PrimitiveType = [](int value) -> utils::PrimitiveType
+            const auto it = s_table.find(value);
+            return it != s_table.end() ? it->second : utils::PrimitiveType::Undefined;
+        };
+
+        const auto &rawNode = rawModel.nodes[rawNodeIndex];
+        std::shared_ptr<Node> node;
+
+        if (rawNode.camera >= 0)
+        {
+            const auto &rawCamera = rawModel.cameras[static_cast<size_t>(rawNode.camera)];
+            auto cameraNode = std::make_shared<CameraNode>(rawNode.name, defaultFrameBuffer);
+
+            if (rawCamera.type == "perspective")
+                cameraNode->setPerspectiveClipSpace(static_cast<utils::ClipSpace::value_type>(rawCamera.perspective.yfov));
+            else if (rawCamera.type == "orthographic")
+                cameraNode->setOrthoClipSpace(static_cast<utils::ClipSpace::value_type>(rawCamera.orthographic.ymag));
+            else
             {
-                static const std::unordered_map<int, utils::PrimitiveType> s_table {
-                    {TINYGLTF_MODE_POINTS, utils::PrimitiveType::Points},
-                    {TINYGLTF_MODE_LINE, utils::PrimitiveType::Lines},
-                    {TINYGLTF_MODE_LINE_STRIP, utils::PrimitiveType::LineStrip},
-                    {TINYGLTF_MODE_TRIANGLES, utils::PrimitiveType::Triangles},
-                    {TINYGLTF_MODE_TRIANGLE_STRIP, utils::PrimitiveType::TriangleStrip},
-                    {TINYGLTF_MODE_TRIANGLE_FAN, utils::PrimitiveType::TriangleFan},
-                };
-
-                const auto it = s_table.find(value);
-                return it != s_table.end() ? it->second : utils::PrimitiveType::Undefined;
-            };
-
-            const auto &rawNode = rawModel.nodes[static_cast<size_t>(rawNodeIndex)];
-
-            std::shared_ptr<Node> node;
-            if (rawNode.camera >= 0)
-            {
-                const auto &rawCamera = rawModel.cameras[static_cast<size_t>(rawNode.camera)];
-                auto cameraNode = std::make_shared<CameraNode>(rawNode.name, defaultFrameBuffer);
-
-                if (rawCamera.type == "perspective")
-                    cameraNode->setPerspectiveClipSpace(static_cast<utils::ClipSpace::value_type>(rawCamera.perspective.yfov));
-                else if (rawCamera.type == "orthographic")
-                    cameraNode->setOrthoClipSpace(static_cast<utils::ClipSpace::value_type>(rawCamera.orthographic.ymag));
-                else
-                {
-                    LOG_ERROR << "Undefined type of camera";
-                    return false;
-                }
-
-                node = cameraNode;
+                LOG_ERROR << "Undefined type of camera";
+                return nullptr;
             }
-            else if (rawNode.mesh >= 0)
+
+            node = cameraNode;
+        }
+        else if (rawNode.mesh >= 0)
+        {
+            const auto &rawMesh = rawModel.meshes[static_cast<size_t>(rawNode.mesh)];
+
+            auto visualDrawableNode = std::make_shared<VisualDrawableNode>(rawNode.name);
+            for (const auto &rawPrimitive : rawMesh.primitives)
             {
-                const auto &rawMesh = rawModel.meshes[static_cast<size_t>(rawNode.mesh)];
+                utils::BoundingBox boundingBox;
+                uint32_t numVertices = 0u;
+                auto vao = renderer->createVertexArray();
 
-                auto visualDrawableNode = std::make_shared<VisualDrawableNode>(rawNode.name);
-                for (const auto &rawPrimitive : rawMesh.primitives)
+                for (const auto& [rawAttributeName, accessorIndex] : rawPrimitive.attributes)
                 {
-                    utils::BoundingBox boundingBox;
-                    uint32_t numVertices = 0u;
-                    auto vao = renderer->createVertexArray();
+                    const auto &rawAccessor = rawModel.accessors[static_cast<size_t>(accessorIndex)];
+                    const auto &rawBufferView = rawModel.bufferViews[static_cast<size_t>(rawAccessor.bufferView)];
 
-                    for (const auto& [rawAttributeName, accessorIndex] : rawPrimitive.attributes)
+                    const auto bindingPoint = vao->attachVertexBuffer(buffers[static_cast<size_t>(rawBufferView.buffer)],
+                                                                      rawBufferView.byteOffset,
+                                                                      static_cast<uint32_t>(rawAccessor.ByteStride(rawBufferView)));
+
+                    auto vertexAttribute = tinyAttribute2VertexAttribute(rawAttributeName);
+                    if (vertexAttribute == utils::VertexAttribute::Count)
                     {
-                        const auto &rawAccessor = rawModel.accessors[static_cast<size_t>(accessorIndex)];
-                        const auto &rawBufferView = rawModel.bufferViews[static_cast<size_t>(rawAccessor.bufferView)];
-
-                        const auto bindingPoint = vao->attachVertexBuffer(buffers[static_cast<size_t>(rawBufferView.buffer)],
-                                                                          rawBufferView.byteOffset,
-                                                                          static_cast<uint32_t>(rawAccessor.ByteStride(rawBufferView)));
-
-                        auto vertexAttribute = tinyAttribute2VertexAttribute(rawAttributeName);
-                        if (vertexAttribute == utils::VertexAttribute::Count)
-                        {
-                            LOG_ERROR << "Undefined type of vertex attribute";
-                            return false;
-                        }
-                        if (vertexAttribute == utils::VertexAttribute::Position)
-                        {
-                            numVertices = static_cast<uint32_t>(rawAccessor.count);
-                            boundingBox = utils::BoundingBox({ glm::vec3(static_cast<float>(rawAccessor.minValues[0u]),
-                                                                         static_cast<float>(rawAccessor.minValues[1u]),
-                                                                         static_cast<float>(rawAccessor.minValues[2u])),
-                                                               glm::vec3(static_cast<float>(rawAccessor.maxValues[0u]),
-                                                                         static_cast<float>(rawAccessor.maxValues[1u]),
-                                                                         static_cast<float>(rawAccessor.maxValues[2u])) });
-                        }
-
-                        const auto numComponents = tinyType2NumComponents(rawAccessor.type);
-                        if (!numComponents)
-                        {
-                            LOG_ERROR << "Undefined number of components of vertex attribute";
-                            return false;
-                        }
-
-                        const auto vertexComponentType = tinyComponentType2VertexComponentType(rawAccessor.componentType);
-                        if (vertexComponentType == utils::VertexComponentType::Count)
-                        {
-                            LOG_ERROR << "Undefined component type of vertex attribute";
-                            return false;
-                        }
-
-                        vao->declareVertexAttribute(vertexAttribute,
-                                                    bindingPoint,
-                                                    numComponents,
-                                                    vertexComponentType,
-                                                    0u);
+                        LOG_ERROR << "Undefined type of vertex attribute";
+                        return nullptr;
+                    }
+                    if (vertexAttribute == utils::VertexAttribute::Position)
+                    {
+                        numVertices = static_cast<uint32_t>(rawAccessor.count);
+                        boundingBox = utils::BoundingBox({ glm::vec3(static_cast<float>(rawAccessor.minValues[0u]),
+                                                                     static_cast<float>(rawAccessor.minValues[1u]),
+                                                                     static_cast<float>(rawAccessor.minValues[2u])),
+                                                           glm::vec3(static_cast<float>(rawAccessor.maxValues[0u]),
+                                                                     static_cast<float>(rawAccessor.maxValues[1u]),
+                                                                     static_cast<float>(rawAccessor.maxValues[2u])) });
                     }
 
-                    auto primitiveType = tinyMode2PrimitiveType(rawPrimitive.mode);
-                    if (primitiveType == utils::PrimitiveType::Undefined)
+                    const auto numComponents = tinyType2NumComponents(rawAccessor.type);
+                    if (!numComponents)
                     {
-                        LOG_ERROR << "Undefined primitive type";
-                        return false;
+                        LOG_ERROR << "Undefined number of components of vertex attribute";
+                        return nullptr;
                     }
 
-                    if (rawPrimitive.indices >= 0)
+                    const auto vertexComponentType = tinyComponentType2VertexComponentType(rawAccessor.componentType);
+                    if (vertexComponentType == utils::VertexComponentType::Count)
                     {
-                        const auto &rawAccessor = rawModel.accessors[static_cast<size_t>(rawPrimitive.indices)];
-                        const auto &rawBufferView = rawModel.bufferViews[static_cast<size_t>(rawAccessor.bufferView)];
-                        vao->attachIndexBuffer(buffers[static_cast<size_t>(rawBufferView.buffer)]);
-
-                        const auto drawElementsIndexType = tinyComponentType2DrawElementsIndexType(rawAccessor.componentType);
-                        if (drawElementsIndexType == utils::DrawElementsIndexType::Undefined)
-                        {
-                            LOG_ERROR << "Undefined component type of draw elements index buffer";
-                            return false;
-                        }
-
-                        vao->addPrimitiveSet(std::make_shared<utils::DrawElements>(primitiveType,
-                                                                                   static_cast<uint32_t>(rawAccessor.count),
-                                                                                   drawElementsIndexType,
-                                                                                   rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                                                                   0u));
-                    }
-                    else
-                    {
-                        vao->addPrimitiveSet(std::make_shared<utils::DrawArrays>(primitiveType, 0u, numVertices));
+                        LOG_ERROR << "Undefined component type of vertex attribute";
+                        return nullptr;
                     }
 
-                    auto pbrDrawable = std::make_shared<PBRDrawable>(vao, boundingBox);
-                    pbrDrawable->setORMSwizzleMask(glm::uvec4(0u, 1u, 2u, 3u));
-                    visualDrawableNode->addVisualDrawable(pbrDrawable);
-
-                    if (rawPrimitive.material >= 0)
-                    {
-                        const auto &rawMaterial = rawModel.materials[static_cast<size_t>(rawPrimitive.material)];
-
-                        if (rawMaterial.alphaMode == "MASK")
-                            pbrDrawable->setAlphaCutoff(static_cast<float>(rawMaterial.alphaCutoff));
-
-                        const auto &rawEmissionTextureInfo = rawMaterial.emissiveTexture;
-                        if (rawEmissionTextureInfo.index >= 0)
-                        {
-                            if (rawEmissionTextureInfo.texCoord != 0)
-                            {
-                                LOG_ERROR << "Multiple texture coords are not supported";
-                                return false;
-                            }
-
-                            pbrDrawable->setEmissionMap(textures[static_cast<size_t>(rawEmissionTextureInfo.index)]);
-                            pbrDrawable->setEmission(glm::vec3(static_cast<float>(rawMaterial.emissiveFactor[0u]),
-                                                               static_cast<float>(rawMaterial.emissiveFactor[1u]),
-                                                               static_cast<float>(rawMaterial.emissiveFactor[2u])));
-                        }
-
-                        const auto &rawNormalTextureInfo = rawMaterial.normalTexture;
-                        if (rawNormalTextureInfo.index >= 0)
-                        {
-                            if (rawNormalTextureInfo.texCoord != 0)
-                            {
-                                LOG_ERROR << "Multiple texture coords are not supported";
-                                return false;
-                            }
-
-                            pbrDrawable->setNormalMap(textures[static_cast<size_t>(rawNormalTextureInfo.index)]);
-                            pbrDrawable->setNormalMapScale(static_cast<float>(rawNormalTextureInfo.scale));
-                        }
-
-                        const auto &rawOcclusionTextureInfo = rawMaterial.occlusionTexture;
-                        if (rawOcclusionTextureInfo.index >= 0)
-                        {
-                            if (rawOcclusionTextureInfo.texCoord != 0)
-                            {
-                                LOG_ERROR << "Multiple texture coords are not supported";
-                                return false;
-                            }
-
-                            pbrDrawable->setOcclusionMap(textures[static_cast<size_t>(rawOcclusionTextureInfo.index)]);
-                            pbrDrawable->setOcclusionMapStrength(static_cast<float>(rawOcclusionTextureInfo.strength));
-                        }
-
-                        const auto &rawPBR = rawMaterial.pbrMetallicRoughness;
-
-                        pbrDrawable->setBaseColor(glm::vec4(static_cast<float>(rawPBR.baseColorFactor[0u]),
-                                                            static_cast<float>(rawPBR.baseColorFactor[1u]),
-                                                            static_cast<float>(rawPBR.baseColorFactor[2u]),
-                                                            static_cast<float>(rawPBR.baseColorFactor[3u])));
-                        pbrDrawable->setMetalness(static_cast<float>(rawPBR.metallicFactor));
-                        pbrDrawable->setRoughness(static_cast<float>(rawPBR.roughnessFactor));
-
-                        const auto &rawBaseColorTextureInfo = rawPBR.baseColorTexture;
-                        if (rawBaseColorTextureInfo.index >= 0)
-                        {
-                            if (rawBaseColorTextureInfo.texCoord != 0)
-                            {
-                                LOG_ERROR << "Multiple texture coords are not supported";
-                                return false;
-                            }
-
-                            pbrDrawable->setBaseColorMap(textures[static_cast<size_t>(rawBaseColorTextureInfo.index)]);
-                        }
-
-                        const auto &rawMetalnessRoughnessTextureInfo = rawPBR.metallicRoughnessTexture;
-                        if (rawMetalnessRoughnessTextureInfo.index >= 0)
-                        {
-                            if (rawMetalnessRoughnessTextureInfo.texCoord != 0)
-                            {
-                                LOG_ERROR << "Multiple texture coords are not supported";
-                                return false;
-                            }
-
-                            const auto &metalnessRoughnessTexture = textures[static_cast<size_t>(rawMetalnessRoughnessTextureInfo.index)];
-                            pbrDrawable->setMetalnessMap(metalnessRoughnessTexture);
-                            pbrDrawable->setRoughnessMap(metalnessRoughnessTexture);
-                        }
-                    }
+                    vao->declareVertexAttribute(vertexAttribute,
+                                                bindingPoint,
+                                                numComponents,
+                                                vertexComponentType,
+                                                0u);
                 }
 
-                node = visualDrawableNode;
-            }
-            else if (rawNode.light >= 0)
-            {
-                const auto &rawLight = rawModel.lights[static_cast<size_t>(rawNode.light)];
-                std::shared_ptr<LightNode> lightNode;
+                auto primitiveType = tinyMode2PrimitiveType(rawPrimitive.mode);
+                if (primitiveType == utils::PrimitiveType::Undefined)
+                {
+                    LOG_ERROR << "Undefined primitive type";
+                    return nullptr;
+                }
 
-                if (rawLight.type == "point")
+                if (rawPrimitive.indices >= 0)
                 {
-                    auto pointLightNode = std::make_shared<PointLightNode>(rawNode.name);
-                    pointLightNode->setRadiuses(glm::vec2(0.f, static_cast<float>(rawLight.range)));
-                    lightNode = pointLightNode;
-                }
-                else if (rawLight.type == "spot")
-                {
-                    auto spotLightNode = std::make_shared<SpotLightNode>(rawNode.name);
-                    spotLightNode->setRadiuses(glm::vec2(0.f, static_cast<float>(rawLight.range)));
-                    spotLightNode->setHalfAngles(glm::vec2(static_cast<float>(rawLight.spot.innerConeAngle),
-                                                           static_cast<float>(rawLight.spot.outerConeAngle)));
-                    lightNode = spotLightNode;
-                }
-                else if (rawLight.type == "directional")
-                {
-                    auto directionalLightNode = std::make_shared<DirectionalLightNode>(rawNode.name);
-                    lightNode = directionalLightNode;
+                    const auto &rawAccessor = rawModel.accessors[static_cast<size_t>(rawPrimitive.indices)];
+                    const auto &rawBufferView = rawModel.bufferViews[static_cast<size_t>(rawAccessor.bufferView)];
+                    vao->attachIndexBuffer(buffers[static_cast<size_t>(rawBufferView.buffer)]);
+
+                    const auto drawElementsIndexType = tinyComponentType2DrawElementsIndexType(rawAccessor.componentType);
+                    if (drawElementsIndexType == utils::DrawElementsIndexType::Undefined)
+                    {
+                        LOG_ERROR << "Undefined component type of draw elements index buffer";
+                        return nullptr;
+                    }
+
+                    vao->addPrimitiveSet(std::make_shared<utils::DrawElements>(primitiveType,
+                                                                               static_cast<uint32_t>(rawAccessor.count),
+                                                                               drawElementsIndexType,
+                                                                               rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                                               0u));
                 }
                 else
                 {
-                    LOG_ERROR << "Undefined type of light";
-                    return false;
+                    vao->addPrimitiveSet(std::make_shared<utils::DrawArrays>(primitiveType, 0u, numVertices));
                 }
 
-                glm::vec3 lightColor(static_cast<float>(rawLight.intensity));
-                if (!rawLight.color.empty())
-                    lightColor *= glm::vec3(static_cast<float>(rawLight.color[0u]),
-                                            static_cast<float>(rawLight.color[1u]),
-                                            static_cast<float>(rawLight.color[2u]));
+                auto pbrDrawable = std::make_shared<PBRDrawable>(vao, boundingBox);
+                pbrDrawable->setORMSwizzleMask(glm::uvec4(0u, 1u, 2u, 3u));
+                visualDrawableNode->addVisualDrawable(pbrDrawable);
 
-                node = lightNode;
+                if (rawPrimitive.material >= 0)
+                {
+                    const auto &rawMaterial = rawModel.materials[static_cast<size_t>(rawPrimitive.material)];
+
+                    if (rawMaterial.alphaMode == "MASK")
+                        pbrDrawable->setAlphaCutoff(static_cast<float>(rawMaterial.alphaCutoff));
+
+                    const auto &rawEmissionTextureInfo = rawMaterial.emissiveTexture;
+                    if (rawEmissionTextureInfo.index >= 0)
+                    {
+                        if (rawEmissionTextureInfo.texCoord != 0)
+                        {
+                            LOG_ERROR << "Multiple texture coords are not supported";
+                            return nullptr;
+                        }
+
+                        pbrDrawable->setEmissionMap(textures[static_cast<size_t>(rawEmissionTextureInfo.index)]);
+                        pbrDrawable->setEmission(glm::vec3(static_cast<float>(rawMaterial.emissiveFactor[0u]),
+                                                           static_cast<float>(rawMaterial.emissiveFactor[1u]),
+                                                           static_cast<float>(rawMaterial.emissiveFactor[2u])));
+                    }
+
+                    const auto &rawNormalTextureInfo = rawMaterial.normalTexture;
+                    if (rawNormalTextureInfo.index >= 0)
+                    {
+                        if (rawNormalTextureInfo.texCoord != 0)
+                        {
+                            LOG_ERROR << "Multiple texture coords are not supported";
+                            return nullptr;
+                        }
+
+                        pbrDrawable->setNormalMap(textures[static_cast<size_t>(rawNormalTextureInfo.index)]);
+                        pbrDrawable->setNormalMapScale(static_cast<float>(rawNormalTextureInfo.scale));
+                    }
+
+                    const auto &rawOcclusionTextureInfo = rawMaterial.occlusionTexture;
+                    if (rawOcclusionTextureInfo.index >= 0)
+                    {
+                        if (rawOcclusionTextureInfo.texCoord != 0)
+                        {
+                            LOG_ERROR << "Multiple texture coords are not supported";
+                            return nullptr;
+                        }
+
+                        pbrDrawable->setOcclusionMap(textures[static_cast<size_t>(rawOcclusionTextureInfo.index)]);
+                        pbrDrawable->setOcclusionMapStrength(static_cast<float>(rawOcclusionTextureInfo.strength));
+                    }
+
+                    const auto &rawPBR = rawMaterial.pbrMetallicRoughness;
+
+                    pbrDrawable->setBaseColor(glm::vec4(static_cast<float>(rawPBR.baseColorFactor[0u]),
+                                                        static_cast<float>(rawPBR.baseColorFactor[1u]),
+                                                        static_cast<float>(rawPBR.baseColorFactor[2u]),
+                                                        static_cast<float>(rawPBR.baseColorFactor[3u])));
+                    pbrDrawable->setMetalness(static_cast<float>(rawPBR.metallicFactor));
+                    pbrDrawable->setRoughness(static_cast<float>(rawPBR.roughnessFactor));
+
+                    const auto &rawBaseColorTextureInfo = rawPBR.baseColorTexture;
+                    if (rawBaseColorTextureInfo.index >= 0)
+                    {
+                        if (rawBaseColorTextureInfo.texCoord != 0)
+                        {
+                            LOG_ERROR << "Multiple texture coords are not supported";
+                            return nullptr;
+                        }
+
+                        pbrDrawable->setBaseColorMap(textures[static_cast<size_t>(rawBaseColorTextureInfo.index)]);
+                    }
+
+                    const auto &rawMetalnessRoughnessTextureInfo = rawPBR.metallicRoughnessTexture;
+                    if (rawMetalnessRoughnessTextureInfo.index >= 0)
+                    {
+                        if (rawMetalnessRoughnessTextureInfo.texCoord != 0)
+                        {
+                            LOG_ERROR << "Multiple texture coords are not supported";
+                            return nullptr;
+                        }
+
+                        const auto &metalnessRoughnessTexture = textures[static_cast<size_t>(rawMetalnessRoughnessTextureInfo.index)];
+                        pbrDrawable->setMetalnessMap(metalnessRoughnessTexture);
+                        pbrDrawable->setRoughnessMap(metalnessRoughnessTexture);
+                    }
+                }
             }
-            else if (rawNode.skin >= 0)
+
+            node = visualDrawableNode;
+        }
+        else if (rawNode.light >= 0)
+        {
+            const auto &rawLight = rawModel.lights[static_cast<size_t>(rawNode.light)];
+
+            glm::vec3 lightColor(static_cast<float>(rawLight.intensity));
+            if (!rawLight.color.empty())
+                lightColor *= glm::vec3(static_cast<float>(rawLight.color[0u]),
+                                        static_cast<float>(rawLight.color[1u]),
+                                        static_cast<float>(rawLight.color[2u]));
+
+            std::shared_ptr<LightNode> lightNode;
+
+            if (rawLight.type == "point")
             {
-                node = std::make_shared<Node>(rawNode.name);
+                auto pointLightNode = std::make_shared<PointLightNode>(rawNode.name);
+                pointLightNode->setRadiuses(glm::vec2(0.f, static_cast<float>(rawLight.range)));
+                pointLightNode->setColor(lightColor);
+                lightNode = pointLightNode;
             }
-            else if (rawNode.emitter >= 0)
+            else if (rawLight.type == "spot")
             {
-                node = std::make_shared<Node>(rawNode.name);
+                auto spotLightNode = std::make_shared<SpotLightNode>(rawNode.name);
+                spotLightNode->setRadiuses(glm::vec2(0.f, static_cast<float>(rawLight.range)));
+                spotLightNode->setHalfAngles(glm::vec2(static_cast<float>(rawLight.spot.innerConeAngle),
+                                                       static_cast<float>(rawLight.spot.outerConeAngle)));
+                spotLightNode->setColor(lightColor);
+                lightNode = spotLightNode;
+            }
+            else if (rawLight.type == "directional")
+            {
+                auto directionalLightNode = std::make_shared<DirectionalLightNode>(rawNode.name);
+                directionalLightNode->setColor(lightColor);
+                lightNode = directionalLightNode;
             }
             else
             {
-                node = std::make_shared<Node>(rawNode.name);
+                LOG_ERROR << "Undefined type of light";
+                return nullptr;
             }
 
-            utils::Transform nodeTransform;
-            if (!rawNode.scale.empty())
-                nodeTransform *= utils::Transform::makeScale(static_cast<float>(rawNode.scale[0u]));
-            if (!rawNode.rotation.empty())
-                nodeTransform *= utils::Transform::makeRotation(glm::quat(static_cast<float>(rawNode.rotation[3u]),
-                                                                          static_cast<float>(rawNode.rotation[0u]),
-                                                                          static_cast<float>(rawNode.rotation[1u]),
-                                                                          static_cast<float>(rawNode.rotation[2u])));
-            if (!rawNode.translation.empty())
-                nodeTransform *= utils::Transform::makeTranslation(glm::vec3(static_cast<float>(rawNode.translation[0u]),
-                                                                             static_cast<float>(rawNode.translation[1u]),
-                                                                             static_cast<float>(rawNode.translation[2u])));
-            node->setTransform(nodeTransform);
+            node = lightNode;
+        }
+        else if (rawNode.skin >= 0)
+        {
+            node = std::make_shared<Node>(rawNode.name);
+        }
+        else if (rawNode.emitter >= 0)
+        {
+            node = std::make_shared<Node>(rawNode.name);
+        }
+        else
+        {
+            node = std::make_shared<Node>(rawNode.name);
+        }
 
-            parentNode->attach(node);
-            for (auto &rawChildNodeIndex : rawNode.children)
-                if (!impl(impl, renderer, defaultFrameBuffer, buffers, textures, node, rawModel, rawChildNodeIndex))
-                    return false;
+        utils::Transform nodeTransform;
+        if (!rawNode.scale.empty())
+            nodeTransform *= utils::Transform::makeScale(static_cast<float>(rawNode.scale[0u]));
+        if (!rawNode.rotation.empty())
+            nodeTransform *= utils::Transform::makeRotation(glm::quat(static_cast<float>(rawNode.rotation[3u]),
+                                                                      static_cast<float>(rawNode.rotation[0u]),
+                                                                      static_cast<float>(rawNode.rotation[1u]),
+                                                                      static_cast<float>(rawNode.rotation[2u])));
+        if (!rawNode.translation.empty())
+            nodeTransform *= utils::Transform::makeTranslation(glm::vec3(static_cast<float>(rawNode.translation[0u]),
+                                                                         static_cast<float>(rawNode.translation[1u]),
+                                                                         static_cast<float>(rawNode.translation[2u])));
+        node->setTransform(nodeTransform);
 
-            return true;
+        return node;
+    };
+
+    static const auto createAnimation = [](const std::vector<std::shared_ptr<Node>> &nodes,
+                                           const tinygltf::Model &rawModel,
+                                           size_t rawAnimationIndex) -> std::shared_ptr<Animation>
+    {
+        static const auto tinyTargetPath2TargetTypeId = [](const std::string &value) -> Animation::Channel::TargetTypeId
+        {
+            static const std::unordered_map<std::string, Animation::Channel::TargetTypeId> s_table {
+                {"translation", Animation::Channel::TargetTypeId::Translation},
+                {"rotation", Animation::Channel::TargetTypeId::Rotation},
+                {"scale", Animation::Channel::TargetTypeId::Scale},
+            };
+
+            const auto it = s_table.find(value);
+            return it != s_table.end() ? it->second : Animation::Channel::TargetTypeId::Count;
         };
 
-        return insertNodeImpl(insertNodeImpl, renderer, defaultFrameBuffer, buffers, textures, parentNode, rawModel, rawNodeIndex);
+        static const auto tinySamplerInterpolation2InterpolationType = [](const std::string &value) -> Animation::Channel::InterpolationType
+        {
+            static const std::unordered_map<std::string, Animation::Channel::InterpolationType> s_table {
+                {"STEP", Animation::Channel::InterpolationType::Step},
+                {"LINEAR", Animation::Channel::InterpolationType::Linear},
+                {"CUBICSPLINE", Animation::Channel::InterpolationType::CubicSpline},
+            };
+
+            const auto it = s_table.find(value);
+            return it != s_table.end() ? it->second : Animation::Channel::InterpolationType::Count;
+        };
+
+        static const auto tinyReadFloat = [](int type, const void *buffer, size_t index) -> float
+        {
+            float result = 0.f;
+            switch (type)
+            {
+            case TINYGLTF_COMPONENT_TYPE_BYTE:
+            {
+                using T = int8_t;
+                const auto *data = reinterpret_cast<const T*>(buffer);
+                result = data[index] / static_cast<float>(std::numeric_limits<T>::max());
+                result = glm::max(result, -1.f);
+                break;
+            }
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+            {
+                using T = uint8_t;
+                const auto *data = reinterpret_cast<const T*>(buffer);
+                result = data[index] / static_cast<float>(std::numeric_limits<T>::max());
+                break;
+            }
+            case TINYGLTF_COMPONENT_TYPE_SHORT:
+            {
+                using T = int16_t;
+                const auto *data = reinterpret_cast<const T*>(buffer);
+                result = data[index] / static_cast<float>(std::numeric_limits<T>::max());
+                result = glm::max(result, -1.f);
+                break;
+            }
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+            {
+                using T = uint16_t;
+                const auto *data = reinterpret_cast<const T*>(buffer);
+                result = data[index] / static_cast<float>(std::numeric_limits<T>::max());
+                break;
+            }
+            case TINYGLTF_COMPONENT_TYPE_INT:
+            {
+                using T = int32_t;
+                const auto *data = reinterpret_cast<const T*>(buffer);
+                result = static_cast<float>(data[index]) / static_cast<float>(std::numeric_limits<T>::max());
+                result = glm::max(result, -1.f);
+                break;
+            }
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+            {
+                using T = uint32_t;
+                const auto *data = reinterpret_cast<const T*>(buffer);
+                result = static_cast<float>(data[index]) / static_cast<float>(std::numeric_limits<T>::max());
+                break;
+            }
+            case TINYGLTF_COMPONENT_TYPE_FLOAT:
+            {
+                using T = float;
+                const auto *data = reinterpret_cast<const T*>(buffer);
+                result = data[index];
+                break;
+            }
+            case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+            {
+                using T = double;
+                const auto *data = reinterpret_cast<const T*>(buffer);
+                result = static_cast<float>(data[index]);
+                break;
+            }
+            default:
+                break;
+            }
+
+            return result;
+        };
+
+        const auto &rawAnimation = rawModel.animations[rawAnimationIndex];
+
+        auto animation = std::make_shared<Animation>(rawAnimation.name);
+        for (const auto& rawChannel : rawAnimation.channels)
+        {
+            auto channel = animation->addChannel();
+
+            channel->targetNode = nodes[static_cast<size_t>(rawChannel.target_node)];
+
+            channel->targetTypeId = tinyTargetPath2TargetTypeId(rawChannel.target_path);
+            if (channel->targetTypeId == Animation::Channel::TargetTypeId::Count)
+            {
+                LOG_ERROR << "Undefined animation channel taget type id";
+                return nullptr;
+            }
+
+            auto &rawSampler = rawAnimation.samplers[static_cast<size_t>(rawChannel.sampler)];
+            channel->interpolationType = tinySamplerInterpolation2InterpolationType(rawSampler.interpolation);
+            if (channel->interpolationType == Animation::Channel::InterpolationType::Count)
+            {
+                LOG_ERROR << "Undefined animation channel interpolation type";
+                return nullptr;
+            }
+
+            {
+                const auto &rawAccessor = rawModel.accessors[static_cast<size_t>(rawSampler.input)];
+                const auto &rawBufferView = rawModel.bufferViews[static_cast<size_t>(rawAccessor.bufferView)];
+                const auto &rawBuffer = rawModel.buffers[static_cast<size_t>(rawBufferView.buffer)];
+                const auto *rawTimestamps = reinterpret_cast<const float*>(rawBuffer.data.data() + rawAccessor.byteOffset + rawBufferView.byteOffset);
+                channel->timestamps.insert(channel->timestamps.end(), rawTimestamps, rawTimestamps + rawAccessor.count);
+            }
+
+            {
+                const auto &rawAccessor = rawModel.accessors[static_cast<size_t>(rawSampler.output)];
+                const auto &rawBufferView = rawModel.bufferViews[static_cast<size_t>(rawAccessor.bufferView)];
+                const auto &rawBuffer = rawModel.buffers[static_cast<size_t>(rawBufferView.buffer)];
+
+                const auto accessorNumComponents = tinyType2NumComponents(rawAccessor.type);
+
+                channel->values.resize(rawAccessor.count);
+                if (channel->interpolationType == Animation::Channel::InterpolationType::CubicSpline)
+                    channel->tangents.resize(rawAccessor.count);
+
+                const bool targetTypeIdIsTranslation = channel->targetTypeId == Animation::Channel::TargetTypeId::Translation;
+                const bool targetTypeIdIsRotation = channel->targetTypeId == Animation::Channel::TargetTypeId::Rotation;
+                const bool targetTypeIdIsScale = channel->targetTypeId == Animation::Channel::TargetTypeId::Scale;
+
+                uint32_t numComponents = 0u;
+                if (targetTypeIdIsRotation) numComponents = 4u;
+                else if (targetTypeIdIsTranslation) numComponents = 3u;
+                else if (targetTypeIdIsScale) numComponents = 1u;
+
+
+                for (size_t keyframe = 0u; keyframe < rawAccessor.count; ++keyframe)
+                {
+                    for (size_t component = 0u; component < glm::min(numComponents, accessorNumComponents); ++component)
+                        {
+                        if (channel->interpolationType == Animation::Channel::InterpolationType::CubicSpline)
+                        {
+                            if (targetTypeIdIsRotation)
+                            {
+                                channel->tangents[keyframe].first.rotation[static_cast<glm::length_t>(component)] =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents * 3u + accessorNumComponents * 0u + component);
+                                channel->values[keyframe].rotation[static_cast<glm::length_t>(component)] =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents * 3u + accessorNumComponents * 1u + component);
+                                channel->tangents[keyframe].second.rotation[static_cast<glm::length_t>(component)] =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents * 3u + accessorNumComponents * 2u + component);
+                            }
+                            else if (targetTypeIdIsTranslation)
+                            {
+                                channel->tangents[keyframe].first.translation[static_cast<glm::length_t>(component)] =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents * 3u + accessorNumComponents * 0u + component);
+                                channel->values[keyframe].translation[static_cast<glm::length_t>(component)] =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents * 3u + accessorNumComponents * 1u + component);
+                                channel->tangents[keyframe].second.translation[static_cast<glm::length_t>(component)] =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents * 3u + accessorNumComponents * 2u + component);
+                            }
+                            else if (targetTypeIdIsScale)
+                            {
+                                channel->tangents[keyframe].first.scale =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents * 3u + accessorNumComponents * 0u + component);
+                                channel->values[keyframe].scale =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents * 3u + accessorNumComponents * 1u + component);
+                                channel->tangents[keyframe].second.scale =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents * 3u + accessorNumComponents * 2u + component);
+                            }
+                        }
+                        else
+                        {
+                            if (targetTypeIdIsRotation)
+                                channel->values[keyframe].rotation[static_cast<glm::length_t>(component)] =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents + component);
+                            else if (targetTypeIdIsTranslation)
+                                channel->values[keyframe].translation[static_cast<glm::length_t>(component)] =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents + component);
+                            else if (targetTypeIdIsScale)
+                                channel->values[keyframe].scale =
+                                        tinyReadFloat(rawAccessor.componentType,
+                                                      rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
+                                                      keyframe * accessorNumComponents + component);
+                        }
+                    }
+                }
+            }
+        }
+
+        return animation;
+    };
+
+    static const auto createSkeleton = [](const std::vector<std::shared_ptr<Node>> &nodes,
+                                           const tinygltf::Model &rawModel,
+                                           size_t rawSkinIndex) -> std::shared_ptr<Skeleton>
+    {
+        auto skeleton = std::make_shared<Skeleton>();
+
+        const auto &rawSkin = rawModel.skins[rawSkinIndex];
+        const glm::mat4x4 *inverseBindMatrices = nullptr;
+        if (rawSkin.inverseBindMatrices >= 0)
+        {
+            const auto &rawAccessor = rawModel.accessors[static_cast<size_t>(rawSkin.inverseBindMatrices)];
+            const auto &rawBufferView = rawModel.bufferViews[static_cast<size_t>(rawAccessor.bufferView)];
+            const auto &rawBuffer = rawModel.buffers[static_cast<size_t>(rawBufferView.buffer)];
+            inverseBindMatrices = reinterpret_cast<const glm::mat4x4*>(rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset);
+        }
+
+        std::vector<std::shared_ptr<Skeleton::Bone>> bones(rawSkin.joints.size());
+        for (size_t i = 0u; i < rawSkin.joints.size(); ++i)
+        {
+            bones[i] = std::make_shared<Skeleton::Bone>();
+
+            if (rawSkin.inverseBindMatrices >= 0)
+                bones[i]->inverseBindMatrix = inverseBindMatrices[i];
+
+            bones[i]->targetNode = nodes[static_cast<size_t>(rawSkin.joints[i])];
+        }
+        skeleton->setBones(bones);
+
+        return skeleton;
     };
 
     auto graphicsEngine = findEngine<GraphicsEngine>();
@@ -581,30 +854,90 @@ std::shared_ptr<Scene> ApplicationBase::loadGLTFScene(const std::filesystem::pat
         return nullptr;
     }
 
-    const uint32_t defaultSceneIndex = rawModel.defaultScene >= 0 ? static_cast<uint32_t>(rawModel.defaultScene) : 0u;
-    const auto &rawScene = rawModel.scenes[defaultSceneIndex];
-
     std::vector<std::shared_ptr<graphics::IBuffer>> buffers(rawModel.buffers.size());
     for (size_t i = 0u; i < rawModel.buffers.size(); ++i)
     {
-        const auto &rawBuffer = rawModel.buffers[i];
-        buffers[i] = renderer->createBuffer(rawBuffer.data.size(), rawBuffer.data.data());
+        auto buffer = createBuffer(renderer, rawModel, i);
+        if (!buffer)
+            return nullptr;
+        buffers[i] = buffer;
     }
 
     std::vector<graphics::PTexture> textures(rawModel.textures.size());
     for (size_t i = 0u; i < rawModel.textures.size(); ++i)
     {
-        const auto &rawTexture = rawModel.textures[i];
-        const auto &rawImage = rawModel.images[static_cast<size_t>(rawTexture.source)];
-        textures[i] = texturesManager->loadOrGetTexture(absoluteParentDir / rawImage.uri);
+        auto texture = createTexture(texturesManager, absoluteParentDir, rawModel, i);
+        if (!texture)
+            return nullptr;
+        textures[i] = texture;
     }
+
+    std::vector<std::shared_ptr<Node>> nodes(rawModel.nodes.size());
+    for (size_t i = 0u; i < rawModel.nodes.size(); ++i)
+    {
+        auto node = createNode(renderer, defaultFrameBuffer, buffers, textures, rawModel, i);
+        if (!node)
+            return nullptr;
+        nodes[i] = node;
+    }
+
+    std::vector<std::shared_ptr<Animation>> animations(rawModel.animations.size());
+    for (size_t i = 0u; i < rawModel.animations.size(); ++i)
+    {
+        auto animation = createAnimation(nodes, rawModel, i);
+        if (!animation)
+            return nullptr;
+        animations[i] = animation;
+    }
+
+    std::vector<std::shared_ptr<Skeleton>> skeletons(rawModel.skins.size());
+    for (size_t i = 0u; i < rawModel.skins.size(); ++i)
+    {
+        auto skeleton = createSkeleton(nodes, rawModel, i);
+        if (!skeleton)
+            return nullptr;
+        skeletons[i] = skeleton;
+    }
+
+
+    const uint32_t defaultSceneIndex = rawModel.defaultScene >= 0 ? static_cast<uint32_t>(rawModel.defaultScene) : 0u;
+    const auto &rawScene = rawModel.scenes[defaultSceneIndex];
 
     auto scene = loadEmptyScene(rawScene.name);
     auto sceneRootNode = scene->sceneRootNode();
 
-    for (auto rawChildNodeIndex : rawScene.nodes)
-        if (!insertNode(renderer, defaultFrameBuffer, buffers, textures, sceneRootNode, rawModel, rawChildNodeIndex))
-            return nullptr;
+    std::queue<int> nodesQueue;
+    for (auto nodeIndex : rawScene.nodes)
+    {
+        sceneRootNode->attach(nodes[static_cast<size_t>(nodeIndex)]);
+        nodesQueue.push(nodeIndex);
+    }
+
+    while (!nodesQueue.empty())
+    {
+        auto parentNodeIndex = static_cast<size_t>(nodesQueue.front());
+        nodesQueue.pop();
+
+        auto parentNode = nodes[parentNodeIndex];
+        if (auto visualDrawableNode = parentNode->asVisualDrawableNode(); visualDrawableNode)
+            if (auto rawSkinIndex = rawModel.nodes[parentNodeIndex].skin; rawSkinIndex >= 0)
+            {
+                const auto &skeleton = skeletons[static_cast<size_t>(rawSkinIndex)];
+                visualDrawableNode->setSkeleton(skeleton);
+
+                for (const auto &visualDrawable : visualDrawableNode->visualDrawables())
+                    visualDrawable->setBonesBuffer(skeleton->bonesBuffer());
+            }
+
+        for (auto nodeIndex : rawModel.nodes[parentNodeIndex].children)
+        {
+            parentNode->attach(nodes[static_cast<size_t>(nodeIndex)]);
+            nodesQueue.push(nodeIndex);
+        }
+    }
+
+    for (const auto &animation : animations)
+        scene->addAnimation(animation);
 
     return scene;
 }

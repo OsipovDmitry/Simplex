@@ -148,15 +148,15 @@ public:
     Collection &lightNodeAreaBoundingBoxes();
 
 protected:
-    bool m_nodeBoundingBoxesFlag;
-    bool m_visualDrawableNodeLocalBoundingBoxesFlag;
-    bool m_visualDrawableBoundingBoxesFlag;
-    bool m_lightNodeAreaBoundingBoxesFlag;
-
     Collection m_nodeBoundingBoxes;
     Collection m_visualDrawableNodeLocalBoundingBoxes;
     Collection m_visualDrawableBoundingBoxes;
     Collection m_lightNodeAreaBoundingBoxes;
+
+    bool m_nodeBoundingBoxesFlag;
+    bool m_visualDrawableNodeLocalBoundingBoxesFlag;
+    bool m_visualDrawableBoundingBoxesFlag;
+    bool m_lightNodeAreaBoundingBoxesFlag;
 };
 
 // VisualDrawablesCollector
@@ -164,17 +164,21 @@ protected:
 class VisualDrawablesCollector : public FrustumCullingNodeVisitor
 {
 public:
-    using Collection = std::deque<std::tuple<std::shared_ptr<VisualDrawable>, glm::mat4x4>>;
+    using VisualDrawableNodesCollection = std::deque<std::shared_ptr<VisualDrawableNode>>;
+    using VisualDrawablesCollection = std::deque<std::tuple<std::shared_ptr<VisualDrawable>, glm::mat4x4>>;
 
     VisualDrawablesCollector(const utils::Frustum&);
 
     bool visit(Node&) override;
 
-    const Collection &visualDrawables() const;
-    Collection &visualDrawables();
+    const VisualDrawableNodesCollection &visualDrawableNodesCollection() const;
+
+    const VisualDrawablesCollection &visualDrawables() const;
+    VisualDrawablesCollection &visualDrawables();
 
 protected:
-    Collection m_visualDrawables;
+    VisualDrawableNodesCollection m_visualDrawableNodesCollection;
+    VisualDrawablesCollection m_visualDrawables;
 };
 
 // LightNodesCollector

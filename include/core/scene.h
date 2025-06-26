@@ -2,6 +2,7 @@
 #define CORE_SCENE_H
 
 #include <memory>
+#include <unordered_set>
 
 #include <utils/noncopyble.h>
 #include <utils/pimpl.h>
@@ -37,6 +38,10 @@ public:
 
     Background &background();
     const Background &background() const;
+
+    const std::unordered_set<std::shared_ptr<Animation>> &animations();
+    void removeAnimation(const std::shared_ptr<Animation>&);
+    void addAnimation(const std::shared_ptr<Animation>&);
 
 private:
     Scene(const std::weak_ptr<ApplicationBase>&, const std::string&);
