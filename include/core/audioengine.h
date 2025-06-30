@@ -40,8 +40,6 @@ public:
 private:
     std::unique_ptr<AudioEnginePrivate> m_;
 
-    std::shared_ptr<audio::ISource> source = nullptr;
-
 };
 
 }

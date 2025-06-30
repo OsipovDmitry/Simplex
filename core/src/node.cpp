@@ -185,7 +185,6 @@ void Node::doAttach()
 
 void Node::doDetach()
 {
-
     if (scene())
     {
         DetachFromSceneNodeVisitor detachFromSceneNodeVisitor;

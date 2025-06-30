@@ -73,7 +73,8 @@ protected:
     Edges m_edges;
     Planes m_planes;
 
-    friend FrustumT operator * <>(const TransformT<FrustumT::length(), FrustumT::value_type> &t, const FrustumT &f);
+    template<typename T>
+    friend FrustumT<T> operator *(const TransformT<FrustumT<T>::length(), T> &t, const FrustumT<T> &f);
 
 };
 

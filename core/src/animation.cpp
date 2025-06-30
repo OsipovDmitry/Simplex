@@ -70,7 +70,7 @@ void Skeleton::setBones(const std::vector<std::shared_ptr<Bone>> &value)
 {
     m_->bones() = value;
 
-    const auto bufferTotalSize = m_->bones().size() * sizeof(decltype(Skeleton::Bone::inverseBindMatrix));
+    const auto bufferTotalSize = m_->bones().size() * sizeof(decltype(Bone::inverseBindMatrix));
     if (auto buffer = m_->bonesBuffer()->buffer(); buffer->size() != bufferTotalSize)
         buffer->resize(bufferTotalSize, nullptr);
 }

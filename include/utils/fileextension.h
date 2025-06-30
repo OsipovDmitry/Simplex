@@ -1,6 +1,7 @@
 #ifndef UTILS_FILEEXTENSION_H
 #define UTILS_FILEEXTENSION_H
 
+#include <cwctype>
 #include <filesystem>
 
 namespace simplex
