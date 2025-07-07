@@ -24,6 +24,7 @@ ENUMCLASS(VertexComponentType, uint16_t,
           Uint16,
           Int32,
           Uint32)
+size_t UTILS_SHARED_EXPORT sizeOfVertexComponentType(VertexComponentType);
 
 ENUMCLASS(VertexAttribute, uint16_t,
           Position,
@@ -60,15 +61,12 @@ public:
 
     uint32_t numComponents() const;
     VertexComponentType componentType() const;
-    uint32_t componentSize() const;
 
     uint32_t numVertices() const;
     void setNumVertices(uint32_t);
 
-    const void *vertex(uint32_t) const;
-    void setVertex(uint32_t, const void*);
-
-    static uint32_t componentSize(VertexComponentType);
+    const uint8_t *vertex(uint32_t) const;
+    void setVertex(uint32_t, const uint8_t*);
 
 protected:
     uint32_t m_numComponents;

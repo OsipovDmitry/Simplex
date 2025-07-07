@@ -20,7 +20,7 @@ class AbstractPainterPrivate;
 class UTILS_SHARED_EXPORT AbstractPainter
 {
 public:
-    AbstractPainter(std::shared_ptr<Mesh>);
+    AbstractPainter(const std::shared_ptr<Mesh>&);
     virtual ~AbstractPainter();
 
     std::shared_ptr<const Mesh> mesh() const;
@@ -54,7 +54,7 @@ protected:
 class UTILS_SHARED_EXPORT MeshPainter : public AbstractPainter
 {
 public:
-    explicit MeshPainter(std::shared_ptr<Mesh>);
+    explicit MeshPainter(const std::shared_ptr<Mesh>&);
     ~MeshPainter() override;
 
     MeshPainter &drawTriangle();

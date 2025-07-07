@@ -1,4 +1,4 @@
-project(utils)
+#project(utils)
 
 file(GLOB_RECURSE HEADERS "../include/utils/*")
 file(GLOB_RECURSE SOURCES "src/*")

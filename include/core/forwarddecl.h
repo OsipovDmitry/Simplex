@@ -78,6 +78,7 @@ class IProgram;
 class IRenderProgram;
 class IComputeProgram;
 class IRenderer;
+class RendererBase;
 
 using PConstBufferRange = std::shared_ptr<const IBufferRange>;
 using PBufferRange = std::shared_ptr<IBufferRange>;
@@ -97,13 +98,14 @@ enum class AttenuationModel : uint16_t;
 class IBuffer;
 class ISource;
 class IListener;
-class IRenderer;
+class RendererBase;
 }
 
 class INamedObject;
 class IEngine;
 
 class IRenderWidget;
+class IAudioDevice;
 class ApplicationBase;
 
 class RenderInfo;

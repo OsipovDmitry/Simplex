@@ -172,7 +172,7 @@ void GraphicsEngine::update(const std::shared_ptr<IRenderWidget> &renderWidget,
             lightNodeAreaBoundingBoxFlag;
 
     auto renderer = m_->renderer();
-    renderer->makeCurrent(renderWidget);
+    renderer->makeCurrent();
 
     auto programsManager = m_->programsManager();
 

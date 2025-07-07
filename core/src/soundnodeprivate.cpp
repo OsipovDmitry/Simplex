@@ -1,8 +1,6 @@
 #include <utils/logger.h>
 
-#include <core/applicationbase.h>
-#include <core/audioengine.h>
-#include <core/iaudiorenderer.h>
+#include <core/audiorendererbase.h>
 #include <core/soundnode.h>
 
 #include "soundnodeprivate.h"
@@ -22,15 +20,7 @@ SoundNodePrivate::~SoundNodePrivate() = default;
 
 void SoundNodePrivate::doDetachFromScene()
 {
-    auto app = ApplicationBase::currentApplication();
-    if (!app)
-        LOG_CRITICAL << "Application can't be nullptr";
-
-    auto audioEngine = app->findEngine<AudioEngine>("");
-    if (!audioEngine)
-        LOG_CRITICAL << "Audio engine can't be nullptr";
-
-    auto audioRenderer = audioEngine->audioRenderer();
+    auto audioRenderer = audio::RendererBase::current();
     if (!audioRenderer)
         LOG_CRITICAL << "Audio renderer can't be nullptr";
 

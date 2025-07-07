@@ -1,9 +1,7 @@
 #include <utils/logger.h>
 
-#include <core/audioengine.h>
-#include <core/applicationbase.h>
 #include <core/scene.h>
-#include <core/iaudiorenderer.h>
+#include <core/audiorendererbase.h>
 #include <core/soundnode.h>
 
 #include "soundnodeprivate.h"
@@ -16,15 +14,7 @@ namespace core
 SoundNode::SoundNode(const std::string &name)
     : Node(std::make_unique<SoundNodePrivate>(*this, name))
 {
-    auto app = ApplicationBase::currentApplication();
-    if (!app)
-        LOG_CRITICAL << "Application can't be nullptr";
-
-    auto audioEngine = app->findEngine<AudioEngine>("");
-    if (!audioEngine)
-        LOG_CRITICAL << "Audio engine can't be nullptr";
-
-    auto audioRenderer = audioEngine->audioRenderer();
+    auto audioRenderer = audio::RendererBase::current();
     if (!audioRenderer)
         LOG_CRITICAL << "Audio renderer can't be nullptr";
 

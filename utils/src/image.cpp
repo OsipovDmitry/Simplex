@@ -65,14 +65,28 @@ PixelComponentType Image::type() const
     return m_componentType;
 }
 
-const void *Image::data() const
+const uint8_t *Image::data() const
 {
     return m_data;
 }
 
-void *Image::data()
+uint8_t *Image::data()
 {
     return m_data;
+}
+
+const uint8_t* Image::pixel(uint32_t x, uint32_t y)
+{
+    const size_t pixelSize = m_numComponents * sizeOfPixelComponentType(m_componentType);
+    return m_data + pixelSize * (m_width * y + x);
+}
+
+void Image::setPixel(uint32_t x, uint32_t y, const uint8_t *data)
+{
+    const size_t pixelSize = m_numComponents * sizeOfPixelComponentType(m_componentType);
+    std::memcpy(m_data + pixelSize * (m_width * y + x),
+        data,
+        pixelSize);
 }
 
 bool Image::saveToFile(const std::filesystem::path &filename)
@@ -147,8 +161,8 @@ std::shared_ptr<Image> Image::loadFromData(uint32_t width,
     result->m_numComponents = numComponents;
     result->m_componentType = componentType;
 
-    size_t dataSize = width * height * numComponents * sizeOfPixelComponentType(componentType);
-    result->m_data = std::malloc(dataSize);
+    const size_t dataSize = width * height * numComponents * sizeOfPixelComponentType(componentType);
+    result->m_data = reinterpret_cast<uint8_t*>(STBI_MALLOC(dataSize));
 
     if (data)
         std::memcpy(result->m_data,  data, dataSize);
@@ -159,24 +173,24 @@ std::shared_ptr<Image> Image::loadFromData(uint32_t width,
 std::shared_ptr<Image> Image::loadFromFile(const std::filesystem::path &filename)
 {
     int w, h, n;
-    void *d;
+    uint8_t *d;
     PixelComponentType t;
 
     const auto filenameUtf8 = filename.string();
 
     if (stbi_is_hdr(filenameUtf8.c_str()))
     {
-        d = stbi_loadf(filenameUtf8.c_str(), &w, &h, &n, 0);
+        d = reinterpret_cast<uint8_t*>(stbi_loadf(filenameUtf8.c_str(), &w, &h, &n, 0));
         t = PixelComponentType::Single;
     }
     else if (stbi_is_16_bit(filenameUtf8.c_str()))
     {
-        d = stbi_load_16(filenameUtf8.c_str(), &w, &h, &n, 0);
+        d = reinterpret_cast<uint8_t*>(stbi_load_16(filenameUtf8.c_str(), &w, &h, &n, 0));
         t = PixelComponentType::Uint16;
     }
     else
     {
-        d = stbi_load(filenameUtf8.c_str(), &w, &h, &n, 0);
+        d = reinterpret_cast<uint8_t*>(stbi_load(filenameUtf8.c_str(), &w, &h, &n, 0));
         t = PixelComponentType::Uint8;
     }
 

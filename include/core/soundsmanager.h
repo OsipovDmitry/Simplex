@@ -19,7 +19,7 @@ class CORE_SHARED_EXPORT SoundsManager
 {
     NONCOPYBLE(SoundsManager)
 public:
-    SoundsManager(std::shared_ptr<audio::IRenderer>);
+    SoundsManager(const std::shared_ptr<audio::RendererBase>&);
     ~SoundsManager();
 
     std::shared_ptr<audio::IBuffer> loadOrGetSound(const std::filesystem::path&, const std::string& = "autogen");

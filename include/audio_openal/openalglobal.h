@@ -1,0 +1,12 @@
+#ifndef AUDIO_OPENAL_GLOBAL_H
+#define AUDIO_OPENAL_GLOBAL_H
+
+#include <build/importexport.h>
+
+#if defined(AUDIO_OPENAL_LIBRARY)
+#define AUDIO_OPENAL_SHARED_EXPORT SIMPEX_DECL_EXPORT
+#else
+#define AUDIO_OPENAL_SHARED_EXPORT SIMPEX_DECL_IMPORT
+#endif
+
+#endif // AUDIO_OPENAL_GLOBAL_H

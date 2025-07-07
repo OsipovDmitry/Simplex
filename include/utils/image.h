@@ -28,8 +28,11 @@ public:
     uint32_t height() const;
     uint32_t numComponents() const;
     PixelComponentType type() const;
-    const void *data() const;
-    void *data();
+    const uint8_t *data() const;
+    uint8_t *data();
+
+    const uint8_t *pixel(uint32_t, uint32_t);
+    void setPixel(uint32_t, uint32_t, const uint8_t*);
 
     bool saveToFile(const std::filesystem::path&);
 
@@ -45,7 +48,7 @@ private:
     uint32_t m_height;
     uint32_t m_numComponents;
     PixelComponentType m_componentType;
-    void *m_data;
+    uint8_t *m_data;
 
 };
 

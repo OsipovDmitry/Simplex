@@ -21,7 +21,7 @@ class CORE_SHARED_EXPORT AudioEngine : public std::enable_shared_from_this<Audio
     NONCOPYBLE(AudioEngine)
 
 public:
-    AudioEngine(const std::string&, std::shared_ptr<audio::IRenderer>);
+    AudioEngine(const std::string&, std::shared_ptr<audio::RendererBase>);
     ~AudioEngine() override;
 
     const std::string &name() const override;
@@ -31,8 +31,8 @@ public:
                 uint32_t dt,
                 debug::SceneInformation&) override;
 
-    std::shared_ptr<audio::IRenderer> audioRenderer();
-    std::shared_ptr<const audio::IRenderer> audioRenderer() const;
+    std::shared_ptr<audio::RendererBase> renderer();
+    std::shared_ptr<const audio::RendererBase> renderer() const;
 
     std::shared_ptr<SoundsManager> soundsManager();
     std::shared_ptr<const SoundsManager> soundsManager() const;

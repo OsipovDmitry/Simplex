@@ -1,5 +1,5 @@
-#ifndef OPENALDEVICE_H
-#define OPENALDEVICE_H
+#ifndef AUDIO_OPENAL_DEVICE_H
+#define AUDIO_OPENAL_DEVICE_H
 
 #include <memory>
 #include <string>
@@ -8,18 +8,17 @@
 #include <utils/noncopyble.h>
 #include <utils/pimpl.h>
 
-#include <core/forwarddecl.h>
-#include <core/inamedobject.h>
+#include <core/iaudiodevice.h>
 
-#include <openal/openalglobal.h>
+#include <audio_openal/openalglobal.h>
 
 namespace simplex
 {
-namespace openal
+namespace audio_openal
 {
 
 class OpenALDevicePrivate;
-class OPENAL_SHARED_EXPORT OpenALDevice : public core::INamedObject
+class AUDIO_OPENAL_SHARED_EXPORT OpenALDevice : public core::IAudioDevice
 {
     NONCOPYBLE(OpenALDevice)
     PRIVATE_IMPL(OpenALDevice)
@@ -29,8 +28,8 @@ public:
 
     const std::string &name() const override;
 
-    std::shared_ptr<core::audio::IRenderer> renderer();
-    std::shared_ptr<const core::audio::IRenderer> renderer() const;
+    std::shared_ptr<core::AudioEngine> engine() override;
+    std::shared_ptr<const core::AudioEngine> engine() const override;
 
     static const std::string &defaultDeviceName();
     static const std::list<std::string> &devicesNamesList();
@@ -46,4 +45,4 @@ private:
 }
 }
 
-#endif // OPENALDEVICE_H
+#endif // AUDIO_OPENAL_DEVICE_H

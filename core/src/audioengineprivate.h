@@ -18,13 +18,13 @@ public:
 
     std::string &name();
 
-    std::shared_ptr<audio::IRenderer> &renderer();
+    std::shared_ptr<audio::RendererBase> &renderer();
     std::shared_ptr<SoundsManager> &soundsManager();
 
 private:
     std::string m_name;
 
-    std::shared_ptr<audio::IRenderer> m_renderer;
+    std::shared_ptr<audio::RendererBase> m_renderer;
     std::shared_ptr<SoundsManager> m_soundsManager;
 };
 

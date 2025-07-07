@@ -15,7 +15,7 @@ std::string &AudioEnginePrivate::name()
     return m_name;
 }
 
-std::shared_ptr<audio::IRenderer> &AudioEnginePrivate::renderer()
+std::shared_ptr<audio::RendererBase> &AudioEnginePrivate::renderer()
 {
     return m_renderer;
 }

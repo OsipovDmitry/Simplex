@@ -214,35 +214,35 @@ inline void setVertexToBuffer(std::shared_ptr<VertexBuffer> buffer, uint32_t idx
     switch (buffer->componentType())
     {
     case VertexComponentType::Single: {
-        buffer->setVertex(idx, glm::value_ptr(v));
+        buffer->setVertex(idx, reinterpret_cast<const uint8_t*>(glm::value_ptr(v)));
         break;
     }
     case VertexComponentType::Double: {
-        buffer->setVertex(idx, glm::value_ptr(glm::dvec4(v)));
+        buffer->setVertex(idx, reinterpret_cast<const uint8_t*>(glm::value_ptr(glm::dvec4(v))));
         break;
     }
     case VertexComponentType::Int8: {
-        buffer->setVertex(idx, glm::value_ptr(glm::i8vec4(v)));
+        buffer->setVertex(idx, reinterpret_cast<const uint8_t*>(glm::value_ptr(glm::i8vec4(v))));
         break;
     }
     case VertexComponentType::Uint8: {
-        buffer->setVertex(idx, glm::value_ptr(glm::u8vec4(v)));
+        buffer->setVertex(idx, reinterpret_cast<const uint8_t*>(glm::value_ptr(glm::u8vec4(v))));
         break;
     }
     case VertexComponentType::Int16: {
-        buffer->setVertex(idx, glm::value_ptr(glm::i16vec4(v)));
+        buffer->setVertex(idx, reinterpret_cast<const uint8_t*>(glm::value_ptr(glm::i16vec4(v))));
         break;
     }
     case VertexComponentType::Uint16: {
-        buffer->setVertex(idx, glm::value_ptr(glm::u16vec4(v)));
+        buffer->setVertex(idx, reinterpret_cast<const uint8_t*>(glm::value_ptr(glm::u16vec4(v))));
         break;
     }
     case VertexComponentType::Int32: {
-        buffer->setVertex(idx, glm::value_ptr(glm::i32vec4(v)));
+        buffer->setVertex(idx, reinterpret_cast<const uint8_t*>(glm::value_ptr(glm::i32vec4(v))));
         break;
     }
     case VertexComponentType::Uint32: {
-        buffer->setVertex(idx, glm::value_ptr(glm::u32vec4(v)));
+        buffer->setVertex(idx, reinterpret_cast<const uint8_t*>(glm::value_ptr(glm::u32vec4(v))));
         break;
     }
     default:
@@ -568,7 +568,7 @@ public:
     std::unordered_map<VertexAttribute, Transform> transforms;
 };
 
-AbstractPainter::AbstractPainter(std::shared_ptr<Mesh> mesh)
+AbstractPainter::AbstractPainter(const std::shared_ptr<Mesh>& mesh)
     : m_(std::make_unique<AbstractPainterPrivate>(mesh))
 {
     setMesh(mesh);
@@ -672,7 +672,7 @@ BoundingBox AbstractPainter::calculateBoundingBox() const
     return m_->calculateBoundingBox();
 }
 
-MeshPainter::MeshPainter(std::shared_ptr<Mesh> mesh)
+MeshPainter::MeshPainter(const std::shared_ptr<Mesh>& mesh)
     : AbstractPainter(mesh)
 {
 }

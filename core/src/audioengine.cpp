@@ -4,7 +4,7 @@
 #include <core/scene.h>
 #include <core/scenerootnode.h>
 #include <core/nodecollector.h>
-#include <core/iaudiorenderer.h>
+#include <core/audiorendererbase.h>
 #include <core/audioengine.h>
 #include <core/listenernode.h>
 #include <core/soundnode.h>
@@ -17,7 +17,7 @@ namespace simplex
 namespace core
 {
 
-AudioEngine::AudioEngine(const std::string &name, std::shared_ptr<audio::IRenderer> renderer)
+AudioEngine::AudioEngine(const std::string &name, std::shared_ptr<audio::RendererBase> renderer)
     : m_(std::make_unique<AudioEnginePrivate>(name))
 {
     if (!renderer)
@@ -92,14 +92,14 @@ void AudioEngine::update(const std::shared_ptr<IRenderWidget> &/*renderWidget*/,
     }
 }
 
-std::shared_ptr<audio::IRenderer> AudioEngine::audioRenderer()
+std::shared_ptr<audio::RendererBase> AudioEngine::renderer()
 {
     return m_->renderer();
 }
 
-std::shared_ptr<const audio::IRenderer> AudioEngine::audioRenderer() const
+std::shared_ptr<const audio::RendererBase> AudioEngine::renderer() const
 {
-    return const_cast<AudioEngine*>(this)->audioRenderer();
+    return const_cast<AudioEngine*>(this)->renderer();
 }
 
 std::shared_ptr<SoundsManager> AudioEngine::soundsManager()

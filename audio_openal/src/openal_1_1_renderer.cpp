@@ -2,16 +2,15 @@
 #include <utils/logger.h>
 #include <utils/sound.h>
 
-#include <openal/openaldevice.h>
+#include <audio_openal/openaldevice.h>
 
+#include "openaldeviceprivate.h"
 #include "openal_1_1_renderer.h"
 
 namespace simplex
 {
-namespace openal
+namespace audio_openal
 {
-
-std::unordered_map<ALCcontext*, std::weak_ptr<OpenAL_1_1_Renderer>> OpenAL_1_1_Renderer::s_instances;
 
 core::audio::BufferFormat Conversions::BitsAndChannels2BufferFormat(uint16_t bits, uint16_t channels)
 {
@@ -468,42 +467,47 @@ void Listener_1_1::setOrientation(const glm::quat &value)
     alListenerfv(AL_ORIENTATION, ori.data());
 }
 
+OpenAL_1_1_Renderer::OpenAL_1_1_Renderer(const std::string &name, const std::weak_ptr<OpenALDevice> &device)
+    : core::audio::RendererBase(name)
+    , m_device(device)
+{
+    if (m_device.expired())
+        LOG_CRITICAL << "OpenALDevice can't be nullptr";
+
+    auto openALDevice = m_device.lock();
+    if (!openALDevice)
+        LOG_CRITICAL << "OpenALDevice can't be nullptr";
+
+    m_context = alcCreateContext(openALDevice->m().device(), nullptr);
+    if (!m_context)
+        LOG_CRITICAL << "Failed to create OpenAL context";
+
+    m_listener = std::make_shared<Listener_1_1>();
+
+    LOG_INFO << "Audio renderer \"" << OpenAL_1_1_Renderer::name() << "\" has been created";
+}
+
 OpenAL_1_1_Renderer::~OpenAL_1_1_Renderer()
 {
+    alcDestroyContext(m_context);
+
     LOG_INFO << "Audio renderer \"" << OpenAL_1_1_Renderer::name() << "\" has been destroyed";
 }
 
-const std::string &OpenAL_1_1_Renderer::name() const
-{
-    static const std::string s_name = "OpenAL_1_1_Renderer";
-    return s_name;
-}
+//std::shared_ptr<core::IAudioDevice> OpenAL_1_1_Renderer::device()
+//{
+//    return m_device.expired() ? nullptr : m_device.lock();
+//}
+//
+//std::shared_ptr<const core::IAudioDevice> OpenAL_1_1_Renderer::device() const
+//{
+//    return const_cast<OpenAL_1_1_Renderer*>(this)->device();
+//}
 
-ALCcontext *OpenAL_1_1_Renderer::context() const
-{
-    return m_context;
-}
-
-bool OpenAL_1_1_Renderer::makeCurrent()
-{
-    if (m_context == alcGetCurrentContext())
-        return true;
-
-    bool result = alcMakeContextCurrent(m_context) != 0;
-    if (!result)
-        LOG_ERROR << "Failed to make OpenAL context current";
-
-    return result;
-}
-
-bool OpenAL_1_1_Renderer::doneCurrent()
-{
-    bool result = alcMakeContextCurrent(nullptr) != 0;
-    if (!result)
-        LOG_ERROR << "Failed to done OpenAL context current";
-
-    return result;
-}
+//ALCcontext* OpenAL_1_1_Renderer::context() const
+//{
+//    return m_context;
+//}
 
 core::audio::AttenuationModel OpenAL_1_1_Renderer::attenautionModel() const
 {
@@ -617,46 +621,25 @@ void OpenAL_1_1_Renderer::rewindSource(const std::shared_ptr<core::audio::ISourc
     alSourceRewind(source_1_1->id());
 }
 
-std::shared_ptr<OpenAL_1_1_Renderer> OpenAL_1_1_Renderer::create(ALCcontext *context)
+bool OpenAL_1_1_Renderer::doMakeCurrent()
 {
-    if (auto renderer = instance(context); renderer)
-    {
-        LOG_WARNING << "OpenAL_1_1_Renderer instance has already been created";
-        return renderer;
-    }
+    if (m_context == alcGetCurrentContext())
+        return true;
 
-    auto renderer = std::shared_ptr<OpenAL_1_1_Renderer>(new OpenAL_1_1_Renderer(context));
-    s_instances.insert({context, renderer});
-    return renderer;
+    bool result = alcMakeContextCurrent(m_context) != 0;
+    if (!result)
+        LOG_ERROR << "Failed to make OpenAL context current";
+
+    return result;
 }
 
-std::shared_ptr<OpenAL_1_1_Renderer> OpenAL_1_1_Renderer::instance(ALCcontext *context)
+bool OpenAL_1_1_Renderer::doDoneCurrent()
 {
-    if (!context)
-        context = alcGetCurrentContext();
+    bool result = alcMakeContextCurrent(nullptr) != 0;
+    if (!result)
+        LOG_ERROR << "Failed to done OpenAL context current";
 
-    if (!context)
-        return nullptr;
-
-    auto it = s_instances.find(context);
-    if (it == s_instances.end())
-        return nullptr;
-
-    if (it->second.expired())
-    {
-        s_instances.erase(it);
-        return nullptr;
-    }
-
-    return it->second.lock();
-}
-
-OpenAL_1_1_Renderer::OpenAL_1_1_Renderer(ALCcontext *context)
-    : m_context(context)
-{
-    m_listener = std::make_shared<Listener_1_1>();
-
-    LOG_INFO << "Audio renderer \"" << OpenAL_1_1_Renderer::name() << "\" has been created";
+    return result;
 }
 
 }

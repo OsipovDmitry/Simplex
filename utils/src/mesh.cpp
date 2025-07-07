@@ -10,6 +10,22 @@ namespace simplex
 namespace utils
 {
 
+size_t sizeOfVertexComponentType(VertexComponentType type)
+{
+    static std::array<uint32_t, numElementsVertexComponentType()> s_table{
+        sizeof(float),
+        sizeof(double),
+        sizeof(int8_t),
+        sizeof(uint8_t),
+        sizeof(int16_t),
+        sizeof(uint16_t),
+        sizeof(int32_t),
+        sizeof(uint32_t)
+    };
+
+    return s_table[utils::castFromVertexComponentType(type)];
+}
+
 Buffer::Buffer(size_t sizeInBytes)
     : m_data(nullptr)
     , m_sizeInBytes(sizeInBytes)
@@ -71,13 +87,13 @@ uint32_t VertexBuffer::numComponents() const
 
 uint32_t VertexBuffer::numVertices() const
 {
-    const uint32_t vertexSize = m_numComponents * componentSize();
+    const uint32_t vertexSize = m_numComponents * sizeOfVertexComponentType(m_type);
     return static_cast<uint32_t>(m_sizeInBytes / vertexSize);
 }
 
 void VertexBuffer::setNumVertices(uint32_t numVertices)
 {
-    resize(numVertices * m_numComponents * componentSize());
+    resize(numVertices * m_numComponents * sizeOfVertexComponentType(m_type));
 }
 
 VertexComponentType VertexBuffer::componentType() const
@@ -85,39 +101,16 @@ VertexComponentType VertexBuffer::componentType() const
     return m_type;
 }
 
-uint32_t VertexBuffer::componentSize() const
+const uint8_t *VertexBuffer::vertex(uint32_t index) const
 {
-    return componentSize(m_type);
+    return m_data + m_numComponents * sizeOfVertexComponentType(m_type) * index;
 }
 
-const void *VertexBuffer::vertex(uint32_t index) const
+void VertexBuffer::setVertex(uint32_t index, const uint8_t*data)
 {
-    return static_cast<const void*>(m_data + m_numComponents * componentSize() * index);
-}
-
-void VertexBuffer::setVertex(uint32_t index, const void *data)
-{
-    std::memcpy(m_data + m_numComponents * componentSize() * index,
+    std::memcpy(m_data + m_numComponents * sizeOfVertexComponentType(m_type) * index,
                 data,
-                m_numComponents * componentSize());
-}
-
-uint32_t VertexBuffer::componentSize(VertexComponentType type)
-{
-    static std::array<uint32_t, numElementsVertexComponentType()> s_table {
-        sizeof(float),
-        sizeof(double),
-        sizeof(int8_t),
-        sizeof(uint8_t),
-                +
-
-        sizeof(int16_t),
-        sizeof(uint16_t),
-        sizeof(int32_t),
-        sizeof(uint32_t)
-    };
-
-    return s_table[utils::castFromVertexComponentType(type)];
+                m_numComponents * sizeOfVertexComponentType(m_type));
 }
 
 DrawElementsBuffer::DrawElementsBuffer(PrimitiveType primitiveType, uint32_t count, DrawElementsIndexType type, uint32_t baseVertex)

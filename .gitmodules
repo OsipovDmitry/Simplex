@@ -1,0 +1,6 @@
+[submodule "3rdparties/openal-soft"]
+	path = 3rdparties/openal-soft
+	url = ../../kcat/openal-soft.git
+[submodule "3rdparties/glfw"]
+	path = 3rdparties/glfw
+	url = ../../glfw/glfw.git

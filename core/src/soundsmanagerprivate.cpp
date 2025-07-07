@@ -5,14 +5,14 @@ namespace simplex
 namespace core
 {
 
-SoundsManagerPrivate::SoundsManagerPrivate(std::shared_ptr<audio::IRenderer> renderer)
+SoundsManagerPrivate::SoundsManagerPrivate(const std::shared_ptr<audio::RendererBase> &renderer)
     : m_renderer(renderer)
 {
 }
 
 SoundsManagerPrivate::~SoundsManagerPrivate() = default;
 
-std::shared_ptr<audio::IRenderer> &SoundsManagerPrivate::renderer()
+std::shared_ptr<audio::RendererBase> &SoundsManagerPrivate::renderer()
 {
     return m_renderer;
 }

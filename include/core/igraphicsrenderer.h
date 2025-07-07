@@ -455,8 +455,8 @@ public:
 class IRenderer : public INamedObject
 {
 public:
-    virtual bool makeCurrent(const std::shared_ptr<core::IRenderWidget>&) = 0;
-    virtual bool doneCurrent(const std::shared_ptr<core::IRenderWidget>&) = 0;
+    virtual bool makeCurrent() = 0;
+    virtual bool doneCurrent() = 0;
 
     virtual void blitFrameBuffer(std::shared_ptr<const IFrameBuffer> src,
                                  std::shared_ptr<IFrameBuffer> dst,
@@ -467,15 +467,12 @@ public:
 
     virtual bool registerVertexAttribute(const std::string&, utils::VertexAttribute) = 0;
     virtual bool unregisterVertexAttribute(const std::string&) = 0;
-    virtual utils::VertexAttribute vertexAttributeByName(const std::string&) const = 0;
 
     virtual bool registerUniformId(const std::string&, uint16_t) = 0;
     virtual bool unregisterUniformId(const std::string&) = 0;
-    virtual uint16_t uniformIdByName(const std::string&) const = 0;
 
     virtual bool registerSSBOId(const std::string&, uint16_t) = 0;
     virtual bool unregisterSSBOId(const std::string&) = 0;
-    virtual uint16_t SSBOIdByName(const std::string&) const = 0;
 
     virtual std::shared_ptr<IBuffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
     virtual std::shared_ptr<IBufferRange> createBufferRange(const std::shared_ptr<IBuffer>&,

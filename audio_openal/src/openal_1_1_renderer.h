@@ -1,5 +1,5 @@
-#ifndef OPENAL_1_1_RENDERER_H
-#define OPENAL_1_1_RENDERER_H
+#ifndef AUDIO_OPENAL_1_1_RENDERER_H
+#define AUDIO_OPENAL_1_1_RENDERER_H
 
 #include <unordered_map>
 #include <alc.h>
@@ -7,13 +7,13 @@
 
 #include <utils/noncopyble.h>
 
-#include <core/iaudiorenderer.h>
+#include <core/audiorendererbase.h>
 
-#include <openal/forwarddecl.h>
+#include <audio_openal/forwarddecl.h>
 
 namespace simplex
 {
-namespace openal
+namespace audio_openal
 {
 
 class Conversions
@@ -124,18 +124,17 @@ public:
     void setOrientation(const glm::quat&) override;
 };
 
-class OpenAL_1_1_Renderer : public core::audio::IRenderer
+class OpenAL_1_1_Renderer : public core::audio::RendererBase
 {
     NONCOPYBLE(OpenAL_1_1_Renderer)
 public:
+    OpenAL_1_1_Renderer(const std::string&, const std::weak_ptr<OpenALDevice>&);
     ~OpenAL_1_1_Renderer() override;
 
-    const std::string &name() const override;
+    //std::shared_ptr<core::IAudioDevice> device() override;
+    //std::shared_ptr<const core::IAudioDevice> device() const override;
 
-    ALCcontext *context() const;
-
-    bool makeCurrent() override;
-    bool doneCurrent() override;
+    //ALCcontext *context() const;
 
     core::audio::AttenuationModel attenautionModel() const override;
     void setAttenautionModel(core::audio::AttenuationModel) const override;
@@ -158,20 +157,18 @@ public:
     void stopSource(const std::shared_ptr<core::audio::ISource>&) override;
     void rewindSource(const std::shared_ptr<core::audio::ISource>&) override;
 
-    static std::shared_ptr<OpenAL_1_1_Renderer> create(ALCcontext*);
-    static std::shared_ptr<OpenAL_1_1_Renderer> instance(ALCcontext* = nullptr);
+protected:
+    bool doMakeCurrent() override;
+    bool doDoneCurrent() override;
 
 private:
-    OpenAL_1_1_Renderer(ALCcontext*);
-
+    std::weak_ptr<OpenALDevice> m_device;
     ALCcontext *m_context;
     std::shared_ptr<Listener_1_1> m_listener;
-
-    static std::unordered_map<ALCcontext*, std::weak_ptr<OpenAL_1_1_Renderer>> s_instances;
 
 };
 
 }
 }
 
-#endif // OPENAL_1_1_RENDERER_H
+#endif // AUDIO_OPENAL_1_1_RENDERER_H

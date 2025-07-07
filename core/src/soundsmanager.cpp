@@ -2,7 +2,7 @@
 #include <utils/logger.h>
 #include <utils/sound.h>
 
-#include <core/iaudiorenderer.h>
+#include <core/audiorendererbase.h>
 #include <core/soundsmanager.h>
 
 #include "soundsmanagerprivate.h"
@@ -12,7 +12,7 @@ namespace simplex
 namespace core
 {
 
-SoundsManager::SoundsManager(std::shared_ptr<audio::IRenderer> renderer)
+SoundsManager::SoundsManager(const std::shared_ptr<audio::RendererBase>& renderer)
     : m_(std::make_unique<SoundsManagerPrivate>(renderer))
 {
 }

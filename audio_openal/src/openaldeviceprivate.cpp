@@ -2,10 +2,10 @@
 
 namespace simplex
 {
-namespace openal
+namespace audio_openal
 {
 
-std::unordered_set<std::weak_ptr<OpenALDevice>, OpenALDeviceHash> OpenALDevicePrivate::m_instances;
+std::unordered_set<std::weak_ptr<OpenALDevice>, utils::WeakPtrHash<OpenALDevice>> OpenALDevicePrivate::m_instances;
 
 OpenALDevicePrivate::OpenALDevicePrivate(const std::string &name)
     : m_name(name)
@@ -24,12 +24,12 @@ ALCdevice *&OpenALDevicePrivate::device()
     return m_device;
 }
 
-std::shared_ptr<OpenAL_1_1_Renderer> &OpenALDevicePrivate::renderer()
+std::shared_ptr<core::AudioEngine>& OpenALDevicePrivate::engine()
 {
-    return m_renderer;
+    return m_engine;
 }
 
-std::unordered_set<std::weak_ptr<OpenALDevice>, OpenALDeviceHash> &OpenALDevicePrivate::instances()
+std::unordered_set<std::weak_ptr<OpenALDevice>, utils::WeakPtrHash<OpenALDevice>> &OpenALDevicePrivate::instances()
 {
     return m_instances;
 }

@@ -1,13 +1,12 @@
-#ifndef CORE_IAUDIORENDERER_H
-#define CORE_IAUDIORENDERER_H
-
-#include <memory>
+#ifndef CORE_AUDIORENDERERBASE_H
+#define CORE_AUDIORENDERERBASE_H
 
 #include <utils/enumclass.h>
 #include <utils/glm/vec3.hpp>
 #include <utils/glm/gtc/quaternion.hpp>
 #include <utils/forwarddecl.h>
 
+#include <core/coreglobal.h>
 #include <core/inamedobject.h>
 
 namespace simplex
@@ -16,27 +15,26 @@ namespace core
 {
 namespace audio
 {
-
 ENUMCLASS(BufferFormat, uint16_t,
-          Mono8,
-          Mono16,
-          Stereo8,
-          Stereo16)
+    Mono8,
+    Mono16,
+    Stereo8,
+    Stereo16)
 
 ENUMCLASS(SourceState, uint16_t,
-          Initial,
-          Playing,
-          Paused,
-          Stopped)
+    Initial,
+    Playing,
+    Paused,
+    Stopped)
 
 ENUMCLASS(AttenuationModel, uint16_t,
-          None,
-          InverseDistance,
-          InverseDistanceClamped,
-          LinearDistance,
-          LinearDistanceClamped,
-          ExponentialDistance,
-          ExponentialDistanceClamped)
+    None,
+    InverseDistance,
+    InverseDistanceClamped,
+    LinearDistance,
+    LinearDistanceClamped,
+    ExponentialDistance,
+    ExponentialDistanceClamped)
 
 class IBuffer
 {
@@ -44,10 +42,10 @@ public:
     virtual ~IBuffer() = default;
 
     virtual BufferFormat format() const = 0;
-    virtual const void *data() const = 0;
+    virtual const void* data() const = 0;
     virtual size_t dataSize() const = 0;
     virtual uint16_t frequency() const = 0;
-    virtual void setData(BufferFormat, const void *data, size_t dataSize, uint32_t frequency) = 0;
+    virtual void setData(BufferFormat, const void* data, size_t dataSize, uint32_t frequency) = 0;
 };
 
 class ISource
@@ -122,11 +120,21 @@ public:
 
 };
 
-class IRenderer : public INamedObject
+class RendererBasePrivate;
+class CORE_SHARED_EXPORT RendererBase : public std::enable_shared_from_this<RendererBase>, public INamedObject
 {
 public:
-    virtual bool makeCurrent() = 0;
-    virtual bool doneCurrent() = 0;
+    RendererBase(const std::string&);
+    ~RendererBase() override;
+
+    const std::string& name() const override;
+
+    bool makeCurrent();
+    bool doneCurrent();
+    static std::shared_ptr<RendererBase> current();
+
+    //virtual std::shared_ptr<IAudioDevice> device() = 0;
+    //virtual std::shared_ptr<const IAudioDevice> device() const = 0;
 
     virtual AttenuationModel attenautionModel() const = 0;
     virtual void setAttenautionModel(AttenuationModel) const = 0;
@@ -140,7 +148,7 @@ public:
     virtual std::shared_ptr<IListener> listener() = 0;
     virtual std::shared_ptr<const IListener> listener() const = 0;
 
-    virtual std::shared_ptr<IBuffer> createBuffer(const std::shared_ptr<utils::Sound>& = nullptr) const = 0;
+    virtual std::shared_ptr<IBuffer> createBuffer(const std::shared_ptr<utils::Sound> & = nullptr) const = 0;
     virtual std::shared_ptr<ISource> createSource() const = 0;
 
     virtual SourceState sourceState(const std::shared_ptr<ISource>&) const = 0;
@@ -149,10 +157,15 @@ public:
     virtual void stopSource(const std::shared_ptr<ISource>&) = 0;
     virtual void rewindSource(const std::shared_ptr<ISource>&) = 0;
 
+protected:
+    virtual bool doMakeCurrent() = 0;
+    virtual bool doDoneCurrent() = 0;
+
+    std::unique_ptr<RendererBasePrivate> m_;
 };
 
 }
 }
 }
 
-#endif // CORE_IAUDIORENDERER_H
+#endif // CORE_AUDIORENDERERBASE_H

@@ -16,14 +16,14 @@ namespace core
 class SoundsManagerPrivate
 {
 public:
-    SoundsManagerPrivate(std::shared_ptr<audio::IRenderer>);
+    SoundsManagerPrivate(const std::shared_ptr<audio::RendererBase>&);
     ~SoundsManagerPrivate();
 
-    std::shared_ptr<audio::IRenderer> &renderer();
+    std::shared_ptr<audio::RendererBase> &renderer();
     std::unordered_map<std::string, std::shared_ptr<audio::IBuffer>> &resources();
 
 private:
-    std::shared_ptr<audio::IRenderer> m_renderer;
+    std::shared_ptr<audio::RendererBase> m_renderer;
     std::unordered_map<std::string, std::shared_ptr<audio::IBuffer>> m_resources;
 
 };
