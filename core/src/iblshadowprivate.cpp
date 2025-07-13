@@ -12,7 +12,7 @@ IBLShadowPrivate::IBLShadowPrivate()
 
 IBLShadowPrivate::~IBLShadowPrivate() = default;
 
-std::shared_ptr<ShadowFrameBuffer> IBLShadowPrivate::createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer> &) const
+std::shared_ptr<ShadowFrameBuffer> IBLShadowPrivate::createShadowFrameBuffer(const std::shared_ptr<graphics::RendererBase> &) const
 {
     return nullptr;
 }

@@ -31,8 +31,10 @@ public:
     const uint8_t *data() const;
     uint8_t *data();
 
-    const uint8_t *pixel(uint32_t, uint32_t);
+    const uint8_t *pixel(uint32_t, uint32_t) const;
     void setPixel(uint32_t, uint32_t, const uint8_t*);
+
+    std::shared_ptr<Image> toRGBA8() const;
 
     bool saveToFile(const std::filesystem::path&);
 

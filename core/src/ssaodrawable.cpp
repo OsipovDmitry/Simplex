@@ -77,7 +77,7 @@ void SSAODrawable::setRadius(float value)
     getOrCreateUniform(UniformId::SSAORadius) = makeUniform(value);
 }
 
-void SSAODrawable::update(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+void SSAODrawable::update(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
 {
     if (!kernelBuffer())
     {

@@ -5,11 +5,19 @@ namespace simplex
 namespace core
 {
 
-std::weak_ptr<ApplicationBase> ApplicationBasePrivate::s_currentApplication;
+std::unique_ptr<ApplicationBase> ApplicationBasePrivate::s_instance;
 
-ApplicationBasePrivate::ApplicationBasePrivate(const std::string &name)
+ApplicationBasePrivate::ApplicationBasePrivate(const std::string &name,
+    ApplicationTimeCallback timeCallback,
+    ApplicationPollEventsCallback pollEventsCallback)
     : m_name(name)
-    , m_isInitialized(false)
+    , m_timeCallback(timeCallback)
+    , m_pollEventsCallback(pollEventsCallback)
+    , m_isStopped(true)
+    , m_startTime(0u)
+    , m_lastUpdateTime(0u)
+    , m_lastFPSTime(0u)
+    , m_FPSCounter(0u)
 {}
 
 std::string &ApplicationBasePrivate::name()
@@ -17,29 +25,54 @@ std::string &ApplicationBasePrivate::name()
     return m_name;
 }
 
-bool &ApplicationBasePrivate::isInitialized()
-{
-    return m_isInitialized;
-}
-
 debug::Information &ApplicationBasePrivate::debugInformation()
 {
     return m_debugInformation;
 }
 
-std::unordered_set<std::shared_ptr<IEngine>> &ApplicationBasePrivate::engines()
+std::list<std::shared_ptr<IDevice>> &ApplicationBasePrivate::devices()
 {
-    return m_engines;
+    return m_devices;
 }
 
-std::unordered_set<std::shared_ptr<Scene>> &ApplicationBasePrivate::scenes()
+bool& ApplicationBasePrivate::isStopped()
 {
-    return m_scenes;
+    return m_isStopped;
 }
 
-std::weak_ptr<ApplicationBase> &ApplicationBasePrivate::currentApplication()
+uint64_t& ApplicationBasePrivate::startTime()
 {
-    return s_currentApplication;
+    return m_startTime;
+}
+
+uint64_t& ApplicationBasePrivate::lastUpdateTime()
+{
+    return m_lastUpdateTime;
+}
+
+uint64_t& ApplicationBasePrivate::lastFPSTime()
+{
+    return m_lastFPSTime;
+}
+
+uint32_t& ApplicationBasePrivate::FPSCounter()
+{
+    return m_FPSCounter;
+}
+
+ApplicationTimeCallback& ApplicationBasePrivate::timeCallback()
+{
+    return m_timeCallback;
+}
+
+ApplicationPollEventsCallback& ApplicationBasePrivate::pollEventsCallback()
+{
+    return m_pollEventsCallback;
+}
+
+std::unique_ptr<ApplicationBase>& ApplicationBasePrivate::instance()
+{
+    return s_instance;
 }
 
 }

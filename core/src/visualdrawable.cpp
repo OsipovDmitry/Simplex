@@ -1,6 +1,6 @@
 #include <utils/epsilon.h>
 
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 #include <core/visualdrawable.h>
 #include <core/uniform.h>
 

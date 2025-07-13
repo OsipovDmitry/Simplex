@@ -10,7 +10,7 @@ AudioEnginePrivate::AudioEnginePrivate(const std::string &name)
 {
 }
 
-std::string &AudioEnginePrivate::name()
+std::string& AudioEnginePrivate::name()
 {
     return m_name;
 }

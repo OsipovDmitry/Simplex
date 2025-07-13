@@ -591,7 +591,7 @@ public:
     static std::filesystem::path s_path;
 };
 
-std::filesystem::path SettingsPrivate::s_path = "D:/res/settings/settings.json";
+std::filesystem::path SettingsPrivate::s_path = "C:/res/settings/settings.json";
 
 Settings::~Settings() = default;
 

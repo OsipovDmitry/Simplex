@@ -14,12 +14,12 @@ GraphicsEnginePrivate::GraphicsEnginePrivate(const std::string &name)
 {
 }
 
-std::string &GraphicsEnginePrivate::name()
+std::string& GraphicsEnginePrivate::name()
 {
     return m_name;
 }
 
-std::shared_ptr<graphics::IRenderer> &GraphicsEnginePrivate::renderer()
+std::shared_ptr<graphics::RendererBase> &GraphicsEnginePrivate::renderer()
 {
     return m_renderer;
 }

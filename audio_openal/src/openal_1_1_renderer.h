@@ -11,6 +11,28 @@
 
 #include <audio_openal/forwarddecl.h>
 
+#define CURRENT_CONTEXT_INFO \
+    private: \
+        std::shared_ptr<core::audio::RendererBase> m_renderer; \
+    public: \
+        std::shared_ptr<core::audio::RendererBase> renderer() const { return m_renderer; };
+
+#define SAVE_CURRENT_CONTEXT \
+    m_renderer = core::audio::RendererBase::current(); \
+    if (!m_renderer) LOG_CRITICAL << "No current context";
+
+#define CHECK_CURRENT_CONTEXT \
+    if (m_renderer != core::audio::RendererBase::current()) \
+        LOG_CRITICAL << "Resource was created in anotrher context";
+
+#define CHECK_THIS_CONTEXT \
+    if (shared_from_this() != core::audio::RendererBase::current()) \
+        LOG_CRITICAL << "This context is not current";
+
+#define CHECK_RESOURCE_CONTEXT(resource) \
+    if (shared_from_this() != resource->renderer()) \
+        LOG_CRITICAL << "Resource was created in anotrher context";
+
 namespace simplex
 {
 namespace audio_openal
@@ -30,6 +52,7 @@ public:
 
 class Buffer_1_1 : public core::audio::IBuffer
 {
+    CURRENT_CONTEXT_INFO
 public:
     Buffer_1_1();
     ~Buffer_1_1() override;
@@ -42,12 +65,15 @@ public:
     uint16_t frequency() const override;
     void setData(core::audio::BufferFormat, const void *data, size_t dataSize, uint32_t frequency) override;
 
+    static std::shared_ptr<Buffer_1_1> create();
+
 private:
     ALuint m_id;
 };
 
 class Source_1_1 : public core::audio::ISource
 {
+    CURRENT_CONTEXT_INFO
 public:
     Source_1_1();
     ~Source_1_1() override;
@@ -100,6 +126,8 @@ public:
     bool looping() const override;
     void setLooping(bool) override;
 
+    static std::shared_ptr<Source_1_1> create();
+
 private:
     ALuint m_id;
     std::shared_ptr<Buffer_1_1> m_buffer;
@@ -107,6 +135,7 @@ private:
 
 class Listener_1_1 : public core::audio::IListener
 {
+    CURRENT_CONTEXT_INFO
 public:
     Listener_1_1();
     ~Listener_1_1() override;
@@ -122,6 +151,8 @@ public:
 
     glm::quat orientation() const override;
     void setOrientation(const glm::quat&) override;
+
+    static std::shared_ptr<Listener_1_1> create();
 };
 
 class OpenAL_1_1_Renderer : public core::audio::RendererBase
@@ -131,10 +162,8 @@ public:
     OpenAL_1_1_Renderer(const std::string&, const std::weak_ptr<OpenALDevice>&);
     ~OpenAL_1_1_Renderer() override;
 
-    //std::shared_ptr<core::IAudioDevice> device() override;
-    //std::shared_ptr<const core::IAudioDevice> device() const override;
-
-    //ALCcontext *context() const;
+    std::shared_ptr<core::audio::IAudioDevice> device() override;
+    std::shared_ptr<const core::audio::IAudioDevice> device() const override;
 
     core::audio::AttenuationModel attenautionModel() const override;
     void setAttenautionModel(core::audio::AttenuationModel) const override;

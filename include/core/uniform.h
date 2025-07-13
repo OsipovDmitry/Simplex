@@ -1,7 +1,7 @@
 #ifndef UNIFORM_H
 #define UNIFORM_H
 
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 
 namespace simplex
 {

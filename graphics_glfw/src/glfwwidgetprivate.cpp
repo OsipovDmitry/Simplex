@@ -5,15 +5,17 @@ namespace simplex
 namespace graphics_glfw
 {
 
-std::unordered_set<std::weak_ptr<GLFWWidget>, utils::WeakPtrHash<GLFWWidget>> GLFWWidgetPrivate::s_instances;
+utils::WeakPtrList<GLFWWidget> GLFWWidgetPrivate::s_instances;
 bool GLFWWidgetPrivate::s_isGLFWInitialized = false;
 int GLFWWidgetPrivate::s_majorVersion = 0;
 int GLFWWidgetPrivate::s_minorVersion = 0;
 
-GLFWWidgetPrivate::GLFWWidgetPrivate(const std::string &name, const std::shared_ptr<GLFWWidgetShareGroup> &shareGroup)
+GLFWWidgetPrivate::GLFWWidgetPrivate(const std::string &name, const std::shared_ptr<core::graphics::ShareGroup> &shareGroup)
     : m_name(name)
-    , m_shareGroup(shareGroup)
     , m_GLFWWindow(nullptr)
+    , m_GLFWCursor(nullptr)
+    , m_closeCallback(nullptr)
+    , m_shareGroup(shareGroup)
 {
 }
 
@@ -24,24 +26,69 @@ std::string &GLFWWidgetPrivate::name()
     return m_name;
 }
 
+std::shared_ptr<core::GraphicsEngine>& GLFWWidgetPrivate::engine()
+{
+    return m_engine;
+}
+
+std::shared_ptr<core::Scene>& GLFWWidgetPrivate::scene()
+{
+    return m_scene;
+}
+
 GLFWwindow *&GLFWWidgetPrivate::window()
 {
     return m_GLFWWindow;
 }
 
-std::shared_ptr<GLFWWidgetShareGroup>& GLFWWidgetPrivate::shareGroup()
+GLFWcursor *&GLFWWidgetPrivate::cursor()
+{
+    return m_GLFWCursor;
+}
+
+core::graphics::CloseCallback& GLFWWidgetPrivate::closeCallback()
+{
+    return m_closeCallback;
+}
+
+core::graphics::ResizeCallback& GLFWWidgetPrivate::resizeCallback()
+{
+    return m_resizeCallback;
+}
+
+core::graphics::UpdateCallback& GLFWWidgetPrivate::updateCallback()
+{
+    return m_updateCallback;
+}
+
+core::graphics::KeyCallback& GLFWWidgetPrivate::keyCallback()
+{
+    return m_keyCallback;
+}
+
+core::graphics::MouseCursorMoveCallback& GLFWWidgetPrivate::mouseCursorMoveCallback()
+{
+    return m_mouseCursorMoveCallback;
+}
+
+core::graphics::MouseCursorEnterCallback& GLFWWidgetPrivate::mouseCursorEnterCallback()
+{
+    return m_mouseCursorEnterCallback;
+}
+
+core::graphics::MouseButtonCallback& GLFWWidgetPrivate::mouseButtonCallback()
+{
+    return m_mouseButtonCallback;
+}
+
+core::graphics::MouseScrollCallback& GLFWWidgetPrivate::mouseScrollCallback()
+{
+    return m_mouseScrollCallback;
+}
+
+std::shared_ptr<core::graphics::ShareGroup>& GLFWWidgetPrivate::shareGroup()
 {
     return m_shareGroup;
-}
-
-std::weak_ptr<core::ApplicationBase> &GLFWWidgetPrivate::application()
-{
-    return m_application;
-}
-
-std::shared_ptr<GLFWRenderer> &GLFWWidgetPrivate::renderer()
-{
-    return m_renderer;
 }
 
 std::shared_ptr<DefaultFrameBuffer_4_5> &GLFWWidgetPrivate::defaultFrameBuffer()
@@ -49,27 +96,7 @@ std::shared_ptr<DefaultFrameBuffer_4_5> &GLFWWidgetPrivate::defaultFrameBuffer()
     return m_defaultFrameBuffer;
 }
 
-uint64_t &GLFWWidgetPrivate::startTime()
-{
-    return m_startTime;
-}
-
-uint64_t &GLFWWidgetPrivate::lastUpdateTime()
-{
-    return m_lastUpdateTime;
-}
-
-uint64_t &GLFWWidgetPrivate::lastFpsTime()
-{
-    return m_lastFpsTime;
-}
-
-uint32_t &GLFWWidgetPrivate::fpsCounter()
-{
-    return m_fpsCounter;
-}
-
-std::unordered_set<std::weak_ptr<GLFWWidget>, utils::WeakPtrHash<GLFWWidget>> & GLFWWidgetPrivate::instances()
+utils::WeakPtrList<GLFWWidget>& GLFWWidgetPrivate::instances()
 {
     return s_instances;
 }

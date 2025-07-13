@@ -61,7 +61,7 @@ void Blur::setSourceMap(const graphics::PConstTexture &map, uint32_t level, bool
     m_pingpongSourceMap[1u].second = level;
 }
 
-graphics::PConstTexture Blur::run(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+graphics::PConstTexture Blur::run(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
                                   const std::shared_ptr<ProgramsManager> &programsManager)
 {
     if (!kernelBuffer())

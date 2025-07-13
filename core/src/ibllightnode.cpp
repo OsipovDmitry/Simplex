@@ -1,6 +1,6 @@
 #include <utils/logger.h>
 
-#include <core/applicationbase.h>
+#include <core/igraphicswidget.h>
 #include <core/graphicsengine.h>
 #include <core/texturesmanager.h>
 #include <core/scene.h>
@@ -21,11 +21,15 @@ namespace core
 IBLLightNode::IBLLightNode(const std::string &name)
     : LightNode(std::make_unique<IBLLightNodePrivate>(*this, name))
 {
-    auto app = ApplicationBase::currentApplication();
-    if (!app)
-        LOG_CRITICAL << "Application can't be nullptr";
+    auto graphicsRenderer = graphics::RendererBase::current();
+    if (!graphicsRenderer)
+        LOG_CRITICAL << "Graphics renderer can't be nullptr";
 
-    auto graphicsEngine = app->findEngine<GraphicsEngine>("");
+    auto graphicsWidget = graphicsRenderer->widget();
+    if (!graphicsWidget)
+        LOG_CRITICAL << "Graphics widget can't be nullptr";
+
+    auto graphicsEngine = graphicsWidget->graphicsEngine();
     if (!graphicsEngine)
         LOG_CRITICAL << "Graphics engine can't be nullptr";
 

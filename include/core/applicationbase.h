@@ -16,55 +16,34 @@ namespace core
 {
 
 class ApplicationBasePrivate;
-class CORE_SHARED_EXPORT ApplicationBase : public std::enable_shared_from_this<ApplicationBase>, public INamedObject
+class CORE_SHARED_EXPORT ApplicationBase : public INamedObject
 {
     NONCOPYBLE(ApplicationBase)
 
 public:
-    ApplicationBase(const std::string&);
     ~ApplicationBase() override;
 
     const std::string &name() const override;
 
-    static std::shared_ptr<ApplicationBase> currentApplication();
+    bool registerDevice(const std::shared_ptr<IDevice>&);
+    bool unregisterDevice(const std::shared_ptr<IDevice>&);
+    bool isDeviceRegistered(const std::shared_ptr<IDevice>&);
+
+    void run();
+    void stop();
+
+    static bool initialize(ApplicationTimeCallback, ApplicationPollEventsCallback);
+    static ApplicationBase& instance();
 
     void shutDown();
-    void update(const std::shared_ptr<IRenderWidget>&, uint64_t time, uint32_t dt);
-
-    const std::unordered_set<std::shared_ptr<IEngine>> &engines() const;
-    bool registerEngine(std::shared_ptr<IEngine>);
-    bool unregisterEngine(std::shared_ptr<IEngine>);
-
-    std::shared_ptr<IEngine> findEngine(const std::string&);
-    template <typename TEngine> std::shared_ptr<TEngine> findEngine(const std::string& = "");
-
-    const std::unordered_set<std::shared_ptr<Scene>> &scenes() const;
-    void removeScene(const std::shared_ptr<Scene>&);
-    std::shared_ptr<Scene> loadEmptyScene(const std::string&);
-    std::shared_ptr<Scene> loadGLTFScene(const std::filesystem::path&, const std::shared_ptr<graphics::IFrameBuffer>&);
+    //void update(uint64_t time, uint32_t dt);
 
 protected:
-    virtual void doInitialize();
-    virtual void doUpdate(uint64_t time, uint32_t dt);
+    ApplicationBase(const std::string&, ApplicationTimeCallback, ApplicationPollEventsCallback);
 
-private:
     std::unique_ptr<ApplicationBasePrivate> m_;
 
 };
-
-template<typename TEngine>
-inline std::shared_ptr<TEngine> ApplicationBase::findEngine(const std::string &engineName)
-{
-    std::shared_ptr<TEngine> result;
-    for (const auto &engine : engines())
-        if (auto castedEngine = std::dynamic_pointer_cast<TEngine>(engine);
-            castedEngine && (engineName.empty() || castedEngine->name() == engineName))
-        {
-            result = castedEngine;
-            break;
-        }
-    return result;
-}
 
 }
 }

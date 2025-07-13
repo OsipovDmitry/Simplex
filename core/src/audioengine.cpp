@@ -23,8 +23,10 @@ AudioEngine::AudioEngine(const std::string &name, std::shared_ptr<audio::Rendere
     if (!renderer)
         LOG_CRITICAL << "Audio renderer can't be nullptr";
 
-    m_->renderer() = renderer;
-    m_->soundsManager() = std::make_shared<SoundsManager>(renderer);
+    auto& mPrivate = m();
+
+    mPrivate.renderer() = renderer;
+    mPrivate.soundsManager() = std::make_shared<SoundsManager>(renderer);
 
     LOG_INFO << "Engine \"" << AudioEngine::name() << "\" has been created";
 }
@@ -34,20 +36,61 @@ AudioEngine::~AudioEngine()
     LOG_INFO << "Engine \"" << AudioEngine::name() << "\" has been destroyed";
 }
 
-const std::string &AudioEngine::name() const
+const std::string& AudioEngine::name() const
 {
     return m_->name();
 }
 
-void AudioEngine::update(const std::shared_ptr<IRenderWidget> &/*renderWidget*/,
-                         const std::shared_ptr<Scene> &scene,
-                         uint64_t /*time*/,
-                         uint32_t /*dt*/,
-                         debug::SceneInformation&)
+std::shared_ptr<IRenderer> AudioEngine::renderer()
+{
+    return audioRenderer();
+}
+
+std::shared_ptr<const IRenderer> AudioEngine::renderer() const
+{
+    return audioRenderer();
+}
+
+std::shared_ptr<audio::RendererBase> AudioEngine::audioRenderer()
+{
+    return m_->renderer();
+}
+
+std::shared_ptr<const audio::RendererBase> AudioEngine::audioRenderer() const
+{
+    return const_cast<AudioEngine*>(this)->audioRenderer();
+}
+
+std::shared_ptr<SoundsManager> AudioEngine::soundsManager()
+{
+    return m_->soundsManager();
+}
+
+std::shared_ptr<const SoundsManager> AudioEngine::soundsManager() const
+{
+    return const_cast<AudioEngine*>(this)->soundsManager();
+}
+
+void AudioEngine::update(const std::shared_ptr<Scene>& scene,
+    uint64_t /*time*/,
+    uint32_t /*dt*/,
+    debug::SceneInformation&)
 {
     static const auto s_localDirection = glm::vec3(0.f, 0.f, -1.f);
 
-    auto renderer = m_->renderer();
+    if (!scene)
+    {
+        LOG_CRITICAL << "Scene can't be nullptr";
+        return;
+    }
+
+    auto& renderer = m_->renderer();
+    if (!renderer)
+    {
+        LOG_CRITICAL << "Audio renderer can't be nullptr";
+        return;
+    }
+
     renderer->makeCurrent();
 
     utils::Transform listenerTranform = scene->listenerNode()->globalTransform();
@@ -59,11 +102,11 @@ void AudioEngine::update(const std::shared_ptr<IRenderWidget> &/*renderWidget*/,
     NodeCollector<SoundNode> soundNodeCollector;
     scene->sceneRootNode()->acceptDown(soundNodeCollector);
 
-    for (const auto &soundNode : soundNodeCollector.nodes())
+    for (const auto& soundNode : soundNodeCollector.nodes())
     {
         auto source = soundNode->source();
 
-        const auto &transform = soundNode->globalTransform();
+        const auto& transform = soundNode->globalTransform();
         source->setPosition(transform.translation);
         source->setDirection(transform.rotation * s_localDirection);
 
@@ -90,26 +133,6 @@ void AudioEngine::update(const std::shared_ptr<IRenderWidget> &/*renderWidget*/,
         }
 
     }
-}
-
-std::shared_ptr<audio::RendererBase> AudioEngine::renderer()
-{
-    return m_->renderer();
-}
-
-std::shared_ptr<const audio::RendererBase> AudioEngine::renderer() const
-{
-    return const_cast<AudioEngine*>(this)->renderer();
-}
-
-std::shared_ptr<SoundsManager> AudioEngine::soundsManager()
-{
-    return m_->soundsManager();
-}
-
-std::shared_ptr<const SoundsManager> AudioEngine::soundsManager() const
-{
-    return const_cast<AudioEngine*>(this)->soundsManager();
 }
 
 }

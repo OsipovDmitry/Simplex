@@ -12,6 +12,9 @@ endfunction()
 
 
 add_subdirectory("empty_window")
+add_subdirectory("teapot")
+add_subdirectory("two_windows")
+add_subdirectory("shared_windows")
 print_all_targets("." "examples")
 
 

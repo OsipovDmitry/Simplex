@@ -20,7 +20,7 @@ class CORE_SHARED_EXPORT ProgramsManager
 {
     NONCOPYBLE(ProgramsManager)
 public:
-    ProgramsManager(std::shared_ptr<graphics::IRenderer>);
+    ProgramsManager(const std::shared_ptr<graphics::RendererBase>&);
     ~ProgramsManager();
 
     std::shared_ptr<graphics::IRenderProgram> loadOrGetRenderProgram(const std::filesystem::path&,

@@ -19,7 +19,7 @@ using Images2D = std::vector<std::filesystem::path>;
 using Images3D = std::vector<Images2D>;
 using ImagesCube = std::array<Images2D, 6u>;
 
-std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared_ptr<graphics::IRenderer>&,
+std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared_ptr<graphics::RendererBase>&,
                                                         const rapidjson::Value&,
                                                         const std::filesystem::path&);
 bool loadImage(const rapidjson::Value&, std::string&);
@@ -31,7 +31,7 @@ graphics::TextureWrapMode string2TextureWrapMode(const std::string&);
 graphics::TextureFilterMode string2TextureFilterMode(const std::string&);
 graphics::PixelInternalFormat string2PixelInternalFormat(const std::string&);
 
-TexturesManager::TexturesManager(std::shared_ptr<graphics::IRenderer> renderer)
+TexturesManager::TexturesManager(const std::shared_ptr<graphics::RendererBase>& renderer)
     : m_(std::make_unique<TexturesManagerPrivate>(renderer))
 {
 }
@@ -126,7 +126,7 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetDefaultIBLSpecular
                             TexturesManagerPrivate::defaultIBLSpecularTextureName());
 }
 
-inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared_ptr<graphics::IRenderer> &renderer,
+inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared_ptr<graphics::RendererBase> &renderer,
                                                                const rapidjson::Value &document,
                                                                const std::filesystem::path &absoluteDir)
 {

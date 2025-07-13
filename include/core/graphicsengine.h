@@ -1,13 +1,10 @@
 #ifndef CORE_GRAPHICSENGINE_H
 #define CORE_GRAPHICSENGINE_H
 
-#include <memory>
-
 #include <utils/noncopyble.h>
 #include <utils/pimpl.h>
 
 #include <core/coreglobal.h>
-#include <core/forwarddecl.h>
 #include <core/iengine.h>
 
 namespace simplex
@@ -16,30 +13,33 @@ namespace core
 {
 
 class GraphicsEnginePrivate;
-class CORE_SHARED_EXPORT GraphicsEngine : public std::enable_shared_from_this<GraphicsEngine>, public IEngine
+class CORE_SHARED_EXPORT GraphicsEngine : public IEngine
 {
     NONCOPYBLE(GraphicsEngine)
     PRIVATE_IMPL(GraphicsEngine)
 
 public:
-    GraphicsEngine(const std::string&, std::shared_ptr<graphics::IRenderer>);
+    GraphicsEngine(const std::string&, std::shared_ptr<graphics::RendererBase>);
     ~GraphicsEngine() override;
 
-    const std::string &name() const override;
-    void update(const std::shared_ptr<IRenderWidget>&,
-                const std::shared_ptr<Scene>&,
-                uint64_t time,
-                uint32_t dt,
-                debug::SceneInformation&) override;
+    const std::string& name() const override;
 
-    std::shared_ptr<graphics::IRenderer> graphicsRenderer();
-    std::shared_ptr<const graphics::IRenderer> graphicsRenderer() const;
+    std::shared_ptr<IRenderer> renderer() override final;
+    std::shared_ptr<const IRenderer> renderer() const override final;
+
+    std::shared_ptr<graphics::RendererBase> graphicsRenderer();
+    std::shared_ptr<const graphics::RendererBase> graphicsRenderer() const;
 
     std::shared_ptr<TexturesManager> texturesManager();
     std::shared_ptr<const TexturesManager> texturesManager() const;
 
     std::shared_ptr<ProgramsManager> programsManager();
     std::shared_ptr<const ProgramsManager> programsManager() const;
+
+    void update(const std::shared_ptr<Scene>&,
+        uint64_t time,
+        uint32_t dt,
+        debug::SceneInformation&);
 
     void setF(int);
     bool b = false;

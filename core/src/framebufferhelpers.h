@@ -27,7 +27,7 @@ protected:
 class GFrameBuffer : public FrameBufferWrapper
 {
 public:
-    GFrameBuffer(const std::shared_ptr<graphics::IRenderer>&);
+    GFrameBuffer(const std::shared_ptr<graphics::RendererBase>&);
 
     void setForGeometryOpaquePass();
     void setForGeometryTransparentPass();
@@ -38,7 +38,7 @@ public:
     void setForBackgroundPass();
     void setForFinalPass();
 
-    void resize(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&);
+    void resize(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
     graphics::PConstTexture colorTexture() const;
     graphics::PConstTexture depthTexture() const;
     graphics::PConstTexture stencilTexture() const;
@@ -53,9 +53,9 @@ private:
 class PostprocessFrameBuffer : public FrameBufferWrapper
 {
 public:
-    PostprocessFrameBuffer(const std::shared_ptr<graphics::IRenderer>&, const std::shared_ptr<graphics::IFrameBuffer>&);
+    PostprocessFrameBuffer(const std::shared_ptr<graphics::RendererBase>&, const std::shared_ptr<graphics::IFrameBuffer>&);
 
-    void resize(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&);
+    void resize(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
 
 private:
     bool m_useUserFrameBuffer;
@@ -64,20 +64,20 @@ private:
 class ShadowFrameBuffer : public FrameBufferWrapper
 {
 public:
-    ShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer>&);
+    ShadowFrameBuffer(const std::shared_ptr<graphics::RendererBase>&);
 
     uint32_t numLayers() const;
 
     void setForOpaquePass();
     void setForTransparentPass();
 
-    void resize(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&, ShadingMode, ShadingFilter);
+    void resize(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&, ShadingMode, ShadingFilter);
     graphics::PConstTexture colorTexture() const;
     graphics::PConstTexture depthTexture() const;
     graphics::PConstTexture depthVSMTexture() const;
 
 protected:
-    virtual graphics::PTexture doTexture(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&, graphics::PixelInternalFormat) const = 0;
+    virtual graphics::PTexture doTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&, graphics::PixelInternalFormat) const = 0;
 
     ShadingMode m_shadingMode;
     ShadingFilter m_shadingFilter;
@@ -86,27 +86,27 @@ protected:
 class ShadowFrameBuffer2D : public ShadowFrameBuffer
 {
 public:
-    ShadowFrameBuffer2D(const std::shared_ptr<graphics::IRenderer>&);
+    ShadowFrameBuffer2D(const std::shared_ptr<graphics::RendererBase>&);
 
 protected:
-    graphics::PTexture doTexture(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&, graphics::PixelInternalFormat) const override;
+    graphics::PTexture doTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&, graphics::PixelInternalFormat) const override;
 };
 
 class ShadowFrameBufferCube : public ShadowFrameBuffer
 {
 public:
-    ShadowFrameBufferCube(const std::shared_ptr<graphics::IRenderer>&);
+    ShadowFrameBufferCube(const std::shared_ptr<graphics::RendererBase>&);
 
 protected:
-    graphics::PTexture doTexture(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&, graphics::PixelInternalFormat) const override;
+    graphics::PTexture doTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&, graphics::PixelInternalFormat) const override;
 };
 
 class SSAOFrameBuffer : public FrameBufferWrapper
 {
 public:
-    SSAOFrameBuffer(const std::shared_ptr<graphics::IRenderer>&);
+    SSAOFrameBuffer(const std::shared_ptr<graphics::RendererBase>&);
 
-    void resize(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&, SSAOMode);
+    void resize(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&, SSAOMode);
     graphics::PConstTexture colorTexture() const;
     graphics::PixelInternalFormat pixelInternalFormat() const;
 
@@ -118,9 +118,9 @@ protected:
 class BlurFrameBuffer : public FrameBufferWrapper
 {
 public:
-    BlurFrameBuffer(const std::shared_ptr<graphics::IRenderer>&);
+    BlurFrameBuffer(const std::shared_ptr<graphics::RendererBase>&);
 
-    void resize(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&, graphics::PixelInternalFormat);
+    void resize(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&, graphics::PixelInternalFormat);
     graphics::PConstTexture colorTexture() const;
 
 protected:

@@ -3,10 +3,10 @@
 
 #include <memory>
 #include <unordered_set>
+#include <filesystem>
 
 #include <utils/noncopyble.h>
 #include <utils/pimpl.h>
-#include <utils/sortedobject.h>
 
 #include <core/coreglobal.h>
 #include <core/forwarddecl.h>
@@ -18,7 +18,7 @@ namespace core
 {
 
 class ScenePrivate;
-class CORE_SHARED_EXPORT Scene : public INamedObject, public utils::SortedObject
+class CORE_SHARED_EXPORT Scene : public INamedObject
 {
     NONCOPYBLE(Scene)
     PRIVATE_IMPL(Scene)
@@ -26,9 +26,6 @@ public:
     ~Scene() override;
 
     const std::string &name() const override;
-
-    std::shared_ptr<ApplicationBase> application();
-    std::shared_ptr<const ApplicationBase> application() const;
 
     std::shared_ptr<SceneRootNode> sceneRootNode();
     std::shared_ptr<const SceneRootNode> sceneRootNode() const;
@@ -43,12 +40,13 @@ public:
     void removeAnimation(const std::shared_ptr<Animation>&);
     void addAnimation(const std::shared_ptr<Animation>&);
 
+    static std::shared_ptr<Scene> createEmpty(const std::string&);
+    static std::shared_ptr<Scene> createFromGLTF(const std::filesystem::path&, const std::shared_ptr<graphics::IFrameBuffer>&);
+
 private:
-    Scene(const std::weak_ptr<ApplicationBase>&, const std::string&);
+    Scene(const std::string&);
 
     std::unique_ptr<ScenePrivate> m_;
-
-    friend class ApplicationBase;
 };
 
 }

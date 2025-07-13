@@ -4,6 +4,7 @@
 #include <utils/logger.h>
 #include <utils/fileextension.h>
 #include <utils/image.h>
+#include <utils/glm/common.hpp>
 
 #ifdef _WIN32
 #define STBI_WINDOWS_UTF8
@@ -75,7 +76,7 @@ uint8_t *Image::data()
     return m_data;
 }
 
-const uint8_t* Image::pixel(uint32_t x, uint32_t y)
+const uint8_t* Image::pixel(uint32_t x, uint32_t y) const
 {
     const size_t pixelSize = m_numComponents * sizeOfPixelComponentType(m_componentType);
     return m_data + pixelSize * (m_width * y + x);
@@ -87,6 +88,47 @@ void Image::setPixel(uint32_t x, uint32_t y, const uint8_t *data)
     std::memcpy(m_data + pixelSize * (m_width * y + x),
         data,
         pixelSize);
+}
+
+std::shared_ptr<Image> Image::toRGBA8() const
+{
+    auto result = Image::loadFromData(m_width, m_height, 4u, PixelComponentType::Uint8, nullptr);
+
+    for (uint32_t y = 0u; y < m_height; ++y)
+        for (uint32_t x = 0u; x < m_width; ++x)
+        {
+            auto inPixel = pixel(x, y);
+            std::array<uint8_t, 4u> outPixel = { 0u, 0u, 0u, 255u };
+
+            for (uint32_t c = 0; c < numComponents(); ++c)
+            {
+                auto component = inPixel + c * utils::sizeOfPixelComponentType(type());
+                switch (type())
+                {
+                case utils::PixelComponentType::Single:
+                {
+                    outPixel[c] = static_cast<uint8_t>(255.f * glm::clamp(*reinterpret_cast<const float*>(component), 0.f, 1.f));
+                    break;
+                }
+                case utils::PixelComponentType::Uint8:
+                {
+                    outPixel[c] = *reinterpret_cast<const uint8_t*>(component);
+                    break;
+                }
+                case utils::PixelComponentType::Uint16:
+                {
+                    outPixel[c] = static_cast<uint8_t>(*reinterpret_cast<const uint16_t*>(component) / 256u);
+                    break;
+                }
+                default:
+                    break;
+                }
+            }
+
+            std::memcpy(result->data() + 4u * (y * width() + x), outPixel.data(), 4u);
+        }
+
+    return result;
 }
 
 bool Image::saveToFile(const std::filesystem::path &filename)

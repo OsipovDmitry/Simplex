@@ -16,8 +16,6 @@ namespace audio_openal
 
 OpenALDevice::~OpenALDevice()
 {
-    m_->engine() = nullptr;
-
     const auto &deviceName = OpenALDevice::name();
     if (!alcCloseDevice(m_->device()))
         LOG_ERROR << "Failed to destroy OpenAL device \"" << deviceName << "\"";
@@ -30,14 +28,50 @@ const std::string &OpenALDevice::name() const
     return m_->name();
 }
 
-std::shared_ptr<core::AudioEngine> OpenALDevice::engine()
+bool OpenALDevice::isInitialized() const
 {
-    return std::shared_ptr<core::AudioEngine>();
+    return m_->device() != nullptr;
 }
 
-std::shared_ptr<const core::AudioEngine> OpenALDevice::engine() const
+void OpenALDevice::update(uint64_t time, uint32_t dt, core::debug::SceneInformation& sceneInfo)
 {
-    return const_cast<OpenALDevice*>(this)->engine();
+    if (auto& scene = m_->scene())
+        m_->engine()->update(scene, time, dt, sceneInfo);
+}
+
+std::shared_ptr<core::IEngine> OpenALDevice::engine()
+{
+    return audioEngine();
+}
+
+std::shared_ptr<const core::IEngine> OpenALDevice::engine() const
+{
+    return audioEngine();
+}
+
+std::shared_ptr<core::Scene> OpenALDevice::scene()
+{
+    return m_->scene();
+}
+
+std::shared_ptr<const core::Scene> OpenALDevice::scene() const
+{
+    return const_cast<OpenALDevice*>(this)->scene();
+}
+
+void OpenALDevice::setScene(const std::shared_ptr<core::Scene> &value)
+{
+    m_->scene() = value;
+}
+
+std::shared_ptr<core::AudioEngine> OpenALDevice::audioEngine()
+{
+    return m_->engine();
+}
+
+std::shared_ptr<const core::AudioEngine> OpenALDevice::audioEngine() const
+{
+    return const_cast<OpenALDevice*>(this)->audioEngine();
 }
 
 const std::string &OpenALDevice::defaultDeviceName()
@@ -67,42 +101,36 @@ std::shared_ptr<OpenALDevice> OpenALDevice::getOrCreate(const std::string &devic
     std::shared_ptr<OpenALDevice> result;
 
     auto &instances = OpenALDevicePrivate::instances();
-    for (auto it = instances.begin(); it != instances.end(); ++it)
+    if (auto it = instances.find_if([&fullName](const std::shared_ptr<OpenALDevice>& value) { return value->name() == fullName; });
+        it != instances.end())
     {
-        if (it->expired())
-            continue;
-
-        if (auto device = it->lock(); device->name() == fullName)
-        {
-            result = device;
-            break;
-        }
+        result = it->lock();
     }
 
     if (!result)
     {
         result = std::shared_ptr<OpenALDevice>(new OpenALDevice(fullName));
+        auto& resultPrivate = result->m();
 
         auto renderer = std::make_shared<OpenAL_1_1_Renderer>(fullName + "Renderer", result);
 
         auto engine = std::make_shared<core::AudioEngine>(fullName + "Engine", renderer);
-        result->m().engine() = engine;
+        resultPrivate.engine() = engine;
+
+        instances.push_back(result);
 
         renderer->makeCurrent();
         ALCint major = -1, minor = -1;
-        alcGetIntegerv(result->m().device(), ALC_MAJOR_VERSION, 1u, &major);
-        alcGetIntegerv(result->m().device(), ALC_MINOR_VERSION, 1u, &minor);
-        LOG_INFO << "OpenALDevice has been created (Name: \"" << deviceName << "\", OpenAL context ver:" << major << "." << minor << ")";
-
-        OpenALDevicePrivate::instances().insert(result);
+        alcGetIntegerv(resultPrivate.device(), ALC_MAJOR_VERSION, 1u, &major);
+        alcGetIntegerv(resultPrivate.device(), ALC_MINOR_VERSION, 1u, &minor);
+        LOG_INFO << "OpenALDevice has been created (Name: \"" << fullName << "\", OpenAL context ver:" << major << "." << minor << ")";
     }
 
     return result;
 }
 
 OpenALDevice::OpenALDevice(const std::string &deviceName)
-    : core::IAudioDevice()
-    , m_(std::make_unique<OpenALDevicePrivate>(deviceName))
+    : m_(std::make_unique<OpenALDevicePrivate>(deviceName))
 {
     auto device = alcOpenDevice(deviceName.c_str());
     if (!device)

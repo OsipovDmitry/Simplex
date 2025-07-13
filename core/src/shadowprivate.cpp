@@ -1,5 +1,5 @@
 #include <core/shadow.h>
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 
 #include "shadowprivate.h"
 #include "framebufferhelpers.h"
@@ -56,7 +56,7 @@ graphics::PBufferRange &ShadowPrivate::layeredMatricesBuffer()
     return m_layeredMatricesBuffer;
 }
 
-void ShadowPrivate::update(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer, const std::vector<glm::mat4x4> &layeredShadowMatrices)
+void ShadowPrivate::update(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer, const std::vector<glm::mat4x4> &layeredShadowMatrices)
 {
     if (!m_frameBuffer)
     {

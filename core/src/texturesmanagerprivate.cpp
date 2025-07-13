@@ -1,6 +1,6 @@
 #include <utils/image.h>
 
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 
 #include "texturesmanagerprivate.h"
 
@@ -14,19 +14,19 @@ const std::string TexturesManagerPrivate::s_defaultIBLBRDFLutTextureName = "Defa
 const std::string TexturesManagerPrivate::s_defaultIBLDiffuseTextureName = "DefaultIBLDiffuse";
 const std::string TexturesManagerPrivate::s_defaultIBLSpecularTextureName = "DefaultIBLSpecular";
 
-const std::filesystem::path TexturesManagerPrivate::s_defaultIBLEnvironmentTexturePath = "D:/res/textures/ibl/environment.json";
-const std::filesystem::path TexturesManagerPrivate::s_defaultIBLBRDFLutTexturePath = "D:/res/textures/ibl/brdf.json";
-const std::filesystem::path TexturesManagerPrivate::s_defaultIBLDiffuseTexturePath = "D:/res/textures/ibl/irradiance.json";
-const std::filesystem::path TexturesManagerPrivate::s_defaultIBLSpecularTexturePath = "D:/res/textures/ibl/radiance.json";
+const std::filesystem::path TexturesManagerPrivate::s_defaultIBLEnvironmentTexturePath = "C:/res/textures/ibl/environment.json";
+const std::filesystem::path TexturesManagerPrivate::s_defaultIBLBRDFLutTexturePath = "C:/res/textures/ibl/brdf.json";
+const std::filesystem::path TexturesManagerPrivate::s_defaultIBLDiffuseTexturePath = "C:/res/textures/ibl/irradiance.json";
+const std::filesystem::path TexturesManagerPrivate::s_defaultIBLSpecularTexturePath = "C:/res/textures/ibl/radiance.json";
 
-TexturesManagerPrivate::TexturesManagerPrivate(std::shared_ptr<graphics::IRenderer> renderer)
+TexturesManagerPrivate::TexturesManagerPrivate(const std::shared_ptr<graphics::RendererBase>& renderer)
     : m_renderer(renderer)
 {
 }
 
 TexturesManagerPrivate::~TexturesManagerPrivate() = default;
 
-std::shared_ptr<graphics::IRenderer> &TexturesManagerPrivate::renderer()
+std::shared_ptr<graphics::RendererBase> &TexturesManagerPrivate::renderer()
 {
     return m_renderer;
 }

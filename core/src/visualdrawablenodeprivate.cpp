@@ -1,4 +1,4 @@
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 #include <core/visualdrawablenode.h>
 #include <core/visualdrawable.h>
 
@@ -51,7 +51,7 @@ void VisualDrawableNodePrivate::dirtyLocalBoundingBox()
     dirtyBoundingBox();
 }
 
-void VisualDrawableNodePrivate::update(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+void VisualDrawableNodePrivate::update(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
 {
 
 }

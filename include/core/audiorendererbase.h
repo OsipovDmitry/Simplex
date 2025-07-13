@@ -7,7 +7,8 @@
 #include <utils/forwarddecl.h>
 
 #include <core/coreglobal.h>
-#include <core/inamedobject.h>
+#include <core/forwarddecl.h>
+#include <core/irenderer.h>
 
 namespace simplex
 {
@@ -121,7 +122,7 @@ public:
 };
 
 class RendererBasePrivate;
-class CORE_SHARED_EXPORT RendererBase : public std::enable_shared_from_this<RendererBase>, public INamedObject
+class CORE_SHARED_EXPORT RendererBase : public std::enable_shared_from_this<RendererBase>, public IRenderer
 {
 public:
     RendererBase(const std::string&);
@@ -129,12 +130,12 @@ public:
 
     const std::string& name() const override;
 
-    bool makeCurrent();
-    bool doneCurrent();
+    bool makeCurrent() override final;
+    bool doneCurrent() override final;
     static std::shared_ptr<RendererBase> current();
 
-    //virtual std::shared_ptr<IAudioDevice> device() = 0;
-    //virtual std::shared_ptr<const IAudioDevice> device() const = 0;
+    virtual std::shared_ptr<IAudioDevice> device() = 0;
+    virtual std::shared_ptr<const IAudioDevice> device() const = 0;
 
     virtual AttenuationModel attenautionModel() const = 0;
     virtual void setAttenautionModel(AttenuationModel) const = 0;

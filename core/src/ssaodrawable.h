@@ -26,7 +26,7 @@ public:
     float radius() const;
     void setRadius(float);
 
-    void update(const std::shared_ptr<graphics::IRenderer>&);
+    void update(const std::shared_ptr<graphics::RendererBase>&);
 
 private:
     graphics::PConstBufferRange kernelBuffer() const;

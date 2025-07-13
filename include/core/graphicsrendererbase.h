@@ -19,8 +19,9 @@
 #include <utils/forwarddecl.h>
 #include <utils/enumclass.h>
 
+#include <core/coreglobal.h>
 #include <core/forwarddecl.h>
-#include <core/inamedobject.h>
+#include <core/irenderer.h>
 
 namespace simplex
 {
@@ -452,11 +453,22 @@ public:
     virtual glm::uvec3 workGroupSize() const = 0;
 };
 
-class IRenderer : public INamedObject
+class RendererBasePrivate;
+class CORE_SHARED_EXPORT RendererBase : public std::enable_shared_from_this<RendererBase>, public IRenderer
 {
 public:
-    virtual bool makeCurrent() = 0;
-    virtual bool doneCurrent() = 0;
+    RendererBase(const std::string&);
+    ~RendererBase() override;
+
+    const std::string& name() const override;
+
+    bool makeCurrent() override final;
+    bool doneCurrent() override final;
+    static std::shared_ptr<RendererBase> current();
+    static bool areShared(const std::shared_ptr<const RendererBase>&, const std::shared_ptr<const RendererBase>&);
+
+    virtual std::shared_ptr<IGraphicsWidget> widget() = 0;
+    virtual std::shared_ptr<const IGraphicsWidget> widget() const = 0;
 
     virtual void blitFrameBuffer(std::shared_ptr<const IFrameBuffer> src,
                                  std::shared_ptr<IFrameBuffer> dst,
@@ -467,12 +479,15 @@ public:
 
     virtual bool registerVertexAttribute(const std::string&, utils::VertexAttribute) = 0;
     virtual bool unregisterVertexAttribute(const std::string&) = 0;
+    virtual utils::VertexAttribute vertexAttributeByName(const std::string&) const = 0;
 
     virtual bool registerUniformId(const std::string&, uint16_t) = 0;
     virtual bool unregisterUniformId(const std::string&) = 0;
+    virtual uint16_t uniformIdByName(const std::string&) const = 0;
 
     virtual bool registerSSBOId(const std::string&, uint16_t) = 0;
     virtual bool unregisterSSBOId(const std::string&) = 0;
+    virtual uint16_t SSBOIdByName(const std::string&) const = 0;
 
     virtual std::shared_ptr<IBuffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
     virtual std::shared_ptr<IBufferRange> createBufferRange(const std::shared_ptr<IBuffer>&,
@@ -559,8 +574,8 @@ public:
 
     virtual const SupportedImageFormats &supportedImageFormats() const = 0;
 
-    virtual void resize(uint32_t, uint32_t) = 0;
     virtual const glm::uvec2 &screenSize() const = 0;
+    virtual void resize(const glm::uvec2&) = 0;
 
     virtual void clearRenderData() = 0;
     virtual void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
@@ -574,6 +589,12 @@ public:
     virtual void compute(const std::shared_ptr<IComputeProgram>&,
                          const glm::uvec3&,
                          const PConstStateSet&) = 0;
+
+protected:
+    virtual bool doMakeCurrent() = 0;
+    virtual bool doDoneCurrent() = 0;
+
+    std::unique_ptr<RendererBasePrivate> m_;
 };
 
 inline core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(uint32_t numComponents,

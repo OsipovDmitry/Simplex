@@ -1,62 +1,69 @@
 #ifndef GRAPHICS_GLFW_WIDGET_PRIVATE_H
 #define GRAPHICS_GLFW_WIDGET_PRIVATE_H
 
-#include <memory>
-#include <string>
+#include <core/igraphicswidget.h>
 
-#include <utils/weakptrhash.h>
-
-#include <graphics_glfw/glfwwidget.h>
+#include <graphics_glfw/forwarddecl.h>
 
 struct GLFWwindow;
+struct GLFWcursor;
 
 namespace simplex
 {
 namespace graphics_glfw
 {
 
-using utils::operator ==;
-
 class DefaultFrameBuffer_4_5;
-class GLFWRenderer;
 
 class GLFWWidgetPrivate
 {
 public:
-    GLFWWidgetPrivate(const std::string &name, const std::shared_ptr<GLFWWidgetShareGroup>&);
+    GLFWWidgetPrivate(const std::string &name, const std::shared_ptr<core::graphics::ShareGroup>&);
     ~GLFWWidgetPrivate();
 
     std::string &name();
-    GLFWwindow *&window();
-    std::shared_ptr<GLFWWidgetShareGroup> &shareGroup();
+    std::shared_ptr<core::GraphicsEngine>& engine();
+    std::shared_ptr<core::Scene> &scene();
 
-    std::weak_ptr<core::ApplicationBase> &application();
-    std::shared_ptr<GLFWRenderer> &renderer();
+    GLFWwindow *&window();
+    GLFWcursor *&cursor();
+    core::graphics::CloseCallback &closeCallback();
+    core::graphics::ResizeCallback &resizeCallback();
+    core::graphics::UpdateCallback& updateCallback();
+    core::graphics::KeyCallback &keyCallback();
+    core::graphics::MouseCursorMoveCallback &mouseCursorMoveCallback();
+    core::graphics::MouseCursorEnterCallback &mouseCursorEnterCallback();
+    core::graphics::MouseButtonCallback &mouseButtonCallback();
+    core::graphics::MouseScrollCallback &mouseScrollCallback();
+
+    std::shared_ptr<core::graphics::ShareGroup> &shareGroup();
     std::shared_ptr<DefaultFrameBuffer_4_5> &defaultFrameBuffer();
 
-    uint64_t &startTime();
-    uint64_t &lastUpdateTime();
-    uint64_t &lastFpsTime();
-    uint32_t &fpsCounter();
-
-    static std::unordered_set<std::weak_ptr<GLFWWidget>, utils::WeakPtrHash<GLFWWidget>> &instances();
+    static utils::WeakPtrList<GLFWWidget> &instances();
     static bool& isGLFWInitialized();
     static int &majorVersion();
     static int &minorVersion();
 
 private:
     std::string m_name;
-    GLFWwindow *m_GLFWWindow;
-    std::shared_ptr<GLFWWidgetShareGroup> m_shareGroup;
-    std::weak_ptr<core::ApplicationBase> m_application;
-    std::shared_ptr<GLFWRenderer> m_renderer;
-    std::shared_ptr<DefaultFrameBuffer_4_5> m_defaultFrameBuffer;
-    uint64_t m_startTime;
-    uint64_t m_lastUpdateTime;
-    uint64_t m_lastFpsTime;
-    uint32_t m_fpsCounter;
+    std::shared_ptr<core::GraphicsEngine> m_engine;
+    std::shared_ptr<core::Scene> m_scene;
 
-    static std::unordered_set<std::weak_ptr<GLFWWidget>, utils::WeakPtrHash<GLFWWidget>> s_instances;
+    GLFWwindow *m_GLFWWindow;
+    GLFWcursor* m_GLFWCursor;
+    core::graphics::CloseCallback m_closeCallback;
+    core::graphics::ResizeCallback m_resizeCallback;
+    core::graphics::UpdateCallback m_updateCallback;
+    core::graphics::KeyCallback m_keyCallback;
+    core::graphics::MouseCursorMoveCallback m_mouseCursorMoveCallback;
+    core::graphics::MouseCursorEnterCallback m_mouseCursorEnterCallback;
+    core::graphics::MouseButtonCallback m_mouseButtonCallback;
+    core::graphics::MouseScrollCallback m_mouseScrollCallback;
+
+    std::shared_ptr<core::graphics::ShareGroup> m_shareGroup;
+    std::shared_ptr<DefaultFrameBuffer_4_5> m_defaultFrameBuffer;
+
+    static utils::WeakPtrList<GLFWWidget> s_instances;
     static bool s_isGLFWInitialized;
     static int s_majorVersion;
     static int s_minorVersion;

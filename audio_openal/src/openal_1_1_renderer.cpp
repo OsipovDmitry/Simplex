@@ -127,21 +127,25 @@ core::audio::AttenuationModel Conversions::AL2AttenuationModel(ALenum value)
 
 Buffer_1_1::Buffer_1_1()
 {
+    SAVE_CURRENT_CONTEXT
     alGenBuffers(1u, &m_id);
 }
 
 Buffer_1_1::~Buffer_1_1()
 {
+    CHECK_CURRENT_CONTEXT
     alDeleteBuffers(1u, &m_id);
 }
 
 ALuint Buffer_1_1::id() const
 {
+    CHECK_CURRENT_CONTEXT
     return m_id;
 }
 
 core::audio::BufferFormat Buffer_1_1::format() const
 {
+    CHECK_CURRENT_CONTEXT
     ALint bits, channels;
     alGetBufferiv(m_id, AL_BITS, &bits);
     alGetBufferiv(m_id, AL_CHANNELS, &channels);
@@ -150,12 +154,14 @@ core::audio::BufferFormat Buffer_1_1::format() const
 
 const void *Buffer_1_1::data() const
 {
+    CHECK_CURRENT_CONTEXT
     // AL_DATA is not longer supported
     return nullptr;
 }
 
 size_t Buffer_1_1::dataSize() const
 {
+    CHECK_CURRENT_CONTEXT
     ALint result;
     alGetBufferiv(m_id, AL_SIZE, &result);
     return static_cast<size_t>(result);
@@ -163,6 +169,7 @@ size_t Buffer_1_1::dataSize() const
 
 uint16_t Buffer_1_1::frequency() const
 {
+    CHECK_CURRENT_CONTEXT
     ALint result;
     alGetBufferiv(m_id, AL_FREQUENCY, &result);
     return static_cast<uint16_t>(result);
@@ -170,6 +177,7 @@ uint16_t Buffer_1_1::frequency() const
 
 void Buffer_1_1::setData(core::audio::BufferFormat format, const void *data, size_t dataSize, uint32_t frequency)
 {
+    CHECK_CURRENT_CONTEXT
     alBufferData(m_id,
                  Conversions::BufferFormat2AL(format),
                  data,
@@ -177,33 +185,44 @@ void Buffer_1_1::setData(core::audio::BufferFormat format, const void *data, siz
                  static_cast<ALsizei>(frequency));
 }
 
+std::shared_ptr<Buffer_1_1> Buffer_1_1::create()
+{
+    return std::make_shared<Buffer_1_1>();
+}
+
 Source_1_1::Source_1_1()
 {
+    SAVE_CURRENT_CONTEXT
     alGenSources(1u, &m_id);
 }
 
 Source_1_1::~Source_1_1()
 {
+    CHECK_CURRENT_CONTEXT
     alDeleteSources(1u, &m_id);
 }
 
 ALuint Source_1_1::id() const
 {
+    CHECK_CURRENT_CONTEXT
     return m_id;
 }
 
 std::shared_ptr<core::audio::IBuffer> Source_1_1::buffer()
 {
+    CHECK_CURRENT_CONTEXT
     return m_buffer;
 }
 
 std::shared_ptr<const core::audio::IBuffer> Source_1_1::buffer() const
 {
+    CHECK_CURRENT_CONTEXT
     return const_cast<Source_1_1*>(this)->buffer();
 }
 
 void Source_1_1::setBuffer(const std::shared_ptr<core::audio::IBuffer> &value)
 {
+    CHECK_CURRENT_CONTEXT
     m_buffer = std::dynamic_pointer_cast<Buffer_1_1>(value);
 
     ALint bufferId = 0u;
@@ -215,6 +234,7 @@ void Source_1_1::setBuffer(const std::shared_ptr<core::audio::IBuffer> &value)
 
 float Source_1_1::pitch() const
 {
+    CHECK_CURRENT_CONTEXT
     float result;
     alGetSourcef(m_id, AL_PITCH, &result);
     return result;
@@ -222,6 +242,7 @@ float Source_1_1::pitch() const
 
 void Source_1_1::setPitch(float value)
 {
+    CHECK_CURRENT_CONTEXT
     if (value <= 0.f)
         LOG_CRITICAL << "Pitch can't be less or equal than 0.0";
 
@@ -230,6 +251,7 @@ void Source_1_1::setPitch(float value)
 
 float Source_1_1::gain() const
 {
+    CHECK_CURRENT_CONTEXT
     float result;
     alGetSourcef(m_id, AL_GAIN, &result);
     return result;
@@ -237,6 +259,7 @@ float Source_1_1::gain() const
 
 void Source_1_1::setGain(float value)
 {
+    CHECK_CURRENT_CONTEXT
     if (value < 0.f)
         LOG_CRITICAL << "Gain can't be less than 0.0";
 
@@ -245,6 +268,7 @@ void Source_1_1::setGain(float value)
 
 float Source_1_1::minGain() const
 {
+    CHECK_CURRENT_CONTEXT
     float result;
     alGetSourcef(m_id, AL_MIN_GAIN, &result);
     return result;
@@ -252,6 +276,7 @@ float Source_1_1::minGain() const
 
 void Source_1_1::setMinGain(float value)
 {
+    CHECK_CURRENT_CONTEXT
     if (value < 0.f || value > 1.f)
         LOG_CRITICAL << "Min gain must be in [0.0..1.0]";
 
@@ -260,6 +285,7 @@ void Source_1_1::setMinGain(float value)
 
 float Source_1_1::maxGain() const
 {
+    CHECK_CURRENT_CONTEXT
     float result;
     alGetSourcef(m_id, AL_MAX_GAIN, &result);
     return result;
@@ -267,6 +293,7 @@ float Source_1_1::maxGain() const
 
 void Source_1_1::setMaxGain(float value)
 {
+    CHECK_CURRENT_CONTEXT
     if (value < 0.f || value > 1.f)
         LOG_CRITICAL << "Max gain must be in [0.0..1.0]";
 
@@ -275,6 +302,7 @@ void Source_1_1::setMaxGain(float value)
 
 float Source_1_1::referenceDistance() const
 {
+    CHECK_CURRENT_CONTEXT
     float result;
     alGetSourcef(m_id, AL_REFERENCE_DISTANCE, &result);
     return result;
@@ -282,6 +310,7 @@ float Source_1_1::referenceDistance() const
 
 void Source_1_1::setReferenceDistance(float value)
 {
+    CHECK_CURRENT_CONTEXT
     if (value < 0.f)
         LOG_CRITICAL << "Reference Distance can't be less than 0.0";
 
@@ -290,6 +319,7 @@ void Source_1_1::setReferenceDistance(float value)
 
 float Source_1_1::maxDistance() const
 {
+    CHECK_CURRENT_CONTEXT
     float result;
     alGetSourcef(m_id, AL_MAX_DISTANCE, &result);
     return result;
@@ -297,6 +327,7 @@ float Source_1_1::maxDistance() const
 
 void Source_1_1::setMaxDistance(float value)
 {
+    CHECK_CURRENT_CONTEXT
     if (value < 0.f)
         LOG_CRITICAL << "Max Distance can't be less than 0.0";
 
@@ -305,6 +336,7 @@ void Source_1_1::setMaxDistance(float value)
 
 float Source_1_1::rolloffFactor() const
 {
+    CHECK_CURRENT_CONTEXT
     float result;
     alGetSourcef(m_id, AL_ROLLOFF_FACTOR, &result);
     return result;
@@ -312,6 +344,7 @@ float Source_1_1::rolloffFactor() const
 
 void Source_1_1::setRolloffFactor(float value)
 {
+    CHECK_CURRENT_CONTEXT
     if (value < 0.f)
         LOG_CRITICAL << "Rolloff Factor can't be less than 0.0";
 
@@ -320,6 +353,7 @@ void Source_1_1::setRolloffFactor(float value)
 
 glm::vec3 Source_1_1::position() const
 {
+    CHECK_CURRENT_CONTEXT
     glm::vec3 result;
     alGetSourcefv(m_id, AL_POSITION, glm::value_ptr(result));
     return result;
@@ -327,11 +361,13 @@ glm::vec3 Source_1_1::position() const
 
 void Source_1_1::setPosition(const glm::vec3 &value)
 {
+    CHECK_CURRENT_CONTEXT
     alSourcefv(m_id, AL_POSITION, glm::value_ptr(value));
 }
 
 glm::vec3 Source_1_1::velocity() const
 {
+    CHECK_CURRENT_CONTEXT
     glm::vec3 result;
     alGetSourcefv(m_id, AL_VELOCITY, glm::value_ptr(result));
     return result;
@@ -339,11 +375,13 @@ glm::vec3 Source_1_1::velocity() const
 
 void Source_1_1::setVelocity(const glm::vec3 &value)
 {
+    CHECK_CURRENT_CONTEXT
     alSourcefv(m_id, AL_VELOCITY, glm::value_ptr(value));
 }
 
 glm::vec3 Source_1_1::direction() const
 {
+    CHECK_CURRENT_CONTEXT
     glm::vec3 result;
     alGetSourcefv(m_id, AL_DIRECTION, glm::value_ptr(result));
     return result;
@@ -351,11 +389,13 @@ glm::vec3 Source_1_1::direction() const
 
 void Source_1_1::setDirection(const glm::vec3 &value)
 {
+    CHECK_CURRENT_CONTEXT
     alSourcefv(m_id, AL_DIRECTION, glm::value_ptr(value));
 }
 
 float Source_1_1::coneInnerAngle() const
 {
+    CHECK_CURRENT_CONTEXT
     float result;
     alGetSourcef(m_id, AL_CONE_INNER_ANGLE, &result);
     return result;
@@ -363,11 +403,13 @@ float Source_1_1::coneInnerAngle() const
 
 void Source_1_1::setConeInnerAngle(float value)
 {
+    CHECK_CURRENT_CONTEXT
     alSourcef(m_id, AL_CONE_INNER_ANGLE, value);
 }
 
 float Source_1_1::coneOuterAngle() const
 {
+    CHECK_CURRENT_CONTEXT
     float result;
     alGetSourcef(m_id, AL_CONE_OUTER_ANGLE, &result);
     return result;
@@ -375,11 +417,13 @@ float Source_1_1::coneOuterAngle() const
 
 void Source_1_1::setConeOuterAngle(float value)
 {
+    CHECK_CURRENT_CONTEXT
     alSourcef(m_id, AL_CONE_OUTER_ANGLE, value);
 }
 
 float Source_1_1::coneOuterGain() const
 {
+    CHECK_CURRENT_CONTEXT
     float result;
     alGetSourcef(m_id, AL_CONE_OUTER_GAIN, &result);
     return result;
@@ -387,6 +431,7 @@ float Source_1_1::coneOuterGain() const
 
 void Source_1_1::setConeOuterGain(float value)
 {
+    CHECK_CURRENT_CONTEXT
     if (value < 0.f)
         LOG_CRITICAL << "Cone Outer Gain can't be less than 0.0";
 
@@ -395,6 +440,7 @@ void Source_1_1::setConeOuterGain(float value)
 
 bool Source_1_1::looping() const
 {
+    CHECK_CURRENT_CONTEXT
     ALint result;
     alGetSourcei(m_id, AL_LOOPING, &result);
     return result != AL_FALSE;
@@ -402,19 +448,28 @@ bool Source_1_1::looping() const
 
 void Source_1_1::setLooping(bool value)
 {
+    CHECK_CURRENT_CONTEXT
     alSourcei(m_id, AL_LOOPING, value ? AL_TRUE : AL_FALSE);
+}
+
+std::shared_ptr<Source_1_1> Source_1_1::create()
+{
+    return std::make_shared<Source_1_1>();
 }
 
 Listener_1_1::Listener_1_1()
 {
+    SAVE_CURRENT_CONTEXT
 }
 
 Listener_1_1::~Listener_1_1()
 {
+    CHECK_CURRENT_CONTEXT
 }
 
 float Listener_1_1::gain() const
 {
+    CHECK_CURRENT_CONTEXT
     float result;
     alGetListenerf(AL_GAIN, &result);
     return result;
@@ -422,6 +477,7 @@ float Listener_1_1::gain() const
 
 void Listener_1_1::setGain(float value)
 {
+    CHECK_CURRENT_CONTEXT
     if (value < 0.f)
         LOG_CRITICAL << "Gain can't be less than 0.0";
 
@@ -430,6 +486,7 @@ void Listener_1_1::setGain(float value)
 
 glm::vec3 Listener_1_1::position() const
 {
+    CHECK_CURRENT_CONTEXT
     glm::vec3 result;
     alGetListenerfv(AL_POSITION, glm::value_ptr(result));
     return result;
@@ -437,11 +494,13 @@ glm::vec3 Listener_1_1::position() const
 
 void Listener_1_1::setPosition(const glm::vec3 &value)
 {
+    CHECK_CURRENT_CONTEXT
     alListenerfv(AL_POSITION, glm::value_ptr(value));
 }
 
 glm::vec3 Listener_1_1::velocity() const
 {
+    CHECK_CURRENT_CONTEXT
     glm::vec3 result;
     alGetListenerfv(AL_VELOCITY, glm::value_ptr(result));
     return result;
@@ -449,11 +508,13 @@ glm::vec3 Listener_1_1::velocity() const
 
 void Listener_1_1::setVelocity(const glm::vec3 &value)
 {
+    CHECK_CURRENT_CONTEXT
     alListenerfv(AL_VELOCITY, glm::value_ptr(value));
 }
 
 glm::quat Listener_1_1::orientation() const
 {
+    CHECK_CURRENT_CONTEXT
     std::array<float, 6u> ori;
     alGetListenerfv(AL_ORIENTATION, ori.data());
     return glm::quatLookAt(*reinterpret_cast<glm::vec3*>(ori.data() + 0u), *reinterpret_cast<glm::vec3*>(ori.data() + 3u));
@@ -461,10 +522,16 @@ glm::quat Listener_1_1::orientation() const
 
 void Listener_1_1::setOrientation(const glm::quat &value)
 {
+    CHECK_CURRENT_CONTEXT
     std::array<float, 6u> ori;
     *reinterpret_cast<glm::vec3*>(ori.data() + 0u) = value * glm::vec3(0.f, 0.f, -1.f);
     *reinterpret_cast<glm::vec3*>(ori.data() + 3u) = value * glm::vec3(0.f, 1.f, 0.f);
     alListenerfv(AL_ORIENTATION, ori.data());
+}
+
+std::shared_ptr<Listener_1_1> Listener_1_1::create()
+{
+    return std::make_shared<Listener_1_1>();
 }
 
 OpenAL_1_1_Renderer::OpenAL_1_1_Renderer(const std::string &name, const std::weak_ptr<OpenALDevice> &device)
@@ -482,7 +549,7 @@ OpenAL_1_1_Renderer::OpenAL_1_1_Renderer(const std::string &name, const std::wea
     if (!m_context)
         LOG_CRITICAL << "Failed to create OpenAL context";
 
-    m_listener = std::make_shared<Listener_1_1>();
+    m_listener = Listener_1_1::create();
 
     LOG_INFO << "Audio renderer \"" << OpenAL_1_1_Renderer::name() << "\" has been created";
 }
@@ -494,23 +561,21 @@ OpenAL_1_1_Renderer::~OpenAL_1_1_Renderer()
     LOG_INFO << "Audio renderer \"" << OpenAL_1_1_Renderer::name() << "\" has been destroyed";
 }
 
-//std::shared_ptr<core::IAudioDevice> OpenAL_1_1_Renderer::device()
-//{
-//    return m_device.expired() ? nullptr : m_device.lock();
-//}
-//
-//std::shared_ptr<const core::IAudioDevice> OpenAL_1_1_Renderer::device() const
-//{
-//    return const_cast<OpenAL_1_1_Renderer*>(this)->device();
-//}
+std::shared_ptr<core::audio::IAudioDevice> OpenAL_1_1_Renderer::device()
+{
+    // No CHECK_THIS_CONTEXT because of recurion calls
+    return m_device.expired() ? nullptr : m_device.lock();
+}
 
-//ALCcontext* OpenAL_1_1_Renderer::context() const
-//{
-//    return m_context;
-//}
+std::shared_ptr<const core::audio::IAudioDevice> OpenAL_1_1_Renderer::device() const
+{
+    // No CHECK_THIS_CONTEXT because of recurion calls
+    return const_cast<OpenAL_1_1_Renderer*>(this)->device();
+}
 
 core::audio::AttenuationModel OpenAL_1_1_Renderer::attenautionModel() const
 {
+    CHECK_THIS_CONTEXT
     ALint result;
     alGetIntegerv(AL_DISTANCE_MODEL, &result);
     return Conversions::AL2AttenuationModel(result);
@@ -518,11 +583,13 @@ core::audio::AttenuationModel OpenAL_1_1_Renderer::attenautionModel() const
 
 void OpenAL_1_1_Renderer::setAttenautionModel(core::audio::AttenuationModel value) const
 {
+    CHECK_THIS_CONTEXT
     alDistanceModel(Conversions::AttenuationModel2AL(value));
 }
 
 float OpenAL_1_1_Renderer::dopplerFactor() const
 {
+    CHECK_THIS_CONTEXT
     ALfloat result;
     alGetFloatv(AL_DOPPLER_FACTOR, &result);
     return result;
@@ -530,11 +597,13 @@ float OpenAL_1_1_Renderer::dopplerFactor() const
 
 void OpenAL_1_1_Renderer::setDopplerFactor(float value)
 {
+    CHECK_THIS_CONTEXT
     alDopplerFactor(value);
 }
 
 float OpenAL_1_1_Renderer::speedOfSound() const
 {
+    CHECK_THIS_CONTEXT
     ALfloat result;
     alGetFloatv(AL_SPEED_OF_SOUND, &result);
     return result;
@@ -542,22 +611,26 @@ float OpenAL_1_1_Renderer::speedOfSound() const
 
 void OpenAL_1_1_Renderer::setSpeedOfSound(float value)
 {
+    CHECK_THIS_CONTEXT
     alSpeedOfSound(value);
 }
 
 std::shared_ptr<core::audio::IListener> OpenAL_1_1_Renderer::listener()
 {
+    CHECK_THIS_CONTEXT
     return m_listener;
 }
 
 std::shared_ptr<const core::audio::IListener> OpenAL_1_1_Renderer::listener() const
 {
+    CHECK_THIS_CONTEXT
     return const_cast<OpenAL_1_1_Renderer*>(this)->listener();
 }
 
 std::shared_ptr<core::audio::IBuffer> OpenAL_1_1_Renderer::createBuffer(const std::shared_ptr<utils::Sound> &sound) const
 {
-    auto result = std::make_shared<Buffer_1_1>();
+    CHECK_THIS_CONTEXT
+    auto result = Buffer_1_1::create();
     if (sound)
     {
         result->setData(Conversions::BitsAndChannels2BufferFormat(sound->bitsPerSample(), sound->numChannels()),
@@ -571,14 +644,18 @@ std::shared_ptr<core::audio::IBuffer> OpenAL_1_1_Renderer::createBuffer(const st
 
 std::shared_ptr<core::audio::ISource> OpenAL_1_1_Renderer::createSource() const
 {
-    return std::make_shared<Source_1_1>();
+    CHECK_THIS_CONTEXT
+    return Source_1_1::create();
 }
 
 core::audio::SourceState OpenAL_1_1_Renderer::sourceState(const std::shared_ptr<core::audio::ISource> &source) const
 {
+    CHECK_THIS_CONTEXT
     auto source_1_1 = std::dynamic_pointer_cast<Source_1_1>(source);
     if (!source_1_1)
         LOG_CRITICAL << "Source can't be nullptr";
+
+    CHECK_RESOURCE_CONTEXT(source_1_1)
 
     ALint result;
     alGetSourcei(source_1_1->id(), AL_SOURCE_STATE, &result);
@@ -587,36 +664,48 @@ core::audio::SourceState OpenAL_1_1_Renderer::sourceState(const std::shared_ptr<
 
 void OpenAL_1_1_Renderer::playSource(const std::shared_ptr<core::audio::ISource> &source)
 {
+    CHECK_THIS_CONTEXT
     auto source_1_1 = std::dynamic_pointer_cast<Source_1_1>(source);
     if (!source_1_1)
         LOG_CRITICAL << "Source can't be nullptr";
+
+    CHECK_RESOURCE_CONTEXT(source_1_1)
 
     alSourcePlay(source_1_1->id());
 }
 
 void OpenAL_1_1_Renderer::pauseSource(const std::shared_ptr<core::audio::ISource> &source)
 {
+    CHECK_THIS_CONTEXT
     auto source_1_1 = std::dynamic_pointer_cast<Source_1_1>(source);
     if (!source_1_1)
         LOG_CRITICAL << "Source can't be nullptr";
+
+    CHECK_RESOURCE_CONTEXT(source_1_1)
 
     alSourcePause(source_1_1->id());
 }
 
 void OpenAL_1_1_Renderer::stopSource(const std::shared_ptr<core::audio::ISource> &source)
 {
+    CHECK_THIS_CONTEXT
     auto source_1_1 = std::dynamic_pointer_cast<Source_1_1>(source);
     if (!source_1_1)
         LOG_CRITICAL << "Source can't be nullptr";
+
+    CHECK_RESOURCE_CONTEXT(source_1_1)
 
     alSourceStop(source_1_1->id());
 }
 
 void OpenAL_1_1_Renderer::rewindSource(const std::shared_ptr<core::audio::ISource> &source)
 {
+    CHECK_THIS_CONTEXT
     auto source_1_1 = std::dynamic_pointer_cast<Source_1_1>(source);
     if (!source_1_1)
         LOG_CRITICAL << "Source can't be nullptr";
+
+    CHECK_RESOURCE_CONTEXT(source_1_1)
 
     alSourceRewind(source_1_1->id());
 }

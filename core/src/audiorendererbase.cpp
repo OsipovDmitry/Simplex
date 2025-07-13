@@ -22,15 +22,25 @@ const std::string& RendererBase::name() const
 
 bool RendererBase::makeCurrent()
 {
-    RendererBasePrivate::current() = weak_from_this();
+    auto currentRenderer = current();
 
+    if (currentRenderer == shared_from_this())
+        return true;
+
+    currentRenderer->doneCurrent();
+
+    RendererBasePrivate::current() = weak_from_this();
     return doMakeCurrent();
 }
 
 bool RendererBase::doneCurrent()
 {
-    RendererBasePrivate::current().reset();
+    auto currentRenderer = current();
 
+    if (!currentRenderer)
+        return true;
+
+    RendererBasePrivate::current().reset();
     return doDoneCurrent();
 }
 

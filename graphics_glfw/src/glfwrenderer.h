@@ -7,7 +7,32 @@
 
 #include <utils/noncopyble.h>
 
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
+
+#include <graphics_glfw/forwarddecl.h>
+
+#define CURRENT_CONTEXT_INFO \
+    private: \
+        std::shared_ptr<core::graphics::RendererBase> m_renderer; \
+    public: \
+        std::shared_ptr<core::graphics::RendererBase> renderer() const { return m_renderer; };
+
+#define SAVE_CURRENT_CONTEXT \
+    m_renderer = core::graphics::RendererBase::current(); \
+    if (!m_renderer) LOG_CRITICAL << "No current context";
+
+#define CHECK_CURRENT_CONTEXT \
+    if (!core::graphics::RendererBase::areShared(m_renderer, core::graphics::RendererBase::current())) \
+        LOG_CRITICAL << "Resource was created in anotrher context";
+
+#define CHECK_THIS_CONTEXT \
+    if (!core::graphics::RendererBase::areShared(shared_from_this(), core::graphics::RendererBase::current())) \
+        LOG_CRITICAL << "This context is not current";
+
+#define CHECK_RESOURCE_CONTEXT(resource) \
+    if (!core::graphics::RendererBase::areShared(shared_from_this(), resource->renderer())) \
+        LOG_CRITICAL << "Resource was created in anotrher context";
+
 
 struct GLFWwindow;
 
@@ -46,9 +71,11 @@ public:
 class Buffer_4_5 : public core::graphics::IBuffer, public std::enable_shared_from_this<Buffer_4_5>
 {
     NONCOPYBLE(Buffer_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     class MappedData_4_5 : public core::graphics::IBuffer::MappedData
     {
+        CURRENT_CONTEXT_INFO
     public:
         MappedData_4_5(std::weak_ptr<const Buffer_4_5>, uint8_t*);
         ~MappedData_4_5() override;
@@ -82,6 +109,8 @@ private:
 
 class BufferRange_4_5 : public core::graphics::IBufferRange
 {
+    NONCOPYBLE(BufferRange_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     BufferRange_4_5(std::shared_ptr<core::graphics::IBuffer>, size_t, size_t);
     ~BufferRange_4_5() override;
@@ -106,6 +135,7 @@ private:
 class VertexArray_4_5 : public core::graphics::IVertexArray
 {
     NONCOPYBLE(VertexArray_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     VertexArray_4_5();
     ~VertexArray_4_5() override;
@@ -153,6 +183,7 @@ private:
 class TextureBase_4_5 : public core::graphics::ITexture
 {
     NONCOPYBLE(TextureBase_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     TextureBase_4_5();
     ~TextureBase_4_5() override;
@@ -192,6 +223,7 @@ protected:
 class Texture1D_4_5 : public TextureBase_4_5
 {
     NONCOPYBLE(Texture1D_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     Texture1D_4_5(uint32_t width, core::graphics::PixelInternalFormat, uint32_t numLevels);
     ~Texture1D_4_5() override;
@@ -221,6 +253,7 @@ public:
 class Texture2D_4_5 : public TextureBase_4_5
 {
     NONCOPYBLE(Texture2D_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     Texture2D_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat, uint32_t numLevels);
     ~Texture2D_4_5() override;
@@ -250,6 +283,7 @@ public:
 class Texture3D_4_5 : public TextureBase_4_5
 {
     NONCOPYBLE(Texture3D_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     Texture3D_4_5(uint32_t width, uint32_t height, uint32_t depth, core::graphics::PixelInternalFormat, uint32_t numLevels);
     ~Texture3D_4_5() override;
@@ -280,6 +314,7 @@ public:
 class TextureCube_4_5 : public TextureBase_4_5
 {
     NONCOPYBLE(TextureCube_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     TextureCube_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat, uint32_t numLevels);
     ~TextureCube_4_5() override;
@@ -311,6 +346,7 @@ public:
 class Texture1DArray_4_5 : public TextureBase_4_5
 {
     NONCOPYBLE(Texture1DArray_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     Texture1DArray_4_5(uint32_t width, uint32_t numLayers, core::graphics::PixelInternalFormat, uint32_t numLevels);
     ~Texture1DArray_4_5() override;
@@ -340,6 +376,7 @@ public:
 class Texture2DArray_4_5 : public TextureBase_4_5
 {
     NONCOPYBLE(Texture2DArray_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     Texture2DArray_4_5(uint32_t width, uint32_t height, uint32_t numLayers, core::graphics::PixelInternalFormat, uint32_t numLevels);
     ~Texture2DArray_4_5() override;
@@ -369,6 +406,7 @@ public:
 class TextureCubeArray_4_5 : public TextureBase_4_5
 {
     NONCOPYBLE(TextureCubeArray_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     TextureCubeArray_4_5(uint32_t width, uint32_t height, uint32_t numLayers, core::graphics::PixelInternalFormat, uint32_t numLevels);
     ~TextureCubeArray_4_5() override;
@@ -401,6 +439,7 @@ public:
 class TextureRect_4_5 : public TextureBase_4_5
 {
     NONCOPYBLE(TextureRect_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     TextureRect_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat);
     ~TextureRect_4_5() override;
@@ -425,6 +464,8 @@ public:
 
 class Image_4_5 : public core::graphics::IImage
 {
+    NONCOPYBLE(Image_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     Image_4_5(DataAccess, const core::graphics::PConstTexture&, uint32_t);
     ~Image_4_5() override;
@@ -452,6 +493,7 @@ protected:
 class RenderBuffer_4_5 : public core::graphics::IRenderBuffer
 {
     NONCOPYBLE(RenderBuffer_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     RenderBuffer_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat);
     ~RenderBuffer_4_5() override;
@@ -472,6 +514,7 @@ protected:
 class FrameBufferBase_4_5 : public core::graphics::IFrameBuffer
 {
     NONCOPYBLE(FrameBufferBase_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     FrameBufferBase_4_5(GLuint id);
     ~FrameBufferBase_4_5() override;
@@ -576,6 +619,7 @@ protected:
 class FrameBuffer_4_5 : public FrameBufferBase_4_5
 {
     NONCOPYBLE(FrameBuffer_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     FrameBuffer_4_5();
     ~FrameBuffer_4_5() override;
@@ -595,6 +639,7 @@ public:
 class DefaultFrameBuffer_4_5 : public FrameBufferBase_4_5
 {
     NONCOPYBLE(DefaultFrameBuffer_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     DefaultFrameBuffer_4_5(GLuint);
     ~DefaultFrameBuffer_4_5() override;
@@ -618,6 +663,7 @@ public:
 class ProgramBase_4_5 : public virtual core::graphics::IProgram
 {
     NONCOPYBLE(ProgramBase_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     ProgramBase_4_5();
     ~ProgramBase_4_5() override;
@@ -637,14 +683,6 @@ public:
     std::string SSBOVariableNameByIndex(uint16_t) const override;
     std::string SSBONameByIndex(uint16_t) const override;
 
-    static bool registerUniformId(const std::string&, uint16_t);
-    static bool unregisterUniformId(const std::string&);
-    static uint16_t uniformIdByName(const std::string&);
-
-    static bool registerSSBOId(const std::string&, uint16_t);
-    static bool unregisterSSBOId(const std::string&);
-    static uint16_t SSBOIdByName(const std::string&);
-
 protected:
     GLuint m_id;
 
@@ -654,14 +692,12 @@ protected:
     GLint m_uniformNameMaxLength;
     GLint m_SSBONameMaxLength;
     GLint m_bufferVariableNameMaxLength;
-
-    static std::unordered_map<std::string, uint16_t> s_uniformIds;
-    static std::unordered_map<std::string, uint16_t> s_SSBOIds;
 };
 
 class RenderProgram_4_5 : public core::graphics::IRenderProgram, public ProgramBase_4_5
 {
     NONCOPYBLE(RenderProgram_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     RenderProgram_4_5();
     ~RenderProgram_4_5() override;
@@ -671,10 +707,6 @@ public:
     int32_t attributeLocationByName(const std::string&) const override;
     const std::vector<core::graphics::AttributeInfo> &attributesInfo() const override;
     std::string attributeNameByIndex(uint16_t) const override;
-
-    static bool registerVertexAttribute(const std::string&, utils::VertexAttribute);
-    static bool unregisterVertexAttribute(const std::string&);
-    static utils::VertexAttribute vertexAttributeByName(const std::string&);
 
     static std::shared_ptr<RenderProgram_4_5> create(const std::shared_ptr<utils::Shader>& vertexShader,
         const std::shared_ptr<utils::Shader>& fragmentShader);
@@ -686,13 +718,12 @@ protected:
     std::vector<core::graphics::AttributeInfo> m_attributesInfo;
 
     GLint m_attributeNameMaxLength;
-
-    static std::unordered_map<std::string, utils::VertexAttribute> s_attributeIds;
 };
 
 class ComputeProgram_4_5 : public core::graphics::IComputeProgram, public ProgramBase_4_5
 {
     NONCOPYBLE(ComputeProgram_4_5)
+    CURRENT_CONTEXT_INFO
 public:
     ComputeProgram_4_5();
     ~ComputeProgram_4_5() override;
@@ -708,16 +739,15 @@ protected:
 
 };
 
-class GLFWRenderer : public core::graphics::IRenderer
+class GLFWRenderer : public core::graphics::RendererBase
 {
     NONCOPYBLE(GLFWRenderer)
 public:
+    GLFWRenderer(const std::string&, const std::weak_ptr<GLFWWidget>&);
     ~GLFWRenderer() override;
 
-    const std::string &name() const override;
-
-    bool makeCurrent() override;
-    bool doneCurrent() override;
+    std::shared_ptr<core::graphics::IGraphicsWidget> widget();
+    std::shared_ptr<const core::graphics::IGraphicsWidget> widget() const;
 
     void blitFrameBuffer(std::shared_ptr<const core::graphics::IFrameBuffer> src,
                          std::shared_ptr<core::graphics::IFrameBuffer> dst,
@@ -728,12 +758,15 @@ public:
 
     bool registerVertexAttribute(const std::string&, utils::VertexAttribute) override;
     bool unregisterVertexAttribute(const std::string&) override;
+    utils::VertexAttribute vertexAttributeByName(const std::string&) const override;
 
     bool registerUniformId(const std::string&, uint16_t) override;
     bool unregisterUniformId(const std::string&) override;
+    uint16_t uniformIdByName(const std::string&) const override;
 
     bool registerSSBOId(const std::string&, uint16_t) override;
     bool unregisterSSBOId(const std::string&) override;
+    uint16_t SSBOIdByName(const std::string&) const override;
 
     std::shared_ptr<core::graphics::IBuffer> createBuffer(size_t = 0u,
                                                           const void* = nullptr) const override;
@@ -821,8 +854,8 @@ public:
 
     const core::graphics::SupportedImageFormats &supportedImageFormats() const override;
 
-    void resize(uint32_t, uint32_t) override;
     const glm::uvec2 &screenSize() const override;
+    void resize(const glm::uvec2&) override;
 
     void clearRenderData() override;
     void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
@@ -837,11 +870,11 @@ public:
                  const glm::uvec3&,
                  const core::PConstStateSet&) override;
 
-    static std::shared_ptr<GLFWRenderer> getOrCreate(GLFWwindow*);
+protected:
+    bool doMakeCurrent() override;
+    bool doDoneCurrent() override;
 
 private:
-    GLFWRenderer(GLFWwindow*);
-
     void setupVertexAttributes(const std::shared_ptr<RenderProgram_4_5>&,
                                const std::shared_ptr<const VertexArray_4_5>&);
     void setupUniform(GLuint rpId, GLint loc, int32_t&, int32_t&, const core::PConstAbstractUniform&);
@@ -856,12 +889,14 @@ private:
     void bindSSBO(uint32_t, const core::graphics::PConstBufferRange&);
     void bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBufferRange&);
 
-    GLFWwindow*m_GLFWWindow;
+    std::weak_ptr<GLFWWidget> m_widget;
+
+    std::unordered_map<std::string, utils::VertexAttribute> m_attributeIds;
+    std::unordered_map<std::string, uint16_t> m_uniformIds;
+    std::unordered_map<std::string, uint16_t> m_SSBOIds;
 
     std::deque<std::tuple<glm::mat4x4, std::shared_ptr<RenderProgram_4_5>, std::shared_ptr<const core::Drawable>>> m_renderData;
     glm::uvec2 m_screenSize;
-
-    static std::unordered_map<GLFWwindow*, std::weak_ptr<GLFWRenderer>> s_instances;
 };
 
 }

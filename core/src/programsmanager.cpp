@@ -2,7 +2,7 @@
 #include <utils/shader.h>
 
 #include <core/programsmanager.h>
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 
 #include "programsmanagerprivate.h"
 
@@ -11,7 +11,7 @@ namespace simplex
 namespace core
 {
 
-ProgramsManager::ProgramsManager(std::shared_ptr<graphics::IRenderer> renderer)
+ProgramsManager::ProgramsManager(const std::shared_ptr<graphics::RendererBase> &renderer)
     : m_(std::make_unique<ProgramsManagerPrivate>(renderer))
 {
 }

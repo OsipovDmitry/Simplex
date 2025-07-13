@@ -1,4 +1,4 @@
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 
 #include "animationprivate.h"
 

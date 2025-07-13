@@ -13,7 +13,7 @@ DirectionalShadowPrivate::DirectionalShadowPrivate()
 
 DirectionalShadowPrivate::~DirectionalShadowPrivate() = default;
 
-std::shared_ptr<ShadowFrameBuffer> DirectionalShadowPrivate::createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer) const
+std::shared_ptr<ShadowFrameBuffer> DirectionalShadowPrivate::createShadowFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer) const
 {
     return std::make_shared<ShadowFrameBuffer2D>(graphicsRenderer);
 }

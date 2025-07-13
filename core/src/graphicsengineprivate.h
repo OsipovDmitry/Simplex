@@ -1,9 +1,6 @@
 #ifndef GRAPHICSENGINEPRIVATE_H
 #define GRAPHICSENGINEPRIVATE_H
 
-#include <string>
-#include <memory>
-
 #include <utils/boundingbox.h>
 
 #include <core/forwarddecl.h>
@@ -18,9 +15,9 @@ class GraphicsEnginePrivate
 public:
     GraphicsEnginePrivate(const std::string&);
 
-    std::string &name();
+    std::string& name();
 
-    std::shared_ptr<graphics::IRenderer> &renderer();
+    std::shared_ptr<graphics::RendererBase> &renderer();
     std::shared_ptr<TexturesManager> &texturesManager();
     std::shared_ptr<ProgramsManager> &programsManager();
 
@@ -51,7 +48,7 @@ public:
 private:
     std::string m_name;
 
-    std::shared_ptr<graphics::IRenderer> m_renderer;
+    std::shared_ptr<graphics::RendererBase> m_renderer;
     std::shared_ptr<TexturesManager> m_texturesManager;
     std::shared_ptr<ProgramsManager> m_programsManager;
 

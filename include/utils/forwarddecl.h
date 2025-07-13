@@ -71,8 +71,8 @@ using ClipSpace = ClipSpaceT<float>;
 template<typename T> struct FrustumT;
 using Frustum = FrustumT<float>;
 
-//template<typename T> struct OpenFrustumT;
-//using OpenFrustum = OpenFrustumT<float>;
+template<typename T>
+class WeakPtrList;
 
 }
 }

@@ -78,7 +78,7 @@ std::shared_ptr<PostprocessFrameBuffer> &CameraNodePrivate::postprocessFrameBuff
     return m_postprocessFrameBuffer;
 }
 
-void CameraNodePrivate::resize(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer, const glm::uvec2 &value)
+void CameraNodePrivate::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer, const glm::uvec2 &value)
 {
     const auto viewportSize = glm::max(glm::uvec2(1u), value);
     const float viewportAspectRatio = static_cast<float>(viewportSize[0u]) / static_cast<float>(viewportSize[1u]);

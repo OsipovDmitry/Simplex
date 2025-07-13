@@ -3,7 +3,7 @@
 #include <utils/primitiveset.h>
 #include <utils/mesh.h>
 
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 #include <core/drawable.h>
 
 #include "drawableprivate.h"

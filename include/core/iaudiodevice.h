@@ -1,23 +1,25 @@
 #ifndef CORE_IAUDIODEVICE_H
 #define CORE_IAUDIODEVICE_H
 
-#include <core/inamedobject.h>
-#include <core/forwarddecl.h>
+#include <core/idevice.h>
 
 namespace simplex
 {
 namespace core
 {
+namespace audio
+{
 
-class IAudioDevice : public INamedObject
+class IAudioDevice : public IDevice
 {
 public:
     ~IAudioDevice() override = default;
 
-    virtual std::shared_ptr<AudioEngine> engine() = 0;
-    virtual std::shared_ptr<const AudioEngine> engine() const = 0;
+    virtual std::shared_ptr<AudioEngine> audioEngine() = 0;
+    virtual std::shared_ptr<const AudioEngine> audioEngine() const = 0;
 };
 
+}
 }
 }
 

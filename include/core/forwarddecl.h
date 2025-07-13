@@ -2,12 +2,15 @@
 #define CORE_FORWARDDECL_H
 
 #include <inttypes.h>
-#include <memory>
 #include <array>
 #include <unordered_set>
 #include <unordered_map>
 #include <set>
 #include <string>
+#include <functional>
+#include <memory>
+
+#include <utils/glm/vec2.hpp>
 
 namespace simplex
 {
@@ -77,8 +80,24 @@ class IFrameBuffer;
 class IProgram;
 class IRenderProgram;
 class IComputeProgram;
-class IRenderer;
 class RendererBase;
+
+class IGraphicsWidget;
+enum class KeyState : uint16_t;
+enum class KeyCode : uint16_t;
+enum class KeyModifier : uint16_t;
+using KeyModifiers = std::unordered_set<KeyModifier>;
+enum class MouseButtonState : uint16_t;
+enum class MouseButton : uint16_t;
+enum class MouseStandardCursor : uint16_t;
+using CloseCallback = std::function<void(void)>;
+using ResizeCallback = std::function<void(const glm::uvec2&)>;
+using UpdateCallback = std::function<void(uint64_t, uint32_t)>;
+using KeyCallback = std::function<void(KeyState, KeyCode, const KeyModifiers&)>;
+using MouseCursorMoveCallback = std::function<void(const glm::ivec2&)>;
+using MouseCursorEnterCallback = std::function<void(bool)>;
+using MouseButtonCallback = std::function<void(MouseButtonState, MouseButton, const KeyModifiers&)>;
+using MouseScrollCallback = std::function<void(const glm::ivec2&)>;
 
 using PConstBufferRange = std::shared_ptr<const IBufferRange>;
 using PBufferRange = std::shared_ptr<IBufferRange>;
@@ -99,17 +118,21 @@ class IBuffer;
 class ISource;
 class IListener;
 class RendererBase;
+class IAudioDevice;
 }
 
 class INamedObject;
-class IEngine;
 
-class IRenderWidget;
-class IAudioDevice;
+class IRenderer;
+
+class IDevice;
 class ApplicationBase;
+using ApplicationTimeCallback = std::function<uint64_t()>;
+using ApplicationPollEventsCallback = std::function<void()>;
 
 class RenderInfo;
 
+class IEngine;
 class GraphicsEngine;
 class AudioEngine;
 

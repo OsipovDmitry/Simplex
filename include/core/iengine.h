@@ -12,11 +12,10 @@ namespace core
 class IEngine : public INamedObject
 {
 public:
-    virtual void update(const std::shared_ptr<IRenderWidget>&,
-                        const std::shared_ptr<Scene>&,
-                        uint64_t time,
-                        uint32_t dt,
-                        debug::SceneInformation&) = 0;
+
+    virtual std::shared_ptr<IRenderer> renderer() = 0;
+    virtual std::shared_ptr<const IRenderer> renderer() const = 0;
+
 };
 
 }

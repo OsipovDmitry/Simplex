@@ -16,10 +16,10 @@ namespace core
 class TexturesManagerPrivate
 {
 public:
-    TexturesManagerPrivate(std::shared_ptr<graphics::IRenderer>);
+    TexturesManagerPrivate(const std::shared_ptr<graphics::RendererBase>&);
     ~TexturesManagerPrivate();
 
-    std::shared_ptr<graphics::IRenderer> &renderer();
+    std::shared_ptr<graphics::RendererBase> &renderer();
     std::unordered_map<std::string, std::shared_ptr<graphics::ITexture>> &resources();
 
     static const std::string &defaultIBLEnvironmentTextureName();
@@ -33,7 +33,7 @@ public:
     static const std::filesystem::path &defaultIBLSpecularTexturePath();
 
 private:
-    std::shared_ptr<graphics::IRenderer> m_renderer;
+    std::shared_ptr<graphics::RendererBase> m_renderer;
     std::unordered_map<std::string, std::shared_ptr<graphics::ITexture>> m_resources;
 
     static const std::string s_defaultIBLEnvironmentTextureName;

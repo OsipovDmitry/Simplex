@@ -26,7 +26,7 @@ public:
 
     void dirtyLocalBoundingBox();
 
-    void update(const std::shared_ptr<graphics::IRenderer>&);
+    void update(const std::shared_ptr<graphics::RendererBase>&);
 
 private:
     std::unordered_set<std::shared_ptr<VisualDrawable>> m_visualDrawables;

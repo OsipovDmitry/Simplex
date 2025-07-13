@@ -23,7 +23,7 @@ public:
     uint32_t sourceMapLevel() const;
     void setSourceMap(const graphics::PConstTexture&, uint32_t, bool canDirtyMap = false);
 
-    graphics::PConstTexture run(const std::shared_ptr<graphics::IRenderer>&, const std::shared_ptr<ProgramsManager>&);
+    graphics::PConstTexture run(const std::shared_ptr<graphics::RendererBase>&, const std::shared_ptr<ProgramsManager>&);
 
 private:
     graphics::PConstBufferRange kernelBuffer();

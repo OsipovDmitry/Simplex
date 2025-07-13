@@ -2,7 +2,7 @@
 #include <utils/logger.h>
 #include <utils/mesh.h>
 
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 #include <core/lightnode.h>
 #include <core/ssao.h>
 #include <core/shadow.h>
@@ -30,39 +30,39 @@ const std::string ProgramsManagerPrivate::s_backgroundPassRenderProgramName = "B
 const std::string ProgramsManagerPrivate::s_finalPassRenderProgramName = "FinalPass";
 const std::string ProgramsManagerPrivate::s_postprocessPassRenderProgramName = "PostprocessPass";
 
-const std::filesystem::path ProgramsManagerPrivate::s_geometryPassVertexShaderPath = "D:/res/shaders/deferred_geometry_pass.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_geometryPassFragmnetShaderPath = "D:/res/shaders/deferred_geometry_pass.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_stencilPassVertexShaderPath = "D:/res/shaders/deferred_stencil_pass.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_stencilPassFragmnetShaderPath = "D:/res/shaders/deferred_stencil_pass.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_lightPassVertexShaderPath = "D:/res/shaders/deferred_light_pass.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_lightPassFragmnetShaderPath = "D:/res/shaders/deferred_light_pass.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_OITClearPassComputeShaderPath = "D:/res/shaders/oit_clear.comp";
-const std::filesystem::path ProgramsManagerPrivate::s_OITSortNodesPassComputeShaderPath = "D:/res/shaders/oit_sort.comp";
-const std::filesystem::path ProgramsManagerPrivate::s_SSAOVertexShaderPath = "D:/res/shaders/ssao.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_SSAOFragmnetShaderPath = "D:/res/shaders/ssao.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_blurVertexShaderPath = "D:/res/shaders/blur.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_blurFragmnetShaderPath = "D:/res/shaders/blur.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_blurComputeShaderPath = "D:/res/shaders/blur.comp";;
-const std::filesystem::path ProgramsManagerPrivate::s_bilaterialBlurVertexShaderPath = "D:/res/shaders/bilaterial_blur.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_bilaterialBlurFragmnetShaderPath = "D:/res/shaders/bilaterial_blur.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_shadowVertexShaderPath = "D:/res/shaders/shadow.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_shadowGeometryShaderPath = "D:/res/shaders/shadow.geom";
-const std::filesystem::path ProgramsManagerPrivate::s_shadowFragmnetShaderPath = "D:/res/shaders/shadow.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_backgroundPassVertexShaderPath = "D:/res/shaders/background.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_backgroundPassFragmnetShaderPath = "D:/res/shaders/background.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_finalPassVertexShaderPath = "D:/res/shaders/final.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_finalPassFragmnetShaderPath = "D:/res/shaders/final.frag";
-const std::filesystem::path ProgramsManagerPrivate::s_postprocessPassVertexShaderPath = "D:/res/shaders/postprocess.vert";
-const std::filesystem::path ProgramsManagerPrivate::s_postprocessPassFragmnetShaderPath = "D:/res/shaders/postprocess.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_geometryPassVertexShaderPath = "C:/res/shaders/deferred_geometry_pass.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_geometryPassFragmnetShaderPath = "C:/res/shaders/deferred_geometry_pass.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_stencilPassVertexShaderPath = "C:/res/shaders/deferred_stencil_pass.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_stencilPassFragmnetShaderPath = "C:/res/shaders/deferred_stencil_pass.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_lightPassVertexShaderPath = "C:/res/shaders/deferred_light_pass.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_lightPassFragmnetShaderPath = "C:/res/shaders/deferred_light_pass.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_OITClearPassComputeShaderPath = "C:/res/shaders/oit_clear.comp";
+const std::filesystem::path ProgramsManagerPrivate::s_OITSortNodesPassComputeShaderPath = "C:/res/shaders/oit_sort.comp";
+const std::filesystem::path ProgramsManagerPrivate::s_SSAOVertexShaderPath = "C:/res/shaders/ssao.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_SSAOFragmnetShaderPath = "C:/res/shaders/ssao.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_blurVertexShaderPath = "C:/res/shaders/blur.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_blurFragmnetShaderPath = "C:/res/shaders/blur.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_blurComputeShaderPath = "C:/res/shaders/blur.comp";;
+const std::filesystem::path ProgramsManagerPrivate::s_bilaterialBlurVertexShaderPath = "C:/res/shaders/bilaterial_blur.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_bilaterialBlurFragmnetShaderPath = "C:/res/shaders/bilaterial_blur.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_shadowVertexShaderPath = "C:/res/shaders/shadow.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_shadowGeometryShaderPath = "C:/res/shaders/shadow.geom";
+const std::filesystem::path ProgramsManagerPrivate::s_shadowFragmnetShaderPath = "C:/res/shaders/shadow.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_backgroundPassVertexShaderPath = "C:/res/shaders/background.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_backgroundPassFragmnetShaderPath = "C:/res/shaders/background.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_finalPassVertexShaderPath = "C:/res/shaders/final.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_finalPassFragmnetShaderPath = "C:/res/shaders/final.frag";
+const std::filesystem::path ProgramsManagerPrivate::s_postprocessPassVertexShaderPath = "C:/res/shaders/postprocess.vert";
+const std::filesystem::path ProgramsManagerPrivate::s_postprocessPassFragmnetShaderPath = "C:/res/shaders/postprocess.frag";
 
-ProgramsManagerPrivate::ProgramsManagerPrivate(std::shared_ptr<graphics::IRenderer> renderer)
+ProgramsManagerPrivate::ProgramsManagerPrivate(const std::shared_ptr<graphics::RendererBase> &renderer)
     : m_renderer(renderer)
 {
 }
 
 ProgramsManagerPrivate::~ProgramsManagerPrivate() = default;
 
-std::shared_ptr<graphics::IRenderer> &ProgramsManagerPrivate::renderer()
+std::shared_ptr<graphics::RendererBase> &ProgramsManagerPrivate::renderer()
 {
     return m_renderer;
 }

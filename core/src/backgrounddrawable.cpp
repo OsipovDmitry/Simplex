@@ -1,6 +1,6 @@
 #include <utils/logger.h>
 
-#include <core/applicationbase.h>
+#include <core/igraphicswidget.h>
 #include <core/graphicsengine.h>
 #include <core/texturesmanager.h>
 #include <core/settings.h>
@@ -16,11 +16,15 @@ namespace core
 BackgroundDrawable::BackgroundDrawable(const std::shared_ptr<graphics::IVertexArray> &vao)
     : Drawable(vao)
 {
-    auto app = ApplicationBase::currentApplication();
-    if (!app)
-        LOG_CRITICAL << "Application can't be nullptr";
+    auto graphicsRenderer = graphics::RendererBase::current();
+    if (!graphicsRenderer)
+        LOG_CRITICAL << "Graphics renderer can't be nullptr";
 
-    auto graphicsEngine = app->findEngine<GraphicsEngine>("");
+    auto graphicsWidget = graphicsRenderer->widget();
+    if (!graphicsWidget)
+        LOG_CRITICAL << "Graphics widget can't be nullptr";
+
+    auto graphicsEngine = graphicsWidget->graphicsEngine();
     if (!graphicsEngine)
         LOG_CRITICAL << "Graphics engine can't be nullptr";
 

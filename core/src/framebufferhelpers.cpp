@@ -1,4 +1,4 @@
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 #include <core/ssao.h>
 #include <core/shadow.h>
 
@@ -28,7 +28,7 @@ const glm::uvec2 &FrameBufferWrapper::viewportSize() const
     return m_viewportSize;
 }
 
-GFrameBuffer::GFrameBuffer(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+GFrameBuffer::GFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
     : FrameBufferWrapper(graphicsRenderer->createFrameBuffer())
 {
     m_frameBuffer->setClearDepthStencil(1.f, 0x00u);
@@ -131,7 +131,7 @@ void GFrameBuffer::setForFinalPass()
                                   graphics::BlendFactor::One, graphics::BlendFactor::SrcAlpha);
 }
 
-void GFrameBuffer::resize(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+void GFrameBuffer::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
                           const glm::uvec2 &viewportSize)
 {
     if (m_viewportSize != viewportSize)
@@ -205,7 +205,7 @@ graphics::PConstImage GFrameBuffer::oitIndicesImage()
     return m_oitIndicesImage;
 }
 
-PostprocessFrameBuffer::PostprocessFrameBuffer(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+PostprocessFrameBuffer::PostprocessFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
                                                const std::shared_ptr<graphics::IFrameBuffer> &userFrameBuffer)
     : FrameBufferWrapper(userFrameBuffer ? userFrameBuffer : graphicsRenderer->createFrameBuffer())
     , m_useUserFrameBuffer(userFrameBuffer != nullptr)
@@ -220,7 +220,7 @@ PostprocessFrameBuffer::PostprocessFrameBuffer(const std::shared_ptr<graphics::I
     m_frameBuffer->setBlending(false);
 }
 
-void PostprocessFrameBuffer::resize(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer, const glm::uvec2 &viewportSize)
+void PostprocessFrameBuffer::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer, const glm::uvec2 &viewportSize)
 {
     if (m_viewportSize != viewportSize)
     {
@@ -234,7 +234,7 @@ void PostprocessFrameBuffer::resize(const std::shared_ptr<graphics::IRenderer> &
     }
 }
 
-ShadowFrameBuffer::ShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+ShadowFrameBuffer::ShadowFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
     : FrameBufferWrapper(graphicsRenderer->createFrameBuffer())
     , m_shadingMode(ShadingMode::Disabled)
     , m_shadingFilter(ShadingFilter::Point)
@@ -278,7 +278,7 @@ void ShadowFrameBuffer::setForTransparentPass()
 
 }
 
-void ShadowFrameBuffer::resize(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+void ShadowFrameBuffer::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
                                const glm::uvec2 &viewportSize,
                                ShadingMode shadingMode,
                                ShadingFilter shadingFilter)
@@ -353,31 +353,31 @@ graphics::PConstTexture ShadowFrameBuffer::depthVSMTexture() const
     return result;
 }
 
-ShadowFrameBuffer2D::ShadowFrameBuffer2D(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+ShadowFrameBuffer2D::ShadowFrameBuffer2D(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
     : ShadowFrameBuffer(graphicsRenderer)
 {
 }
 
-graphics::PTexture ShadowFrameBuffer2D::doTexture(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+graphics::PTexture ShadowFrameBuffer2D::doTexture(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
                                                   const glm::uvec2 &viewportSize,
                                                   graphics::PixelInternalFormat internalFormat) const
 {
     return graphicsRenderer->createTexture2DEmpty(viewportSize.x, viewportSize.y, internalFormat);
 }
 
-ShadowFrameBufferCube::ShadowFrameBufferCube(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+ShadowFrameBufferCube::ShadowFrameBufferCube(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
     : ShadowFrameBuffer(graphicsRenderer)
 {
 }
 
-graphics::PTexture ShadowFrameBufferCube::doTexture(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+graphics::PTexture ShadowFrameBufferCube::doTexture(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
                                                     const glm::uvec2 &viewportSize,
                                                     graphics::PixelInternalFormat internalFormat) const
 {
     return graphicsRenderer->createTextureCubeEmpty(viewportSize.x, viewportSize.y, internalFormat);
 }
 
-SSAOFrameBuffer::SSAOFrameBuffer(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+SSAOFrameBuffer::SSAOFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
     : FrameBufferWrapper(graphicsRenderer->createFrameBuffer())
     , m_pixelInternalFormat(graphics::PixelInternalFormat::Undefined)
 {
@@ -391,7 +391,7 @@ SSAOFrameBuffer::SSAOFrameBuffer(const std::shared_ptr<graphics::IRenderer> &gra
     m_frameBuffer->setBlending(false);
 }
 
-void SSAOFrameBuffer::resize(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+void SSAOFrameBuffer::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
                              const glm::uvec2 &viewportSize,
                              SSAOMode ssaoMode)
 {
@@ -426,7 +426,7 @@ graphics::PixelInternalFormat SSAOFrameBuffer::pixelInternalFormat() const
     return m_pixelInternalFormat;
 }
 
-BlurFrameBuffer::BlurFrameBuffer(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer)
+BlurFrameBuffer::BlurFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
     : FrameBufferWrapper(graphicsRenderer->createFrameBuffer())
     , m_pixelInternalFormat(graphics::PixelInternalFormat::Undefined)
 {
@@ -440,7 +440,7 @@ BlurFrameBuffer::BlurFrameBuffer(const std::shared_ptr<graphics::IRenderer> &gra
     m_frameBuffer->setBlending(false);
 }
 
-void BlurFrameBuffer::resize(const std::shared_ptr<graphics::IRenderer> &graphicsRenderer,
+void BlurFrameBuffer::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
                              const glm::uvec2 &viewportSize,
                              graphics::PixelInternalFormat pixelInternalFormat)
 {

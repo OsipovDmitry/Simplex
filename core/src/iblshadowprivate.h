@@ -14,7 +14,7 @@ public:
     IBLShadowPrivate();
     ~IBLShadowPrivate() override;
 
-    std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer>&) const override;
+    std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::RendererBase>&) const override;
 
 };
 

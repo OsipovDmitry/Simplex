@@ -35,8 +35,8 @@ public:
 
     graphics::PBufferRange &layeredMatricesBuffer();
 
-    virtual std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::IRenderer>&) const = 0;
-    void update(const std::shared_ptr<graphics::IRenderer>&, const std::vector<glm::mat4x4>&);
+    virtual std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::RendererBase>&) const = 0;
+    void update(const std::shared_ptr<graphics::RendererBase>&, const std::vector<glm::mat4x4>&);
 
 private:
     ShadingMode m_mode;

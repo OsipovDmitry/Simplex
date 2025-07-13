@@ -40,7 +40,7 @@ public:
     std::shared_ptr<BlurFrameBuffer> &ssaoBlurFrameBuffer();
     std::shared_ptr<PostprocessFrameBuffer> &postprocessFrameBuffer();
 
-    void resize(const std::shared_ptr<graphics::IRenderer>&, const glm::uvec2&);
+    void resize(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
 
 private:
     bool m_isRenderingEnabled;

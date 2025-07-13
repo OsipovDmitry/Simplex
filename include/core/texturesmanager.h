@@ -8,7 +8,7 @@
 
 #include <core/coreglobal.h>
 #include <core/forwarddecl.h>
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 
 namespace simplex
 {
@@ -20,7 +20,7 @@ class CORE_SHARED_EXPORT TexturesManager
 {
     NONCOPYBLE(TexturesManager)
 public:
-    TexturesManager(std::shared_ptr<graphics::IRenderer>);
+    TexturesManager(const std::shared_ptr<graphics::RendererBase>&);
     ~TexturesManager();
 
     // internalFormat, numLevels, genMipmaps are ignored for .json decription textures

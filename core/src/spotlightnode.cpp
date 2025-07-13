@@ -1,7 +1,7 @@
 #include <utils/logger.h>
 #include <utils/clipspace.h>
 
-#include <core/applicationbase.h>
+#include <core/igraphicswidget.h>
 #include <core/graphicsengine.h>
 #include <core/uniform.h>
 #include <core/scene.h>
@@ -21,11 +21,15 @@ SpotLightNode::SpotLightNode(const std::string &name)
 {
     static const auto s_defaultHalfAngles = glm::quarter_pi<float>() * glm::vec2(0.f, 1.f);
 
-    auto app = ApplicationBase::currentApplication();
-    if (!app)
-        LOG_CRITICAL << "Application can't be nullptr";
+    auto graphicsRenderer = graphics::RendererBase::current();
+    if (!graphicsRenderer)
+        LOG_CRITICAL << "Graphics renderer can't be nullptr";
 
-    auto graphicsEngine = app->findEngine<GraphicsEngine>("");
+    auto graphicsWidget = graphicsRenderer->widget();
+    if (!graphicsWidget)
+        LOG_CRITICAL << "Graphics widget can't be nullptr";
+
+    auto graphicsEngine = graphicsWidget->graphicsEngine();
     if (!graphicsEngine)
         LOG_CRITICAL << "Graphics engine can't be nullptr";
 

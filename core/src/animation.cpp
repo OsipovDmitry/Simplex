@@ -3,9 +3,8 @@
 #include <utils/logger.h>
 
 #include <core/animation.h>
-#include <core/applicationbase.h>
 #include <core/graphicsengine.h>
-#include <core/igraphicsrenderer.h>
+#include <core/graphicsrendererbase.h>
 
 #include "animationprivate.h"
 
@@ -47,15 +46,10 @@ void Animation::removeChannel(const std::shared_ptr<Channel> &value)
 Skeleton::Skeleton()
     : m_(std::make_unique<SkeletonPrivate>())
 {
-    auto app = ApplicationBase::currentApplication();
-    if (!app)
-        LOG_CRITICAL << "Application can't be nullptr";
+    auto graphicsRenderer = graphics::RendererBase::current();
+    if (!graphicsRenderer)
+        LOG_CRITICAL << "Graphics renderer can't be nullptr";
 
-    auto graphicsEngine = app->findEngine<GraphicsEngine>("");
-    if (!graphicsEngine)
-        LOG_CRITICAL << "Graphics engine can't be nullptr";
-
-    auto graphicsRenderer = graphicsEngine->graphicsRenderer();
     m_->bonesBuffer() = graphicsRenderer->createBufferRange(graphicsRenderer->createBuffer(), 0u);
 }
 
