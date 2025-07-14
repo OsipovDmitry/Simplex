@@ -34,7 +34,7 @@ public:
     const uint8_t *pixel(uint32_t, uint32_t) const;
     void setPixel(uint32_t, uint32_t, const uint8_t*);
 
-    std::shared_ptr<Image> toRGBA8() const;
+    std::shared_ptr<Image> convert(uint32_t, uint32_t, uint32_t, PixelComponentType) const;
 
     bool saveToFile(const std::filesystem::path&);
 
@@ -42,7 +42,7 @@ public:
                                                uint32_t height,
                                                uint32_t numComponents,
                                                PixelComponentType componentType,
-                                               const void *data);
+                                               const uint8_t *data);
     static std::shared_ptr<Image> loadFromFile(const std::filesystem::path&);
 
 private:

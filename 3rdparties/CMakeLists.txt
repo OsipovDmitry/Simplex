@@ -19,3 +19,6 @@ print_all_targets(openal-soft "3rdparties/openal-soft")
 add_subdirectory("glfw")
 print_all_targets(glfw "3rdparties/glfw")
 
+add_subdirectory("bullet3")
+print_all_targets(bullet3 "3rdparties/bullet3")
+

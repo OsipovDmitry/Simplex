@@ -4,3 +4,6 @@
 [submodule "3rdparties/glfw"]
 	path = 3rdparties/glfw
 	url = ../../glfw/glfw.git
+[submodule "3rdparties/bullet3"]
+	path = 3rdparties/bullet3
+	url = ../../bulletphysics/bullet3.git

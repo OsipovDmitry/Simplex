@@ -638,7 +638,7 @@ void GLFWWidget::setIcon(const std::shared_ptr<utils::Image> &image)
     
     if (image)
     {
-        imageRGBA8 = image->toRGBA8();
+        imageRGBA8 = image->convert(image->width(), image->height(), 4u, utils::PixelComponentType::Uint8);
         icon = std::make_shared<GLFWimage>();
         icon->width = static_cast<int>(imageRGBA8->width());
         icon->height = static_cast<int>(imageRGBA8->height());
@@ -749,7 +749,7 @@ void GLFWWidget::setMouseCursor(const std::shared_ptr<utils::Image> &image, cons
         return;
     }
 
-    auto imageRGBA8 = image->toRGBA8();
+    auto imageRGBA8 = image->convert(image->width(), image->height(), 4u, utils::PixelComponentType::Uint8);
 
     auto cursorImage = std::make_shared<GLFWimage>();
     cursorImage->width = static_cast<int>(imageRGBA8->width());
