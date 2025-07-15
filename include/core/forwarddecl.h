@@ -159,10 +159,8 @@ class VisualDrawable;
 class FlatDrawable;
 class PBRDrawable;
 
-class Animation;
 class Background;
 class Shadow;
-class Skeleton;
 class SSAO;
 
 class Scene;

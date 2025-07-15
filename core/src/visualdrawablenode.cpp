@@ -46,20 +46,5 @@ void VisualDrawableNode::removeVisualDrawable(std::shared_ptr<VisualDrawable> dr
     mPrivate.dirtyLocalBoundingBox();
 }
 
-std::shared_ptr<Skeleton> VisualDrawableNode::skeleton()
-{
-    return m().skeleton();
-}
-
-std::shared_ptr<const Skeleton> VisualDrawableNode::skeleton() const
-{
-    return const_cast<VisualDrawableNode*>(this)->skeleton();
-}
-
-void VisualDrawableNode::setSkeleton(const std::shared_ptr<Skeleton> &value)
-{
-    m().skeleton() = value;
-}
-
 }
 }

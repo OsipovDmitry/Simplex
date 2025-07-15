@@ -73,7 +73,8 @@ using Frustum = FrustumT<float>;
 
 template<typename T> class WeakPtrList;
 
-template <typename T> struct IDGenerator;
+template <typename T> struct IDGeneratorT;
+using IDGenerator = IDGeneratorT<uint32_t>;
 
 }
 }

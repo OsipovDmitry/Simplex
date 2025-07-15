@@ -12,20 +12,22 @@ namespace utils
 {
 
 template <typename T>
-struct IDGenerator
+struct IDGeneratorT
 {
     static_assert(std::numeric_limits<T>::is_integer && std::numeric_limits<T>::is_unsigned, "The base type of IDGenerator must be unsigned integer");
 public:
-    IDGenerator()
-        : m_nextID(static_cast<T>(0))
+    using value_type = T;
+
+    IDGeneratorT()
+        : m_nextID(static_cast<value_type>(0))
     {}
 
-    T generate()
+    value_type generate()
     {
-        T result = static_cast<T>(0);
+        value_type result = static_cast<value_type>(0);
         if (m_freeIDs.empty())
         {
-            if (m_nextID == std::numeric_limits<T>::max())
+            if (m_nextID == last()) // last is reserved for "undefined" id
                 LOG_CRITICAL << "IDs run out";
             result = m_nextID++;
         }
@@ -37,19 +39,24 @@ public:
         return result;
     }
 
-    void clear(T value)
+    void clear(value_type value)
     {
         if (value >= m_nextID)
             LOG_CRITICAL << "ID is not registerd";
-        if (value + static_cast<T>(1) != m_nextID)
+        if (value + static_cast<value_type>(1) != m_nextID)
             m_freeIDs.push_back(value);
         else
             --m_nextID;
     }
 
+    static value_type last()
+    {
+        return std::numeric_limits<value_type>::max();
+    }
+
 private:
-    T m_nextID;
-    std::vector<T> m_freeIDs;
+    value_type m_nextID;
+    std::vector<value_type> m_freeIDs;
 };
 
 }

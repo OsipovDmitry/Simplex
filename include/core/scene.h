@@ -36,10 +36,6 @@ public:
     Background &background();
     const Background &background() const;
 
-    const std::unordered_set<std::shared_ptr<Animation>> &animations();
-    void removeAnimation(const std::shared_ptr<Animation>&);
-    void addAnimation(const std::shared_ptr<Animation>&);
-
     static std::shared_ptr<Scene> createEmpty(const std::string&);
     static std::shared_ptr<Scene> createFromGLTF(const std::filesystem::path&, const std::shared_ptr<graphics::IFrameBuffer>&);
 

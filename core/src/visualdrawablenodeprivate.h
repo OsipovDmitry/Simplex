@@ -20,8 +20,6 @@ public:
 
     std::unordered_set<std::shared_ptr<VisualDrawable>> &visualDrawables();
 
-    std::shared_ptr<Skeleton> &skeleton();
-
     const utils::BoundingBox &localBoundingBox();
 
     void dirtyLocalBoundingBox();
@@ -30,7 +28,6 @@ public:
 
 private:
     std::unordered_set<std::shared_ptr<VisualDrawable>> m_visualDrawables;
-    std::shared_ptr<Skeleton> m_skeleton;
     utils::BoundingBox m_localBoundingBox;
     bool m_isLocalBoundingBoxDirty;
 };

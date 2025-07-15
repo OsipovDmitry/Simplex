@@ -16,7 +16,6 @@
 #include <core/pointlightnode.h>
 #include <core/directionallightnode.h>
 #include <core/spotlightnode.h>
-#include <core/animation.h>
 #include <core/igraphicswidget.h>
 #include <core/graphicsengine.h>
 
@@ -70,22 +69,6 @@ Background &Scene::background()
 const Background &Scene::background() const
 {
     return const_cast<Scene*>(this)->background();
-}
-
-const std::unordered_set<std::shared_ptr<Animation>> &Scene::animations()
-{
-    return m_->animations();
-}
-
-void Scene::removeAnimation(const std::shared_ptr<Animation> &value)
-{
-    if (auto it = m_->animations().find(value); it != m_->animations().end())
-        m_->animations().erase(it);
-}
-
-void Scene::addAnimation(const std::shared_ptr<Animation> &value)
-{
-    m_->animations().insert(value);
 }
 
 std::shared_ptr<Scene> Scene::createEmpty(const std::string& sceneName)
@@ -469,268 +452,6 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
             return node;
         };
 
-    static const auto createAnimation = [](const std::vector<std::shared_ptr<Node>>& nodes,
-        const tinygltf::Model& rawModel,
-        size_t rawAnimationIndex) -> std::shared_ptr<Animation>
-        {
-            static const auto tinyTargetPath2TargetTypeId = [](const std::string& value) -> Animation::Channel::TargetTypeId
-                {
-                    static const std::unordered_map<std::string, Animation::Channel::TargetTypeId> s_table{
-                        {"translation", Animation::Channel::TargetTypeId::Translation},
-                        {"rotation", Animation::Channel::TargetTypeId::Rotation},
-                        {"scale", Animation::Channel::TargetTypeId::Scale},
-                    };
-
-                    const auto it = s_table.find(value);
-                    return it != s_table.end() ? it->second : Animation::Channel::TargetTypeId::Count;
-                };
-
-            static const auto tinySamplerInterpolation2InterpolationType = [](const std::string& value) -> Animation::Channel::InterpolationType
-                {
-                    static const std::unordered_map<std::string, Animation::Channel::InterpolationType> s_table{
-                        {"STEP", Animation::Channel::InterpolationType::Step},
-                        {"LINEAR", Animation::Channel::InterpolationType::Linear},
-                        {"CUBICSPLINE", Animation::Channel::InterpolationType::CubicSpline},
-                    };
-
-                    const auto it = s_table.find(value);
-                    return it != s_table.end() ? it->second : Animation::Channel::InterpolationType::Count;
-                };
-
-            static const auto tinyReadFloat = [](int type, const void* buffer, size_t index) -> float
-                {
-                    float result = 0.f;
-                    switch (type)
-                    {
-                    case TINYGLTF_COMPONENT_TYPE_BYTE:
-                    {
-                        using T = int8_t;
-                        const auto* data = reinterpret_cast<const T*>(buffer);
-                        result = data[index] / static_cast<float>(std::numeric_limits<T>::max());
-                        result = glm::max(result, -1.f);
-                        break;
-                    }
-                    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
-                    {
-                        using T = uint8_t;
-                        const auto* data = reinterpret_cast<const T*>(buffer);
-                        result = data[index] / static_cast<float>(std::numeric_limits<T>::max());
-                        break;
-                    }
-                    case TINYGLTF_COMPONENT_TYPE_SHORT:
-                    {
-                        using T = int16_t;
-                        const auto* data = reinterpret_cast<const T*>(buffer);
-                        result = data[index] / static_cast<float>(std::numeric_limits<T>::max());
-                        result = glm::max(result, -1.f);
-                        break;
-                    }
-                    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
-                    {
-                        using T = uint16_t;
-                        const auto* data = reinterpret_cast<const T*>(buffer);
-                        result = data[index] / static_cast<float>(std::numeric_limits<T>::max());
-                        break;
-                    }
-                    case TINYGLTF_COMPONENT_TYPE_INT:
-                    {
-                        using T = int32_t;
-                        const auto* data = reinterpret_cast<const T*>(buffer);
-                        result = static_cast<float>(data[index]) / static_cast<float>(std::numeric_limits<T>::max());
-                        result = glm::max(result, -1.f);
-                        break;
-                    }
-                    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
-                    {
-                        using T = uint32_t;
-                        const auto* data = reinterpret_cast<const T*>(buffer);
-                        result = static_cast<float>(data[index]) / static_cast<float>(std::numeric_limits<T>::max());
-                        break;
-                    }
-                    case TINYGLTF_COMPONENT_TYPE_FLOAT:
-                    {
-                        using T = float;
-                        const auto* data = reinterpret_cast<const T*>(buffer);
-                        result = data[index];
-                        break;
-                    }
-                    case TINYGLTF_COMPONENT_TYPE_DOUBLE:
-                    {
-                        using T = double;
-                        const auto* data = reinterpret_cast<const T*>(buffer);
-                        result = static_cast<float>(data[index]);
-                        break;
-                    }
-                    default:
-                        break;
-                    }
-
-                    return result;
-                };
-
-            const auto& rawAnimation = rawModel.animations[rawAnimationIndex];
-
-            auto animation = std::make_shared<Animation>(rawAnimation.name);
-            for (const auto& rawChannel : rawAnimation.channels)
-            {
-                auto channel = animation->addChannel();
-
-                channel->targetNode = nodes[static_cast<size_t>(rawChannel.target_node)];
-
-                channel->targetTypeId = tinyTargetPath2TargetTypeId(rawChannel.target_path);
-                if (channel->targetTypeId == Animation::Channel::TargetTypeId::Count)
-                {
-                    LOG_ERROR << "Undefined animation channel taget type id";
-                    return nullptr;
-                }
-
-                auto& rawSampler = rawAnimation.samplers[static_cast<size_t>(rawChannel.sampler)];
-                channel->interpolationType = tinySamplerInterpolation2InterpolationType(rawSampler.interpolation);
-                if (channel->interpolationType == Animation::Channel::InterpolationType::Count)
-                {
-                    LOG_ERROR << "Undefined animation channel interpolation type";
-                    return nullptr;
-                }
-
-                {
-                    const auto& rawAccessor = rawModel.accessors[static_cast<size_t>(rawSampler.input)];
-                    const auto& rawBufferView = rawModel.bufferViews[static_cast<size_t>(rawAccessor.bufferView)];
-                    const auto& rawBuffer = rawModel.buffers[static_cast<size_t>(rawBufferView.buffer)];
-                    const auto* rawTimestamps = reinterpret_cast<const float*>(rawBuffer.data.data() + rawAccessor.byteOffset + rawBufferView.byteOffset);
-                    channel->timestamps.insert(channel->timestamps.end(), rawTimestamps, rawTimestamps + rawAccessor.count);
-                }
-
-                {
-                    const auto& rawAccessor = rawModel.accessors[static_cast<size_t>(rawSampler.output)];
-                    const auto& rawBufferView = rawModel.bufferViews[static_cast<size_t>(rawAccessor.bufferView)];
-                    const auto& rawBuffer = rawModel.buffers[static_cast<size_t>(rawBufferView.buffer)];
-
-                    const auto accessorNumComponents = tinyType2NumComponents(rawAccessor.type);
-
-                    channel->values.resize(rawAccessor.count);
-                    if (channel->interpolationType == Animation::Channel::InterpolationType::CubicSpline)
-                        channel->tangents.resize(rawAccessor.count);
-
-                    const bool targetTypeIdIsTranslation = channel->targetTypeId == Animation::Channel::TargetTypeId::Translation;
-                    const bool targetTypeIdIsRotation = channel->targetTypeId == Animation::Channel::TargetTypeId::Rotation;
-                    const bool targetTypeIdIsScale = channel->targetTypeId == Animation::Channel::TargetTypeId::Scale;
-
-                    uint32_t numComponents = 0u;
-                    if (targetTypeIdIsRotation) numComponents = 4u;
-                    else if (targetTypeIdIsTranslation) numComponents = 3u;
-                    else if (targetTypeIdIsScale) numComponents = 1u;
-
-
-                    for (size_t keyframe = 0u; keyframe < rawAccessor.count; ++keyframe)
-                    {
-                        for (size_t component = 0u; component < glm::min(numComponents, accessorNumComponents); ++component)
-                        {
-                            if (channel->interpolationType == Animation::Channel::InterpolationType::CubicSpline)
-                            {
-                                if (targetTypeIdIsRotation)
-                                {
-                                    channel->tangents[keyframe].first.rotation[static_cast<glm::length_t>(component)] =
-                                        tinyReadFloat(rawAccessor.componentType,
-                                            rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                            keyframe * accessorNumComponents * 3u + accessorNumComponents * 0u + component);
-                                    channel->values[keyframe].rotation[static_cast<glm::length_t>(component)] =
-                                        tinyReadFloat(rawAccessor.componentType,
-                                            rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                            keyframe * accessorNumComponents * 3u + accessorNumComponents * 1u + component);
-                                    channel->tangents[keyframe].second.rotation[static_cast<glm::length_t>(component)] =
-                                        tinyReadFloat(rawAccessor.componentType,
-                                            rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                            keyframe * accessorNumComponents * 3u + accessorNumComponents * 2u + component);
-                                }
-                                else if (targetTypeIdIsTranslation)
-                                {
-                                    channel->tangents[keyframe].first.translation[static_cast<glm::length_t>(component)] =
-                                        tinyReadFloat(rawAccessor.componentType,
-                                            rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                            keyframe * accessorNumComponents * 3u + accessorNumComponents * 0u + component);
-                                    channel->values[keyframe].translation[static_cast<glm::length_t>(component)] =
-                                        tinyReadFloat(rawAccessor.componentType,
-                                            rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                            keyframe * accessorNumComponents * 3u + accessorNumComponents * 1u + component);
-                                    channel->tangents[keyframe].second.translation[static_cast<glm::length_t>(component)] =
-                                        tinyReadFloat(rawAccessor.componentType,
-                                            rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                            keyframe * accessorNumComponents * 3u + accessorNumComponents * 2u + component);
-                                }
-                                else if (targetTypeIdIsScale)
-                                {
-                                    channel->tangents[keyframe].first.scale =
-                                        tinyReadFloat(rawAccessor.componentType,
-                                            rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                            keyframe * accessorNumComponents * 3u + accessorNumComponents * 0u + component);
-                                    channel->values[keyframe].scale =
-                                        tinyReadFloat(rawAccessor.componentType,
-                                            rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                            keyframe * accessorNumComponents * 3u + accessorNumComponents * 1u + component);
-                                    channel->tangents[keyframe].second.scale =
-                                        tinyReadFloat(rawAccessor.componentType,
-                                            rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                            keyframe * accessorNumComponents * 3u + accessorNumComponents * 2u + component);
-                                }
-                            }
-                            else
-                            {
-                                if (targetTypeIdIsRotation)
-                                    channel->values[keyframe].rotation[static_cast<glm::length_t>(component)] =
-                                    tinyReadFloat(rawAccessor.componentType,
-                                        rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                        keyframe * accessorNumComponents + component);
-                                else if (targetTypeIdIsTranslation)
-                                    channel->values[keyframe].translation[static_cast<glm::length_t>(component)] =
-                                    tinyReadFloat(rawAccessor.componentType,
-                                        rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                        keyframe * accessorNumComponents + component);
-                                else if (targetTypeIdIsScale)
-                                    channel->values[keyframe].scale =
-                                    tinyReadFloat(rawAccessor.componentType,
-                                        rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset,
-                                        keyframe * accessorNumComponents + component);
-                            }
-                        }
-                    }
-                }
-            }
-
-            return animation;
-        };
-
-    static const auto createSkeleton = [](const std::vector<std::shared_ptr<Node>>& nodes,
-        const tinygltf::Model& rawModel,
-        size_t rawSkinIndex) -> std::shared_ptr<Skeleton>
-        {
-            auto skeleton = std::make_shared<Skeleton>();
-
-            const auto& rawSkin = rawModel.skins[rawSkinIndex];
-            const glm::mat4x4* inverseBindMatrices = nullptr;
-            if (rawSkin.inverseBindMatrices >= 0)
-            {
-                const auto& rawAccessor = rawModel.accessors[static_cast<size_t>(rawSkin.inverseBindMatrices)];
-                const auto& rawBufferView = rawModel.bufferViews[static_cast<size_t>(rawAccessor.bufferView)];
-                const auto& rawBuffer = rawModel.buffers[static_cast<size_t>(rawBufferView.buffer)];
-                inverseBindMatrices = reinterpret_cast<const glm::mat4x4*>(rawBuffer.data.data() + rawBufferView.byteOffset + rawAccessor.byteOffset);
-            }
-
-            std::vector<std::shared_ptr<Skeleton::Bone>> bones(rawSkin.joints.size());
-            for (size_t i = 0u; i < rawSkin.joints.size(); ++i)
-            {
-                bones[i] = std::make_shared<Skeleton::Bone>();
-
-                if (rawSkin.inverseBindMatrices >= 0)
-                    bones[i]->inverseBindMatrix = inverseBindMatrices[i];
-
-                bones[i]->targetNode = nodes[static_cast<size_t>(rawSkin.joints[i])];
-            }
-            skeleton->setBones(bones);
-
-            return skeleton;
-        };
-
-
     auto graphicsRenderer = graphics::RendererBase::current();
     if (!graphicsRenderer)
         LOG_CRITICAL << "Graphics renderer can't be nullptr";
@@ -818,24 +539,6 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
         nodes[i] = node;
     }
 
-    std::vector<std::shared_ptr<Animation>> animations(rawModel.animations.size());
-    for (size_t i = 0u; i < rawModel.animations.size(); ++i)
-    {
-        auto animation = createAnimation(nodes, rawModel, i);
-        if (!animation)
-            return nullptr;
-        animations[i] = animation;
-    }
-
-    std::vector<std::shared_ptr<Skeleton>> skeletons(rawModel.skins.size());
-    for (size_t i = 0u; i < rawModel.skins.size(); ++i)
-    {
-        auto skeleton = createSkeleton(nodes, rawModel, i);
-        if (!skeleton)
-            return nullptr;
-        skeletons[i] = skeleton;
-    }
-
     const uint32_t defaultSceneIndex = rawModel.defaultScene >= 0 ? static_cast<uint32_t>(rawModel.defaultScene) : 0u;
     const auto& rawScene = rawModel.scenes[defaultSceneIndex];
 
@@ -855,15 +558,6 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
         nodesQueue.pop();
 
         auto parentNode = nodes[parentNodeIndex];
-        if (auto visualDrawableNode = parentNode->asVisualDrawableNode(); visualDrawableNode)
-            if (auto rawSkinIndex = rawModel.nodes[parentNodeIndex].skin; rawSkinIndex >= 0)
-            {
-                const auto& skeleton = skeletons[static_cast<size_t>(rawSkinIndex)];
-                visualDrawableNode->setSkeleton(skeleton);
-
-                for (const auto& visualDrawable : visualDrawableNode->visualDrawables())
-                    visualDrawable->setBonesBuffer(skeleton->bonesBuffer());
-            }
 
         for (auto nodeIndex : rawModel.nodes[parentNodeIndex].children)
         {
@@ -871,9 +565,6 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
             nodesQueue.push(nodeIndex);
         }
     }
-
-    for (const auto& animation : animations)
-        scene->addAnimation(animation);
 
     return scene;
 }
