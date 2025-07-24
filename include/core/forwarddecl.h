@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 
+#include <utils/forwarddecl.h>
 #include <utils/glm/vec2.hpp>
 
 namespace simplex
@@ -70,10 +71,11 @@ enum class BlendEquation : uint16_t;
 enum class BlendFactor : uint16_t;
 using StencilOperations = std::array<StencilOperation, 3u>; // sfail, dpfail, dppass
 class IBuffer;
-class IBufferRange;
 class IVertexArray;
 class ISurface;
 class ITexture;
+using TextureHandle = uint64_t;
+class ITextureHandle;
 class IImage;
 class IRenderBuffer;
 class IFrameBuffer;
@@ -81,6 +83,8 @@ class IProgram;
 class IRenderProgram;
 class IComputeProgram;
 class RendererBase;
+class DynamicBufferBase;
+template <typename T> class DynamicBufferT;
 
 class IGraphicsWidget;
 enum class KeyState : uint16_t;
@@ -99,11 +103,14 @@ using MouseCursorEnterCallback = std::function<void(bool)>;
 using MouseButtonCallback = std::function<void(MouseButtonState, MouseButton, const KeyModifiers&)>;
 using MouseScrollCallback = std::function<void(const glm::ivec2&)>;
 
-using PConstBufferRange = std::shared_ptr<const IBufferRange>;
-using PBufferRange = std::shared_ptr<IBufferRange>;
+using PConstBuffer = std::shared_ptr<const IBuffer>;
+using PBuffer = std::shared_ptr<IBuffer>;
 
 using PConstTexture = std::shared_ptr<const ITexture>;
 using PTexture = std::shared_ptr<ITexture>;
+
+using PConstTextureHandle = std::shared_ptr<const ITextureHandle>;
+using PTextureHandle = std::shared_ptr<ITextureHandle>;
 
 using PConstImage = std::shared_ptr<const IImage>;
 using PImage = std::shared_ptr<IImage>;
@@ -148,10 +155,16 @@ enum class UniformId : uint16_t;
 using UniformCollection = std::unordered_map<UniformId, PAbstractUniform>;
 using UserUniformCollection = std::unordered_map<std::string, PAbstractUniform>;
 enum class SSBOId : uint16_t;
-using SSBOCollection = std::unordered_map<SSBOId, graphics::PConstBufferRange>;
+using SSBOCollection = std::unordered_map<SSBOId, graphics::PConstBuffer>;
 class StateSet;
 using PStateSet = std::shared_ptr<StateSet>;
 using PConstStateSet = std::shared_ptr<const StateSet>;
+
+class Mesh;
+
+class MaterialMap;
+enum class MaterialMapTarget: uint16_t;
+class Material;
 
 class Drawable;
 using DrawableComponentSet = std::set<UniformId>;

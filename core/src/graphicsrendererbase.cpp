@@ -1,3 +1,5 @@
+#include <utils/logger.h>
+
 #include <core/igraphicswidget.h>
 
 #include "graphicsrendererbaseprivate.h"
@@ -67,7 +69,6 @@ bool RendererBase::areShared(const std::shared_ptr<const RendererBase>& renderer
 
     return widget1->shareGroup() == widget2->shareGroup();
 }
-
 
 }
 }

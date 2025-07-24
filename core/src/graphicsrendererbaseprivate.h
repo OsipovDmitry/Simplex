@@ -24,6 +24,19 @@ private:
     static std::weak_ptr<RendererBase> s_current;
 };
 
+class DynamicBufferBasePrivate
+{
+public:
+    DynamicBufferBasePrivate(const std::shared_ptr<IBuffer>&);
+
+    std::shared_ptr<IBuffer> &buffer();
+    size_t &size();
+
+private:
+    std::shared_ptr<IBuffer> m_buffer;
+    size_t m_size;
+};
+
 }
 }
 }

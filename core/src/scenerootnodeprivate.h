@@ -15,8 +15,8 @@ public:
 
     ~SceneRootNodePrivate() override;
 
-    void doAttachToParent() override;
-    void doDetachFromParent() override;
+    void doAttachToParent(const std::shared_ptr<Node>&) override;
+    void doDetachFromParent(const std::shared_ptr<Node>&) override;
 
     std::weak_ptr<Scene> &scene();
 

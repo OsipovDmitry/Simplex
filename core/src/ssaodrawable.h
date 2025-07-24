@@ -29,8 +29,8 @@ public:
     void update(const std::shared_ptr<graphics::RendererBase>&);
 
 private:
-    graphics::PConstBufferRange kernelBuffer() const;
-    void setKernelBuffer(const graphics::PConstBufferRange&);
+    graphics::PConstBuffer kernelBuffer() const;
+    void setKernelBuffer(const graphics::PConstBuffer&);
 
     graphics::PConstTexture noiseTexture() const;
     void setNoiseTexture(const graphics::PConstTexture&);

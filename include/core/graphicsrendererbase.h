@@ -15,6 +15,7 @@
 #include <utils/glm/mat4x4.hpp>
 #include <utils/image.h>
 #include <utils/mesh.h>
+#include <utils/logger.h>
 
 #include <utils/forwarddecl.h>
 #include <utils/enumclass.h>
@@ -223,26 +224,22 @@ public:
     virtual ~IBuffer() = default;
 
     virtual size_t size() const = 0;
-    virtual void resize(size_t size, const void *data) = 0;
+    virtual void resize(size_t size) = 0;
 
     ENUMCLASS(MapAccess, uint8_t, ReadOnly, WriteOnly, ReadWrite)
     virtual std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const = 0;
     virtual std::unique_ptr<MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) = 0;
 };
 
-class IBufferRange
+class IDynamicBuffer : public IBuffer
 {
 public:
-    virtual ~IBufferRange() = default;
+    //~IDynamicBuffer() override = default;
 
-    virtual std::shared_ptr<const IBuffer> buffer() const = 0;
-    virtual std::shared_ptr<IBuffer> buffer() = 0;
+    virtual size_t capacity() const = 0;
+    virtual void reserve(size_t) = 0;
 
-    virtual size_t offset() const = 0;
-    virtual void setOffset(size_t) = 0;
-
-    virtual size_t size() const = 0;
-    virtual void setSize(size_t) = 0;
+    virtual void pushBack(const void* data, size_t size) = 0;
 };
 
 class IVertexArray
@@ -320,6 +317,19 @@ public:
     virtual PTexture copyEmpty() const = 0;
     virtual PTexture copy() const = 0;
 
+};
+
+class ITextureHandle
+{
+public:
+    virtual ~ITextureHandle() = default;
+
+    virtual TextureHandle handle() const = 0;
+
+    virtual PConstTexture texture() const = 0;
+
+    virtual void makeResident() = 0;
+    virtual void doneResident() = 0;
 };
 
 class IImage
@@ -477,6 +487,13 @@ public:
                                  bool colorMsk, bool depthMask, bool stencilMask,
                                  bool linearFilter = false) = 0;
 
+    virtual void copyBufferSubData(const std::shared_ptr<IBuffer>& dst,
+        const std::shared_ptr<const IBuffer>& src,
+        size_t dstOffset, 
+        size_t srcOffset,
+        size_t size) const = 0;
+
+
     virtual bool registerVertexAttribute(const std::string&, utils::VertexAttribute) = 0;
     virtual bool unregisterVertexAttribute(const std::string&) = 0;
     virtual utils::VertexAttribute vertexAttributeByName(const std::string&) const = 0;
@@ -490,15 +507,13 @@ public:
     virtual uint16_t SSBOIdByName(const std::string&) const = 0;
 
     virtual std::shared_ptr<IBuffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
-    virtual std::shared_ptr<IBufferRange> createBufferRange(const std::shared_ptr<IBuffer>&,
-                                                            size_t,
-                                                            size_t = static_cast<size_t>(-1)) const = 0;
-    virtual std::shared_ptr<IVertexArray> createVertexArray(const std::shared_ptr<utils::Mesh>& = nullptr,
+    virtual std::shared_ptr<IDynamicBuffer> createDynamicBuffer(size_t size = 0u, const void* data = nullptr) const = 0;
+    virtual std::shared_ptr<IVertexArray> createVertexArray(const std::shared_ptr<const utils::Mesh>& = nullptr,
                                                             bool uniteBuffers = true) const = 0;
     virtual std::shared_ptr<ITexture> createTexture1DEmpty(uint32_t width,
                                                            PixelInternalFormat,
                                                            uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture1D(const std::shared_ptr<utils::Image>&,
+    virtual std::shared_ptr<ITexture> createTexture1D(const std::shared_ptr<const utils::Image>&,
                                                       PixelInternalFormat = PixelInternalFormat::Undefined,
                                                       uint32_t numLevels = 0,
                                                       bool genMipmaps = true) const = 0;
@@ -506,7 +521,7 @@ public:
                                                            uint32_t height,
                                                            PixelInternalFormat,
                                                            uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture2D(const std::shared_ptr<utils::Image>&,
+    virtual std::shared_ptr<ITexture> createTexture2D(const std::shared_ptr<const utils::Image>&,
                                                       PixelInternalFormat = PixelInternalFormat::Undefined,
                                                       uint32_t numLevels = 0,
                                                       bool genMipmaps = true) const = 0;
@@ -515,7 +530,7 @@ public:
                                                            uint32_t depth,
                                                            PixelInternalFormat,
                                                            uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture3D(const std::vector<std::shared_ptr<utils::Image>>&,
+    virtual std::shared_ptr<ITexture> createTexture3D(const std::vector<std::shared_ptr<const utils::Image>>&,
                                                       PixelInternalFormat = PixelInternalFormat::Undefined,
                                                       uint32_t numLevels = 0,
                                                       bool genMipmaps = true) const = 0;
@@ -523,7 +538,7 @@ public:
                                                              uint32_t height,
                                                              PixelInternalFormat,
                                                              uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTextureCube(const std::vector<std::shared_ptr<utils::Image>>&,
+    virtual std::shared_ptr<ITexture> createTextureCube(const std::vector<std::shared_ptr<const utils::Image>>&,
                                                         PixelInternalFormat = PixelInternalFormat::Undefined,
                                                         uint32_t numLevels = 0,
                                                         bool genMipmaps = true) const = 0;
@@ -531,7 +546,7 @@ public:
                                                                 uint32_t numLayers,
                                                                 PixelInternalFormat,
                                                                 uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture1DArray(const std::vector<std::shared_ptr<utils::Image>>&,
+    virtual std::shared_ptr<ITexture> createTexture1DArray(const std::vector<std::shared_ptr<const utils::Image>>&,
                                                            PixelInternalFormat = PixelInternalFormat::Undefined,
                                                            uint32_t numLevels = 0,
                                                            bool genMipmaps = true) const = 0;
@@ -540,7 +555,7 @@ public:
                                                                 uint32_t numLayers,
                                                                 PixelInternalFormat,
                                                                 uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture2DArray(const std::vector<std::shared_ptr<utils::Image>>&,
+    virtual std::shared_ptr<ITexture> createTexture2DArray(const std::vector<std::shared_ptr<const utils::Image>>&,
                                                            PixelInternalFormat = PixelInternalFormat::Undefined,
                                                            uint32_t numLevels = 0,
                                                            bool genMipmaps = true) const = 0;
@@ -549,15 +564,16 @@ public:
                                                                   uint32_t numLayers,
                                                                   PixelInternalFormat,
                                                                   uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTextureCubeArray(const std::vector<std::vector<std::shared_ptr<utils::Image>>>&, //[layer][face]
+    virtual std::shared_ptr<ITexture> createTextureCubeArray(const std::vector<std::vector<std::shared_ptr<const utils::Image>>>&, //[layer][face]
                                                              PixelInternalFormat = PixelInternalFormat::Undefined,
                                                              uint32_t numLevels = 0,
                                                              bool genMipmaps = true) const = 0;
     virtual std::shared_ptr<ITexture> createTextureRectEmpty(uint32_t width,
                                                              uint32_t height,
                                                              core::graphics::PixelInternalFormat) const = 0;
-    virtual std::shared_ptr<ITexture> createTextureRect(const std::shared_ptr<utils::Image>&,
+    virtual std::shared_ptr<ITexture> createTextureRect(const std::shared_ptr<const utils::Image>&,
                                                         core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined) const = 0;
+    virtual std::shared_ptr<ITextureHandle> createTextureHandle(const PConstTexture&) const = 0;
     virtual std::shared_ptr<IImage> createImage(IImage::DataAccess,
                                                 const PConstTexture&,
                                                 uint32_t level = 0u) const = 0;
@@ -595,6 +611,136 @@ protected:
     virtual bool doDoneCurrent() = 0;
 
     std::unique_ptr<RendererBasePrivate> m_;
+};
+
+template <typename T>
+class DynamicBufferT final
+{
+public:
+    using value_type = T;
+
+    ~DynamicBufferT() = default;
+
+    std::shared_ptr<const IDynamicBuffer> buffer() const { return m_buffer; }
+
+    size_t capacity() const { return m_buffer->capacity() / sizeof(value_type); }
+    void reserve(size_t value) { m_buffer->reserve(value * sizeof(value_type)); }
+
+    size_t size() const { return m_buffer->size() / sizeof(value_type); }
+    void resize(size_t value) { m_buffer->resize(value * sizeof(value_type)); }
+
+    void pushBack(const value_type& value) { m_buffer->pushBack(&value, sizeof(value_type)); }
+    void set(size_t index, const T& value)
+    {
+        if (index >= size())
+            LOG_CRITICAL << "Index is out of range";
+
+        *reinterpret_cast<T*>(m_buffer->map(
+            IBuffer::MapAccess::WriteOnly,
+            index * sizeof(value_type),
+            sizeof(value_type))->get()) = value;
+    }
+    T get(size_t index) const
+    {
+        if (index >= size())
+            LOG_CRITICAL << "Index is out of range";
+
+        return *reinterpret_cast<T*>(m_buffer->map(
+           IBuffer::MapAccess::ReadOnly,
+           index * sizeof(value_type),
+           sizeof(value_type))->get());
+    }
+    void erase(size_t index, size_t count)
+    {
+        if (!count)
+            return;
+
+        if (index + count > size())
+            LOG_CRITICAL << "Index is out of range";
+
+        auto currentContext = RendererBase::current();
+        if (!currentContext)
+        {
+            LOG_CRITICAL << "No current context";
+            return;
+        }
+
+        // copying blocks by count elements to avoid overlapping
+        const auto newSize = size() - count;
+        auto dstOffset = index;
+        while (dstOffset < newSize)
+        {
+            const auto srcOffset = dstOffset + count;
+            const auto copySize = std::min(count, size() - srcOffset);
+
+            currentContext->copyBufferSubData(
+                m_buffer,
+                m_buffer,
+                dstOffset * sizeof(value_type),
+                srcOffset * sizeof(value_type),
+                copySize * sizeof(value_type));
+
+            dstOffset = srcOffset;
+        }
+
+        resize(newSize);
+    }
+    void insert(size_t index, size_t count, const T* data)
+    {
+        if (!count)
+            return;
+
+        if (index > size())
+            LOG_CRITICAL << "Index is out of range";
+
+        auto currentContext = RendererBase::current();
+        if (!currentContext)
+        {
+            LOG_CRITICAL << "No current context";
+            return;
+        }
+
+        // copying blocks by count elements to avoid overlapping
+        auto oldSize = size();
+        resize(oldSize + count);
+        auto srcOffset = oldSize;
+        while (auto copySize = (srcOffset > index + count) ? count : srcOffset - index)
+        {
+            srcOffset = (srcOffset > index + count) ? srcOffset - count : index;
+            const auto dstOffset = srcOffset + count;
+
+            currentContext->copyBufferSubData(
+                m_buffer,
+                m_buffer,
+                dstOffset * sizeof(value_type),
+                srcOffset * sizeof(value_type),
+                copySize * sizeof(value_type));
+        }
+
+        std::memcpy(m_buffer->map(IBuffer::MapAccess::WriteOnly, index * sizeof(value_type), count * sizeof(value_type))->get(),
+            data, count * sizeof(value_type));
+    }
+
+    static std::shared_ptr<DynamicBufferT<T>> create(std::initializer_list<T> l = {})
+    {
+        auto currentContext = RendererBase::current();
+        if (!currentContext)
+        {
+            LOG_CRITICAL << "No current context";
+            return nullptr;
+        }
+        
+        return std::shared_ptr<DynamicBufferT<value_type>>(new DynamicBufferT<value_type>(
+            currentContext->createDynamicBuffer(), l.size(), l.begin()));
+    }
+
+private:
+    DynamicBufferT(const std::shared_ptr<IDynamicBuffer>& buffer, size_t count, const T* data)
+        : m_buffer(buffer)
+    {
+    }
+
+    std::shared_ptr<IDynamicBuffer> m_buffer;
 };
 
 inline core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(uint32_t numComponents,

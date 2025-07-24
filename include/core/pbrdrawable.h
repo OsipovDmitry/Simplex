@@ -15,6 +15,7 @@ class CORE_SHARED_EXPORT PBRDrawable : public VisualDrawable
 {
 public:
     PBRDrawable(const std::shared_ptr<graphics::IVertexArray>&, const utils::BoundingBox&);
+    PBRDrawable(const std::shared_ptr<const Mesh>&, const std::shared_ptr<const Material>&, const utils::BoundingBox&);
     ~PBRDrawable() override;
 
     void setLighted(bool);

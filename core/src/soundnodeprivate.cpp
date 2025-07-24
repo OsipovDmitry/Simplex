@@ -18,7 +18,7 @@ SoundNodePrivate::SoundNodePrivate(SoundNode &soundNode, const std::string &name
 
 SoundNodePrivate::~SoundNodePrivate() = default;
 
-void SoundNodePrivate::doDetachFromScene()
+void SoundNodePrivate::doDetachFromScene(const std::shared_ptr<Scene>&)
 {
     auto audioRenderer = audio::RendererBase::current();
     if (!audioRenderer)

@@ -34,9 +34,11 @@ public:
     const uint8_t *pixel(uint32_t, uint32_t) const;
     void setPixel(uint32_t, uint32_t, const uint8_t*);
 
-    std::shared_ptr<Image> convert(uint32_t, uint32_t, uint32_t, PixelComponentType) const;
+    std::shared_ptr<Image> copy() const;
+    void convert(uint32_t, uint32_t, uint32_t, PixelComponentType);
+    std::shared_ptr<Image> converted(uint32_t, uint32_t, uint32_t, PixelComponentType) const;
 
-    bool saveToFile(const std::filesystem::path&);
+    bool saveToFile(const std::filesystem::path&) const;
 
     static std::shared_ptr<Image> loadFromData(uint32_t width,
                                                uint32_t height,

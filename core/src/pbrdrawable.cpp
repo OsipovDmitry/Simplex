@@ -6,6 +6,13 @@
 
 #include "visualdrawableprivate.h"
 
+//
+#include <core/mesh.h>
+#include <core/material.h>
+#include <core/igraphicswidget.h>
+#include <core/graphicsengine.h>
+#include <core/texturesmanager.h>
+
 namespace simplex
 {
 namespace core
@@ -18,6 +25,53 @@ PBRDrawable::PBRDrawable(const std::shared_ptr<graphics::IVertexArray> &vao, con
     setShadowed(true);
     setShadowCasted(true);
     setORMSwizzleMask(settings::Settings::instance().graphics().pbr().ORMSwizzleMask());
+}
+
+PBRDrawable::PBRDrawable(
+    const std::shared_ptr<const Mesh>& mesh,
+    const std::shared_ptr<const Material>& material,
+    const utils::BoundingBox& bb)
+    : VisualDrawable(std::make_unique<VisualDrawablePrivate>(mesh, material, bb))
+{
+
+    //tmp
+    auto renderer = graphics::RendererBase::current();
+    auto widget = renderer->widget();
+    auto engine = widget->graphicsEngine();
+    auto manager = engine->texturesManager();
+    auto loadTexture = [&manager](const std::shared_ptr<const MaterialMap>& map) -> graphics::PTexture {
+        if (!map)
+            return nullptr;
+        else if (auto path = map->asFilesystemPath(); !path.empty())
+            return manager->loadOrGetTexture(path);
+        else if (auto image = map->asImage(); image)
+            return manager->loadOrGetTexture(image);
+        else return nullptr;
+    };
+    m().vertexArray() = renderer->createVertexArray(mesh->mesh());
+    setLighted(material->isLighted());
+    setShadowed(material->isShadowed());
+    setShadowCasted(material->isShadowCasted());
+    setORMSwizzleMask(material->ORMSwizzleMask());
+    setBaseColor(material->baseColor());
+    setBaseColorMap(loadTexture(material->materialMap(MaterialMapTarget::BaseColor)));
+    setEmission(material->emission());
+    setEmissionMap(loadTexture(material->materialMap(MaterialMapTarget::Emission)));
+    setOcclusionMap(loadTexture(material->materialMap(MaterialMapTarget::Occlusion)));
+    setOcclusionMapStrength(material->occlusionMapStrength());
+    setRoughness(material->roughness());
+    setRoughnessMap(loadTexture(material->materialMap(MaterialMapTarget::Roughness)));
+    setMetalness(material->metalness());
+    setMetalnessMap(loadTexture(material->materialMap(MaterialMapTarget::Metalness)));
+    setNormalMap(loadTexture(material->materialMap(MaterialMapTarget::Normal)));
+    setNormalMapScale(material->normalMapScale());
+    //
+
+    setLighted(true);
+    setShadowed(true);
+    setShadowCasted(true);
+    setORMSwizzleMask(settings::Settings::instance().graphics().pbr().ORMSwizzleMask());
+
 }
 
 PBRDrawable::~PBRDrawable() = default;

@@ -16,12 +16,12 @@ SceneRootNodePrivate::SceneRootNodePrivate(SceneRootNode &sceneRootNode, const s
 
 SceneRootNodePrivate::~SceneRootNodePrivate() = default;
 
-void SceneRootNodePrivate::doAttachToParent()
+void SceneRootNodePrivate::doAttachToParent(const std::shared_ptr<Node>&)
 {
     LOG_CRITICAL << "SceneRootNode can't be attached";
 }
 
-void SceneRootNodePrivate::doDetachFromParent()
+void SceneRootNodePrivate::doDetachFromParent(const std::shared_ptr<Node>&)
 {
     LOG_CRITICAL << "SceneRootNode can't be detached";
 }

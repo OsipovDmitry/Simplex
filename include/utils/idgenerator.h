@@ -5,6 +5,7 @@
 #include <limits>
 
 #include <utils/logger.h>
+#include <utils/forwarddecl.h>
 
 namespace simplex
 {
@@ -12,13 +13,13 @@ namespace utils
 {
 
 template <typename T>
-struct IDGeneratorT
+struct IDsGeneratorT
 {
-    static_assert(std::numeric_limits<T>::is_integer && std::numeric_limits<T>::is_unsigned, "The base type of IDGenerator must be unsigned integer");
+    static_assert(std::numeric_limits<T>::is_integer && !std::numeric_limits<T>::is_signed, "The base type of IDGenerator must be unsigned integer");
 public:
     using value_type = T;
 
-    IDGeneratorT()
+    IDsGeneratorT()
         : m_nextID(static_cast<value_type>(0))
     {}
 

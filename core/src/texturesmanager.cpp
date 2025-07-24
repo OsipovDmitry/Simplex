@@ -44,7 +44,7 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetTexture(const std:
                                                                       bool genMipmaps,
                                                                       const std::string &key)
 {
-    auto name = key;
+    std::string name = key;
     if (name == "autogen")
     {
         name = filename.string() + std::to_string(graphics::castFromPixelInternalFormat(internalFormat)) + std::to_string(numLevels);
@@ -86,7 +86,57 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetTexture(const std:
     if (!texture)
         LOG_CRITICAL << "Failed to load texture " << absoluteFilename;
 
-    m_->resources()[name] = texture;
+    m_->resources().insert({ name, texture });
+    return texture;
+}
+
+std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetTexture(
+    const std::shared_ptr<const utils::Image>& image,
+    graphics::PixelInternalFormat internalFormat,
+    uint32_t numLevels,
+    bool genMipmaps,
+    const std::string& key)
+{
+    if (!image)
+    {
+        LOG_CRITICAL << "Image can't be nullptr";
+        return nullptr;
+    }
+
+    std::string name = key;
+    if (name == "autogen")
+    {
+        name = std::to_string(graphics::castFromPixelInternalFormat(internalFormat)) +
+            std::to_string(numLevels) +
+            std::to_string(image->width()) +
+            std::to_string(image->height()) +
+            std::to_string(image->numComponents()) +
+            std::to_string(utils::castFromPixelComponentType(image->type()));
+
+        static constexpr uint32_t s_smallWidth = 8u;
+        static constexpr uint32_t s_smallHeight = 8u;
+        static constexpr uint32_t s_smallNumComponents = 3u;
+        auto smallImage = image->converted(
+            glm::min(s_smallWidth, image->width()),
+            glm::min(s_smallHeight, image->height()),
+            glm::min(s_smallNumComponents, image->numComponents()),
+            image->type());
+        
+        name.append(
+            reinterpret_cast<char*>(smallImage->data()),
+            utils::sizeOfPixelComponentType(smallImage->type()) * smallImage->width() * smallImage->height() * smallImage->numComponents());
+    }
+
+    if (auto it = m_->resources().find(name); it != m_->resources().end())
+    {
+        return it->second;
+    }
+
+    auto texture = m_->renderer()->createTexture2D(image, internalFormat, numLevels, genMipmaps);
+    if (!texture)
+        LOG_CRITICAL << "Failed to load texture";
+
+    m_->resources().insert({ name, texture });
     return texture;
 }
 
@@ -256,7 +306,7 @@ inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared
     }
 
     auto &dataField = document[s_dataField.c_str()];
-    std::vector<std::vector<std::shared_ptr<utils::Image>>> imagesData;
+    std::vector<std::vector<std::shared_ptr<const utils::Image>>> imagesData;
 
     Images3D imagesFilenames;
     if (loadImages3D(dataField, imagesFilenames))
@@ -264,7 +314,7 @@ inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared
         imagesData.resize(imagesFilenames.size());
         for (size_t layer = 0; layer < imagesFilenames.size(); ++layer)
         {
-            std::vector<std::shared_ptr<utils::Image>> layerData(imagesFilenames[layer].size());
+            std::vector<std::shared_ptr<const utils::Image>> layerData(imagesFilenames[layer].size());
             for (size_t level = 0; level < imagesFilenames[layer].size(); ++level)
             {
                 const auto &imageFilename = imagesFilenames[layer][level];
@@ -389,7 +439,7 @@ inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared
     }
     case graphics::TextureType::Type3D:
     {
-        std::vector<std::shared_ptr<utils::Image>> layersData(layersCount);
+        std::vector<std::shared_ptr<const utils::Image>> layersData(layersCount);
         for (uint32_t layer = 0u; layer < layersCount; ++layer)
             layersData[layer] = imagesData[layer][0u];
 
@@ -424,7 +474,7 @@ inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared
             return nullptr;
         }
 
-        std::vector<std::shared_ptr<utils::Image>> layersData(layersCount);
+        std::vector<std::shared_ptr<const utils::Image>> layersData(layersCount);
         for (uint32_t layer = 0u; layer < layersCount; ++layer)
             layersData[layer] = imagesData[layer][0u];
 
@@ -451,7 +501,7 @@ inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared
     }
     case graphics::TextureType::Type1DArray:
     {
-        std::vector<std::shared_ptr<utils::Image>> layersData(layersCount);
+        std::vector<std::shared_ptr<const utils::Image>> layersData(layersCount);
         for (uint32_t layer = 0u; layer < layersCount; ++layer)
             layersData[layer] = imagesData[layer][0u];
 
@@ -477,7 +527,7 @@ inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared
     }
     case graphics::TextureType::Type2DArray:
     {
-        std::vector<std::shared_ptr<utils::Image>> layersData(layersCount);
+        std::vector<std::shared_ptr<const utils::Image>> layersData(layersCount);
         for (uint32_t layer = 0u; layer < layersCount; ++layer)
             layersData[layer] = imagesData[layer][0u];
 

@@ -27,8 +27,8 @@ public:
     bool isShadowed() const;
     bool isShadowCasted() const;
 
-    graphics::PConstBufferRange bonesBuffer() const;
-    void setBonesBuffer(const graphics::PConstBufferRange&);
+    graphics::PConstBuffer bonesBuffer() const;
+    void setBonesBuffer(const graphics::PConstBuffer&);
 
     static const DrawableComponentSet &componentSet();
 

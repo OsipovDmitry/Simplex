@@ -27,7 +27,7 @@ public:
     {
         for (auto &child : m_children)
         {
-            child->TreeNode<T>::doDetach();
+            std::dynamic_pointer_cast<TreeNode<T>>(child)->doDetach();
             child->m_parent = nullptr;
         }
         m_children.clear();
@@ -39,7 +39,7 @@ public:
             node->m_parent->detach(node);
         node->m_parent = dynamic_cast<T*>(this);
         m_children.push_back(node);
-        node->TreeNode<T>::doAttach();
+        std::dynamic_pointer_cast<TreeNode<T>>(node)->doAttach();
         return true;
     }
 
@@ -51,7 +51,7 @@ public:
         if (it == m_children.end())
             return false;
 
-        node->TreeNode<T>::doDetach();
+        std::dynamic_pointer_cast<TreeNode<T>>(node)->doDetach();
         m_children.erase(it);
         node->m_parent = nullptr;
         return true;

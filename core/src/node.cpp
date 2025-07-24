@@ -174,24 +174,24 @@ void Node::doAttach()
     m_->dirtyGlobalTransform();
     m_->dirtyBoundingBox();
 
-    m_->doAttachToParent();
+    m_->doAttachToParent(parent());
 
-    if (scene())
+    if (auto s = scene())
     {
-        AttachToSceneNodeVisitor attachToSceneNodeVisitor;
+        AttachToSceneNodeVisitor attachToSceneNodeVisitor(s);
         acceptDown(attachToSceneNodeVisitor);
     }
 }
 
 void Node::doDetach()
 {
-    if (scene())
+    if (auto s = scene())
     {
-        DetachFromSceneNodeVisitor detachFromSceneNodeVisitor;
+        DetachFromSceneNodeVisitor detachFromSceneNodeVisitor(s);
         acceptDown(detachFromSceneNodeVisitor);
     }
 
-    m_->doDetachFromParent();
+    m_->doDetachFromParent(parent());
 
     m_->dirtyGlobalTransform();
     m_->dirtyBoundingBox();

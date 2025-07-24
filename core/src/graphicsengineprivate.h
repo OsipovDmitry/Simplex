@@ -21,8 +21,8 @@ public:
     std::shared_ptr<TexturesManager> &texturesManager();
     std::shared_ptr<ProgramsManager> &programsManager();
 
-    graphics::PBufferRange &fragmentsBuffer();
-    graphics::PBufferRange &fragmentsCounter();
+    graphics::PBuffer &fragmentsBuffer();
+    graphics::PBuffer &fragmentsCounter();
 
     std::shared_ptr<graphics::IVertexArray> &screenQuadVertexArray();
 
@@ -52,8 +52,8 @@ private:
     std::shared_ptr<TexturesManager> m_texturesManager;
     std::shared_ptr<ProgramsManager> m_programsManager;
 
-    graphics::PBufferRange m_fragmentsBuffer;
-    graphics::PBufferRange m_fragmentsCounter;
+    graphics::PBuffer m_fragmentsBuffer;
+    graphics::PBuffer m_fragmentsCounter;
 
     std::shared_ptr<graphics::IVertexArray> m_screenQuadVertexArray;
 

@@ -33,7 +33,6 @@ namespace graphics_glfw
 GLenum Conversions::PrimitiveType2GL(utils::PrimitiveType value)
 {
     static std::array<GLenum, utils::numElementsPrimitiveType()> s_table {
-        GL_NONE,
         GL_POINTS,
         GL_LINES,
         GL_LINE_STRIP,
@@ -64,7 +63,6 @@ GLenum Conversions::VertexComponentType2GL(utils::VertexComponentType value)
 GLenum Conversions::DrawElementsIndexType2GL(utils::DrawElementsIndexType value)
 {
     static std::array<GLenum, utils::numElementsDrawElementsIndexType()> s_table {
-        GL_NONE,
         GL_UNSIGNED_BYTE,
         GL_UNSIGNED_SHORT,
         GL_UNSIGNED_INT
@@ -540,23 +538,23 @@ GLenum Conversions::BlendFactor2GL(core::graphics::BlendFactor value)
     return s_table[core::graphics::castFromBlendFactor(value)];
 }
 
-// Buffer_4_5::MappedData_4_5
+// BufferBase_4_5::MappedData_4_5
 
-Buffer_4_5::MappedData_4_5::MappedData_4_5(std::weak_ptr<const Buffer_4_5> mappedBuffer, uint8_t *data)
+BufferBase_4_5::MappedData_4_5::MappedData_4_5(const std::weak_ptr<const BufferBase_4_5>& mappedBuffer, uint8_t *data)
     : m_mappedBuffer(mappedBuffer)
     , m_data(data)
 {
     SAVE_CURRENT_CONTEXT
 }
 
-Buffer_4_5::MappedData_4_5::~MappedData_4_5()
+BufferBase_4_5::MappedData_4_5::~MappedData_4_5()
 {
     CHECK_CURRENT_CONTEXT
     if (!m_mappedBuffer.expired())
     {
-        auto buffer_4_5 = m_mappedBuffer.lock();
-        glUnmapNamedBuffer(buffer_4_5->id());
-        buffer_4_5->m_isMapped = false;
+        auto bufferBase_4_5 = m_mappedBuffer.lock();
+        glUnmapNamedBuffer(bufferBase_4_5->id());
+        bufferBase_4_5->m_isMapped = false;
     }
 }
 
@@ -572,48 +570,52 @@ uint8_t *Buffer_4_5::MappedData_4_5::get()
     return m_mappedBuffer.expired() ? nullptr : m_data;
 }
 
-// Buffer_4_5
+// BufferBase_4_5
 
-Buffer_4_5::Buffer_4_5(uint64_t size, const void *data)
-{
-    SAVE_CURRENT_CONTEXT
-    glCreateBuffers(1, &m_id);
-    Buffer_4_5::resize(size, data);
-}
-
-Buffer_4_5::~Buffer_4_5()
+BufferBase_4_5::~BufferBase_4_5()
 {
     CHECK_CURRENT_CONTEXT
     glDeleteBuffers(1, &m_id);
 }
 
-GLuint Buffer_4_5::id() const
+GLuint BufferBase_4_5::id() const
 {
     CHECK_CURRENT_CONTEXT
     return m_id;
 }
 
-size_t Buffer_4_5::size() const
+size_t BufferBase_4_5::fullSize() const
 {
     CHECK_CURRENT_CONTEXT
-    GLint result;
+    GLint result = 0;
     glGetNamedBufferParameteriv(m_id, GL_BUFFER_SIZE, &result);
     return static_cast<size_t>(result);
 }
 
-void Buffer_4_5::resize(size_t size, const void *data)
+void BufferBase_4_5::setFullSize(size_t newSize)
 {
     CHECK_CURRENT_CONTEXT
-    glNamedBufferData(m_id, static_cast<GLsizei>(size), data, GL_STATIC_DRAW);
+
+    size_t oldSize = fullSize();
+    if (oldSize == newSize)
+        return;
+
+    GLuint newID;
+    glCreateBuffers(1, &newID);
+    glNamedBufferStorage(newID, newSize, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+    glCopyNamedBufferSubData(m_id, newID, 0u, 0u, glm::min(oldSize, newSize));
+    glDeleteBuffers(1, &m_id);
+    m_id = newID;
 }
 
-std::unique_ptr<const core::graphics::IBuffer::MappedData> Buffer_4_5::map(MapAccess access, size_t offset, size_t size) const
+BufferBase_4_5::BufferBase_4_5(uint64_t size, const void* data)
 {
-    CHECK_CURRENT_CONTEXT
-    return const_cast<Buffer_4_5*>(this)->map(access, offset, size);
+    SAVE_CURRENT_CONTEXT
+        glCreateBuffers(1, &m_id);
+    glNamedBufferStorage(m_id, size, data, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
 }
 
-std::unique_ptr<core::graphics::IBuffer::MappedData> Buffer_4_5::map(MapAccess access, size_t offset, size_t size)
+std::unique_ptr<BufferBase_4_5::MappedData_4_5> BufferBase_4_5::mapData(core::graphics::IBuffer::MapAccess access, size_t offset, size_t size)
 {
     CHECK_CURRENT_CONTEXT
     if (m_isMapped)
@@ -623,16 +625,62 @@ std::unique_ptr<core::graphics::IBuffer::MappedData> Buffer_4_5::map(MapAccess a
     }
 
     if (size == 0)
-        size = Buffer_4_5::size() - offset;
+        size = fullSize() - offset;
+
+    if (offset + size > fullSize())
+    {
+        LOG_ERROR << "The size of mapped data is out of range";
+        return nullptr;
+    }
 
     m_isMapped = true;
 
     return std::make_unique<MappedData_4_5>(
-                shared_from_this(),
+                weak_from_this(),
                 static_cast<uint8_t*>(glMapNamedBufferRange(m_id,
-                                                                      static_cast<GLintptr>(offset),
-                                                                      static_cast<GLsizei>(size),
-                                                                      Conversions::BufferMapAccess2GL(access))));
+                    static_cast<GLintptr>(offset),
+                    static_cast<GLsizei>(size),
+                    Conversions::BufferMapAccess2GL(access))));
+}
+
+std::unique_ptr<const BufferBase_4_5::MappedData_4_5> BufferBase_4_5::mapData(core::graphics::IBuffer::MapAccess access, size_t offset, size_t size) const
+{
+    CHECK_CURRENT_CONTEXT
+    return const_cast<BufferBase_4_5*>(this)->mapData(access, offset, size);
+}
+
+// Buffer_4_5
+
+Buffer_4_5::Buffer_4_5(uint64_t size, const void* data)
+    : BufferBase_4_5(size, data)
+{
+    SAVE_CURRENT_CONTEXT
+}
+
+Buffer_4_5::~Buffer_4_5() = default;
+
+size_t Buffer_4_5::size() const
+{
+    CHECK_CURRENT_CONTEXT
+    return fullSize();
+}
+
+void Buffer_4_5::resize(size_t size)
+{
+    CHECK_CURRENT_CONTEXT
+    setFullSize(size);
+}
+
+std::unique_ptr<const core::graphics::IBuffer::MappedData> Buffer_4_5::map(MapAccess access, size_t offset, size_t size) const
+{
+    CHECK_CURRENT_CONTEXT
+    return mapData(access, offset, size);
+}
+
+std::unique_ptr<core::graphics::IBuffer::MappedData> Buffer_4_5::map(MapAccess access, size_t offset, size_t size)
+{
+    CHECK_CURRENT_CONTEXT
+    return mapData(access, offset, size);
 }
 
 std::shared_ptr<Buffer_4_5> Buffer_4_5::create(size_t size, const void *data)
@@ -640,58 +688,75 @@ std::shared_ptr<Buffer_4_5> Buffer_4_5::create(size_t size, const void *data)
     return std::make_shared<Buffer_4_5>(size, data);
 }
 
-// BufferRange_4_5
+// DynamicBuffer_4_5
 
-BufferRange_4_5::BufferRange_4_5(std::shared_ptr<core::graphics::IBuffer> buffer, size_t offset, size_t size)
-    : m_buffer(buffer)
-    , m_offset(offset)
+DynamicBuffer_4_5::DynamicBuffer_4_5(uint64_t size, const void* data)
+    : BufferBase_4_5(size, data)
     , m_size(size)
+
 {
     SAVE_CURRENT_CONTEXT
 }
 
-BufferRange_4_5::~BufferRange_4_5() = default;
+DynamicBuffer_4_5::~DynamicBuffer_4_5() = default;
 
-std::shared_ptr<const core::graphics::IBuffer> BufferRange_4_5::buffer() const
+size_t DynamicBuffer_4_5::capacity() const
 {
     CHECK_CURRENT_CONTEXT
-    return m_buffer;
+    return fullSize();
 }
 
-std::shared_ptr<core::graphics::IBuffer> BufferRange_4_5::buffer()
+void DynamicBuffer_4_5::reserve(size_t size)
 {
     CHECK_CURRENT_CONTEXT
-    return m_buffer;
+    if (size > capacity())
+        setFullSize(size);
 }
 
-size_t BufferRange_4_5::offset() const
+void DynamicBuffer_4_5::pushBack(const void* data, size_t size)
 {
     CHECK_CURRENT_CONTEXT
-    return m_offset;
+    expand(m_size + size);
+    std::memcpy(map(IBuffer::MapAccess::WriteOnly, m_size, size)->get(), data, size);
+    m_size += size;
 }
 
-void BufferRange_4_5::setOffset(size_t value)
-{
-    CHECK_CURRENT_CONTEXT
-    m_offset = value;
-}
-
-size_t BufferRange_4_5::size() const
+size_t DynamicBuffer_4_5::size() const
 {
     CHECK_CURRENT_CONTEXT
     return m_size;
 }
 
-void BufferRange_4_5::setSize(size_t value)
+void DynamicBuffer_4_5::resize(size_t size)
 {
     CHECK_CURRENT_CONTEXT
-    m_size = value;
+    expand(size);
+    m_size = size;
 }
 
-std::shared_ptr<BufferRange_4_5> BufferRange_4_5::create(
-    const std::shared_ptr<core::graphics::IBuffer>& buffer, size_t offset, size_t size)
+std::unique_ptr<const core::graphics::IBuffer::MappedData> DynamicBuffer_4_5::map(MapAccess access, size_t offset, size_t size) const
 {
-    return std::make_shared<BufferRange_4_5>(buffer, offset, size);
+    CHECK_CURRENT_CONTEXT
+    return mapData(access, offset, size);
+}
+
+std::unique_ptr<core::graphics::IBuffer::MappedData> DynamicBuffer_4_5::map(MapAccess access, size_t offset, size_t size)
+{
+    CHECK_CURRENT_CONTEXT
+    return mapData(access, offset, size);
+}
+
+std::shared_ptr<DynamicBuffer_4_5> DynamicBuffer_4_5::create(size_t size, const void* data)
+{
+    return std::make_shared<DynamicBuffer_4_5>(size, data);
+}
+
+
+void DynamicBuffer_4_5::expand(size_t requiredSize)
+{
+    CHECK_CURRENT_CONTEXT
+    if (requiredSize > capacity())
+        reserve(glm::max(requiredSize, capacity() * 2u));
 }
 
 // VertexArray_4_5
@@ -908,18 +973,18 @@ const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> &VertexArray_4_5:
     return m_primitiveSets;
 }
 
-std::shared_ptr<VertexArray_4_5> VertexArray_4_5::create(const std::shared_ptr<utils::Mesh> & mesh, bool uniteVertexBuffers)
+std::shared_ptr<VertexArray_4_5> VertexArray_4_5::create(const std::shared_ptr<const utils::Mesh> & mesh, bool uniteVertexBuffers)
 {
     auto vertexArray = std::make_shared<VertexArray_4_5>();
 
     if (mesh)
     {
-        uint32_t numVertices = mesh->vertexBuffers().empty() ? 0u : mesh->vertexBuffers().begin()->second->numVertices();
+        size_t numVertices = mesh->vertexBuffers().empty() ? 0u : mesh->vertexBuffers().begin()->second->numVertices();
 
         if (uniteVertexBuffers)
         {
             size_t totalSize = 0u;
-            uint32_t stride = 0u;
+            size_t stride = 0u;
             for (auto const &[attrib, buffer] : mesh->vertexBuffers())
             {
                 if (numVertices != buffer->numVertices())
@@ -932,12 +997,12 @@ std::shared_ptr<VertexArray_4_5> VertexArray_4_5::create(const std::shared_ptr<u
             auto buffer = Buffer_4_5::create(totalSize);
             auto bindingIndex = vertexArray->attachVertexBuffer(buffer, 0u, stride);
 
-            uint32_t relativeOffset = 0u;
+            size_t relativeOffset = 0u;
             auto bufferData = buffer->map(core::graphics::IBuffer::MapAccess::WriteOnly);
             for (auto const &[attrib, buffer] : mesh->vertexBuffers())
             {
-                uint32_t vertexSize = buffer->numComponents() * utils::sizeOfVertexComponentType(buffer->componentType());
-                for (uint32_t i = 0; i < buffer->numVertices(); ++i)
+                size_t vertexSize = buffer->numComponents() * utils::sizeOfVertexComponentType(buffer->componentType());
+                for (size_t i = 0; i < buffer->numVertices(); ++i)
                     std::memcpy(static_cast<uint8_t*>(bufferData->get()) + stride * i + relativeOffset, buffer->vertex(i), vertexSize);
                 vertexArray->declareVertexAttribute(attrib, bindingIndex, buffer->numComponents(), buffer->componentType(), relativeOffset);
                 relativeOffset += vertexSize;
@@ -972,7 +1037,7 @@ std::shared_ptr<VertexArray_4_5> VertexArray_4_5::create(const std::shared_ptr<u
                 {
                     vertexArray->addPrimitiveSet(std::make_shared<utils::DrawElements>(drawElementsBuffer->primitiveType(),
                                                                                        drawElementsBuffer->count(),
-                                                                                       drawElementsBuffer->type(),
+                                                                                       drawElementsBuffer->indexType(),
                                                                                        indexBufferTotalSize,
                                                                                        drawElementsBuffer->baseVertex()));
                     indexBufferTotalSize += drawElementsBuffer->sizeInBytes();
@@ -1275,7 +1340,7 @@ std::shared_ptr<Texture1D_4_5> Texture1D_4_5::createEmpty(uint32_t width, core::
 }
 
 std::shared_ptr<Texture1D_4_5> Texture1D_4_5::create(
-    const std::shared_ptr<utils::Image>& image,
+    const std::shared_ptr<const utils::Image>& image,
     core::graphics::PixelInternalFormat internalFormat,
     uint32_t numLevels,
     bool genMipmaps)
@@ -1365,7 +1430,7 @@ std::shared_ptr<Texture2D_4_5> Texture2D_4_5::createEmpty(uint32_t width,
     return result;
 }
 
-std::shared_ptr<Texture2D_4_5> Texture2D_4_5::create(const std::shared_ptr<utils::Image>& image,
+std::shared_ptr<Texture2D_4_5> Texture2D_4_5::create(const std::shared_ptr<const utils::Image>& image,
     core::graphics::PixelInternalFormat internalFormat,
     uint32_t numLevels,
     bool genMipmaps)
@@ -1457,7 +1522,7 @@ std::shared_ptr<Texture3D_4_5> Texture3D_4_5::createEmpty(uint32_t width,
     return result;
 }
 
-std::shared_ptr<Texture3D_4_5> Texture3D_4_5::create(const std::vector<std::shared_ptr<utils::Image>> &images,
+std::shared_ptr<Texture3D_4_5> Texture3D_4_5::create(const std::vector<std::shared_ptr<const utils::Image>> &images,
     core::graphics::PixelInternalFormat internalFormat,
     uint32_t numLevels,
     bool genMipmaps)
@@ -1572,7 +1637,7 @@ std::shared_ptr<TextureCube_4_5> TextureCube_4_5::createEmpty(uint32_t width,
     return result;
 }
 
-std::shared_ptr<TextureCube_4_5> TextureCube_4_5::create(const std::vector<std::shared_ptr<utils::Image>>& images,
+std::shared_ptr<TextureCube_4_5> TextureCube_4_5::create(const std::vector<std::shared_ptr<const utils::Image>>& images,
     core::graphics::PixelInternalFormat internalFormat,
     uint32_t numLevels,
     bool genMipmaps)
@@ -1679,7 +1744,7 @@ std::shared_ptr<Texture1DArray_4_5> Texture1DArray_4_5::createEmpty(uint32_t wid
     return result;
 }
 
-std::shared_ptr<Texture1DArray_4_5> Texture1DArray_4_5::create(const std::vector<std::shared_ptr<utils::Image>>& images,
+std::shared_ptr<Texture1DArray_4_5> Texture1DArray_4_5::create(const std::vector<std::shared_ptr<const utils::Image>>& images,
     core::graphics::PixelInternalFormat internalFormat,
     uint32_t numLevels,
     bool genMipmaps)
@@ -1786,7 +1851,7 @@ std::shared_ptr<Texture2DArray_4_5> Texture2DArray_4_5::createEmpty(uint32_t wid
     return result;
 }
 
-std::shared_ptr<Texture2DArray_4_5> Texture2DArray_4_5::create(const std::vector<std::shared_ptr<utils::Image>>& images,
+std::shared_ptr<Texture2DArray_4_5> Texture2DArray_4_5::create(const std::vector<std::shared_ptr<const utils::Image>>& images,
     core::graphics::PixelInternalFormat internalFormat,
     uint32_t numLevels,
     bool genMipmaps)
@@ -1899,7 +1964,7 @@ std::shared_ptr<TextureCubeArray_4_5> TextureCubeArray_4_5::createEmpty(uint32_t
     return result;
 }
 
-std::shared_ptr<TextureCubeArray_4_5> TextureCubeArray_4_5::create(const std::vector<std::vector<std::shared_ptr<utils::Image>>>& images,
+std::shared_ptr<TextureCubeArray_4_5> TextureCubeArray_4_5::create(const std::vector<std::vector<std::shared_ptr<const utils::Image>>>& images,
     core::graphics::PixelInternalFormat internalFormat,
     uint32_t numLevels,
     bool genMipmaps)
@@ -2010,7 +2075,7 @@ std::shared_ptr<TextureRect_4_5> TextureRect_4_5::createEmpty(uint32_t width,
     return result;
 }
 
-std::shared_ptr<TextureRect_4_5> TextureRect_4_5::create(const std::shared_ptr<utils::Image>& image,
+std::shared_ptr<TextureRect_4_5> TextureRect_4_5::create(const std::shared_ptr<const utils::Image>& image,
     core::graphics::PixelInternalFormat internalFormat)
 {
     if (!image)
@@ -2023,6 +2088,51 @@ std::shared_ptr<TextureRect_4_5> TextureRect_4_5::create(const std::shared_ptr<u
     result->setSubImage(0u, glm::uvec3(0u), glm::uvec3(image->width(), image->height(), 0u), image->numComponents(), image->type(), image->data());
 
     return result;
+}
+
+// TextureHandle_4_5
+
+TextureHandle_4_5::TextureHandle_4_5(const core::graphics::PConstTexture& texture)
+    : m_texture(texture)
+{
+    SAVE_CURRENT_CONTEXT
+
+    if (auto texture_4_5 = std::dynamic_pointer_cast<const TextureBase_4_5>(m_texture); texture_4_5)
+    {
+        m_id = glGetTextureHandleARB(texture_4_5->id());
+    }
+    else
+        LOG_CRITICAL << "Texture can't be nullptr";
+}
+
+TextureHandle_4_5::~TextureHandle_4_5() = default;
+
+core::graphics::TextureHandle TextureHandle_4_5::handle() const
+{
+    return m_id;
+}
+
+core::graphics::PConstTexture TextureHandle_4_5::texture() const
+{
+    CHECK_CURRENT_CONTEXT
+    return m_texture;
+}
+
+void TextureHandle_4_5::makeResident()
+{
+    CHECK_CURRENT_CONTEXT
+    glMakeTextureHandleResidentARB(m_id);
+}
+
+void TextureHandle_4_5::doneResident()
+{
+    CHECK_CURRENT_CONTEXT
+    glMakeTextureHandleNonResidentARB(m_id);
+}
+
+std::shared_ptr<TextureHandle_4_5> TextureHandle_4_5::create(const core::graphics::PConstTexture& texture)
+{
+    return std::make_shared<TextureHandle_4_5>(texture);
 }
 
 // Image_4_5
@@ -3483,6 +3593,26 @@ void GLFWRenderer::blitFrameBuffer(std::shared_ptr<const core::graphics::IFrameB
                            mask, filter);
 }
 
+void GLFWRenderer::copyBufferSubData(const std::shared_ptr<core::graphics::IBuffer>& dst, const std::shared_ptr<const core::graphics::IBuffer>& src, size_t dstOffset, size_t srcOffset, size_t size) const
+{
+    CHECK_THIS_CONTEXT
+
+    auto dst_4_5 = std::dynamic_pointer_cast<BufferBase_4_5>(dst);
+    if (!dst_4_5)
+        LOG_CRITICAL << "Destination buffer can't be nullptr";
+    CHECK_RESOURCE_CONTEXT(dst_4_5)
+
+    auto src_4_5 = std::dynamic_pointer_cast<const BufferBase_4_5>(src);
+    if (!src_4_5)
+        LOG_CRITICAL << "Source buffer can't be nullptr";
+    CHECK_RESOURCE_CONTEXT(src_4_5)
+
+    size = glm::min(size, dst_4_5->fullSize() - dstOffset);
+    size = glm::min(size, src_4_5->fullSize() - srcOffset);
+
+    glCopyNamedBufferSubData(src_4_5->id(), dst_4_5->id(), srcOffset, dstOffset, size);
+}
+
 bool GLFWRenderer::registerVertexAttribute(const std::string& name, utils::VertexAttribute id)
 {
     CHECK_THIS_CONTEXT
@@ -3600,15 +3730,13 @@ std::shared_ptr<core::graphics::IBuffer> GLFWRenderer::createBuffer(size_t size,
     return Buffer_4_5::create(size, data);
 }
 
-std::shared_ptr<core::graphics::IBufferRange> GLFWRenderer::createBufferRange(const std::shared_ptr<core::graphics::IBuffer> &buffer,
-                                                                                       size_t offset,
-                                                                                       size_t size) const
+std::shared_ptr<core::graphics::IDynamicBuffer> GLFWRenderer::createDynamicBuffer(size_t size, const void* data) const
 {
     CHECK_THIS_CONTEXT
-    return BufferRange_4_5::create(buffer, offset, size);
+    return DynamicBuffer_4_5::create(size, data);
 }
 
-std::shared_ptr<core::graphics::IVertexArray> GLFWRenderer::createVertexArray(const std::shared_ptr<utils::Mesh> &mesh,
+std::shared_ptr<core::graphics::IVertexArray> GLFWRenderer::createVertexArray(const std::shared_ptr<const utils::Mesh> &mesh,
                                                                                        bool uniteVertexBuffers) const
 {
     CHECK_THIS_CONTEXT
@@ -3623,7 +3751,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture1DEmpty(uin
     return Texture1D_4_5::createEmpty(width, internalFormat, numLevels);
 }
 
-std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture1D(const std::shared_ptr<utils::Image> &image,
+std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture1D(const std::shared_ptr<const utils::Image> &image,
                                                                                  core::graphics::PixelInternalFormat internalFormat,
                                                                                  uint32_t numLevels,
                                                                                  bool genMipmaps) const
@@ -3641,7 +3769,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture2DEmpty(uin
     return Texture2D_4_5::createEmpty(width, height, internalFormat, numLevels);
 }
 
-std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture2D(const std::shared_ptr<utils::Image> &image,
+std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture2D(const std::shared_ptr<const utils::Image> &image,
                                                                                  core::graphics::PixelInternalFormat internalFormat,
                                                                                  uint32_t numLevels,
                                                                                  bool genMipmaps) const
@@ -3660,7 +3788,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture3DEmpty(uin
     return Texture3D_4_5::createEmpty(width, height, depth, internalFormat, numLevels);
 }
 
-std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture3D(const std::vector<std::shared_ptr<utils::Image>> &images,
+std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture3D(const std::vector<std::shared_ptr<const utils::Image>> &images,
                                                                                  core::graphics::PixelInternalFormat internalFormat,
                                                                                  uint32_t numLevels,
                                                                                  bool genMipmaps) const
@@ -3678,7 +3806,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureCubeEmpty(u
     return TextureCube_4_5::createEmpty(width, height, internalFormat, numLevels);
 }
 
-std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureCube(const std::vector<std::shared_ptr<utils::Image>> &images,
+std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureCube(const std::vector<std::shared_ptr<const utils::Image>> &images,
                                                                                    core::graphics::PixelInternalFormat internalFormat,
                                                                                    uint32_t numLevels,
                                                                                    bool genMipmaps) const
@@ -3696,7 +3824,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture1DArrayEmpt
     return Texture1DArray_4_5::createEmpty(width, numLayers, internalFormat, numLevels);
 }
 
-std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture1DArray(const std::vector<std::shared_ptr<utils::Image>> &images,
+std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture1DArray(const std::vector<std::shared_ptr<const utils::Image>> &images,
                                                                                       core::graphics::PixelInternalFormat internalFormat,
                                                                                       uint32_t numLevels,
                                                                                       bool genMipmaps) const
@@ -3715,7 +3843,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture2DArrayEmpt
     return Texture2DArray_4_5::createEmpty(width, height, numLayers, internalFormat, numLevels);
 }
 
-std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture2DArray(const std::vector<std::shared_ptr<utils::Image>> &images,
+std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture2DArray(const std::vector<std::shared_ptr<const utils::Image>> &images,
                                                                                       core::graphics::PixelInternalFormat internalFormat,
                                                                                       uint32_t numLevels,
                                                                                       bool genMipmaps) const
@@ -3734,7 +3862,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureCubeArrayEm
     return TextureCubeArray_4_5::createEmpty(width, height, numLayers, internalFormat, numLevels);
 }
 
-std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureCubeArray(const std::vector<std::vector<std::shared_ptr<utils::Image>>> &images,
+std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureCubeArray(const std::vector<std::vector<std::shared_ptr<const utils::Image>>> &images,
                                                                                         core::graphics::PixelInternalFormat internalFormat,
                                                                                         uint32_t numLevels,
                                                                                         bool genMipmaps) const
@@ -3751,11 +3879,18 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureRectEmpty(u
     return TextureRect_4_5::createEmpty(width, height, internalFormat);
 }
 
-std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureRect(const std::shared_ptr<utils::Image> &image,
+std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureRect(const std::shared_ptr<const utils::Image> &image,
                                                                                    core::graphics::PixelInternalFormat internalFormat) const
 {
     CHECK_THIS_CONTEXT
     return TextureRect_4_5::create(image, internalFormat);
+}
+
+std::shared_ptr<core::graphics::ITextureHandle> GLFWRenderer::createTextureHandle(
+    const core::graphics::PConstTexture& texture) const
+{
+    CHECK_THIS_CONTEXT
+    return TextureHandle_4_5::create(texture);
 }
 
 std::shared_ptr<core::graphics::IImage> GLFWRenderer::createImage(core::graphics::IImage::DataAccess access,
@@ -3969,7 +4104,7 @@ void GLFWRenderer::render(const std::shared_ptr<core::graphics::IFrameBuffer> &f
             else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
                 glDrawElementsBaseVertex(Conversions::PrimitiveType2GL(drawElements->primitiveType()),
                                          static_cast<GLsizei>(drawElements->count()),
-                                         Conversions::DrawElementsIndexType2GL(drawElements->type()),
+                                         Conversions::DrawElementsIndexType2GL(drawElements->indexType()),
                                          reinterpret_cast<const void*>(drawElements->offset()),
                                          static_cast<GLint>(drawElements->baseVertex()));
         }
@@ -4200,7 +4335,7 @@ void GLFWRenderer::setupUniform(GLuint rpId,
     }
     case core::graphics::UniformType::AtomicCounterUint:
     {
-        auto atomicCounterUniform = core::uniform_cast<core::graphics::PConstBufferRange>(uniform)->data();
+        auto atomicCounterUniform = core::uniform_cast<core::graphics::PConstBuffer>(uniform)->data();
         bindAtomicCounterBuffer(static_cast<GLuint>(loc), atomicCounterUniform);
         break;
     }
@@ -4255,7 +4390,7 @@ void GLFWRenderer::setupSSBOs(const std::shared_ptr<ProgramBase_4_5> &program,
 
     for (const auto &ssboInfo : program->SSBOsInfo())
     {
-        core::graphics::PConstBufferRange bufferRange;
+        core::graphics::PConstBuffer bufferRange;
         const auto ssboId = core::castToSSBOId(ssboInfo.id);
 
         for (const auto &stateSet: stateSetList)
@@ -4306,32 +4441,28 @@ void GLFWRenderer::bindImage(int32_t unit, const core::graphics::PConstImage &im
                        Conversions::PixelInternalFormat2GL(image->format()));
 }
 
-void GLFWRenderer::bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBufferRange &bufferRange)
+void GLFWRenderer::bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBuffer &buffer)
 {
     CHECK_THIS_CONTEXT
-    auto buffer = std::dynamic_pointer_cast<const Buffer_4_5>(bufferRange->buffer());
+    auto buffer_4_5 = std::dynamic_pointer_cast<const Buffer_4_5>(buffer);
     if (!buffer)
         LOG_CRITICAL << "Buffer can't be nullptr";
-    CHECK_RESOURCE_CONTEXT(buffer)
-
-    auto size = bufferRange->size();
-    if (size == static_cast<size_t>(-1))
-        size = buffer->size() - bufferRange->offset();
+    CHECK_RESOURCE_CONTEXT(buffer_4_5)
 
     glBindBufferRange(target,
                       bindingPoint,
-                      buffer->id(),
-                      static_cast<GLintptr>(bufferRange->offset()),
-                      static_cast<GLsizeiptr>(size));
+                      buffer_4_5->id(),
+                      0u,
+                      static_cast<GLsizeiptr>(buffer_4_5->size()));
 }
 
-void GLFWRenderer::bindSSBO(uint32_t unit, const core::graphics::PConstBufferRange &bufferRange)
+void GLFWRenderer::bindSSBO(uint32_t unit, const core::graphics::PConstBuffer &bufferRange)
 {
     CHECK_THIS_CONTEXT
     bindBuffer(GL_SHADER_STORAGE_BUFFER, unit, bufferRange);
 }
 
-void GLFWRenderer::bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBufferRange &bufferRange)
+void GLFWRenderer::bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBuffer &bufferRange)
 {
     CHECK_THIS_CONTEXT
     bindBuffer(GL_ATOMIC_COUNTER_BUFFER, bindingPoint, bufferRange);

@@ -97,62 +97,75 @@ struct buffer_data {
     int size_left;
 };
 
-std::shared_ptr<Image> Image::convert(
+std::shared_ptr<Image> Image::copy() const
+{
+    return loadFromData(m_width, m_height, m_numComponents, m_componentType, m_data);
+}
+
+void Image::convert(
+    uint32_t width,
+    uint32_t height,
+    uint32_t numComponents,
+    PixelComponentType componentType)
+{
+    if (width * height == 0)
+    {
+        LOG_CRITICAL << "Width and height can't be 0";
+        return;
+    }
+
+    if ((numComponents < 1) || (numComponents > 4))
+    {
+        LOG_CRITICAL << "Num components must be in [1..4]";
+        return;
+    }
+
+    if (componentType == PixelComponentType::Undefined)
+    {
+        LOG_CRITICAL << "Undefined pixel component type";
+        return;
+    }
+
+    if (m_componentType != componentType)
+    {
+        if (auto data = convertToPixelComponentType(m_width, m_height, m_numComponents, m_componentType, m_data, componentType))
+        {
+            stbi_image_free(m_data);
+            m_data = data;
+        }
+    }
+
+    if (m_numComponents != numComponents)
+    {
+        if (auto data = convertToNumComponents(m_width, m_height, m_numComponents, m_componentType, m_data, numComponents))
+        {
+            stbi_image_free(m_data);
+            m_data = data;
+        }
+    }
+
+    if ((m_width != width) && (m_height != height))
+    {
+        if (auto data = convertToSize(m_width, m_height, m_numComponents, m_componentType, m_data, width, height))
+        {
+            stbi_image_free(m_data);
+            m_data = data;
+        }
+    }
+}
+
+std::shared_ptr<Image> Image::converted(
     uint32_t width,
     uint32_t height,
     uint32_t numComponents,
     PixelComponentType componentType) const
 {
-    if (width * height == 0)
-        LOG_CRITICAL << "Width and height can't be 0";
-
-    if ((numComponents < 1) || (numComponents > 4))
-        LOG_CRITICAL << "Num components must be in [1..4]";
-
-    if (componentType == PixelComponentType::Undefined)
-        LOG_CRITICAL << "Undefined pixel component type";
-
-    auto w = m_width;
-    auto h = m_height;
-    auto n = m_numComponents;
-    auto t = m_componentType;
-
-    const size_t dataSize = m_width * m_height * m_numComponents * sizeOfPixelComponentType(m_componentType);
-    auto d = reinterpret_cast<uint8_t*>(STBI_MALLOC(dataSize));
-    if (m_data)
-        std::memcpy(d, m_data, dataSize);
-
-    if (auto data = convertToPixelComponentType(w, h, n, t, d, componentType))
-    {
-        stbi_image_free(d);
-        d = data;
-    }
-
-    if (auto data = convertToNumComponents(w, h, n, t, d, numComponents))
-    {
-        stbi_image_free(d);
-        d = data;
-    }
-
-    if (auto data = convertToSize(w, h, n, t, d, width, height))
-    {
-        stbi_image_free(d);
-        d = data;
-    }
-
-    auto result = std::make_shared<Image>();
-    result->m_width = w;
-    result->m_height = h;
-    result->m_numComponents = n;
-    result->m_componentType = t;
-    result->m_data = d;
-
-    result->saveToFile("qwe.png");
-
+    auto result = copy();
+    result->convert(width, height, numComponents, componentType);
     return result;
 }
 
-bool Image::saveToFile(const std::filesystem::path &filename)
+bool Image::saveToFile(const std::filesystem::path &filename) const
 {
     const auto filenameUtf8 = filename.string();
     auto extension = fileExtension(filename);
@@ -224,7 +237,7 @@ std::shared_ptr<Image> Image::loadFromData(uint32_t width,
     result->m_numComponents = numComponents;
     result->m_componentType = componentType;
 
-    const size_t dataSize = width * height * numComponents * sizeOfPixelComponentType(componentType);
+    const size_t dataSize = sizeOfPixelComponentType(componentType) * width * height * numComponents;
     result->m_data = reinterpret_cast<uint8_t*>(STBI_MALLOC(dataSize));
 
     if (data)

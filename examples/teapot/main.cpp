@@ -13,6 +13,8 @@
 #include <core/visualdrawablenode.h>
 #include <core/pbrdrawable.h>
 #include <core/ibllightnode.h>
+#include <core/mesh.h>
+#include <core/material.h>
 
 #include <graphics_glfw/glfwwidget.h>
 
@@ -27,18 +29,20 @@ static std::shared_ptr<simplex::core::Scene> createScene(
 
     simplex::utils::MeshPainter teapotPainter(simplex::utils::Mesh::createEmptyMesh({
         {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
-        {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}},
-        {simplex::utils::VertexAttribute::TexCoords, {2u, simplex::utils::VertexComponentType::Single}}
+        {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}}
         }));
     teapotPainter.setVertexTransform(simplex::utils::Transform::makeTranslation(glm::vec3(0.f, -.5f, 0.f)));
     teapotPainter.drawTeapot();
     auto teapotBoundingBox = teapotPainter.calculateBoundingBox();
-    auto teapotVao = renderer->createVertexArray(teapotPainter.mesh());
 
-    auto drawable = std::make_shared<simplex::core::PBRDrawable>(teapotVao, teapotBoundingBox);
-    drawable->setBaseColor(glm::convertSRGBToLinear(glm::vec4(.5f, .5f, 1.f, 1.0f)));
-    drawable->setMetalness(0.f);
-    drawable->setRoughness(.2f);
+    auto mesh = std::make_shared<simplex::core::Mesh>(teapotPainter.mesh());
+
+    auto material = std::make_shared<simplex::core::Material>();
+    material->setBaseColor(glm::convertSRGBToLinear(glm::vec4(.5f, .5f, 1.f, 1.0f)));
+    material->setMetalness(0.f);
+    material->setRoughness(.2f);
+
+    auto drawable = std::make_shared<simplex::core::PBRDrawable>(mesh, material, teapotBoundingBox);
 
     auto drawableNode = std::make_shared<simplex::core::VisualDrawableNode>("TeapotNode");
     drawableNode->addVisualDrawable(drawable);

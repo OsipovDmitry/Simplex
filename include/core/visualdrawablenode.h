@@ -23,9 +23,9 @@ public:
     std::shared_ptr<VisualDrawableNode> asVisualDrawableNode() override;
     std::shared_ptr<const VisualDrawableNode> asVisualDrawableNode() const override;
 
-    const std::unordered_set<std::shared_ptr<VisualDrawable>> &visualDrawables() const;
-    void addVisualDrawable(std::shared_ptr<VisualDrawable>);
-    void removeVisualDrawable(std::shared_ptr<VisualDrawable>);
+    const std::unordered_set<std::shared_ptr<const VisualDrawable>> &visualDrawables() const;
+    void addVisualDrawable(std::shared_ptr<const VisualDrawable>);
+    void removeVisualDrawable(std::shared_ptr<const VisualDrawable>);
 
 };
 

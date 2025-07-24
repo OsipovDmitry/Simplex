@@ -22,7 +22,14 @@ class CORE_SHARED_EXPORT Drawable : public StateSet
 
 public:
     Drawable(const std::shared_ptr<graphics::IVertexArray>&);
+    Drawable(const std::shared_ptr<const Mesh>&, const std::shared_ptr<const Material>&);
     ~Drawable() override;
+
+    std::shared_ptr<const Mesh> mesh() const;
+    void setMesh(const std::shared_ptr<const Mesh>&);
+
+    std::shared_ptr<const Material> material() const;
+    void setMaterial(const std::shared_ptr<const Material>&);
 
     std::shared_ptr<const graphics::IVertexArray> vertexArray() const;
     std::shared_ptr<graphics::IVertexArray> vertexArray();

@@ -106,27 +106,29 @@ bool DirtyBoundingBoxNodeVisitor::visit(Node &node)
 
 //  AttachToSceneNodeVisitor
 
-AttachToSceneNodeVisitor::AttachToSceneNodeVisitor()
+AttachToSceneNodeVisitor::AttachToSceneNodeVisitor(const std::shared_ptr<Scene>& scene)
     : NodeVisitor()
+    , m_scene(scene)
 {
 }
 
 bool AttachToSceneNodeVisitor::visit(Node &node)
 {
-    node.m().doAttachToScene();
+    node.m().doAttachToScene(m_scene);
     return true;
 }
 
 //  DetachFromSceneNodeVisitor
 
-DetachFromSceneNodeVisitor::DetachFromSceneNodeVisitor()
+DetachFromSceneNodeVisitor::DetachFromSceneNodeVisitor(const std::shared_ptr<Scene>& scene)
     : NodeVisitor()
+    , m_scene(scene)
 {
 }
 
 bool DetachFromSceneNodeVisitor::visit(Node &node)
 {
-    node.m().doDetachFromScene();
+    node.m().doDetachFromScene(m_scene);
     return true;
 }
 

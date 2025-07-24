@@ -70,7 +70,6 @@ protected:
     void doDetach() override final;
 
     std::unique_ptr<NodePrivate> m_;
-
 };
 
 }

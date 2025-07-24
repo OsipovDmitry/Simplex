@@ -1,4 +1,7 @@
+#include <utils/logger.h>
+
 #include <core/visualdrawablenode.h>
+#include <core/visualdrawable.h>
 
 #include "visualdrawablenodeprivate.h"
 
@@ -27,23 +30,36 @@ std::shared_ptr<const VisualDrawableNode> VisualDrawableNode::asVisualDrawableNo
     return const_cast<VisualDrawableNode*>(this)->asVisualDrawableNode();
 }
 
-const std::unordered_set<std::shared_ptr<VisualDrawable>> &VisualDrawableNode::visualDrawables() const
+const std::unordered_set<std::shared_ptr<const VisualDrawable>> &VisualDrawableNode::visualDrawables() const
 {
     return m().visualDrawables();
 }
 
-void VisualDrawableNode::addVisualDrawable(std::shared_ptr<VisualDrawable> drawable)
+void VisualDrawableNode::addVisualDrawable(std::shared_ptr<const VisualDrawable> drawable)
 {
+    if (!drawable)
+    {
+        LOG_ERROR << "Drawable can't be nullptr";
+        return;
+    }
+
     auto &mPrivate = m();
     mPrivate.visualDrawables().insert(drawable);
     mPrivate.dirtyLocalBoundingBox();
+
+    if (auto s = scene())
+        mPrivate.addDrawDataToScene(s, drawable); // to add draw data after marking local BB as dirty
 }
 
-void VisualDrawableNode::removeVisualDrawable(std::shared_ptr<VisualDrawable> drawable)
+void VisualDrawableNode::removeVisualDrawable(std::shared_ptr<const VisualDrawable> drawable)
 {
     auto &mPrivate = m();
     mPrivate.visualDrawables().erase(drawable);
     mPrivate.dirtyLocalBoundingBox();
+
+    if(auto s = scene())
+        mPrivate.removeDrawDataFromScene(s, drawable);
+
 }
 
 }

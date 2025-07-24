@@ -14,7 +14,7 @@ public:
     SoundNodePrivate(SoundNode&, const std::string&);
     ~SoundNodePrivate() override;
 
-    void doDetachFromScene() override;
+    void doDetachFromScene(const std::shared_ptr<Scene>&) override;
 
     std::shared_ptr<audio::ISource> &source();
     SoundState &state();

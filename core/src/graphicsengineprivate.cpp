@@ -34,12 +34,12 @@ std::shared_ptr<ProgramsManager> &GraphicsEnginePrivate::programsManager()
     return m_programsManager;
 }
 
-graphics::PBufferRange &GraphicsEnginePrivate::fragmentsBuffer()
+graphics::PBuffer &GraphicsEnginePrivate::fragmentsBuffer()
 {
     return m_fragmentsBuffer;
 }
 
-graphics::PBufferRange &GraphicsEnginePrivate::fragmentsCounter()
+graphics::PBuffer &GraphicsEnginePrivate::fragmentsCounter()
 {
     return m_fragmentsCounter;
 }

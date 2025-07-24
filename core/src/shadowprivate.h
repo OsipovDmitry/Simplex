@@ -33,7 +33,7 @@ public:
     std::shared_ptr<ShadowFrameBuffer> &frameBuffer();
     std::shared_ptr<Blur> &blur();
 
-    graphics::PBufferRange &layeredMatricesBuffer();
+    graphics::PBuffer &layeredMatricesBuffer();
 
     virtual std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::RendererBase>&) const = 0;
     void update(const std::shared_ptr<graphics::RendererBase>&, const std::vector<glm::mat4x4>&);
@@ -48,7 +48,7 @@ private:
     std::shared_ptr<ShadowFrameBuffer> m_frameBuffer;
     std::shared_ptr<Blur> m_blur;
 
-    graphics::PBufferRange m_layeredMatricesBuffer;
+    graphics::PBuffer m_layeredMatricesBuffer;
 
 };
 

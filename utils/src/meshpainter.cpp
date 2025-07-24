@@ -56,7 +56,7 @@ inline void calculateNormalImpl(const std::shared_ptr<DrawElementsBuffer> &drawE
                                 const VertexBuffer &vertices,
                                 VertexBuffer &normals)
 {
-    switch (drawElementsBuffer->type())
+    switch (drawElementsBuffer->indexType())
     {
     case DrawElementsIndexType::Uint8:
         calculateNormalImpl<V, uint8_t>(drawElementsBuffer, vertices, *drawElementsBuffer, normals);
@@ -74,7 +74,7 @@ inline void calculateNormalImpl(const std::shared_ptr<DrawElementsBuffer> &drawE
 }
 
 template<typename V>
-inline void normalizeImpl(uint32_t numVertices,
+inline void normalizeImpl(size_t numVertices,
                           const VertexBuffer &normals,
                           VertexBuffer &result)
 {
@@ -130,7 +130,7 @@ inline void calculateTangentSpaceImpl(const std::shared_ptr<DrawElementsBuffer> 
                                       VertexBuffer &tangents,
                                       VertexBuffer &binormals)
 {
-    switch (drawElementsBuffer->type())
+    switch (drawElementsBuffer->indexType())
     {
     case DrawElementsIndexType::Uint8:
         calculateTangentSpaceImpl<V, uint8_t>(drawElementsBuffer, vertices, texCoords, *drawElementsBuffer, tangents, binormals);
@@ -148,7 +148,7 @@ inline void calculateTangentSpaceImpl(const std::shared_ptr<DrawElementsBuffer> 
 }
 
 template<typename V>
-inline void orthogonalizeTangentSpaceImpl(uint32_t numVertices,
+inline void orthogonalizeTangentSpaceImpl(size_t numVertices,
                                           const VertexBuffer &tangents,
                                           const VertexBuffer &binormals,
                                           const VertexBuffer &normals,
@@ -190,7 +190,7 @@ inline BoundingBox calculateBoundingBoxImpl(const std::shared_ptr<DrawElementsBu
                                             const VertexBuffer &vertices)
 {
     BoundingBox result;
-    switch (drawElementsBuffer->type())
+    switch (drawElementsBuffer->indexType())
     {
     case DrawElementsIndexType::Uint8:
         result = calculateBoundingBoxImpl<V, uint8_t>(drawElementsBuffer, vertices, *drawElementsBuffer);
@@ -209,7 +209,7 @@ inline BoundingBox calculateBoundingBoxImpl(const std::shared_ptr<DrawElementsBu
     return result;
 }
 
-inline void setVertexToBuffer(std::shared_ptr<VertexBuffer> buffer, uint32_t idx, const glm::vec4 &v)
+inline void setVertexToBuffer(std::shared_ptr<VertexBuffer> buffer, size_t idx, const glm::vec4 &v)
 {
     switch (buffer->componentType())
     {
@@ -250,9 +250,9 @@ inline void setVertexToBuffer(std::shared_ptr<VertexBuffer> buffer, uint32_t idx
     }
 }
 
-inline void setIndexToBuffer(std::shared_ptr<DrawElementsBuffer> buffer, uint32_t idx, const uint32_t &v)
+inline void setIndexToBuffer(std::shared_ptr<DrawElementsBuffer> buffer, size_t idx, const uint32_t &v)
 {
-    switch (buffer->type())
+    switch (buffer->indexType())
     {
     case DrawElementsIndexType::Uint8: {
         auto castedV = static_cast<uint8_t>(v);
@@ -525,8 +525,8 @@ public:
 
     std::pair<uint32_t, uint32_t> addVertices(const std::unordered_map<VertexAttribute, const std::vector<glm::vec4>&> &vertices)
     {
-        uint32_t numVertices = mesh->vertexBuffers().empty() ? 0u : mesh->vertexBuffers().begin()->second->numVertices();
-        uint32_t addedVerticesCount = vertices.empty() ? 0u : static_cast<uint32_t>(vertices.begin()->second.size());
+        size_t numVertices = mesh->vertexBuffers().empty() ? 0u : mesh->vertexBuffers().begin()->second->numVertices();
+        size_t addedVerticesCount = vertices.empty() ? 0u : static_cast<uint32_t>(vertices.begin()->second.size());
 
         for (const auto &[attrib, buffer] : mesh->vertexBuffers())
         {
@@ -540,7 +540,7 @@ public:
                 if (auto transformIt = transforms.find(attrib); transformIt != transforms.end())
                 {
                     const auto &transform = transformIt->second;
-                    for (uint32_t i = 0u; i < addedVerticesCount; ++i)
+                    for (size_t i = 0u; i < addedVerticesCount; ++i)
                     {
                         const auto &v = bufferIt->second[i];
                         setVertexToBuffer(buffer, numVertices + i, glm::vec4(transform * glm::vec3(v), v.w));
@@ -548,14 +548,14 @@ public:
                 }
                 else
                 {
-                    for (uint32_t i = 0u; i < addedVerticesCount; ++i)
+                    for (size_t i = 0u; i < addedVerticesCount; ++i)
                         setVertexToBuffer(buffer, numVertices + i, bufferIt->second[i]);
                 }
             }
             else
             {
                 const auto &defaultValue = defaultValues[castFromVertexAttribute(attrib)];
-                for (uint32_t i = 0u; i < addedVerticesCount; ++i)
+                for (size_t i = 0u; i < addedVerticesCount; ++i)
                     setVertexToBuffer(buffer, numVertices + i, defaultValue);
             }
         }
@@ -909,7 +909,6 @@ MeshPainter &MeshPainter::drawScreenQuad()
                  PrimitiveType::TriangleStrip);
     return *this;
 }
-
 
 }
 }

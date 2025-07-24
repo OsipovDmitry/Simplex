@@ -113,8 +113,8 @@ public:
     void removeUserUniform(const std::string&);
 
     const SSBOCollection &ssboCollection() const;
-    graphics::PConstBufferRange SSBO(SSBOId) const;
-    graphics::PConstBufferRange &getOrCreateSSBO(SSBOId);
+    graphics::PConstBuffer SSBO(SSBOId) const;
+    graphics::PConstBuffer &getOrCreateSSBO(SSBOId);
     void removeSSBO(SSBOId);
 
 protected:

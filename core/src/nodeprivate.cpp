@@ -84,19 +84,19 @@ void NodePrivate::doAfterTransformChanged()
 {
 }
 
-void NodePrivate::doAttachToParent()
+void NodePrivate::doAttachToParent(const std::shared_ptr<Node>&)
 {
 }
 
-void NodePrivate::doAttachToScene()
+void NodePrivate::doAttachToScene(const std::shared_ptr<Scene>&)
 {
 }
 
-void NodePrivate::doDetachFromParent()
+void NodePrivate::doDetachFromParent(const std::shared_ptr<Node>&)
 {
 }
 
-void NodePrivate::doDetachFromScene()
+void NodePrivate::doDetachFromScene(const std::shared_ptr<Scene>&)
 {
 }
 

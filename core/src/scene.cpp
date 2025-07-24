@@ -146,7 +146,7 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
                     };
 
                     const auto it = s_table.find(value);
-                    return it != s_table.end() ? it->second : utils::DrawElementsIndexType::Undefined;
+                    return it != s_table.end() ? it->second : utils::DrawElementsIndexType::Count;
                 };
 
             static const auto tinyAttribute2VertexAttribute = [](const std::string& value) -> utils::VertexAttribute
@@ -177,7 +177,7 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
                     };
 
                     const auto it = s_table.find(value);
-                    return it != s_table.end() ? it->second : utils::PrimitiveType::Undefined;
+                    return it != s_table.end() ? it->second : utils::PrimitiveType::Count;
                 };
 
             const auto& rawNode = rawModel.nodes[rawNodeIndex];
@@ -259,7 +259,7 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
                     }
 
                     auto primitiveType = tinyMode2PrimitiveType(rawPrimitive.mode);
-                    if (primitiveType == utils::PrimitiveType::Undefined)
+                    if (primitiveType == utils::PrimitiveType::Count)
                     {
                         LOG_ERROR << "Undefined primitive type";
                         return nullptr;
@@ -272,7 +272,7 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
                         vao->attachIndexBuffer(buffers[static_cast<size_t>(rawBufferView.buffer)]);
 
                         const auto drawElementsIndexType = tinyComponentType2DrawElementsIndexType(rawAccessor.componentType);
-                        if (drawElementsIndexType == utils::DrawElementsIndexType::Undefined)
+                        if (drawElementsIndexType == utils::DrawElementsIndexType::Count)
                         {
                             LOG_ERROR << "Undefined component type of draw elements index buffer";
                             return nullptr;
@@ -299,6 +299,8 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
 
                         if (rawMaterial.alphaMode == "MASK")
                             pbrDrawable->setAlphaCutoff(static_cast<float>(rawMaterial.alphaCutoff));
+
+                        pbrDrawable->setDoubleSided(rawMaterial.doubleSided);
 
                         const auto& rawEmissionTextureInfo = rawMaterial.emissiveTexture;
                         if (rawEmissionTextureInfo.index >= 0)
@@ -571,7 +573,7 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
 
 
 Scene::Scene(const std::string &name)
-    : m_(std::make_unique<ScenePrivate>(name))
+    : m_(std::make_unique<ScenePrivate>(*this, name))
 {
     m_->listenerNode() = std::shared_ptr<ListenerNode>(new ListenerNode(settings::Settings::instance().application().scene().listenerNodeName()));
 

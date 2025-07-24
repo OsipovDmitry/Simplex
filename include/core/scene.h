@@ -18,7 +18,7 @@ namespace core
 {
 
 class ScenePrivate;
-class CORE_SHARED_EXPORT Scene : public INamedObject
+class CORE_SHARED_EXPORT Scene : public std::enable_shared_from_this<Scene>, public INamedObject
 {
     NONCOPYBLE(Scene)
     PRIVATE_IMPL(Scene)

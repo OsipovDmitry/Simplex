@@ -59,10 +59,10 @@ public:
 };
 
 template<>
-class Uniform<graphics::PConstBufferRange> : public UniformBase<graphics::PConstBufferRange>
+class Uniform<graphics::PConstBuffer> : public UniformBase<graphics::PConstBuffer>
 {
 public:
-    Uniform(const graphics::PConstBufferRange &value) : UniformBase<graphics::PConstBufferRange>(value) {}
+    Uniform(const graphics::PConstBuffer &value) : UniformBase<graphics::PConstBuffer>(value) {}
     graphics::UniformType type() const override { return core::graphics::UniformType::AtomicCounterUint; }
 };
 

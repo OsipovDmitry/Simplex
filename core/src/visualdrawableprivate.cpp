@@ -11,6 +11,15 @@ VisualDrawablePrivate::VisualDrawablePrivate(const std::shared_ptr<graphics::IVe
 {
 }
 
+VisualDrawablePrivate::VisualDrawablePrivate(
+    const std::shared_ptr<const Mesh>& mesh,
+    const std::shared_ptr<const Material>& material,
+    const utils::BoundingBox& bb)
+    : DrawablePrivate(mesh, material)
+    , m_boundingBox(bb)
+{
+}
+
 VisualDrawablePrivate::~VisualDrawablePrivate() = default;
 
 utils::BoundingBox &VisualDrawablePrivate::boundingBox()

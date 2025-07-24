@@ -86,8 +86,8 @@ void SSAODrawable::update(const std::shared_ptr<graphics::RendererBase> &graphic
 
         const auto numSamples = kernelBufferSize();
         const size_t bufferSize = 4u * sizeof(uint32_t) + numSamples * sizeof(glm::vec4);
-        auto kernelBuffer = graphicsRenderer->createBufferRange(graphicsRenderer->createBuffer(bufferSize), 0u);
-        auto data = kernelBuffer->buffer()->map(graphics::IBuffer::MapAccess::WriteOnly);
+        auto kernelBuffer = graphicsRenderer->createBuffer(bufferSize);
+        auto data = kernelBuffer->map(graphics::IBuffer::MapAccess::WriteOnly);
         auto p = data->get();
         *reinterpret_cast<uint32_t*>(p) = numSamples;
         p += 4u * sizeof(uint32_t);
@@ -126,12 +126,12 @@ void SSAODrawable::update(const std::shared_ptr<graphics::RendererBase> &graphic
     }
 }
 
-graphics::PConstBufferRange SSAODrawable::kernelBuffer() const
+graphics::PConstBuffer SSAODrawable::kernelBuffer() const
 {
     return SSBO(SSBOId::SSAOKernel);
 }
 
-void SSAODrawable::setKernelBuffer(const graphics::PConstBufferRange &value)
+void SSAODrawable::setKernelBuffer(const graphics::PConstBuffer &value)
 {
     static SSBOId s_SSBOId = SSBOId::SSAOKernel;
 

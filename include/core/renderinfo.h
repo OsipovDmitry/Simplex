@@ -20,12 +20,12 @@ public:
                     const graphics::PConstTexture& depthMap,
                     const graphics::PConstImage& depthImage,
                     const graphics::PConstImage& indicesImage,
-                    const graphics::PConstBufferRange& nodesBuffer,
-                    const graphics::PConstBufferRange& nodesCounter);
+                    const graphics::PConstBuffer& nodesBuffer,
+                    const graphics::PConstBuffer& nodesCounter);
 
     void setSSAOMap(const graphics::PConstTexture&);
 
-    void setLayeredShadowMatricesBuffer(const graphics::PConstBufferRange&);
+    void setLayeredShadowMatricesBuffer(const graphics::PConstBuffer&);
 
 };
 

@@ -20,8 +20,8 @@ void RenderInfo::setGBuffer(const graphics::PConstTexture &colorMap,
                             const graphics::PConstTexture &depthMap,
                             const graphics::PConstImage &depthImage,
                             const graphics::PConstImage &indicesImage,
-                            const graphics::PConstBufferRange &nodesBuffer,
-                            const graphics::PConstBufferRange &nodesCounter)
+                            const graphics::PConstBuffer &nodesBuffer,
+                            const graphics::PConstBuffer &nodesCounter)
 {
     getOrCreateUniform(UniformId::GBufferColorMap) = makeUniform(colorMap);
     getOrCreateUniform(UniformId::GBufferDepthMap) = makeUniform(depthMap);
@@ -36,7 +36,7 @@ void RenderInfo::setSSAOMap(const graphics::PConstTexture &value)
     getOrCreateUniform(UniformId::SSAOMap) = makeUniform(value);
 }
 
-void RenderInfo::setLayeredShadowMatricesBuffer(const graphics::PConstBufferRange &value)
+void RenderInfo::setLayeredShadowMatricesBuffer(const graphics::PConstBuffer &value)
 {
     getOrCreateSSBO(SSBOId::LayeredShadowMatrices) = value;
 }

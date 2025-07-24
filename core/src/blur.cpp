@@ -94,8 +94,8 @@ graphics::PConstTexture Blur::run(const std::shared_ptr<graphics::RendererBase> 
             samples /= summ;
 
         const size_t bufferSize = 4u * sizeof(uint32_t) + kernel.size() * sizeof(glm::vec4);
-        auto kernelBuffer = graphicsRenderer->createBufferRange(graphicsRenderer->createBuffer(bufferSize), 0u);
-        auto data = kernelBuffer->buffer()->map(graphics::IBuffer::MapAccess::WriteOnly);
+        auto kernelBuffer = graphicsRenderer->createBuffer(bufferSize);
+        auto data = kernelBuffer->map(graphics::IBuffer::MapAccess::WriteOnly);
         auto p = data->get();
         *reinterpret_cast<uint32_t*>(p) = radius;
         memcpy(p + 4u * sizeof(uint32_t), kernel.data(), kernel.size() * sizeof(glm::vec4));
@@ -145,12 +145,12 @@ graphics::PConstTexture Blur::run(const std::shared_ptr<graphics::RendererBase> 
     return m_pingpongSourceMap[numPasses % 2u].first;
 }
 
-graphics::PConstBufferRange Blur::kernelBuffer()
+graphics::PConstBuffer Blur::kernelBuffer()
 {
     return SSBO(SSBOId::BlurKernel);
 }
 
-void Blur::setKernelBuffer(const graphics::PConstBufferRange &value)
+void Blur::setKernelBuffer(const graphics::PConstBuffer &value)
 {
     static SSBOId s_SSBOId = SSBOId::BlurKernel;
 

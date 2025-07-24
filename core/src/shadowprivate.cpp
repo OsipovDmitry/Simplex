@@ -51,7 +51,7 @@ std::shared_ptr<Blur> &ShadowPrivate::blur()
     return m_blur;
 }
 
-graphics::PBufferRange &ShadowPrivate::layeredMatricesBuffer()
+graphics::PBuffer &ShadowPrivate::layeredMatricesBuffer()
 {
     return m_layeredMatricesBuffer;
 }
@@ -66,8 +66,7 @@ void ShadowPrivate::update(const std::shared_ptr<graphics::RendererBase> &graphi
 
     if (!m_layeredMatricesBuffer)
     {
-        auto buffer = graphicsRenderer->createBuffer(0u);
-        m_layeredMatricesBuffer = graphicsRenderer->createBufferRange(buffer, 0u);
+        m_layeredMatricesBuffer = graphicsRenderer->createBuffer(0u);
     }
 
     if (m_filter == ShadingFilter::VSM)
@@ -79,8 +78,8 @@ void ShadowPrivate::update(const std::shared_ptr<graphics::RendererBase> &graphi
         m_blur = nullptr; // blur is not needed if filter is not VSM
 
     const size_t bufferSize = 4u * sizeof(uint32_t) + layeredShadowMatrices.size() * sizeof(glm::mat4x4);
-    m_layeredMatricesBuffer->buffer()->resize(bufferSize, nullptr);
-    auto data = m_layeredMatricesBuffer->buffer()->map(graphics::IBuffer::MapAccess::WriteOnly);
+    m_layeredMatricesBuffer->resize(bufferSize);
+    auto data = m_layeredMatricesBuffer->map(graphics::IBuffer::MapAccess::WriteOnly);
     auto p = data->get();
     *reinterpret_cast<uint32_t*>(p) = static_cast<uint32_t>(layeredShadowMatrices.size());
     p += 4u * sizeof(uint32_t);

@@ -68,68 +68,86 @@ public:
     static GLenum BlendFactor2GL(core::graphics::BlendFactor);
 };
 
-class Buffer_4_5 : public core::graphics::IBuffer, public std::enable_shared_from_this<Buffer_4_5>
+class BufferBase_4_5 : public std::enable_shared_from_this<BufferBase_4_5>
 {
-    NONCOPYBLE(Buffer_4_5)
+    NONCOPYBLE(BufferBase_4_5)
     CURRENT_CONTEXT_INFO
 public:
     class MappedData_4_5 : public core::graphics::IBuffer::MappedData
     {
         CURRENT_CONTEXT_INFO
     public:
-        MappedData_4_5(std::weak_ptr<const Buffer_4_5>, uint8_t*);
+        MappedData_4_5(const std::weak_ptr<const BufferBase_4_5>&, uint8_t*);
         ~MappedData_4_5() override;
-        const uint8_t *get() const override;
-        uint8_t *get() override;
+        const uint8_t* get() const override;
+        uint8_t* get() override;
     private:
-        std::weak_ptr<const Buffer_4_5> m_mappedBuffer;
-        uint8_t *m_data;
+        std::weak_ptr<const BufferBase_4_5> m_mappedBuffer;
+        uint8_t* m_data;
     };
 
-    Buffer_4_5(uint64_t size, const void *data);
-    ~Buffer_4_5() override;
+    virtual ~BufferBase_4_5();
 
     GLuint id() const;
 
-    size_t size() const override;
-    void resize(size_t size, const void *data) override;
+    size_t fullSize() const;
+    void setFullSize(size_t size);
 
-    std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const override;
-    std::unique_ptr<MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) override;
+protected:
+    BufferBase_4_5(uint64_t size, const void* data);
 
-    static std::shared_ptr<Buffer_4_5> create(size_t = 0u, const void* = nullptr);
+    std::unique_ptr<MappedData_4_5> mapData(core::graphics::IBuffer::MapAccess access, size_t offset = 0u, size_t size = 0u);
+    std::unique_ptr<const MappedData_4_5> mapData(core::graphics::IBuffer::MapAccess access, size_t offset = 0u, size_t size = 0u) const;
 
 private:
     GLuint m_id = 0;
     mutable bool m_isMapped = false;
 
-
     friend class MappedData_4_5;
 };
 
-class BufferRange_4_5 : public core::graphics::IBufferRange
+class Buffer_4_5 : public core::graphics::IBuffer, public BufferBase_4_5
 {
-    NONCOPYBLE(BufferRange_4_5)
+    NONCOPYBLE(Buffer_4_5)
     CURRENT_CONTEXT_INFO
 public:
-    BufferRange_4_5(std::shared_ptr<core::graphics::IBuffer>, size_t, size_t);
-    ~BufferRange_4_5() override;
-
-    std::shared_ptr<const core::graphics::IBuffer> buffer() const override;
-    std::shared_ptr<core::graphics::IBuffer> buffer() override;
-
-    size_t offset() const override;
-    void setOffset(size_t) override;
+    Buffer_4_5(uint64_t size, const void* data);
+    ~Buffer_4_5() override;
 
     size_t size() const override;
-    void setSize(size_t) override;
+    void resize(size_t size) override;
 
-    static std::shared_ptr<BufferRange_4_5> create(const std::shared_ptr<core::graphics::IBuffer>&, size_t, size_t = static_cast<size_t>(-1));
+    std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const override;
+    std::unique_ptr<MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) override;
+
+    static std::shared_ptr<Buffer_4_5> create(size_t = 0u, const void* = nullptr);
+};
+
+class DynamicBuffer_4_5 : public core::graphics::IDynamicBuffer, public BufferBase_4_5
+{
+    NONCOPYBLE(DynamicBuffer_4_5)
+    CURRENT_CONTEXT_INFO
+public:
+    DynamicBuffer_4_5(uint64_t size, const void* data);
+    ~DynamicBuffer_4_5() override;
+
+    size_t capacity() const override;
+    void reserve(size_t) override;
+
+    void pushBack(const void* data, size_t size);
+
+    size_t size() const override;
+    void resize(size_t size) override;
+
+    std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const override;
+    std::unique_ptr<MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) override;
+
+    static std::shared_ptr<DynamicBuffer_4_5> create(size_t = 0u, const void* = nullptr);
 
 private:
-    std::shared_ptr<core::graphics::IBuffer> m_buffer;
-    size_t m_offset;
-    size_t m_size;
+    size_t m_size = 0;
+
+    void expand(size_t);
 };
 
 class VertexArray_4_5 : public core::graphics::IVertexArray
@@ -167,7 +185,7 @@ public:
     void removePrimitiveSet(std::shared_ptr<utils::PrimitiveSet>) override;
     const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> &primitiveSets() const override;
 
-    static std::shared_ptr<VertexArray_4_5> create(const std::shared_ptr<utils::Mesh> & = nullptr, bool uniteVertexBuffers = true);
+    static std::shared_ptr<VertexArray_4_5> create(const std::shared_ptr<const utils::Mesh> & = nullptr, bool uniteVertexBuffers = true);
 
 private:
     GLuint m_id = 0;
@@ -243,7 +261,7 @@ public:
         uint32_t width,
         core::graphics::PixelInternalFormat internalFormat,
         uint32_t numLevels);
-    static std::shared_ptr<Texture1D_4_5> create(const std::shared_ptr<utils::Image>&,
+    static std::shared_ptr<Texture1D_4_5> create(const std::shared_ptr<const utils::Image>&,
         core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
         uint32_t numLevels = 0,
         bool genMipmaps = true);
@@ -273,7 +291,7 @@ public:
         uint32_t height,
         core::graphics::PixelInternalFormat,
         uint32_t numLevels = 1);
-    static std::shared_ptr<Texture2D_4_5> create(const std::shared_ptr<utils::Image>&,
+    static std::shared_ptr<Texture2D_4_5> create(const std::shared_ptr<const utils::Image>&,
         core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
         uint32_t numLevels = 0,
         bool genMipmaps = true);
@@ -304,7 +322,7 @@ public:
         uint32_t depth,
         core::graphics::PixelInternalFormat,
         uint32_t numLevels = 1);
-    static std::shared_ptr<Texture3D_4_5> create(const std::vector<std::shared_ptr<utils::Image>>&,
+    static std::shared_ptr<Texture3D_4_5> create(const std::vector<std::shared_ptr<const utils::Image>>&,
         core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
         uint32_t numLevels = 0,
         bool genMipmaps = true);
@@ -336,7 +354,7 @@ public:
         uint32_t height,
         core::graphics::PixelInternalFormat,
         uint32_t numLevels = 1);
-    static std::shared_ptr<TextureCube_4_5> create(const std::vector<std::shared_ptr<utils::Image>>&,
+    static std::shared_ptr<TextureCube_4_5> create(const std::vector<std::shared_ptr<const utils::Image>>&,
         core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
         uint32_t numLevels = 0,
         bool genMipmaps = true);
@@ -366,7 +384,7 @@ public:
         uint32_t numLayers,
         core::graphics::PixelInternalFormat,
         uint32_t numLevels = 1);
-    static std::shared_ptr<Texture1DArray_4_5> create(const std::vector<std::shared_ptr<utils::Image>>&,
+    static std::shared_ptr<Texture1DArray_4_5> create(const std::vector<std::shared_ptr<const utils::Image>>&,
         core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
         uint32_t numLevels = 0,
         bool genMipmaps = true);
@@ -397,7 +415,7 @@ public:
         uint32_t numLayers,
         core::graphics::PixelInternalFormat,
         uint32_t numLevels = 1);
-    static std::shared_ptr<Texture2DArray_4_5> create(const std::vector<std::shared_ptr<utils::Image>>&,
+    static std::shared_ptr<Texture2DArray_4_5> create(const std::vector<std::shared_ptr<const utils::Image>>&,
         core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
         uint32_t numLevels = 0,
         bool genMipmaps = true);
@@ -429,7 +447,7 @@ public:
         uint32_t numLayers,
         core::graphics::PixelInternalFormat,
         uint32_t numLevels = 1);
-    static std::shared_ptr<TextureCubeArray_4_5> create(const std::vector<std::vector<std::shared_ptr<utils::Image>>>&,
+    static std::shared_ptr<TextureCubeArray_4_5> create(const std::vector<std::vector<std::shared_ptr<const utils::Image>>>&,
         core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
         uint32_t numLevels = 0,
         bool genMipmaps = true);
@@ -458,8 +476,30 @@ public:
     static std::shared_ptr<TextureRect_4_5> createEmpty(uint32_t width,
             uint32_t height,
             core::graphics::PixelInternalFormat);
-    static std::shared_ptr<TextureRect_4_5> create(const std::shared_ptr<utils::Image>&,
+    static std::shared_ptr<TextureRect_4_5> create(const std::shared_ptr<const utils::Image>&,
         core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined);
+};
+
+class TextureHandle_4_5 : public core::graphics::ITextureHandle
+{
+    NONCOPYBLE(TextureHandle_4_5)
+    CURRENT_CONTEXT_INFO
+public:
+    TextureHandle_4_5(const core::graphics::PConstTexture&);
+    ~TextureHandle_4_5() override;
+
+    core::graphics::TextureHandle handle() const override;
+
+    core::graphics::PConstTexture texture() const override;
+
+    void makeResident() override;
+    void doneResident() override;
+
+    static std::shared_ptr<TextureHandle_4_5> create(const core::graphics::PConstTexture&);
+
+protected:
+    GLuint64 m_id = 0;
+    core::graphics::PConstTexture m_texture;
 };
 
 class Image_4_5 : public core::graphics::IImage
@@ -756,6 +796,12 @@ public:
                          bool colorMsk, bool depthMask, bool stencilMask,
                          bool linearFilter = false) override;
 
+    void copyBufferSubData(const std::shared_ptr<core::graphics::IBuffer>& dst,
+        const std::shared_ptr<const core::graphics::IBuffer>& src,
+        size_t dstOffset,
+        size_t srcOffset,
+        size_t size) const override;
+
     bool registerVertexAttribute(const std::string&, utils::VertexAttribute) override;
     bool unregisterVertexAttribute(const std::string&) override;
     utils::VertexAttribute vertexAttributeByName(const std::string&) const override;
@@ -770,15 +816,14 @@ public:
 
     std::shared_ptr<core::graphics::IBuffer> createBuffer(size_t = 0u,
                                                           const void* = nullptr) const override;
-    std::shared_ptr<core::graphics::IBufferRange> createBufferRange(const std::shared_ptr<core::graphics::IBuffer>&,
-                                                                    size_t,
-                                                                    size_t = static_cast<size_t>(-1)) const override;
-    std::shared_ptr<core::graphics::IVertexArray> createVertexArray(const std::shared_ptr<utils::Mesh>& = nullptr,
+    std::shared_ptr<core::graphics::IDynamicBuffer> createDynamicBuffer(size_t size = 0u,
+                                                                              const void* data = nullptr) const override;
+    std::shared_ptr<core::graphics::IVertexArray> createVertexArray(const std::shared_ptr<const utils::Mesh>& = nullptr,
                                                                     bool uniteVertexBuffers = true) const override;
     std::shared_ptr<core::graphics::ITexture> createTexture1DEmpty(uint32_t width,
                                                                    core::graphics::PixelInternalFormat,
                                                                    uint32_t numLevels = 1) const override;
-    std::shared_ptr<core::graphics::ITexture> createTexture1D(const std::shared_ptr<utils::Image>&,
+    std::shared_ptr<core::graphics::ITexture> createTexture1D(const std::shared_ptr<const utils::Image>&,
                                                               core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
                                                               uint32_t numLevels = 0,
                                                               bool genMipmaps = true) const override;
@@ -786,7 +831,7 @@ public:
                                                                    uint32_t height,
                                                                    core::graphics::PixelInternalFormat,
                                                                    uint32_t numLevels = 1) const override;
-    std::shared_ptr<core::graphics::ITexture> createTexture2D(const std::shared_ptr<utils::Image>&,
+    std::shared_ptr<core::graphics::ITexture> createTexture2D(const std::shared_ptr<const utils::Image>&,
                                                               core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
                                                               uint32_t numLevels = 0,
                                                               bool genMipmaps = true) const override;
@@ -795,7 +840,7 @@ public:
                                                                    uint32_t depth,
                                                                    core::graphics::PixelInternalFormat,
                                                                    uint32_t numLevels = 1) const override;
-    std::shared_ptr<core::graphics::ITexture> createTexture3D(const std::vector<std::shared_ptr<utils::Image>>&,
+    std::shared_ptr<core::graphics::ITexture> createTexture3D(const std::vector<std::shared_ptr<const utils::Image>>&,
                                                               core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
                                                               uint32_t numLevels = 0,
                                                               bool genMipmaps = true) const override;
@@ -803,7 +848,7 @@ public:
                                                                      uint32_t height,
                                                                      core::graphics::PixelInternalFormat,
                                                                      uint32_t numLevels = 1) const override;
-    std::shared_ptr<core::graphics::ITexture> createTextureCube(const std::vector<std::shared_ptr<utils::Image>>&,
+    std::shared_ptr<core::graphics::ITexture> createTextureCube(const std::vector<std::shared_ptr<const utils::Image>>&,
                                                                 core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
                                                                 uint32_t numLevels = 0,
                                                                 bool genMipmaps = true) const override;
@@ -811,7 +856,7 @@ public:
                                                                         uint32_t numLayers,
                                                                         core::graphics::PixelInternalFormat,
                                                                         uint32_t numLevels = 1) const override;
-    std::shared_ptr<core::graphics::ITexture> createTexture1DArray(const std::vector<std::shared_ptr<utils::Image>>&,
+    std::shared_ptr<core::graphics::ITexture> createTexture1DArray(const std::vector<std::shared_ptr<const utils::Image>>&,
                                                                    core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
                                                                    uint32_t numLevels = 0,
                                                                    bool genMipmaps = true) const override;
@@ -820,7 +865,7 @@ public:
                                                                         uint32_t numLayers,
                                                                         core::graphics::PixelInternalFormat,
                                                                         uint32_t numLevels = 1) const override;
-    std::shared_ptr<core::graphics::ITexture> createTexture2DArray(const std::vector<std::shared_ptr<utils::Image>>&,
+    std::shared_ptr<core::graphics::ITexture> createTexture2DArray(const std::vector<std::shared_ptr<const utils::Image>>&,
                                                                    core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
                                                                    uint32_t numLevels = 0,
                                                                    bool genMipmaps = true) const override;
@@ -829,15 +874,16 @@ public:
                                                                           uint32_t numLayers,
                                                                           core::graphics::PixelInternalFormat,
                                                                           uint32_t numLevels = 1) const override;
-    std::shared_ptr<core::graphics::ITexture> createTextureCubeArray(const std::vector<std::vector<std::shared_ptr<utils::Image>>>&,
+    std::shared_ptr<core::graphics::ITexture> createTextureCubeArray(const std::vector<std::vector<std::shared_ptr<const utils::Image>>>&,
                                                                      core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined,
                                                                      uint32_t numLevels = 0,
                                                                      bool genMipmaps = true) const override;
     std::shared_ptr<core::graphics::ITexture> createTextureRectEmpty(uint32_t width,
                                                                    uint32_t height,
                                                                    core::graphics::PixelInternalFormat) const override;
-    std::shared_ptr<core::graphics::ITexture> createTextureRect(const std::shared_ptr<utils::Image>&,
+    std::shared_ptr<core::graphics::ITexture> createTextureRect(const std::shared_ptr<const utils::Image>&,
                                                                 core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined) const override;
+    std::shared_ptr<core::graphics::ITextureHandle> createTextureHandle(const core::graphics::PConstTexture&) const override;
     std::shared_ptr<core::graphics::IImage> createImage(core::graphics::IImage::DataAccess,
                                                         const core::graphics::PConstTexture&,
                                                         uint32_t level = 0u) const override;
@@ -885,9 +931,9 @@ private:
 
     void bindTexture(int32_t, const core::graphics::PConstTexture&);
     void bindImage(int32_t, const core::graphics::PConstImage&);
-    void bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBufferRange&);
-    void bindSSBO(uint32_t, const core::graphics::PConstBufferRange&);
-    void bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBufferRange&);
+    void bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBuffer&);
+    void bindSSBO(uint32_t, const core::graphics::PConstBuffer&);
+    void bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBuffer&);
 
     std::weak_ptr<GLFWWidget> m_widget;
 

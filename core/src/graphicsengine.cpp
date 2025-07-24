@@ -78,8 +78,8 @@ GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<graphics
     const size_t fragmentsBufferSize = sizeof(maxFragments) + maxFragments * 24u; // 24 bytes per node
     auto fragmentsBuffer = renderer->createBuffer(fragmentsBufferSize);
     reinterpret_cast<uint32_t*>(fragmentsBuffer->map(graphics::IBuffer::MapAccess::WriteOnly, 0u, sizeof(uint32_t))->get())[0] = maxFragments;
-    m_->fragmentsBuffer() = renderer->createBufferRange(fragmentsBuffer, 0u);
-    m_->fragmentsCounter() = renderer->createBufferRange(renderer->createBuffer(sizeof(uint32_t)), 0u);
+    m_->fragmentsBuffer() = fragmentsBuffer;
+    m_->fragmentsCounter() = renderer->createBuffer(sizeof(uint32_t));
 
     const std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, utils::VertexComponentType>> screenQuadVertexDeclaration{
         {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}};
@@ -306,7 +306,7 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene,
             m_->fragmentsCounter());
 
         // reset fragments counter buffer
-        auto fragmentsCounterBuffer = m_->fragmentsCounter()->buffer();
+        auto &fragmentsCounterBuffer = m_->fragmentsCounter();
         if (auto fragmentsCounterBufferData = fragmentsCounterBuffer->map(graphics::IBuffer::MapAccess::WriteOnly); fragmentsCounterBuffer)
             *reinterpret_cast<uint32_t*>(fragmentsCounterBufferData->get()) = 0u;
 

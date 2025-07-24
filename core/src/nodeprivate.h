@@ -31,10 +31,10 @@ public:
     virtual utils::BoundingBox doBoundingBox();
     virtual void doBeforeTransformChanged();
     virtual void doAfterTransformChanged();
-    virtual void doAttachToParent();
-    virtual void doAttachToScene();
-    virtual void doDetachFromParent();
-    virtual void doDetachFromScene();
+    virtual void doAttachToParent(const std::shared_ptr<Node>&);
+    virtual void doAttachToScene(const std::shared_ptr<Scene>&);
+    virtual void doDetachFromParent(const std::shared_ptr<Node>&);
+    virtual void doDetachFromScene(const std::shared_ptr<Scene>&);
 
     bool &isGlobalTransfomDirty();
     bool &isBoundingBoxDirty();
