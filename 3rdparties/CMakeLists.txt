@@ -22,3 +22,6 @@ print_all_targets(glfw "3rdparties/glfw")
 add_subdirectory("bullet3")
 print_all_targets(bullet3 "3rdparties/bullet3")
 
+add_subdirectory("assimp")
+print_all_targets(assimp "3rdparties/assimp")
+

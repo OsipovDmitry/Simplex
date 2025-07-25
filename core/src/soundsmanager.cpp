@@ -1,6 +1,7 @@
 #include <utils/fileextension.h>
 #include <utils/logger.h>
 #include <utils/sound.h>
+#include <utils/soundmanager.h>
 
 #include <core/audiorendererbase.h>
 #include <core/soundsmanager.h>
@@ -36,9 +37,12 @@ std::shared_ptr<audio::IBuffer> SoundsManager::loadOrGetSound(const std::filesys
 
     std::shared_ptr<audio::IBuffer> buffer;
 
-    auto sound = utils::Sound::loadFromFile(absoluteFilename);
+    auto sound = utils::SoundManager::instance().loadOrGet(absoluteFilename);
     if (sound)
+    {
+        m_->renderer()->makeCurrent();
         buffer = m_->renderer()->createBuffer(sound);
+    }
     else
         LOG_ERROR << "Can't open sound file " << absoluteFilename;
 

@@ -18,6 +18,7 @@ namespace core
 {
 
 class DrawableHandler;
+class SceneData;
 
 class DrawablePrivate : public StateSetPrivate
 {
@@ -34,7 +35,7 @@ public:
 
     bool &isDoubleSided();
 
-    std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<DrawableHandler>>& handles();
+    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>>& handles();
     void onChanged();
 
 protected:
@@ -42,7 +43,7 @@ protected:
     std::shared_ptr<const Material> m_material;
     std::shared_ptr<graphics::IVertexArray> m_vertexArray;
     bool m_isDoubleSided;
-    std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<DrawableHandler>> m_handles;
+    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>> m_handles;
 
 };
 

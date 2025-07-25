@@ -5,6 +5,7 @@
 
 #include "visualdrawablenodeprivate.h"
 #include "sceneprivate.h"
+#include "scenedata.h"
 
 namespace simplex
 {
@@ -62,7 +63,7 @@ void VisualDrawableNodePrivate::addDrawDataToScene(
 
     if (auto it = m_handlers.find(drawable); it == m_handlers.end())
     {
-        auto handler = scene->m().addDrawData(drawable, d().globalTransform());
+        auto handler = scene->m().sceneData()->addDrawData(drawable, d().globalTransform());
         m_handlers.insert({ drawable, handler });
     }
 }
@@ -86,7 +87,7 @@ void VisualDrawableNodePrivate::removeDrawDataFromScene(
     if (auto it = m_handlers.find(drawable); it != m_handlers.end())
     {
         auto& handler = it->second;
-        scene->m().removeDrawData(handler->ID());
+        scene->m().sceneData()->removeDrawData(handler->ID());
         m_handlers.erase(drawable);
     }
     else

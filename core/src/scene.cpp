@@ -34,7 +34,10 @@ namespace simplex
 namespace core
 {
 
-Scene::~Scene() = default;
+Scene::~Scene()
+{
+    m_->sceneData() = nullptr;
+}
 
 const std::string &Scene::name() const
 {

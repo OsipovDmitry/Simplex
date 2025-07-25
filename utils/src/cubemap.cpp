@@ -39,7 +39,7 @@ inline bool checkImage(const std::shared_ptr<Image> &image)
         return false;
     }
 
-    if (image->type() == PixelComponentType::Undefined)
+    if (image->type() == PixelComponentType::Count)
     {
         LOG_ERROR << "Undefined pixel component type of image";
         return false;
@@ -109,7 +109,7 @@ std::shared_ptr<Image> CubemapConverter::convertSphericalCubemapToHCross(const s
     std::shared_ptr<Image> result;
 
     const uint32_t faceSize = src->height() / 2u;
-    result = Image::loadFromData(faceSize * 4u, faceSize * 3u, src->numComponents(), src->type(), nullptr);
+    result = std::make_shared<Image>(faceSize * 4u, faceSize * 3u, src->numComponents(), src->type(), nullptr);
 
     for (uint32_t face = 0u; face < 6u; ++face)
         spherical2Face(src,
@@ -144,7 +144,7 @@ std::shared_ptr<Image> CubemapConverter::convertSphericalCubemapToVCross(const s
     std::shared_ptr<Image> result;
 
     const uint32_t faceSize = src->height() / 2u;
-    result = Image::loadFromData(faceSize * 3u, faceSize * 4u, src->numComponents(), src->type(), nullptr);
+    result = std::make_shared<Image>(faceSize * 3u, faceSize * 4u, src->numComponents(), src->type(), nullptr);
 
     for (uint32_t face = 0u; face < 6u; ++face)
         spherical2Face(src,
@@ -179,7 +179,7 @@ std::vector<std::shared_ptr<Image>> CubemapConverter::convertSphericalCubemapToF
 
     for (uint32_t face = 0u; face < result.size(); ++face)
     {
-        result[face] = Image::loadFromData(faceSize, faceSize, src->numComponents(), src->type(), nullptr);
+        result[face] = std::make_shared<Image>(faceSize, faceSize, src->numComponents(), src->type(), nullptr);
         spherical2Face(src,
                        result[face],
                        faceSize,

@@ -1,6 +1,11 @@
 #ifndef CORE_SCREENQUADDRAWABLE_H
 #define CORE_SCREENQUADDRAWABLE_H
 
+#include <utils/singleton.h>
+
+#include <core/mesh.h>
+
+//tmp
 #include <core/drawable.h>
 
 namespace simplex
@@ -8,13 +13,14 @@ namespace simplex
 namespace core
 {
 
-class ScreenQuadDrawable : public Drawable
+class ScreenQuadDrawable : public Mesh  /*tmp*/, public Drawable
 {
+    SINGLETON_POINTER(ScreenQuadDrawable)
 public:
-    ScreenQuadDrawable();
     ~ScreenQuadDrawable() override;
 
-    static std::shared_ptr<const Mesh> mesh();
+private:
+    ScreenQuadDrawable();
 
 };
 

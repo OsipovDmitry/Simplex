@@ -121,7 +121,7 @@ void SSAODrawable::update(const std::shared_ptr<graphics::RendererBase> &graphic
             data[i] = glm::vec2(glm::cos(angle), glm::sin(angle));
         }
 
-        const auto noiseImage = utils::Image::loadFromData(textureSize, textureSize, 2u, utils::PixelComponentType::Single, reinterpret_cast<uint8_t*>(data.data()));
+        const auto noiseImage = std::make_shared<utils::Image>(textureSize, textureSize, 2u, utils::PixelComponentType::Single, reinterpret_cast<uint8_t*>(data.data()));
         setNoiseTexture(graphicsRenderer->createTextureRect(noiseImage));
     }
 }

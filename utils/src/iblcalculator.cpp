@@ -46,7 +46,7 @@ inline bool checkImage(const std::shared_ptr<Image> &image)
         return false;
     }
 
-    if (image->type() == PixelComponentType::Undefined)
+    if (image->type() == PixelComponentType::Count)
     {
         LOG_ERROR << "Undefined pixel component type of image";
         return false;
@@ -292,7 +292,7 @@ std::shared_ptr<Image> IBLCalculator::calclulateBRDFLut()
     static std::shared_ptr<Image> brdfLut;
     if (!brdfLut)
     {
-        brdfLut = utils::Image::loadFromData(s_BRDFLutSize, s_BRDFLutSize, 3u, PixelComponentType::Uint8, nullptr);
+        brdfLut = std::make_shared<utils::Image>(s_BRDFLutSize, s_BRDFLutSize, 3u, PixelComponentType::Uint8, nullptr);
         auto *brdfLutData = reinterpret_cast<glm::u8vec3*>(brdfLut->data());
 
         for (uint32_t y = 0u; y < brdfLut->height(); ++y)
@@ -335,7 +335,7 @@ std::shared_ptr<Image> IBLCalculator::calculateIrradiance(const std::shared_ptr<
     std::shared_ptr<Image> result;
 
     const auto resultSize = glm::min(s_irradianceSize, src->height());
-    result = Image::loadFromData(2u * resultSize, resultSize, src->numComponents(), src->type(), nullptr);
+    result = std::make_shared<Image>(2u * resultSize, resultSize, src->numComponents(), src->type(), nullptr);
 
     const size_t pixelSize = src->numComponents() * sizeOfPixelComponentType(src->type());
 
@@ -402,7 +402,7 @@ std::vector<std::shared_ptr<Image>> IBLCalculator::calculateRadiance(const std::
                     static_cast<float>(level) / static_cast<float>(numLevels - 1u) :
                     0.f;
 
-        auto dst = utils::Image::loadFromData(resultWidth, resultHeight, src->numComponents(), src->type(), nullptr);
+        auto dst = std::make_shared<utils::Image>(resultWidth, resultHeight, src->numComponents(), src->type(), nullptr);
 
         for (uint32_t dstY = 0u; dstY < resultHeight; ++dstY)
         {

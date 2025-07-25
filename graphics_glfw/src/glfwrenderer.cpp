@@ -189,7 +189,6 @@ GLenum Conversions::PixelNumComponents2GL(uint32_t value)
 GLenum Conversions::PixelComponentType2GL(utils::PixelComponentType value)
 {
     static std::array<GLenum, utils::numElementsPixelComponentType()> s_table {
-        GL_NONE,
         GL_FLOAT,
         GL_UNSIGNED_BYTE,
         GL_UNSIGNED_SHORT
@@ -1300,7 +1299,7 @@ void Texture1D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const 
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
-    if (type == utils::PixelComponentType::Undefined)
+    if (type == utils::PixelComponentType::Count)
         LOG_CRITICAL << "Undefined pixel component type";
 
     glTextureSubImage1D(m_id,
@@ -1388,7 +1387,7 @@ void Texture2D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const 
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
-    if (type == utils::PixelComponentType::Undefined)
+    if (type == utils::PixelComponentType::Count)
         LOG_CRITICAL << "Undefined pixel component type";
 
     glTextureSubImage2D(m_id,
@@ -1479,7 +1478,7 @@ void Texture3D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const 
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
-    if (type == utils::PixelComponentType::Undefined)
+    if (type == utils::PixelComponentType::Count)
         LOG_CRITICAL << "Undefined pixel component type";
 
     glTextureSubImage3D(m_id,
@@ -1596,7 +1595,7 @@ void TextureCube_4_5::setSubImage(uint32_t level,const glm::uvec3 &offset, const
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
-    if (type == utils::PixelComponentType::Undefined)
+    if (type == utils::PixelComponentType::Count)
         LOG_CRITICAL << "Undefined pixel component type";
 
     glTextureSubImage3D(m_id,
@@ -1702,7 +1701,7 @@ void Texture1DArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, c
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
-    if (type == utils::PixelComponentType::Undefined)
+    if (type == utils::PixelComponentType::Count)
         LOG_CRITICAL << "Undefined pixel component type";
 
     glTextureSubImage2D(m_id,
@@ -1808,7 +1807,7 @@ void Texture2DArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, c
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
-    if (type == utils::PixelComponentType::Undefined)
+    if (type == utils::PixelComponentType::Count)
         LOG_CRITICAL << "Undefined pixel component type";
 
     glTextureSubImage3D(m_id,
@@ -1922,7 +1921,7 @@ void TextureCubeArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset,
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
-    if (type == utils::PixelComponentType::Undefined)
+    if (type == utils::PixelComponentType::Count)
         LOG_CRITICAL << "Undefined pixel component type";
 
     glTextureSubImage3D(m_id,
@@ -2039,7 +2038,7 @@ void TextureRect_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, cons
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
-    if (type == utils::PixelComponentType::Undefined)
+    if (type == utils::PixelComponentType::Count)
         LOG_CRITICAL << "Undefined pixel component type";
 
     glTextureSubImage2D(m_id,
@@ -3096,10 +3095,10 @@ bool ProgramBase_4_5::compileAndLink(const std::unordered_map<GLenum, std::refer
             glGetShaderiv(id, GL_INFO_LOG_LENGTH, &infoLen);
             if (infoLen > 1)
             {
-                char* infoLog = static_cast<char*>(malloc(sizeof(char) * static_cast<unsigned int>(infoLen)));
+                char* infoLog = static_cast<char*>(std::malloc(sizeof(char) * static_cast<unsigned int>(infoLen)));
                 glGetShaderInfoLog(id, infoLen, nullptr, infoLog);
                 LOG_ERROR << s_shaderTypesTable.at(type) << " shader compile error: " << infoLog;
-                free(infoLog);
+                std::free(infoLog);
 
                 LOG_INFO << s_shaderTypesTable.at(type) << " shader:";
                 LOG_INFO << data;
@@ -3134,10 +3133,10 @@ bool ProgramBase_4_5::compileAndLink(const std::unordered_map<GLenum, std::refer
             GLint infoLen = 0;
             glGetProgramiv(m_id, GL_INFO_LOG_LENGTH, &infoLen);
             if (infoLen > 1) {
-                char* infoLog = static_cast<char*>(malloc(sizeof(char) * static_cast<unsigned int>(infoLen)));
+                char* infoLog = static_cast<char*>(std::malloc(sizeof(char) * static_cast<unsigned int>(infoLen)));
                 glGetProgramInfoLog(m_id, infoLen, nullptr, infoLog);
                 LOG_ERROR << "Program link error: " << infoLog;
-                free(infoLog);
+                std::free(infoLog);
             }
             isOk = false;
         }

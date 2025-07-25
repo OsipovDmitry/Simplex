@@ -18,8 +18,10 @@ class Settings;
 
 enum class PixelComponentType : uint16_t;
 class Image;
+class ImageManager;
 
 class Sound;
+class SoundManager;
 
 enum class PrimitiveType : uint16_t;
 enum class DrawElementsIndexType : uint16_t;

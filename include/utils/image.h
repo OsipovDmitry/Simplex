@@ -13,15 +13,14 @@ namespace simplex
 namespace utils
 {
 
-ENUMCLASS(PixelComponentType, uint16_t,
-          Undefined, Single, Uint8, Uint16)
+ENUMCLASS(PixelComponentType, uint16_t, Single, Uint8, Uint16)
 size_t UTILS_SHARED_EXPORT sizeOfPixelComponentType(PixelComponentType value);
 
 class UTILS_SHARED_EXPORT Image final
 {
     NONCOPYBLE(Image)
 public:
-    Image();
+    Image(uint32_t, uint32_t, uint32_t, PixelComponentType, const uint8_t* = nullptr);
     ~Image();
 
     uint32_t width() const;
@@ -35,25 +34,22 @@ public:
     void setPixel(uint32_t, uint32_t, const uint8_t*);
 
     std::shared_ptr<Image> copy() const;
+
     void convert(uint32_t, uint32_t, uint32_t, PixelComponentType);
     std::shared_ptr<Image> converted(uint32_t, uint32_t, uint32_t, PixelComponentType) const;
 
     bool saveToFile(const std::filesystem::path&) const;
 
-    static std::shared_ptr<Image> loadFromData(uint32_t width,
-                                               uint32_t height,
-                                               uint32_t numComponents,
-                                               PixelComponentType componentType,
-                                               const uint8_t *data);
-    static std::shared_ptr<Image> loadFromFile(const std::filesystem::path&);
-
 private:
+    Image();
+
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_numComponents;
     PixelComponentType m_componentType;
     uint8_t *m_data;
 
+    friend class ImageManager;
 };
 
 }

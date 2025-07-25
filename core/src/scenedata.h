@@ -1,6 +1,8 @@
 #ifndef CORE_SCENEDATA_H
 #define CORE_SCENEDATA_H
 
+#include <deque>
+
 #include <utils/glm/vec3.hpp>
 #include <utils/glm/vec4.hpp>
 #include <utils/glm/mat4x4.hpp>
@@ -105,17 +107,19 @@ struct DrawDataDescription
     uint32_t drawableOffset;
 };
 
+class SceneData;
+
 class MeshHandler
 {
 public:
-    MeshHandler(const std::weak_ptr<Scene>& scene, const std::weak_ptr<const Mesh>& mesh, utils::IDsGenerator::value_type id);
+    MeshHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Mesh>& mesh, utils::IDsGenerator::value_type id);
     ~MeshHandler();
 
     std::weak_ptr<const Mesh> &mesh();
     utils::IDsGenerator::value_type ID() const;
 
 private:
-    std::weak_ptr<Scene> m_scene;
+    std::weak_ptr<SceneData> m_sceneData;
     std::weak_ptr<const Mesh> m_mesh;
     utils::IDsGenerator::value_type m_ID;
 };
@@ -123,14 +127,14 @@ private:
 class MaterialMapHandler
 {
 public:
-    MaterialMapHandler(const std::weak_ptr<Scene>& scene, const std::weak_ptr<const MaterialMap>& materialMap, utils::IDsGenerator::value_type id);
+    MaterialMapHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const MaterialMap>& materialMap, utils::IDsGenerator::value_type id);
     ~MaterialMapHandler();
 
     std::weak_ptr<const MaterialMap> &materialMap();
     utils::IDsGenerator::value_type &ID();
 
 private:
-    std::weak_ptr<Scene> m_scene;
+    std::weak_ptr<SceneData> m_sceneData;
     std::weak_ptr<const MaterialMap> m_materialMap;
     utils::IDsGenerator::value_type m_ID;
 };
@@ -138,14 +142,14 @@ private:
 class MaterialHandler
 {
 public:
-    MaterialHandler(const std::weak_ptr<Scene>& scene, const std::weak_ptr<const Material>& material, utils::IDsGenerator::value_type id);
+    MaterialHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Material>& material, utils::IDsGenerator::value_type id);
     ~MaterialHandler();
 
     std::weak_ptr<const Material>& material();
     utils::IDsGenerator::value_type ID() const;
 
 private:
-    std::weak_ptr<Scene> m_scene;
+    std::weak_ptr<SceneData> m_sceneData;
     std::weak_ptr<const Material> m_material;
     utils::IDsGenerator::value_type m_ID;
 };
@@ -153,14 +157,14 @@ private:
 class DrawableHandler
 {
 public:
-    DrawableHandler(const std::weak_ptr<Scene>& scene, const std::weak_ptr<const Drawable>& drawable, utils::IDsGenerator::value_type id);
+    DrawableHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Drawable>& drawable, utils::IDsGenerator::value_type id);
     ~DrawableHandler();
 
     std::weak_ptr<const Drawable> &drawable();
     utils::IDsGenerator::value_type ID() const;
 
 private:
-    std::weak_ptr<Scene> m_scene;
+    std::weak_ptr<SceneData> m_sceneData;
     std::weak_ptr<const Drawable> m_drawable;
     utils::IDsGenerator::value_type m_ID;
 };
@@ -168,14 +172,85 @@ private:
 class DrawDataHandler
 {
 public:
-    DrawDataHandler(const std::weak_ptr<Scene>& scene, size_t id);
+    DrawDataHandler(const std::weak_ptr<SceneData>& sceneData, size_t id);
     ~DrawDataHandler();
 
     size_t ID() const;
 
 private:
-    std::weak_ptr<Scene> m_scene;
+    std::weak_ptr<SceneData> m_sceneData;
     size_t m_ID;
+};
+
+class SceneData : public std::enable_shared_from_this<SceneData>
+{
+public:
+    SceneData();
+    ~SceneData();
+
+    utils::IDsGenerator::value_type addMesh(const std::shared_ptr<const Mesh>&);
+    void removeMesh(const std::shared_ptr<const Mesh>&, utils::IDsGenerator::value_type);
+    void onMeshChanged(const std::shared_ptr<const Mesh>&, utils::IDsGenerator::value_type);
+    void addMeshData(const std::shared_ptr<const Mesh>&, utils::IDsGenerator::value_type);
+    void removeMeshData(const std::shared_ptr<const Mesh>&, utils::IDsGenerator::value_type);
+
+    utils::IDsGenerator::value_type addMaterialMap(const std::shared_ptr<const MaterialMap>&);
+    void removeMaterialMap(const std::shared_ptr<const MaterialMap>&, utils::IDsGenerator::value_type);
+    void onMaterialMapChanged(const std::shared_ptr<const MaterialMap>&, utils::IDsGenerator::value_type);
+
+    utils::IDsGenerator::value_type addMaterial(const std::shared_ptr<const Material>&);
+    void removeMaterial(const std::shared_ptr<const Material>&, utils::IDsGenerator::value_type);
+    void onMaterialChanged(const std::shared_ptr<const Material>&, utils::IDsGenerator::value_type);
+
+    utils::IDsGenerator::value_type addDrawable(const std::shared_ptr<const Drawable>&);
+    void removeDrawable(const std::shared_ptr<const Drawable>&, utils::IDsGenerator::value_type);
+    void onDrawableChanged(const std::shared_ptr<const Drawable>&, utils::IDsGenerator::value_type);
+
+    std::shared_ptr<DrawDataHandler> addDrawData(const std::shared_ptr<const Drawable>&, const glm::mat4x4&);
+    void removeDrawData(size_t);
+    void onDrawDataChanged(const std::shared_ptr<const Drawable>&, const glm::mat4x4&, size_t);
+
+    std::shared_ptr<graphics::DynamicBufferT<PositionDescription>>& positionsBuffer();
+    std::shared_ptr<graphics::DynamicBufferT<NormalDescription>>& normalsBuffer();
+    std::shared_ptr<graphics::DynamicBufferT<TexCoordsDescription>>& texCoordsBuffer();
+    std::shared_ptr<graphics::DynamicBufferT<BonesDescription>>& bonesBuffer();
+    std::shared_ptr<graphics::DynamicBufferT<TangentDescription>>& tangentsBuffer();
+    std::shared_ptr<graphics::DynamicBufferT<ColorDescription>>& colorsBuffer();
+    std::shared_ptr<graphics::DynamicBufferT<IndexDescription>>& indicesBuffer();
+    std::shared_ptr<graphics::DynamicBufferT<MeshDescription>>& meshesBuffer();
+    std::shared_ptr<graphics::DynamicBufferT<MaterialMapDescription>>& texturesBuffer();
+    std::shared_ptr<graphics::DynamicBufferT<MaterialDescription>>& materialBuffer();
+    std::shared_ptr<graphics::DynamicBufferT<DrawableDescription>>& drawablesBuffer();
+    std::shared_ptr<graphics::DynamicBufferT<DrawDataDescription>>& drawDataBuffer();
+
+private:
+    std::shared_ptr<graphics::DynamicBufferT<PositionDescription>> m_positionsBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<NormalDescription>> m_normalsBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<TexCoordsDescription>> m_texCoordsBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<BonesDescription>> m_bonesBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<TangentDescription>> m_tangentsBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<ColorDescription>> m_colorsBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<IndexDescription>> m_indicesBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<MeshDescription>> m_meshesBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<MaterialMapDescription>> m_materialMapsBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<MaterialDescription>> m_materialsBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<DrawableDescription>> m_drawablesBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<DrawDataDescription>> m_drawDataBuffer;
+
+    utils::IDsGenerator m_meshIDsGenerator;
+    std::unordered_map<std::shared_ptr<const Mesh>, std::weak_ptr<MeshHandler>> m_meshes;
+
+    utils::IDsGenerator m_materialMapIDsGenerator;
+    std::unordered_map<std::shared_ptr<const MaterialMap>, std::weak_ptr<MaterialMapHandler>> m_materialMaps;
+    std::unordered_map<utils::IDsGenerator::value_type, graphics::PTextureHandle> m_materialMapsHandles;
+
+    utils::IDsGenerator m_materialIDsGenerator;
+    std::unordered_map<std::shared_ptr<const Material>, std::weak_ptr<MaterialHandler>> m_materials;
+
+    utils::IDsGenerator m_drawableIDsGenerator;
+    std::unordered_map<std::shared_ptr<const Drawable>, std::weak_ptr<DrawableHandler>> m_drawables;
+
+    std::deque<std::weak_ptr<DrawDataHandler>> m_drawData;
 };
 
 }

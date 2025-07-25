@@ -12,6 +12,7 @@ namespace core
 {
 
 class MeshHandler;
+class SceneData;
 
 class MeshPrivate
 {
@@ -21,12 +22,12 @@ public:
 
     std::shared_ptr<const utils::Mesh> &mesh();
 
-    std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<MeshHandler>> &handles();
+    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MeshHandler>> &handles();
     void onChanged();
 
 private:
     std::shared_ptr<const utils::Mesh> m_mesh;
-    std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<MeshHandler>> m_handles;
+    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MeshHandler>> m_handles;
 };
 
 }

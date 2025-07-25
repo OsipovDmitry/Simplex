@@ -426,7 +426,7 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene,
         //                         cameraProjectionMatrix,
         //                         cameraRenderInfo);
 
-                // render lights areas
+        // render lights areas
         for (const auto& lightNode : lightNodesCollector.lightNodes())
         {
             if (!lightNode->isLightingEnabled())

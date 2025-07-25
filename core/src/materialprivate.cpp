@@ -2,7 +2,7 @@
 #include <core/scene.h>
 
 #include "materialprivate.h"
-#include "sceneprivate.h"
+#include "scenedata.h"
 
 
 namespace simplex
@@ -26,7 +26,7 @@ std::shared_ptr<const utils::Image>& MaterialMapPrivate::image()
     return m_image;
 }
 
-std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<MaterialMapHandler>>& MaterialMapPrivate::handles()
+std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialMapHandler>>& MaterialMapPrivate::handles()
 {
     return m_handles;
 }
@@ -34,7 +34,7 @@ std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<MaterialMapHandler>>&
 void MaterialMapPrivate::onChanged()
 {
     for (auto& handle : m_handles)
-        handle.first->m().onMaterialMapChanged(handle.second->materialMap().lock(), handle.second->ID());
+        handle.first->onMaterialMapChanged(handle.second->materialMap().lock(), handle.second->ID());
 }
 
 MaterialPrivate::MaterialPrivate()
@@ -114,7 +114,7 @@ std::array<std::shared_ptr<const MaterialMap>, numElementsMaterialMapTarget()>& 
     return m_maps;
 }
 
-std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<MaterialHandler>>& MaterialPrivate::handles()
+std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialHandler>>& MaterialPrivate::handles()
 {
     return m_handles;
 }
@@ -122,7 +122,7 @@ std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<MaterialHandler>>& Ma
 void MaterialPrivate::onChanged()
 {
     for (auto& handle : m_handles)
-        handle.first->m().onMaterialChanged(handle.second->material().lock(), handle.second->ID());
+        handle.first->onMaterialChanged(handle.second->material().lock(), handle.second->ID());
 }
 
 }

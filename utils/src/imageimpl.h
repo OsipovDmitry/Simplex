@@ -5,6 +5,7 @@
 #include <utils/glm/detail/type_vec2.hpp>
 #include <utils/glm/detail/type_vec3.hpp>
 #include <utils/glm/detail/type_vec4.hpp>
+#include <utils/glm/common.hpp>
 
 namespace simplex
 {
@@ -54,7 +55,7 @@ DstType* convertToPixelComponentType(uint32_t w, uint32_t h, uint32_t n, const S
 
     if constexpr (!std::is_same<DstType, SrcType>())
     {
-        result = reinterpret_cast<DstType*>(STBI_MALLOC(w * h * n * sizeof(DstType)));
+        result = reinterpret_cast<DstType*>(std::malloc(sizeof(DstType) * w * h * n));
 
         const size_t total = static_cast<size_t>(w) * static_cast<size_t>(h) * static_cast<size_t>(n);
         for (size_t i = 0u; i < total; ++i)
@@ -257,7 +258,7 @@ glm::vec<Dst, T>* convertToNumComponents(uint32_t w, uint32_t h, const glm::vec<
     {
         ConvertToNumComponents<Dst, Src, T> converter;
 
-        result = reinterpret_cast<glm::vec<Dst, T>*>(STBI_MALLOC(w * h * Dst * sizeof(T)));
+        result = reinterpret_cast<glm::vec<Dst, T>*>(std::malloc(sizeof(T) * w * h * Dst));
 
         const size_t total = static_cast<size_t>(w) * static_cast<size_t>(h);
         for (size_t i = 0u; i < total; ++i)
@@ -400,7 +401,7 @@ template<> float* convertToSize(
     uint32_t newH)
 {
     void* tmp;
-    auto result = reinterpret_cast<float*>(STBI_MALLOC(newW * newH * n * sizeof(float)));
+    auto result = reinterpret_cast<float*>(std::malloc(sizeof(float) * newW * newH * n));
     if (!stbir_resize_float_generic(
         d, w, h, 0,
         result, newW, newH, 0,
@@ -412,7 +413,7 @@ template<> float* convertToSize(
         STBIR_COLORSPACE_LINEAR,
         tmp))
     {
-        stbi_image_free(result);
+        std::free(result);
         result = nullptr;
     }
     return result;
@@ -427,7 +428,7 @@ template<> uint8_t* convertToSize(
     uint32_t newH)
 {
     void* tmp = nullptr;
-    auto result = reinterpret_cast<uint8_t*>(STBI_MALLOC(newW * newH * n * sizeof(uint8_t)));
+    auto result = reinterpret_cast<uint8_t*>(std::malloc(sizeof(uint8_t) * newW * newH * n));
     if (!stbir_resize_uint8_generic(
         d, w, h, 0,
         result, newW, newH, 0,
@@ -439,7 +440,7 @@ template<> uint8_t* convertToSize(
         STBIR_COLORSPACE_LINEAR,
         tmp))
     {
-        stbi_image_free(result);
+        std::free(result);
         result = nullptr;
     }
     return result;
@@ -454,7 +455,7 @@ template<> uint16_t* convertToSize(
     uint32_t newH)
 {
     void* tmp;
-    auto result = reinterpret_cast<uint16_t*>(STBI_MALLOC(newW * newH * n * sizeof(uint16_t)));
+    auto result = reinterpret_cast<uint16_t*>(std::malloc(sizeof(uint16_t) * newW * newH * n));
     if (!stbir_resize_uint16_generic(
         d, w, h, 0,
         result, newW, newH, 0,
@@ -466,7 +467,7 @@ template<> uint16_t* convertToSize(
         STBIR_COLORSPACE_LINEAR,
         tmp))
     {
-        stbi_image_free(result);
+        std::free(result);
         result = nullptr;
     }
     return result;

@@ -5,6 +5,7 @@
 #include <utils/fileextension.h>
 #include <utils/logger.h>
 #include <utils/image.h>
+#include <utils/imagemanager.h>
 
 #include <core/texturesmanager.h>
 
@@ -67,7 +68,10 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetTexture(const std:
             rapidjson::Document document;
             document.Parse(textureFile->data().c_str());
             if (document.IsObject())
+            {
+                m_->renderer()->makeCurrent();
                 texture = loadTextureFromJSON(m_->renderer(), document, absoluteFilename.parent_path());
+            }
             else
                 LOG_ERROR << "Root node of texture description file " << absoluteFilename << " must be object";
         }
@@ -76,9 +80,12 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetTexture(const std:
     }
     else
     {
-        auto image = utils::Image::loadFromFile(absoluteFilename);
+        auto image = utils::ImageManager::instance().loadOrGet(absoluteFilename);
         if (image)
+        {
+            m_->renderer()->makeCurrent();
             texture = m_->renderer()->createTexture2D(image, internalFormat, numLevels, genMipmaps);
+        }
         else
             LOG_ERROR << "Can't open image file " << absoluteFilename;
     }
@@ -320,7 +327,7 @@ inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared
                 const auto &imageFilename = imagesFilenames[layer][level];
                 auto absoluteImagePath = imageFilename.is_absolute() ? imageFilename : absoluteDir / imageFilename;
 
-                auto image = utils::Image::loadFromFile(absoluteImagePath);
+                auto image = utils::ImageManager::instance().loadOrGet(absoluteImagePath);
                 if (!image)
                 {
                     LOG_ERROR << "Failed to load iamge " << absoluteImagePath;

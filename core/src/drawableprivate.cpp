@@ -1,6 +1,6 @@
 #include <core/scene.h>
 
-#include "sceneprivate.h"
+#include "scenedata.h"
 #include "drawableprivate.h"
 
 namespace simplex
@@ -43,7 +43,7 @@ bool &DrawablePrivate::isDoubleSided()
     return m_isDoubleSided;
 }
 
-std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<DrawableHandler>>& DrawablePrivate::handles()
+std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>>& DrawablePrivate::handles()
 {
     return m_handles;
 }
@@ -51,7 +51,7 @@ std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<DrawableHandler>>& Dr
 void DrawablePrivate::onChanged()
 {
     for (auto& handle : m_handles)
-        handle.first->m().onDrawableChanged(handle.second->drawable().lock(), handle.second->ID());
+        handle.first->onDrawableChanged(handle.second->drawable().lock(), handle.second->ID());
 }
 
 }

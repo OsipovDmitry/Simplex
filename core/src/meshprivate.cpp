@@ -1,7 +1,7 @@
 #include <core/scene.h>
 
 #include "meshprivate.h"
-#include "sceneprivate.h"
+#include "scenedata.h"
 
 
 namespace simplex
@@ -20,7 +20,7 @@ std::shared_ptr<const utils::Mesh>& MeshPrivate::mesh()
     return m_mesh;
 }
 
-std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<MeshHandler>>& MeshPrivate::handles()
+std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MeshHandler>>& MeshPrivate::handles()
 {
     return m_handles;
 }
@@ -28,7 +28,7 @@ std::unordered_map<std::shared_ptr<Scene>, std::shared_ptr<MeshHandler>>& MeshPr
 void MeshPrivate::onChanged()
 {
     for (auto& handle : m_handles)
-        handle.first->m().onMeshChanged(handle.second->mesh().lock(), handle.second->ID());
+        handle.first->onMeshChanged(handle.second->mesh().lock(), handle.second->ID());
 }
 
 }

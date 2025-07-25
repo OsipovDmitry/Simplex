@@ -7,3 +7,6 @@
 [submodule "3rdparties/bullet3"]
 	path = 3rdparties/bullet3
 	url = ../../bulletphysics/bullet3.git
+[submodule "3rdparties/assimp"]
+	path = 3rdparties/assimp
+	url = ../../assimp/assimp.git

@@ -5,31 +5,28 @@
 
 #include "screenquaddrawable.h"
 
+// tmp
+#include <core/graphicsrendererbase.h>
+
 namespace simplex
 {
 namespace core
 {
 
-ScreenQuadDrawable::ScreenQuadDrawable()
-    : Drawable(ScreenQuadDrawable::mesh(), nullptr)
-{
-}
-
 ScreenQuadDrawable::~ScreenQuadDrawable() = default;
 
-std::shared_ptr<const Mesh> ScreenQuadDrawable::mesh()
-{
-    static std::shared_ptr<Mesh> s_mesh;
-    if (!s_mesh)
-    {
-        auto mesh = utils::Mesh::createEmptyMesh({
+ScreenQuadDrawable::ScreenQuadDrawable()
+    : Mesh(nullptr)
+    /* tmp */, Drawable(graphics::RendererBase::current()->createVertexArray(
+        utils::MeshPainter(utils::Mesh::createEmptyMesh({
             {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}
-            });
-        ;
-        s_mesh = std::make_shared<Mesh>(utils::MeshPainter(mesh).drawScreenQuad().mesh());
-    }
+            })).drawScreenQuad().mesh()))
+{
+    auto mesh = utils::Mesh::createEmptyMesh({
+        {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}
+    });
 
-    return s_mesh;
+    Mesh::setMesh(utils::MeshPainter(mesh).drawScreenQuad().mesh());
 }
 
 }

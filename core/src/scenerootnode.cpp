@@ -8,9 +8,7 @@ namespace simplex
 namespace core
 {
 
-SceneRootNode::~SceneRootNode()
-{
-}
+SceneRootNode::~SceneRootNode() = default;
 
 std::shared_ptr<SceneRootNode> SceneRootNode::asSceneRootNode()
 {
