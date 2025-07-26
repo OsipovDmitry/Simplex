@@ -18,7 +18,7 @@ Drawable::Drawable(const std::shared_ptr<graphics::IVertexArray> &vertexArray)
 {
 }
 
-Drawable::Drawable(const std::shared_ptr<const Mesh>& mesh, const std::shared_ptr<const Material>& material)
+Drawable::Drawable(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<Material>& material)
     : Drawable(std::make_unique<DrawablePrivate>(mesh, material))
 {
 }
@@ -29,6 +29,7 @@ std::shared_ptr<const Mesh> Drawable::mesh() const
 {
     return m().mesh();
 }
+
 void Drawable::setMesh(const std::shared_ptr<const Mesh>& value)
 {
     auto mPrivate = m();
@@ -38,7 +39,7 @@ void Drawable::setMesh(const std::shared_ptr<const Mesh>& value)
 
 std::shared_ptr<const Material> Drawable::material() const
 {
-    return m().material();
+    return const_cast<Drawable*>(this)->material();
 }
 
 void Drawable::setMaterial(const std::shared_ptr<const Material>& value)
@@ -56,6 +57,11 @@ std::shared_ptr<const graphics::IVertexArray> Drawable::vertexArray() const
 std::shared_ptr<graphics::IVertexArray> Drawable::vertexArray()
 {
     return m().vertexArray();
+}
+
+void Drawable::setVertexArray(std::shared_ptr<graphics::IVertexArray> value)
+{
+    m().vertexArray() = value;
 }
 
 utils::VertexAttributeSet Drawable::vertexAttrubiteSet() const

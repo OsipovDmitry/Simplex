@@ -18,7 +18,7 @@ namespace core
 {
 
 class NodePrivate;
-class CORE_SHARED_EXPORT Node : public INamedObject, public utils::TreeNode<Node>, public std::enable_shared_from_this<Node>
+class CORE_SHARED_EXPORT Node : public INamedObject, public utils::TreeNode<Node>
 {
     PRIVATE_IMPL(Node)
 public:

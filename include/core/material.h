@@ -33,7 +33,7 @@ public:
 
     bool isEmpty() const;
 
-    const std::filesystem::path asFilesystemPath() const;
+    const std::filesystem::path& asFilesystemPath() const;
     std::shared_ptr<const utils::Image> asImage() const;
 
     void setFilesystemPath(const std::filesystem::path&);
@@ -96,7 +96,7 @@ public:
     void setNormalMapScale(float);
 
     std::shared_ptr<const MaterialMap> materialMap(MaterialMapTarget) const;
-    void setMaterialMap(MaterialMapTarget, std::shared_ptr<const MaterialMap>&);
+    void setMaterialMap(MaterialMapTarget, const std::shared_ptr<const MaterialMap>&);
 
 private:
     std::unique_ptr<MaterialPrivate> m_;

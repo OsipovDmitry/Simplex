@@ -14,9 +14,10 @@ namespace core
 class BackgroundDrawable : public Drawable
 {
 public:
-    BackgroundDrawable(const std::shared_ptr<graphics::IVertexArray>&);
+    BackgroundDrawable();
     ~BackgroundDrawable() override;
 
+    // tmp
     graphics::PConstTexture colorMap() const;
     void setColorMap(const graphics::PConstTexture&);
 

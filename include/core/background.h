@@ -24,6 +24,17 @@ public:
     Background();
     ~Background();
 
+    std::shared_ptr<MaterialMap> environmentMap();
+    std::shared_ptr<const MaterialMap> environmentMap() const;
+    void setEnvironmentMap(const std::shared_ptr<MaterialMap>&);
+
+    const glm::vec3& environmentColor() const;
+    void setEnvironmentColor(const glm::vec3&) const;
+
+    float blurPower() const;
+    void setBlurPower(float);
+
+    //tmp
     graphics::PConstTexture colorMap() const;
     void setColorMap(const graphics::PConstTexture&);
 

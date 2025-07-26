@@ -39,7 +39,7 @@ std::shared_ptr<const Node> Node::rootNode() const
 std::shared_ptr<Scene> Node::scene()
 {
     std::shared_ptr<Scene> result;
-    if (auto sceneNode = rootNode()->asSceneRootNode(); sceneNode)
+    if (auto sceneNode = rootNode()->asSceneRootNode())
         result = sceneNode->scene();
 
     return result;
@@ -53,7 +53,7 @@ std::shared_ptr<const Scene> Node::scene() const
 std::shared_ptr<Node> Node::asNode()
 {
     auto wp = weak_from_this();
-    return wp.expired() ? nullptr : wp.lock();
+    return wp.expired() ? nullptr : std::dynamic_pointer_cast<Node>(wp.lock());
 }
 
 std::shared_ptr<const Node> Node::asNode() const

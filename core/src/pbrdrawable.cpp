@@ -28,8 +28,8 @@ PBRDrawable::PBRDrawable(const std::shared_ptr<graphics::IVertexArray> &vao, con
 }
 
 PBRDrawable::PBRDrawable(
-    const std::shared_ptr<const Mesh>& mesh,
-    const std::shared_ptr<const Material>& material,
+    const std::shared_ptr<Mesh>& mesh,
+    const std::shared_ptr<Material>& material,
     const utils::BoundingBox& bb)
     : VisualDrawable(std::make_unique<VisualDrawablePrivate>(mesh, material, bb))
 {

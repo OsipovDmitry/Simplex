@@ -26,14 +26,14 @@ std::shared_ptr<const utils::Image>& MaterialMapPrivate::image()
     return m_image;
 }
 
-std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialMapHandler>>& MaterialMapPrivate::handles()
+std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialMapHandler>>& MaterialMapPrivate::handlers()
 {
-    return m_handles;
+    return m_handlers;
 }
 
 void MaterialMapPrivate::onChanged()
 {
-    for (auto& handle : m_handles)
+    for (auto& handle : m_handlers)
         handle.first->onMaterialMapChanged(handle.second->materialMap().lock(), handle.second->ID());
 }
 
@@ -114,14 +114,14 @@ std::array<std::shared_ptr<const MaterialMap>, numElementsMaterialMapTarget()>& 
     return m_maps;
 }
 
-std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialHandler>>& MaterialPrivate::handles()
+std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialHandler>>& MaterialPrivate::handlers()
 {
-    return m_handles;
+    return m_handlers;
 }
 
 void MaterialPrivate::onChanged()
 {
-    for (auto& handle : m_handles)
+    for (auto& handle : m_handlers)
         handle.first->onMaterialChanged(handle.second->material().lock(), handle.second->ID());
 }
 

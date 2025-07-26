@@ -43,14 +43,14 @@ bool &DrawablePrivate::isDoubleSided()
     return m_isDoubleSided;
 }
 
-std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>>& DrawablePrivate::handles()
+std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>>& DrawablePrivate::handlers()
 {
-    return m_handles;
+    return m_handlers;
 }
 
 void DrawablePrivate::onChanged()
 {
-    for (auto& handle : m_handles)
+    for (auto& handle : m_handlers)
         handle.first->onDrawableChanged(handle.second->drawable().lock(), handle.second->ID());
 }
 

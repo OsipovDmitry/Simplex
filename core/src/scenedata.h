@@ -40,7 +40,7 @@ struct MeshDescription
     uint32_t tangentOffset;
     uint32_t colorOffset;
     uint32_t indexOffset;
-    uint32_t numIndices;
+    uint32_t numElements; // number of indices
 };
 struct MaterialMapDescription
 {
@@ -105,6 +105,23 @@ struct DrawDataDescription
 {
     glm::mat4x4 modelMatrix;
     uint32_t drawableOffset;
+};
+
+struct BackgroundDescription
+{
+    uint32_t meshOffset;
+    uint32_t environmentMapOffset;
+    glm::vec3 environmentColor;
+    float blurPower;
+};
+
+struct DrawElementsIndirectCommand
+{
+    uint32_t count;
+    uint32_t instanceCount;
+    uint32_t firstIndex;
+    int32_t  baseVertex;
+    uint32_t baseInstance;
 };
 
 class SceneData;
@@ -182,6 +199,19 @@ private:
     size_t m_ID;
 };
 
+class BackgroundHandler
+{
+public:
+    BackgroundHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Background>& background);
+    ~BackgroundHandler();
+
+    const std::weak_ptr<const Background>& background();
+
+private:
+    std::weak_ptr<SceneData> m_sceneData;
+    std::weak_ptr<const Background> m_background;
+};
+
 class SceneData : public std::enable_shared_from_this<SceneData>
 {
 public:
@@ -210,6 +240,10 @@ public:
     void removeDrawData(size_t);
     void onDrawDataChanged(const std::shared_ptr<const Drawable>&, const glm::mat4x4&, size_t);
 
+    void addBackground(const std::shared_ptr<const Background>&);
+    void removeBackground();
+    void onBackgroundChanged(const std::shared_ptr<const Background>&);
+
     std::shared_ptr<graphics::DynamicBufferT<PositionDescription>>& positionsBuffer();
     std::shared_ptr<graphics::DynamicBufferT<NormalDescription>>& normalsBuffer();
     std::shared_ptr<graphics::DynamicBufferT<TexCoordsDescription>>& texCoordsBuffer();
@@ -236,6 +270,7 @@ private:
     std::shared_ptr<graphics::DynamicBufferT<MaterialDescription>> m_materialsBuffer;
     std::shared_ptr<graphics::DynamicBufferT<DrawableDescription>> m_drawablesBuffer;
     std::shared_ptr<graphics::DynamicBufferT<DrawDataDescription>> m_drawDataBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<BackgroundDescription>> m_backgroundsBuffer;
 
     utils::IDsGenerator m_meshIDsGenerator;
     std::unordered_map<std::shared_ptr<const Mesh>, std::weak_ptr<MeshHandler>> m_meshes;
@@ -250,7 +285,11 @@ private:
     utils::IDsGenerator m_drawableIDsGenerator;
     std::unordered_map<std::shared_ptr<const Drawable>, std::weak_ptr<DrawableHandler>> m_drawables;
 
-    std::deque<std::weak_ptr<DrawDataHandler>> m_drawData;
+    std::deque<std::weak_ptr<DrawDataHandler>> m_drawDataHandlers;
+    std::weak_ptr<BackgroundHandler> m_backgroundHandler;
+
+    std::shared_ptr<graphics::DynamicBufferT<DrawElementsIndirectCommand>> m_drawDataCommandsBuffer;
+    std::shared_ptr<graphics::DynamicBufferT<DrawElementsIndirectCommand>> m_backgroundCommandsBuffer;
 };
 
 }

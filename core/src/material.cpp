@@ -34,7 +34,7 @@ bool MaterialMap::isEmpty() const
     return asFilesystemPath().empty() && !asImage();
 }
 
-const std::filesystem::path MaterialMap::asFilesystemPath() const
+const std::filesystem::path& MaterialMap::asFilesystemPath() const
 {
     return m_->path();
 }
@@ -190,7 +190,7 @@ std::shared_ptr<const MaterialMap> Material::materialMap(MaterialMapTarget value
     return m_->maps()[castFromMaterialMapTarget(value)];
 }
 
-void Material::setMaterialMap(MaterialMapTarget target, std::shared_ptr<const MaterialMap>& map)
+void Material::setMaterialMap(MaterialMapTarget target, const std::shared_ptr<const MaterialMap>& map)
 {
     m_->maps()[castFromMaterialMapTarget(target)] = map;
     m_->onChanged();

@@ -20,14 +20,14 @@ std::shared_ptr<const utils::Mesh>& MeshPrivate::mesh()
     return m_mesh;
 }
 
-std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MeshHandler>>& MeshPrivate::handles()
+std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MeshHandler>>& MeshPrivate::handlers()
 {
-    return m_handles;
+    return m_handlers;
 }
 
 void MeshPrivate::onChanged()
 {
-    for (auto& handle : m_handles)
+    for (auto& handle : m_handlers)
         handle.first->onMeshChanged(handle.second->mesh().lock(), handle.second->ID());
 }
 

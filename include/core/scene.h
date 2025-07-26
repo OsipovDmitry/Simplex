@@ -33,9 +33,9 @@ public:
     std::shared_ptr<ListenerNode> listenerNode();
     std::shared_ptr<const ListenerNode> listenerNode() const;
 
-    Background &background();
-    const Background &background() const;
-
+    std::shared_ptr<Background> background();
+    std::shared_ptr<const Background> background() const;
+    
     static std::shared_ptr<Scene> createEmpty(const std::string&);
     static std::shared_ptr<Scene> createFromGLTF(const std::filesystem::path&, const std::shared_ptr<graphics::IFrameBuffer>&);
 

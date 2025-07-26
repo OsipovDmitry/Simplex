@@ -13,7 +13,7 @@ namespace utils
 {
 
 template <typename T>
-class TreeNode
+class TreeNode : public std::enable_shared_from_this<TreeNode<T>>
 {
     NONCOPYBLE(TreeNode<T>)
 public:
@@ -28,16 +28,16 @@ public:
         for (auto &child : m_children)
         {
             std::dynamic_pointer_cast<TreeNode<T>>(child)->doDetach();
-            child->m_parent = nullptr;
+            child->m_parent.reset();
         }
         m_children.clear();
     }
 
     bool attach(const std::shared_ptr<T> &node)
     {
-        if (node->m_parent)
-            node->m_parent->detach(node);
-        node->m_parent = dynamic_cast<T*>(this);
+        if (auto p = node->m_parent.lock())
+            p->detach(node);
+        node->m_parent = std::dynamic_pointer_cast<T>(shared_from_this());
         m_children.push_back(node);
         std::dynamic_pointer_cast<TreeNode<T>>(node)->doAttach();
         return true;
@@ -45,7 +45,7 @@ public:
 
     bool detach(const std::shared_ptr<T> &node)
     {
-        if (node->m_parent != this)
+        if (node->m_parent.lock() != shared_from_this())
             return false;
         auto it = std::find(m_children.begin(), m_children.end(), node);
         if (it == m_children.end())
@@ -53,21 +53,21 @@ public:
 
         std::dynamic_pointer_cast<TreeNode<T>>(node)->doDetach();
         m_children.erase(it);
-        node->m_parent = nullptr;
+        node->m_parent.reset();
         return true;
     }
 
-    int32_t relationDegree(const std::shared_ptr<T> &grandParent) const
-    {
-        int32_t degree = 0;
-        auto thisNode = this;
-        while (thisNode && thisNode != grandParent.get())
-            thisNode = thisNode->m_parent;
-        return thisNode ? degree : -1;
-    }
+    //int32_t relationDegree(const std::shared_ptr<T> &grandParent) const
+    //{
+    //    int32_t degree = 0;
+    //    auto thisNode = this;
+    //    while (thisNode && thisNode != grandParent.get())
+    //        thisNode = thisNode->m_parent;
+    //    return thisNode ? degree : -1;
+    //}
 
-    std::shared_ptr<const T> parent() const { return m_parent ? m_parent->shared_from_this() : nullptr; }
-    std::shared_ptr<T> parent() { return m_parent ? m_parent->shared_from_this() : nullptr; }
+    std::shared_ptr<const T> parent() const { return m_parent.expired() ? nullptr : m_parent.lock(); }
+    std::shared_ptr<T> parent() { return m_parent.expired() ? nullptr : m_parent.lock(); }
 
     const std::vector<std::shared_ptr<T>> &children() const { return m_children; }
     std::vector<std::shared_ptr<T>> &children() { return m_children; }
@@ -77,7 +77,7 @@ protected:
     virtual void doDetach() {}
 
     std::vector<std::shared_ptr<T>> m_children;
-    T* m_parent = nullptr;
+    std::weak_ptr<T> m_parent;
 };
 
 } // namespace

@@ -6,12 +6,15 @@
 #include <core/igraphicswidget.h>
 #include <core/graphicsengine.h>
 #include <core/texturesmanager.h>
+#include <core/background.h>
 
 #include "scenedata.h"
 #include "sceneprivate.h"
 #include "drawableprivate.h"
 #include "materialprivate.h"
 #include "meshprivate.h"
+#include "screenquad.h"
+#include "backgroundprivate.h"
 
 namespace simplex
 {
@@ -128,6 +131,23 @@ size_t DrawDataHandler::ID() const
     return m_ID;
 }
 
+BackgroundHandler::BackgroundHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Background>& background)
+    : m_sceneData(sceneData)
+    , m_background(background)
+{
+}
+
+BackgroundHandler::~BackgroundHandler()
+{
+    if (auto sceneData = m_sceneData.lock())
+        sceneData->removeBackground();
+}
+
+const std::weak_ptr<const Background>& BackgroundHandler::background()
+{
+    return m_background;
+}
+
 SceneData::SceneData()
 {
     m_positionsBuffer = graphics::DynamicBufferT<PositionDescription>::create();
@@ -142,6 +162,10 @@ SceneData::SceneData()
     m_materialsBuffer = graphics::DynamicBufferT<MaterialDescription>::create();
     m_drawablesBuffer = graphics::DynamicBufferT<DrawableDescription>::create();
     m_drawDataBuffer = graphics::DynamicBufferT<DrawDataDescription>::create();
+    m_backgroundsBuffer = graphics::DynamicBufferT<BackgroundDescription>::create();
+
+    m_drawDataCommandsBuffer = graphics::DynamicBufferT<DrawElementsIndirectCommand>::create();
+    m_backgroundCommandsBuffer = graphics::DynamicBufferT<DrawElementsIndirectCommand>::create();
 }
 
 SceneData::~SceneData() = default;
@@ -168,7 +192,7 @@ utils::IDsGenerator::value_type SceneData::addMesh(const std::shared_ptr<const M
         result = m_meshIDsGenerator.generate();
 
         auto handler = std::make_shared<MeshHandler>(weak_from_this(), mesh, result);
-        meshPrivate.handles().insert({ shared_from_this(), handler });
+        meshPrivate.handlers().insert({ shared_from_this(), handler });
         m_meshes.insert({ mesh, handler });
 
         addMeshData(mesh, result);
@@ -348,7 +372,7 @@ void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsG
     static constexpr auto s_primitiveType = utils::PrimitiveType::Triangles;
 
     indexOffset = m_indicesBuffer->size();
-    uint32_t numIndices = 0u;
+    uint32_t numElements = 0u;
 
     for (const auto& primitiveSet : mesh->mesh()->primitiveSets())
     {
@@ -378,7 +402,7 @@ void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsG
         if (buffer->baseVertex())
             buffer = buffer->appliedBaseVertex();
 
-        numIndices += buffer->numIndices();
+        numElements += buffer->numIndices();
 
         const auto offset = m_indicesBuffer->size();
         m_indicesBuffer->insert(
@@ -396,7 +420,7 @@ void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsG
         tangentOffset,
         colorOffset,
         indexOffset,
-        numIndices
+        numElements
         });
 }
 
@@ -491,7 +515,7 @@ utils::IDsGenerator::value_type SceneData::addMaterialMap(const std::shared_ptr<
         result = m_materialMapIDsGenerator.generate();
 
         auto handler = std::make_shared<MaterialMapHandler>(weak_from_this(), materialMap, result);
-        materialMapPrivate.handles().insert({ shared_from_this(), handler });
+        materialMapPrivate.handlers().insert({ shared_from_this(), handler });
         m_materialMaps.insert({ materialMap, handler });
 
         onMaterialMapChanged(materialMap, result);
@@ -604,7 +628,7 @@ utils::IDsGenerator::value_type SceneData::addMaterial(const std::shared_ptr<con
         result = m_materialIDsGenerator.generate();
 
         auto handler = std::make_shared<MaterialHandler>(weak_from_this(), material, result);
-        materialPrivate.handles().insert({ shared_from_this(), handler });
+        materialPrivate.handlers().insert({ shared_from_this(), handler });
         m_materials.insert({ material, handler });
 
         onMaterialChanged(material, result);
@@ -688,7 +712,7 @@ utils::IDsGenerator::value_type SceneData::addDrawable(const std::shared_ptr<con
         result = m_drawableIDsGenerator.generate();
 
         auto handler = std::make_shared<DrawableHandler>(weak_from_this(), drawable, result);
-        drawablePrivate.handles().insert({ shared_from_this(), handler });
+        drawablePrivate.handlers().insert({ shared_from_this(), handler });
         m_drawables.insert({ drawable, handler });
 
         onDrawableChanged(drawable, result);
@@ -743,10 +767,10 @@ std::shared_ptr<DrawDataHandler> SceneData::addDrawData(const std::shared_ptr<co
         return nullptr;
     }
 
-    const auto ID = m_drawData.size();
+    const auto ID = m_drawDataHandlers.size();
 
     auto result = std::make_shared<DrawDataHandler>(weak_from_this(), ID);
-    m_drawData.push_back(result);
+    m_drawDataHandlers.push_back(result);
 
     onDrawDataChanged(drawable, modelMatrix, ID);
 
@@ -755,13 +779,14 @@ std::shared_ptr<DrawDataHandler> SceneData::addDrawData(const std::shared_ptr<co
 
 void SceneData::removeDrawData(size_t ID)
 {
-    if (ID >= m_drawData.size())
+    if (ID >= m_drawDataHandlers.size())
     {
         LOG_CRITICAL << "No found draw data in scene to remove";
         return;
     }
 
-    m_drawData.erase(std::next(m_drawData.begin(), ID));
+    m_drawDataHandlers.erase(std::next(m_drawDataHandlers.begin(), ID));
+    m_drawDataCommandsBuffer->erase(ID, 1u);
 }
 
 void SceneData::onDrawDataChanged(const std::shared_ptr<const Drawable>& drawable, const glm::mat4x4& modelMatrix, size_t ID)
@@ -772,18 +797,80 @@ void SceneData::onDrawDataChanged(const std::shared_ptr<const Drawable>& drawabl
         return;
     }
 
-    if (ID >= m_drawData.size())
+    if (ID >= m_drawDataHandlers.size())
     {
         LOG_CRITICAL << "No found draw data in scene to change";
         return;
     }
 
     if (m_drawDataBuffer->size() <= ID)
+    {
         m_drawDataBuffer->resize(ID + 1u);
+        m_drawDataCommandsBuffer->resize(ID + 1u);
+    }
 
     m_drawDataBuffer->set(ID, {
         modelMatrix,
         addDrawable(drawable)
+        });
+
+    //auto numIndices = 0u;
+    //if ()
+
+
+    //m_drawDataCommandsBuffer->set(ID, {
+    //    m_meshesNumIndices[],
+    //    });
+}
+
+void SceneData::addBackground(const std::shared_ptr<const Background>& background)
+{
+    if (!background)
+    {
+        LOG_CRITICAL << "Failed to add background";
+        return;
+    }
+
+    if (!m_backgroundHandler.expired())
+    {
+        LOG_CRITICAL << "Background handler alreay exists";
+        return;
+    }
+
+    auto handler = std::make_shared<BackgroundHandler>(weak_from_this(), background);
+    background->m().handler() = {shared_from_this(), handler};
+    m_backgroundHandler = handler;
+
+    onBackgroundChanged(background);
+}
+
+void SceneData::removeBackground()
+{
+    m_backgroundHandler.reset();
+}
+
+void SceneData::onBackgroundChanged(const std::shared_ptr<const Background>& background)
+{
+    if (!background)
+    {
+        LOG_CRITICAL << "Background can't be nullptr";
+        return;
+    }
+
+    if (m_backgroundHandler.expired())
+    {
+        LOG_CRITICAL << "No found background in scene to change";
+        return;
+    }
+
+    if (!m_backgroundsBuffer->size())
+        m_backgroundsBuffer->resize(1u);
+
+    m_backgroundsBuffer->set(0u, {
+        addMesh(ScreenQuad::instance()),
+        addMaterialMap(background->environmentMap()),
+        background->environmentColor(),
+        background->blurPower()
         });
 }
 

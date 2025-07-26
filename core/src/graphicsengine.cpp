@@ -365,7 +365,7 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene,
         // render background layer (it's here because next stencil buffer will be reused for light-areas rendering)
         cameraPrivate.gFrameBuffer()->setForBackgroundPass();
         renderer->clearRenderData();
-        auto& backgroundDrawable = scene->background().m().drawable();
+        auto& backgroundDrawable = scene->background()->m().drawable();
         renderer->addRenderData(programsManager->loadOrGetBackgroundPassRenderProgram(
             backgroundDrawable->vertexAttrubiteSet(),
             backgroundDrawable->uniformCollection()),

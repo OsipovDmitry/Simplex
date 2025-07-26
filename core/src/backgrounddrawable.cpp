@@ -5,17 +5,22 @@
 #include <core/texturesmanager.h>
 #include <core/settings.h>
 #include <core/uniform.h>
+#include <core/material.h>
 
 #include "backgrounddrawable.h"
+
+//tmp
+#include "graphicsengineprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-BackgroundDrawable::BackgroundDrawable(const std::shared_ptr<graphics::IVertexArray> &vao)
-    : Drawable(vao)
+BackgroundDrawable::BackgroundDrawable()
+    : Drawable(nullptr, nullptr)
 {
+    //tmp
     auto graphicsRenderer = graphics::RendererBase::current();
     if (!graphicsRenderer)
         LOG_CRITICAL << "Graphics renderer can't be nullptr";
@@ -28,10 +33,12 @@ BackgroundDrawable::BackgroundDrawable(const std::shared_ptr<graphics::IVertexAr
     if (!graphicsEngine)
         LOG_CRITICAL << "Graphics engine can't be nullptr";
 
-    auto texturesManager = graphicsEngine->texturesManager();
-    setColorMap(texturesManager->loadOrGetDefaultIBLEnvironmentTexture());
+    setVertexArray(graphicsEngine->m().screenQuadVertexArray());
 
-    auto &backgroundSettings = settings::Settings::instance().graphics().background();
+    auto texturesManager = graphicsEngine->texturesManager();
+    setColorMap(texturesManager->loadOrGetDefaultIBLSpecularTexture());
+
+    auto& backgroundSettings = settings::Settings::instance().graphics().background();
     setRoughness(backgroundSettings.roughness());
 }
 

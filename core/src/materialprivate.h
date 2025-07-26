@@ -28,14 +28,14 @@ public:
     std::filesystem::path& path();
     std::shared_ptr<const utils::Image>& image();
 
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialMapHandler>> &handles();
+    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialMapHandler>> &handlers();
     void onChanged();
 
 private:
     std::filesystem::path m_path;
     std::shared_ptr<const utils::Image> m_image;
 
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialMapHandler>> m_handles;
+    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialMapHandler>> m_handlers;
 };
 
 class MaterialPrivate
@@ -59,7 +59,7 @@ public:
 
     std::array<std::shared_ptr<const MaterialMap>, numElementsMaterialMapTarget()>& maps();
 
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialHandler>> &handles();
+    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialHandler>> &handlers();
     void onChanged();
 
 private:
@@ -78,7 +78,7 @@ private:
 
     std::array<std::shared_ptr<const MaterialMap>, numElementsMaterialMapTarget()> m_maps;
 
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialHandler>> m_handles;
+    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialHandler>> m_handlers;
 };
 
 }

@@ -21,7 +21,7 @@ class CORE_SHARED_EXPORT Mesh
     PRIVATE_IMPL(Mesh)
 public:
     Mesh(const std::shared_ptr<const utils::Mesh>& = nullptr);
-    ~Mesh();
+    virtual ~Mesh();
 
     std::shared_ptr<const utils::Mesh> mesh() const;
     void setMesh(const std::shared_ptr<const utils::Mesh>&);

@@ -28,14 +28,13 @@ public:
     ~DrawablePrivate() override;
 
     std::shared_ptr<const Mesh> &mesh();
-
     std::shared_ptr<const Material> &material();
 
     std::shared_ptr<graphics::IVertexArray> &vertexArray();
 
     bool &isDoubleSided();
 
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>>& handles();
+    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>>& handlers();
     void onChanged();
 
 protected:
@@ -43,7 +42,7 @@ protected:
     std::shared_ptr<const Material> m_material;
     std::shared_ptr<graphics::IVertexArray> m_vertexArray;
     bool m_isDoubleSided;
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>> m_handles;
+    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>> m_handlers;
 
 };
 

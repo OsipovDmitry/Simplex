@@ -4,6 +4,7 @@
 #include <utils/clipspace.h>
 #include <utils/textfile.h>
 
+#include <core/drawable.h>
 #include <core/scene.h>
 #include <core/scenerootnode.h>
 #include <core/listenernode.h>
@@ -18,9 +19,11 @@
 #include <core/spotlightnode.h>
 #include <core/igraphicswidget.h>
 #include <core/graphicsengine.h>
+#include <core/background.h>
 
 #include "sceneprivate.h"
 #include "scenerootnodeprivate.h"
+#include "scenedata.h"
 
 #define TINYGLTF_IMPLEMENTATION
 #define TINYGLTF_USE_RAPIDJSON
@@ -34,10 +37,7 @@ namespace simplex
 namespace core
 {
 
-Scene::~Scene()
-{
-    m_->sceneData() = nullptr;
-}
+Scene::~Scene() = default;
 
 const std::string &Scene::name() const
 {
@@ -64,12 +64,12 @@ std::shared_ptr<const ListenerNode> Scene::listenerNode() const
     return const_cast<Scene*>(this)->listenerNode();
 }
 
-Background &Scene::background()
+std::shared_ptr<Background> Scene::background()
 {
     return m_->background();
 }
 
-const Background &Scene::background() const
+std::shared_ptr<const Background> Scene::background() const
 {
     return const_cast<Scene*>(this)->background();
 }
@@ -578,6 +578,9 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
 Scene::Scene(const std::string &name)
     : m_(std::make_unique<ScenePrivate>(*this, name))
 {
+    m_->background() = std::make_shared<Background>();
+    m_->sceneData()->addBackground(m_->background());
+
     m_->listenerNode() = std::shared_ptr<ListenerNode>(new ListenerNode(settings::Settings::instance().application().scene().listenerNodeName()));
 
     m_->sceneRootNode() = std::shared_ptr<SceneRootNode>(new SceneRootNode(settings::Settings::instance().application().scene().sceneRootNodeName()));

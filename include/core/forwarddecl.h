@@ -160,6 +160,10 @@ class StateSet;
 using PStateSet = std::shared_ptr<StateSet>;
 using PConstStateSet = std::shared_ptr<const StateSet>;
 
+class PassBase;
+class RenderPass;
+class ComputePass;
+
 class Mesh;
 
 class MaterialMap;
