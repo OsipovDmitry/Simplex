@@ -39,11 +39,12 @@ ENUMCLASS(UniformId, uint16_t,
           BackgroundColorMap,
           BackgroundColor,
           BackgroundRoughness,
-          GBufferColorMap,
+          GBufferColorMap0,
+          GBufferColorMap1,
+          GBufferColorMap2,
           GBufferDepthMap,
           OITDepthImage,
           OITIndicesImage,
-          OITNodesCounter,
           SSAOMap,
           SSAOContribution,
           SSAONoiseMap,
@@ -84,12 +85,29 @@ ENUMCLASS(UniformId, uint16_t,
           BlurMaxDepthDifference)
 
 ENUMCLASS(SSBOId, uint16_t,
-          Undefined,
-          BonesBuffer,
-          LayeredShadowMatrices,
-          OITNodes,
-          SSAOKernel,
-          BlurKernel)
+    Undefined,
+
+    PositionsBuffer,
+    NormalsBuffer,
+    TexCoordsBuffer,
+    BonesBuffer,
+    TangentsBuffer,
+    ColorBuffer,
+    IndicesBuffer,
+
+    MeshesBuffer,
+    MaterialMapsBuffer,
+    MaterialsBuffer,
+    DrawablesBuffer,
+    DrawDataBuffer,
+    BackgroundsBuffer,
+
+    CommandsBuffer,
+
+    LayeredShadowMatrices,
+    OITNodesBuffer,
+    SSAOKernel,
+    BlurKernel)
 
 class StateSetPrivate;
 class CORE_SHARED_EXPORT StateSet

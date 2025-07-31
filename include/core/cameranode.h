@@ -25,6 +25,10 @@ public:
     bool isRenderingEnabled() const;
     void setRenderingEnabled(bool);
 
+    bool isDefaultFramebufferUsed() const;
+    void useDefaultFramebuffer();
+    void useSeparateFramebuffer(const glm::uvec2&);
+
     std::shared_ptr<graphics::IFrameBuffer> frameBuffer();
     std::shared_ptr<const graphics::IFrameBuffer> frameBuffer() const;
     void setFrameBuffer(const std::shared_ptr<graphics::IFrameBuffer>&);

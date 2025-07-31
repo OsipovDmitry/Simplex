@@ -1,0 +1,13 @@
+layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+
+layout (r32ui) uniform uimage2DRect u_OITIndicesImage;
+
+void main(void)
+{
+    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+    
+    if (all(lessThan(texelCoord, imageSize(u_OITIndicesImage))))
+    {
+        imageStore(u_OITIndicesImage, texelCoord, uvec4(0xFFFFFFFF));
+    }
+}

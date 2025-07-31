@@ -31,11 +31,6 @@ std::shared_ptr<core::GraphicsEngine>& GLFWWidgetPrivate::engine()
     return m_engine;
 }
 
-std::shared_ptr<core::Scene>& GLFWWidgetPrivate::scene()
-{
-    return m_scene;
-}
-
 GLFWwindow *&GLFWWidgetPrivate::window()
 {
     return m_GLFWWindow;

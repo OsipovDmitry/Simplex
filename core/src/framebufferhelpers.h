@@ -24,10 +24,10 @@ protected:
     glm::uvec2 m_viewportSize;
 };
 
-class GFrameBuffer : public FrameBufferWrapper
+class GFrameBufferTmp : public FrameBufferWrapper
 {
 public:
-    GFrameBuffer(const std::shared_ptr<graphics::RendererBase>&);
+    GFrameBufferTmp(const std::shared_ptr<graphics::RendererBase>&);
 
     void setForGeometryOpaquePass();
     void setForGeometryTransparentPass();
@@ -42,8 +42,8 @@ public:
     graphics::PConstTexture colorTexture() const;
     graphics::PConstTexture depthTexture() const;
     graphics::PConstTexture stencilTexture() const;
-    graphics::PConstImage oitDepthImage();
-    graphics::PConstImage oitIndicesImage();
+    graphics::PConstImage oitDepthImage() const;
+    graphics::PConstImage oitIndicesImage() const;
 
 private:
     graphics::PConstImage m_oitDepthImage;

@@ -84,7 +84,7 @@ class IRenderProgram;
 class IComputeProgram;
 class RendererBase;
 class DynamicBufferBase;
-template <typename T> class DynamicBufferT;
+template <typename T, typename ReservedType = void> class DynamicBufferT;
 
 class IGraphicsWidget;
 enum class KeyState : uint16_t;
@@ -159,10 +159,6 @@ using SSBOCollection = std::unordered_map<SSBOId, graphics::PConstBuffer>;
 class StateSet;
 using PStateSet = std::shared_ptr<StateSet>;
 using PConstStateSet = std::shared_ptr<const StateSet>;
-
-class PassBase;
-class RenderPass;
-class ComputePass;
 
 class Mesh;
 

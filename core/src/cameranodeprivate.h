@@ -12,7 +12,8 @@ namespace simplex
 namespace core
 {
 
-class GFrameBuffer;
+class GFramebuffer;
+class GFrameBufferTmp;
 class SSAOFrameBuffer;
 class BlurFrameBuffer;
 class PostprocessFrameBuffer;
@@ -25,6 +26,8 @@ public:
 
     bool &isRenderingEnabled();
 
+    std::shared_ptr<GFramebuffer> &GBuffer();
+
     std::shared_ptr<graphics::IFrameBuffer> &userFrameBuffer();
 
     utils::ClipSpaceType &clipSpaceType();
@@ -35,7 +38,7 @@ public:
 
     SSAO &ssao();
 
-    std::shared_ptr<GFrameBuffer> &gFrameBuffer();
+    std::shared_ptr<GFrameBufferTmp> &gFrameBuffer();
     std::shared_ptr<SSAOFrameBuffer> &ssaoFrameBuffer();
     std::shared_ptr<BlurFrameBuffer> &ssaoBlurFrameBuffer();
     std::shared_ptr<PostprocessFrameBuffer> &postprocessFrameBuffer();
@@ -44,6 +47,8 @@ public:
 
 private:
     bool m_isRenderingEnabled;
+
+    std::shared_ptr<GFramebuffer> m_GBuffer;
 
     std::shared_ptr<graphics::IFrameBuffer> m_userFrameBuffer;
 
@@ -55,7 +60,7 @@ private:
 
     SSAO m_ssao;
 
-    std::shared_ptr<GFrameBuffer> m_gFrameBuffer;
+    std::shared_ptr<GFrameBufferTmp> m_gFrameBuffer;
     std::shared_ptr<SSAOFrameBuffer> m_ssaoFrameBuffer;
     std::shared_ptr<BlurFrameBuffer> m_ssaoBlurFrameBuffer;
     std::shared_ptr<PostprocessFrameBuffer> m_postprocessFrameBuffer;

@@ -5,10 +5,15 @@
 
 #include <core/forwarddecl.h>
 
+#include "scenedata.h"
+
 namespace simplex
 {
 namespace core
 {
+
+class Pass;
+class GFramebuffer;
 
 class GraphicsEnginePrivate
 {
@@ -21,8 +26,12 @@ public:
     std::shared_ptr<TexturesManager> &texturesManager();
     std::shared_ptr<ProgramsManager> &programsManager();
 
-    graphics::PBuffer &fragmentsBuffer();
-    graphics::PBuffer &fragmentsCounter();
+    std::shared_ptr<Scene>& scene();
+
+    std::vector<std::shared_ptr<Pass>> &passes();
+
+    std::shared_ptr<GFramebuffer>& GBuffer();
+    OITNodesBuffer& fragmentsBuffer();
 
     std::shared_ptr<graphics::IVertexArray> &screenQuadVertexArray();
 
@@ -52,8 +61,12 @@ private:
     std::shared_ptr<TexturesManager> m_texturesManager;
     std::shared_ptr<ProgramsManager> m_programsManager;
 
-    graphics::PBuffer m_fragmentsBuffer;
-    graphics::PBuffer m_fragmentsCounter;
+    std::shared_ptr<Scene> m_scene;
+
+    std::vector<std::shared_ptr<Pass>> m_passes;
+
+    std::shared_ptr<GFramebuffer> m_GBuffer;
+    OITNodesBuffer m_fragmentsBuffer;
 
     std::shared_ptr<graphics::IVertexArray> m_screenQuadVertexArray;
 

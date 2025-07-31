@@ -1,0 +1,80 @@
+#if defined(SOURCE_IMAGE_TYPE_1D)
+    layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+    #define VEC_TYPE int
+    const VEC_TYPE BLUR_DIRECTION[1] = VEC_TYPE[](1);
+#elif defined(SOURCE_IMAGE_TYPE_1D_ARRAY) || defined(SOURCE_IMAGE_TYPE_2D) || defined(SOURCE_IMAGE_TYPE_RECT)
+    layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
+    #define VEC_TYPE ivec2
+    const VEC_TYPE BLUR_DIRECTION[2] = VEC_TYPE[](VEC_TYPE(1, 0), VEC_TYPE(0, 1));
+#elif defined(SOURCE_IMAGE_TYPE_2D_ARRAY) || defined(SOURCE_IMAGE_TYPE_CUBE) || defined(SOURCE_IMAGE_TYPE_CUBE_ARRAY) || defined(SOURCE_IMAGE_TYPE_3D)
+    layout (local_size_x = 16, local_size_y = 16, local_size_z = 4) in;
+    #define VEC_TYPE ivec3
+    const VEC_TYPE BLUR_DIRECTION[3] = VEC_TYPE[](VEC_TYPE(1, 0, 0), VEC_TYPE(0, 1, 0), VEC_TYPE(0, 0, 1));
+#endif
+
+#if defined(SOURCE_IMAGE_TYPE_1D)
+    #define SOURCE_IMAGE_TYPE image1D
+#elif defined(SOURCE_IMAGE_TYPE_2D)
+    #define SOURCE_IMAGE_TYPE image2D
+#elif defined(SOURCE_IMAGE_TYPE_3D)
+    #define SOURCE_IMAGE_TYPE image3D
+#elif defined(SOURCE_IMAGE_TYPE_CUBE)
+    #define SOURCE_IMAGE_TYPE imageCube
+#elif defined(SOURCE_IMAGE_TYPE_1D_ARRAY)
+    #define SOURCE_IMAGE_TYPE image1DArray
+#elif defined(SOURCE_IMAGE_TYPE_2D_ARRAY)
+    #define SOURCE_IMAGE_TYPE image2DArray
+#elif defined(SOURCE_IMAGE_TYPE_CUBE_ARRAY)
+    #define SOURCE_IMAGE_TYPE imageCubeArray
+#elif defined(SOURCE_IMAGE_TYPE_RECT)
+    #define SOURCE_IMAGE_TYPE image2DRect
+#endif
+
+layout (SOURCE_IMAGE_FORMAT) uniform SOURCE_IMAGE_TYPE u_sourceImage;
+layout (SOURCE_IMAGE_FORMAT) uniform SOURCE_IMAGE_TYPE u_destinationImage;
+layout (std430) buffer ssbo_blurKernelBuffer { uint blurKernelRadius; uint padding[3u]; vec4 blurKernel[]; };
+uniform uint u_blurPassIndex;
+
+void blur(layout (SOURCE_IMAGE_FORMAT) SOURCE_IMAGE_TYPE dst, layout (SOURCE_IMAGE_FORMAT) SOURCE_IMAGE_TYPE src, VEC_TYPE sourceMapSizeMinusOne, VEC_TYPE coord, VEC_TYPE dir)
+{
+    vec4 color = blurKernel[0][0] * imageLoad(src, coord);
+    for (int i = 1; i < blurKernelRadius; ++i)
+    {
+        float weight = blurKernel[i/4][i%4];
+        
+        VEC_TYPE sampleFragCoord = clamp(coord + dir * i, VEC_TYPE(0), sourceMapSizeMinusOne);
+        color += weight * imageLoad(src, sampleFragCoord);
+        
+        sampleFragCoord = clamp(coord - dir * i, VEC_TYPE(0), sourceMapSizeMinusOne);
+        color += weight * imageLoad(src, sampleFragCoord);
+    }
+    imageStore(dst, coord, color);
+}
+
+void main(void)
+{
+    ivec3 sizeOfImage = ivec3(1);
+    #if defined(SOURCE_IMAGE_TYPE_1D)
+        sizeOfImage.x = imageSize(u_sourceImage);
+    #elif defined(SOURCE_IMAGE_TYPE_1D_ARRAY) || defined(SOURCE_IMAGE_TYPE_2D) || defined(SOURCE_IMAGE_TYPE_CUBE) || defined(SOURCE_IMAGE_TYPE_RECT)
+        sizeOfImage.xy = imageSize(u_sourceImage);
+    #elif defined(SOURCE_IMAGE_TYPE_2D_ARRAY) || defined(SOURCE_IMAGE_TYPE_CUBE_ARRAY) || defined(SOURCE_IMAGE_TYPE_3D)
+        sizeOfImage.xyz = imageSize(u_sourceImage);
+    #endif
+    
+    #if defined(SOURCE_IMAGE_TYPE_CUBE) || defined(SOURCE_IMAGE_TYPE_CUBE_ARRAY)
+        sizeOfImage.z *= 6;
+    #endif
+    
+    ivec3 texelCoord = ivec3(gl_GlobalInvocationID);
+    if (all(lessThan(texelCoord, sizeOfImage)))
+    {
+        #if defined(SOURCE_IMAGE_TYPE_1D)
+            blur(u_destinationImage, u_sourceImage, sizeOfImage.x - 1, texelCoord.x, BLUR_DIRECTION[u_blurPassIndex]);
+        #elif defined(SOURCE_IMAGE_TYPE_1D_ARRAY) || defined(SOURCE_IMAGE_TYPE_2D) || defined(SOURCE_IMAGE_TYPE_RECT)
+            blur(u_destinationImage, u_sourceImage, sizeOfImage.xy - 1, texelCoord.xy, BLUR_DIRECTION[u_blurPassIndex]);
+        #elif defined(SOURCE_IMAGE_TYPE_2D_ARRAY) || defined(SOURCE_IMAGE_TYPE_CUBE) || defined(SOURCE_IMAGE_TYPE_CUBE_ARRAY) || defined(SOURCE_IMAGE_TYPE_3D)
+            blur(u_destinationImage, u_sourceImage, sizeOfImage.xyz - 1, texelCoord.xyz, BLUR_DIRECTION[u_blurPassIndex]);
+        #endif
+    }
+}

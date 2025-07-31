@@ -21,6 +21,31 @@ namespace simplex
 namespace core
 {
 
+inline float occlusionMapStrength(uint32_t flags) { return static_cast<float>((flags >> 0u) & 0xFF) / 255.f; }
+inline float normalMapScale(uint32_t flags) { return static_cast<float>((flags >> 8u) & 0xFF) / 255.f; }
+inline uint32_t occlusionSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 16u) & 0x3); }
+inline uint32_t roughnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 18u) & 0x3); }
+inline uint32_t metalnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 20u) & 0x3); }
+inline bool isLighted(uint32_t flags) { return (flags >> 22u) & 0x1; }
+inline bool isShadowed(uint32_t flags) { return (flags >> 23u) & 0x1; }
+uint32_t makeMaterialFlags(
+    float occlusionMapStrength,
+    float normalMapScale,
+    const glm::u32vec3& ORMSwizzleMask,
+    bool isLighted,
+    bool isShadowed)
+{
+    uint32_t result = 0u;
+    result |= (static_cast<uint32_t>(glm::clamp(occlusionMapStrength, 0.f, 1.f) * 255.f) & 0xFF) << 0u;
+    result |= (static_cast<uint32_t>(glm::clamp(normalMapScale, 0.f, 1.f) * 255.f) & 0xFF) << 8u;
+    result |= (ORMSwizzleMask.r & 0x3) << 16u;
+    result |= (ORMSwizzleMask.g & 0x3) << 18u;
+    result |= (ORMSwizzleMask.b & 0x3) << 20u;
+    result |= ((isLighted ? 1u : 0u) & 0x1) << 22u;
+    result |= ((isShadowed ? 1u : 0u) & 0x1) << 23u;
+    return result;
+}
+
 MeshHandler::MeshHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Mesh>& mesh, utils::IDsGenerator::value_type id)
     : m_sceneData(sceneData)
     , m_mesh(mesh)
@@ -114,9 +139,9 @@ utils::IDsGenerator::value_type DrawableHandler::ID() const
     return m_ID;
 }
 
-DrawDataHandler::DrawDataHandler(const std::weak_ptr<SceneData>& sceneData, size_t id)
+DrawDataHandler::DrawDataHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID)
     : m_sceneData(sceneData)
-    , m_ID(id)
+    , m_ID(ID)
 {
 }
 
@@ -131,41 +156,46 @@ size_t DrawDataHandler::ID() const
     return m_ID;
 }
 
-BackgroundHandler::BackgroundHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Background>& background)
+BackgroundHandler::BackgroundHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Background>& background, size_t ID)
     : m_sceneData(sceneData)
     , m_background(background)
+    , m_ID(ID)
 {
 }
 
 BackgroundHandler::~BackgroundHandler()
 {
     if (auto sceneData = m_sceneData.lock())
-        sceneData->removeBackground();
+        sceneData->removeBackground(m_ID);
 }
 
-const std::weak_ptr<const Background>& BackgroundHandler::background()
+std::weak_ptr<const Background>& BackgroundHandler::background()
 {
     return m_background;
 }
 
+size_t BackgroundHandler::ID() const
+{
+    return m_ID;
+}
+
 SceneData::SceneData()
 {
-    m_positionsBuffer = graphics::DynamicBufferT<PositionDescription>::create();
-    m_normalsBuffer = graphics::DynamicBufferT<NormalDescription>::create();
-    m_texCoordsBuffer = graphics::DynamicBufferT<TexCoordsDescription>::create();
-    m_bonesBuffer = graphics::DynamicBufferT<BonesDescription>::create();
-    m_tangentsBuffer = graphics::DynamicBufferT<TangentDescription>::create();
-    m_colorsBuffer = graphics::DynamicBufferT<ColorDescription>::create();
-    m_indicesBuffer = graphics::DynamicBufferT<IndexDescription>::create();
-    m_meshesBuffer = graphics::DynamicBufferT<MeshDescription>::create();
-    m_materialMapsBuffer = graphics::DynamicBufferT<MaterialMapDescription>::create();
-    m_materialsBuffer = graphics::DynamicBufferT<MaterialDescription>::create();
-    m_drawablesBuffer = graphics::DynamicBufferT<DrawableDescription>::create();
-    m_drawDataBuffer = graphics::DynamicBufferT<DrawDataDescription>::create();
-    m_backgroundsBuffer = graphics::DynamicBufferT<BackgroundDescription>::create();
-
-    m_drawDataCommandsBuffer = graphics::DynamicBufferT<DrawElementsIndirectCommand>::create();
-    m_backgroundCommandsBuffer = graphics::DynamicBufferT<DrawElementsIndirectCommand>::create();
+    m_positionsBuffer = PositionsBuffer::element_type::create();
+    m_normalsBuffer = NormalsBuffer::element_type::create();
+    m_texCoordsBuffer = TexCoordsBuffer::element_type::create();
+    m_bonesBuffer = BonesBuffer::element_type::create();
+    m_tangentsBuffer = TangentsBuffer::element_type::create();
+    m_colorsBuffer = ColorsBuffer::element_type::create();
+    m_indicesBuffer = IndicesBuffer::element_type::create();
+    m_meshesBuffer = MeshesBuffer::element_type::create();
+    m_materialMapsBuffer = MaterialMapsBuffer::element_type::create();
+    m_materialsBuffer = MaterialsBuffer::element_type::create();
+    m_drawablesBuffer = DrawablesBuffer::element_type::create();
+    m_drawDataBuffer = DrawDataBuffer::element_type::create();
+    m_backgroundsBuffer = BackgroundsBuffer::element_type::create();
+    m_drawDataCommandsBuffer = CommandsBuffer::element_type::create();
+    m_backgroundsCommandsBuffer = CommandsBuffer::element_type::create();
 }
 
 SceneData::~SceneData() = default;
@@ -786,6 +816,7 @@ void SceneData::removeDrawData(size_t ID)
     }
 
     m_drawDataHandlers.erase(std::next(m_drawDataHandlers.begin(), ID));
+    m_drawDataBuffer->erase(ID, 1u);
     m_drawDataCommandsBuffer->erase(ID, 1u);
 }
 
@@ -806,21 +837,19 @@ void SceneData::onDrawDataChanged(const std::shared_ptr<const Drawable>& drawabl
     if (m_drawDataBuffer->size() <= ID)
     {
         m_drawDataBuffer->resize(ID + 1u);
+        m_drawDataBuffer->setReservedData(m_drawDataBuffer->size());
+    }
+
+    if (m_drawDataCommandsBuffer->size() <= ID)
+    {
         m_drawDataCommandsBuffer->resize(ID + 1u);
+        m_drawDataCommandsBuffer->setReservedData(m_drawDataCommandsBuffer->size());
     }
 
     m_drawDataBuffer->set(ID, {
         modelMatrix,
         addDrawable(drawable)
         });
-
-    //auto numIndices = 0u;
-    //if ()
-
-
-    //m_drawDataCommandsBuffer->set(ID, {
-    //    m_meshesNumIndices[],
-    //    });
 }
 
 void SceneData::addBackground(const std::shared_ptr<const Background>& background)
@@ -831,25 +860,33 @@ void SceneData::addBackground(const std::shared_ptr<const Background>& backgroun
         return;
     }
 
-    if (!m_backgroundHandler.expired())
+    const auto ID = m_backgroundsHandlers.size();
+
+    auto handler = std::make_shared<BackgroundHandler>(weak_from_this(), background, ID);
+    background->m().handler() = { shared_from_this(), handler };
+    m_backgroundsHandlers.push_back(handler);
+
+    onBackgroundChanged(background, ID);
+}
+
+void SceneData::removeBackground(size_t ID)
+{
+    if (ID >= m_backgroundsHandlers.size())
     {
-        LOG_CRITICAL << "Background handler alreay exists";
+        LOG_CRITICAL << "No found background in scene to remove";
         return;
     }
 
-    auto handler = std::make_shared<BackgroundHandler>(weak_from_this(), background);
-    background->m().handler() = {shared_from_this(), handler};
-    m_backgroundHandler = handler;
+    m_backgroundsHandlers.erase(std::next(m_backgroundsHandlers.begin(), ID));
 
-    onBackgroundChanged(background);
+    m_backgroundsBuffer->erase(ID, 1u);
+    m_backgroundsBuffer->setReservedData(m_backgroundsBuffer->size());
+
+    m_backgroundsCommandsBuffer->erase(ID, 1u);
+    m_backgroundsCommandsBuffer->setReservedData(m_backgroundsCommandsBuffer->size());
 }
 
-void SceneData::removeBackground()
-{
-    m_backgroundHandler.reset();
-}
-
-void SceneData::onBackgroundChanged(const std::shared_ptr<const Background>& background)
+void SceneData::onBackgroundChanged(const std::shared_ptr<const Background>& background, size_t ID)
 {
     if (!background)
     {
@@ -857,16 +894,25 @@ void SceneData::onBackgroundChanged(const std::shared_ptr<const Background>& bac
         return;
     }
 
-    if (m_backgroundHandler.expired())
+    if (ID >= m_backgroundsHandlers.size())
     {
         LOG_CRITICAL << "No found background in scene to change";
         return;
     }
 
-    if (!m_backgroundsBuffer->size())
-        m_backgroundsBuffer->resize(1u);
+    if (m_backgroundsBuffer->size() <= ID)
+    {
+        m_backgroundsBuffer->resize(ID + 1u);
+        m_backgroundsBuffer->setReservedData(m_backgroundsBuffer->size());
+    }
 
-    m_backgroundsBuffer->set(0u, {
+    if (m_backgroundsCommandsBuffer->size() <= ID)
+    {
+        m_backgroundsCommandsBuffer->resize(ID + 1u);
+        m_backgroundsCommandsBuffer->setReservedData(m_backgroundsCommandsBuffer->size());
+    }
+
+    m_backgroundsBuffer->set(ID, {
         addMesh(ScreenQuad::instance()),
         addMaterialMap(background->environmentMap()),
         background->environmentColor(),
@@ -874,64 +920,79 @@ void SceneData::onBackgroundChanged(const std::shared_ptr<const Background>& bac
         });
 }
 
-std::shared_ptr<graphics::DynamicBufferT<PositionDescription>>& SceneData::positionsBuffer()
+PositionsBuffer& SceneData::positionsBuffer()
 {
     return m_positionsBuffer;
 }
 
-std::shared_ptr<graphics::DynamicBufferT<NormalDescription>>& SceneData::normalsBuffer()
+NormalsBuffer& SceneData::normalsBuffer()
 {
     return m_normalsBuffer;
 }
 
-std::shared_ptr<graphics::DynamicBufferT<TexCoordsDescription>>& SceneData::texCoordsBuffer()
+TexCoordsBuffer& SceneData::texCoordsBuffer()
 {
     return m_texCoordsBuffer;
 }
 
-std::shared_ptr<graphics::DynamicBufferT<BonesDescription>>& SceneData::bonesBuffer()
+BonesBuffer& SceneData::bonesBuffer()
 {
     return m_bonesBuffer;
 }
 
-std::shared_ptr<graphics::DynamicBufferT<TangentDescription>>& SceneData::tangentsBuffer()
+TangentsBuffer& SceneData::tangentsBuffer()
 {
     return m_tangentsBuffer;
 }
 
-std::shared_ptr<graphics::DynamicBufferT<ColorDescription>>& SceneData::colorsBuffer()
+ColorsBuffer& SceneData::colorsBuffer()
 {
     return m_colorsBuffer;
 }
 
-std::shared_ptr<graphics::DynamicBufferT<IndexDescription>>& SceneData::indicesBuffer()
+IndicesBuffer& SceneData::indicesBuffer()
 {
     return m_indicesBuffer;
 }
 
-std::shared_ptr<graphics::DynamicBufferT<MeshDescription>>& SceneData::meshesBuffer()
+MeshesBuffer& SceneData::meshesBuffer()
 {
     return m_meshesBuffer;
 }
 
-std::shared_ptr<graphics::DynamicBufferT<MaterialMapDescription>>& SceneData::texturesBuffer()
+MaterialMapsBuffer& SceneData::materialMapsBuffer()
 {
     return m_materialMapsBuffer;
 }
 
-std::shared_ptr<graphics::DynamicBufferT<MaterialDescription>>& SceneData::materialBuffer()
+MaterialsBuffer& SceneData::materialBuffer()
 {
     return m_materialsBuffer;
 }
 
-std::shared_ptr<graphics::DynamicBufferT<DrawableDescription>>& SceneData::drawablesBuffer()
+DrawablesBuffer& SceneData::drawablesBuffer()
 {
     return m_drawablesBuffer;
 }
 
-std::shared_ptr<graphics::DynamicBufferT<DrawDataDescription>>& SceneData::drawDataBuffer()
+DrawDataBuffer& SceneData::drawDataBuffer()
 {
     return m_drawDataBuffer;
+}
+
+BackgroundsBuffer& SceneData::backgroundsBuffer()
+{
+    return m_backgroundsBuffer;
+}
+
+CommandsBuffer& SceneData::drawDataCommandsBuffer()
+{
+    return m_drawDataCommandsBuffer;
+}
+
+CommandsBuffer& SceneData::backgroundsCommandsBuffer()
+{
+    return m_drawDataCommandsBuffer;
 }
 
 }

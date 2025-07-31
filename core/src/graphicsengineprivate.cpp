@@ -34,14 +34,24 @@ std::shared_ptr<ProgramsManager> &GraphicsEnginePrivate::programsManager()
     return m_programsManager;
 }
 
-graphics::PBuffer &GraphicsEnginePrivate::fragmentsBuffer()
+std::shared_ptr<Scene>& GraphicsEnginePrivate::scene()
 {
-    return m_fragmentsBuffer;
+    return m_scene;
 }
 
-graphics::PBuffer &GraphicsEnginePrivate::fragmentsCounter()
+std::vector<std::shared_ptr<Pass>>& GraphicsEnginePrivate::passes()
 {
-    return m_fragmentsCounter;
+    return m_passes;
+}
+
+std::shared_ptr<GFramebuffer>& GraphicsEnginePrivate::GBuffer()
+{
+    return m_GBuffer;
+}
+
+OITNodesBuffer& GraphicsEnginePrivate::fragmentsBuffer()
+{
+    return m_fragmentsBuffer;
 }
 
 std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::screenQuadVertexArray()
@@ -143,11 +153,12 @@ const std::string &GraphicsEnginePrivate::uniformNameById(UniformId id)
         { UniformId::BackgroundColorMap, "u_backgroundColorMap" },
         { UniformId::BackgroundColor, "u_backgroundColor" },
         { UniformId::BackgroundRoughness, "u_backgroundRoughness" },
-        { UniformId::GBufferColorMap, "u_GBufferColorMap" },
+        { UniformId::GBufferColorMap0, "u_GBufferColorMap0" },
+        { UniformId::GBufferColorMap1, "u_GBufferColorMap1" },
+        { UniformId::GBufferColorMap2, "u_GBufferColorMap2" },
         { UniformId::GBufferDepthMap, "u_GBufferDepthMap" },
         { UniformId::OITDepthImage, "u_OITDepthImage" },
         { UniformId::OITIndicesImage, "u_OITIndicesImage" },
-        { UniformId::OITNodesCounter, "ssbo_OITNodesCounter" },
         { UniformId::SSAOMap, "u_SSAOMap" },
         { UniformId::SSAOContribution, "u_SSAOContribution" },
         { UniformId::SSAONoiseMap, "u_SSAONoiseMap" },
@@ -195,8 +206,21 @@ const std::string &GraphicsEnginePrivate::SSBONameById(SSBOId id)
 {
     static const std::string s_undefinedId = "";
     static const std::unordered_map<SSBOId, std::string> s_table {
+        { SSBOId::PositionsBuffer, "ssbo_positionsBuffer" },
+        { SSBOId::NormalsBuffer, "ssbo_normalsBuffer" },
+        { SSBOId::TexCoordsBuffer, "ssbo_texCoordsBuffer" },
         { SSBOId::BonesBuffer, "ssbo_bonesBuffer" },
-        { SSBOId::OITNodes, "ssbo_OITNodes" },
+        { SSBOId::TangentsBuffer, "ssbo_tangentsBuffer" },
+        { SSBOId::ColorBuffer, "ssbo_colorsBuffer" },
+        { SSBOId::IndicesBuffer, "ssbo_indicesBuffer" },
+        { SSBOId::MeshesBuffer, "ssbo_meshesBuffer" },
+        { SSBOId::MaterialMapsBuffer, "ssbo_materialMapsBuffer" },
+        { SSBOId::MaterialsBuffer, "ssbo_materialsBuffer" },
+        { SSBOId::DrawablesBuffer, "ssbo_drawablesBuffer" },
+        { SSBOId::DrawDataBuffer, "ssbo_drawDataBuffer" },
+        { SSBOId::BackgroundsBuffer, "ssbo_backgroundsBuffer" },
+        { SSBOId::CommandsBuffer, "ssbo_commandsBuffer" },
+        { SSBOId::OITNodesBuffer, "ssbo_OITNodesBuffer" },
         { SSBOId::LayeredShadowMatrices, "ssbo_layeredShadowMatricesBuffer" },
         { SSBOId::SSAOKernel, "ssbo_SSAOKernelBuffer" },
         { SSBOId::BlurKernel, "ssbo_blurKernelBuffer" }

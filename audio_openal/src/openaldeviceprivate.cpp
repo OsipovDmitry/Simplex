@@ -28,11 +28,6 @@ std::shared_ptr<core::AudioEngine>& OpenALDevicePrivate::engine()
     return m_engine;
 }
 
-std::shared_ptr<core::Scene>& OpenALDevicePrivate::scene()
-{
-    return m_scene;
-}
-
 utils::WeakPtrList<OpenALDevice>&OpenALDevicePrivate::instances()
 {
     return m_instances;

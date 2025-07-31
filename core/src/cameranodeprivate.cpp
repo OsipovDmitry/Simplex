@@ -15,6 +15,7 @@ namespace core
 
 CameraNodePrivate::CameraNodePrivate(CameraNode &cameraNode, const std::string &name)
     : NodePrivate(cameraNode, name)
+    , m_isRenderingEnabled(true)
     , m_clipSpaceType(utils::ClipSpaceType::Perspective)
     , m_clipSpaceVerticalParam(glm::pi<float>() / 3.f)
     , m_clipSpace()
@@ -26,6 +27,11 @@ CameraNodePrivate::~CameraNodePrivate() = default;
 bool &CameraNodePrivate::isRenderingEnabled()
 {
     return m_isRenderingEnabled;
+}
+
+std::shared_ptr<GFramebuffer>& CameraNodePrivate::GBuffer()
+{
+    return m_GBuffer;
 }
 
 std::shared_ptr<graphics::IFrameBuffer> &CameraNodePrivate::userFrameBuffer()
@@ -58,7 +64,7 @@ SSAO &CameraNodePrivate::ssao()
     return m_ssao;
 }
 
-std::shared_ptr<GFrameBuffer> &CameraNodePrivate::gFrameBuffer()
+std::shared_ptr<GFrameBufferTmp> &CameraNodePrivate::gFrameBuffer()
 {
     return m_gFrameBuffer;
 }
@@ -103,7 +109,7 @@ void CameraNodePrivate::resize(const std::shared_ptr<graphics::RendererBase> &gr
     }
 
     if (!m_gFrameBuffer)
-        m_gFrameBuffer = std::make_shared<GFrameBuffer>(graphicsRenderer);
+        m_gFrameBuffer = std::make_shared<GFrameBufferTmp>(graphicsRenderer);
     m_gFrameBuffer->resize(graphicsRenderer, viewportSize);
 
     if (m_ssao.mode() != SSAOMode::Disabled)

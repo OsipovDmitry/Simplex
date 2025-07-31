@@ -16,12 +16,20 @@ public:
     RenderInfo();
     ~RenderInfo() override;
 
-    void setGBuffer(const graphics::PConstTexture& colorMap,
+    void setGBuffer(
+        const graphics::PConstTexture& colorTexture0,
+        const graphics::PConstTexture& colorTexture1,
+        const graphics::PConstTexture& colorTexture2,
+        const graphics::PConstTexture& depthTexture,
+        const graphics::PConstTexture& OITDepthTexture,
+        const graphics::PConstTexture& OITIndicesTexture,
+        const graphics::PConstBuffer& OITNodesBuffer);
+
+    void setGBufferTmp(const graphics::PConstTexture& colorMap,
                     const graphics::PConstTexture& depthMap,
                     const graphics::PConstImage& depthImage,
                     const graphics::PConstImage& indicesImage,
-                    const graphics::PConstBuffer& nodesBuffer,
-                    const graphics::PConstBuffer& nodesCounter);
+                    const graphics::PConstBuffer& nodesBuffer);
 
     void setSSAOMap(const graphics::PConstTexture&);
 

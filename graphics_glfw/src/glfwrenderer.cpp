@@ -2139,7 +2139,6 @@ std::shared_ptr<TextureHandle_4_5> TextureHandle_4_5::create(const core::graphic
 Image_4_5::Image_4_5(DataAccess access, const core::graphics::PConstTexture &texture, uint32_t level)
     : m_texture(nullptr)
     , m_level(0u)
-    , m_format(core::graphics::PixelInternalFormat::Undefined)
     , m_access(DataAccess::ReadWrite)
 {
     SAVE_CURRENT_CONTEXT
@@ -2169,12 +2168,6 @@ uint32_t Image_4_5::mipmapLevel() const
     return m_level;
 }
 
-core::graphics::PixelInternalFormat Image_4_5::format() const
-{
-    CHECK_CURRENT_CONTEXT
-    return m_format;
-}
-
 core::graphics::PConstTexture Image_4_5::texture() const
 {
     CHECK_CURRENT_CONTEXT
@@ -2190,14 +2183,11 @@ void Image_4_5::setTexture(const core::graphics::PConstTexture &texture, uint32_
     if (level >= texture->numMipmapLevels())
         LOG_CRITICAL << "Level must be less than texture levels count";
 
-    const auto &supportedFormats = supportedImageFormats();
-
-    const auto internalFormat = texture->internalFormat();
-    if (supportedFormats.find(internalFormat) == supportedFormats.end())
+    if (const auto internalFormat = texture->internalFormat();
+        supportedImageFormats().find(internalFormat) == supportedImageFormats().end())
         LOG_CRITICAL << "Unsupported image format";
 
     m_texture = texture;
-    m_format = internalFormat;
     m_level = level;
 }
 
@@ -3941,18 +3931,6 @@ const core::graphics::SupportedImageFormats & GLFWRenderer::supportedImageFormat
     return Image_4_5::supportedImageFormats();
 }
 
-const glm::uvec2 & GLFWRenderer::screenSize() const
-{
-    CHECK_THIS_CONTEXT
-    return m_screenSize;
-}
-
-void GLFWRenderer::resize(const glm::uvec2& value)
-{
-    CHECK_THIS_CONTEXT
-    m_screenSize = value;
-}
-
 void GLFWRenderer::clearRenderData()
 {
     CHECK_THIS_CONTEXT
@@ -4327,8 +4305,13 @@ void GLFWRenderer::setupUniform(GLuint rpId,
     case core::graphics::UniformType::ImageCubeArray:
     case core::graphics::UniformType::ImageRect:
     {
-        auto imageUniform = core::uniform_cast<core::graphics::PConstImage>(uniform)->data();
-        bindImage(imageUnit, imageUniform);
+        if (auto imageUniform = core::uniform_cast<core::graphics::PConstImage>(uniform))
+            bindImage(imageUnit, imageUniform->data());
+        else if (auto textureUniform = core::uniform_cast<core::graphics::PConstTexture>(uniform))
+            bindImage(imageUnit, textureUniform->data(), 0u, core::graphics::IImage::DataAccess::ReadWrite);
+        else
+            LOG_CRITICAL << "Failed to bind image";
+
         glProgramUniform1i(rpId, loc, imageUnit++);
         break;
     }
@@ -4426,24 +4409,34 @@ void GLFWRenderer::bindTexture(int32_t unit, const core::graphics::PConstTexture
 void GLFWRenderer::bindImage(int32_t unit, const core::graphics::PConstImage &image)
 {
     CHECK_THIS_CONTEXT
-    auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(image->texture());
+    bindImage(unit, image->texture(), image->mipmapLevel(), image->access());
+}
+
+void GLFWRenderer::bindImage(
+    int32_t unit,
+    const core::graphics::PConstTexture& texture,
+    uint32_t level,
+    core::graphics::IImage::DataAccess access)
+{
+    CHECK_THIS_CONTEXT
+        auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(texture);
     if (!textureBase)
         LOG_CRITICAL << "Image's texture can't be nullptr";
     CHECK_RESOURCE_CONTEXT(textureBase)
 
     glBindImageTexture(static_cast<GLuint>(unit),
-                       textureBase->id(),
-                       static_cast<GLint>(image->mipmapLevel()),
-                       GL_TRUE,
-                       0u,
-                       Conversions::ImageDataAccess2GL(image->access()),
-                       Conversions::PixelInternalFormat2GL(image->format()));
+        textureBase->id(),
+        static_cast<GLint>(level),
+        GL_TRUE,
+        0u,
+        Conversions::ImageDataAccess2GL(access),
+        Conversions::PixelInternalFormat2GL(texture->internalFormat()));
 }
 
 void GLFWRenderer::bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBuffer &buffer)
 {
     CHECK_THIS_CONTEXT
-    auto buffer_4_5 = std::dynamic_pointer_cast<const Buffer_4_5>(buffer);
+    auto buffer_4_5 = std::dynamic_pointer_cast<const BufferBase_4_5>(buffer);
     if (!buffer)
         LOG_CRITICAL << "Buffer can't be nullptr";
     CHECK_RESOURCE_CONTEXT(buffer_4_5)
@@ -4452,7 +4445,7 @@ void GLFWRenderer::bindBuffer(GLenum target, GLuint bindingPoint, const core::gr
                       bindingPoint,
                       buffer_4_5->id(),
                       0u,
-                      static_cast<GLsizeiptr>(buffer_4_5->size()));
+                      static_cast<GLsizeiptr>(buffer_4_5->fullSize()));
 }
 
 void GLFWRenderer::bindSSBO(uint32_t unit, const core::graphics::PConstBuffer &bufferRange)

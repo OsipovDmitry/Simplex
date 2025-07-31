@@ -19,7 +19,7 @@ ScreenQuad::ScreenQuad()
     : Mesh(nullptr)
 {
     auto mesh = utils::Mesh::createEmptyMesh({
-        {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}
+        {utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}}
     });
 
     setMesh(utils::MeshPainter(mesh).drawScreenQuad().mesh());

@@ -7,6 +7,7 @@
 #include <core/settings.h>
 
 #include "cameranodeprivate.h"
+#include "gframebuffer.h"
 
 namespace simplex
 {
@@ -17,6 +18,8 @@ CameraNode::CameraNode(const std::string &name, const std::shared_ptr<graphics::
     : Node(std::make_unique<CameraNodePrivate>(*this, name))
 {
     setRenderingEnabled(true);
+    useDefaultFramebuffer();
+
     setFrameBuffer(frameBuffer);
 
     auto &graphicsSettings = settings::Settings::instance().graphics();
@@ -50,6 +53,22 @@ bool CameraNode::isRenderingEnabled() const
 void CameraNode::setRenderingEnabled(bool value)
 {
     m().isRenderingEnabled() = value;
+}
+
+bool CameraNode::isDefaultFramebufferUsed() const
+{
+    return m().GBuffer() == nullptr;
+}
+
+void CameraNode::useDefaultFramebuffer()
+{
+    m().GBuffer() = nullptr;
+}
+
+void CameraNode::useSeparateFramebuffer(const glm::uvec2& size)
+{
+    m().GBuffer() = std::make_shared<GFramebuffer>(size);
+
 }
 
 std::shared_ptr<graphics::IFrameBuffer> CameraNode::frameBuffer()

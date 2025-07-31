@@ -38,7 +38,7 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     auto mesh = std::make_shared<simplex::core::Mesh>(teapotPainter.mesh());
 
     auto material = std::make_shared<simplex::core::Material>();
-    material->setBaseColor(glm::convertSRGBToLinear(glm::vec4(.5f, .5f, 1.f, 1.0f)));
+    material->setBaseColor(glm::convertSRGBToLinear(glm::vec4(.5f, .5f, 1.f, 1.f)));
     material->setMetalness(0.f);
     material->setRoughness(.2f);
 
@@ -74,10 +74,10 @@ int main(int argc, char* argv[])
     }
 
     auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Teapot");
-    window->setScene(createScene("Teapot", window->defaultFrameBuffer(), window->graphicsEngine()->graphicsRenderer()));
+    window->engine()->setScene(createScene("Teapot", window->defaultFrameBuffer(), window->graphicsEngine()->graphicsRenderer()));
     window->setUpdateCallback([&window](uint64_t time, uint32_t)
         {
-            auto& nodes = window->scene()->sceneRootNode()->children();
+            auto& nodes = window->engine()->scene()->sceneRootNode()->children();
             if (auto it = std::find_if(nodes.begin(), nodes.end(), [](const std::shared_ptr<simplex::core::Node>& node) {
                 return node->name() == "TeapotNode";}); it != nodes.end())
             {

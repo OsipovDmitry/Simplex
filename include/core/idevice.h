@@ -20,10 +20,6 @@ public:
 
     virtual std::shared_ptr<IEngine> engine() = 0;
     virtual std::shared_ptr<const IEngine> engine() const = 0;
-
-    virtual std::shared_ptr<Scene> scene() = 0;
-    virtual std::shared_ptr<const Scene> scene() const = 0;
-    virtual void setScene(const std::shared_ptr<Scene>&) = 0;
 };
 
 }

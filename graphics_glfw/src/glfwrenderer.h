@@ -514,7 +514,6 @@ public:
     void setAccess(DataAccess) override;
 
     uint32_t mipmapLevel() const override;
-    core::graphics::PixelInternalFormat format() const override;
     core::graphics::PConstTexture texture() const override;
     void setTexture(const core::graphics::PConstTexture&, uint32_t) override;
 
@@ -526,7 +525,6 @@ public:
 protected:
     core::graphics::PConstTexture m_texture;
     uint32_t m_level;
-    core::graphics::PixelInternalFormat m_format;
     DataAccess m_access;
 };
 
@@ -900,9 +898,6 @@ public:
 
     const core::graphics::SupportedImageFormats &supportedImageFormats() const override;
 
-    const glm::uvec2 &screenSize() const override;
-    void resize(const glm::uvec2&) override;
-
     void clearRenderData() override;
     void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
                        const std::shared_ptr<const core::Drawable>&,
@@ -931,6 +926,7 @@ private:
 
     void bindTexture(int32_t, const core::graphics::PConstTexture&);
     void bindImage(int32_t, const core::graphics::PConstImage&);
+    void bindImage(int32_t, const core::graphics::PConstTexture&, uint32_t, core::graphics::IImage::DataAccess);
     void bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBuffer&);
     void bindSSBO(uint32_t, const core::graphics::PConstBuffer&);
     void bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBuffer&);

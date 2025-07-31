@@ -28,7 +28,7 @@ const glm::uvec2 &FrameBufferWrapper::viewportSize() const
     return m_viewportSize;
 }
 
-GFrameBuffer::GFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
+GFrameBufferTmp::GFrameBufferTmp(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
     : FrameBufferWrapper(graphicsRenderer->createFrameBuffer())
 {
     m_frameBuffer->setClearDepthStencil(1.f, 0x00u);
@@ -36,7 +36,7 @@ GFrameBuffer::GFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphi
     setForGeometryOpaquePass();
 }
 
-void GFrameBuffer::setForGeometryOpaquePass()
+void GFrameBufferTmp::setForGeometryOpaquePass()
 {
     m_frameBuffer->setClearMask({ core::graphics::FrameBufferAttachment::Depth, core::graphics::FrameBufferAttachment::Stencil });
     m_frameBuffer->setDrawBuffers({});
@@ -53,7 +53,7 @@ void GFrameBuffer::setForGeometryOpaquePass()
     m_frameBuffer->setBlending(false);
 }
 
-void GFrameBuffer::setForGeometryTransparentPass()
+void GFrameBufferTmp::setForGeometryTransparentPass()
 {
     m_frameBuffer->setClearMask({});
     m_frameBuffer->setDrawBuffers({});
@@ -66,7 +66,7 @@ void GFrameBuffer::setForGeometryTransparentPass()
     m_frameBuffer->setBlending(false);
 }
 
-void GFrameBuffer::setForStencilPass()
+void GFrameBufferTmp::setForStencilPass()
 {
     m_frameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Stencil});
     m_frameBuffer->setDrawBuffers({});
@@ -85,7 +85,7 @@ void GFrameBuffer::setForStencilPass()
     m_frameBuffer->setBlending(false);
 }
 
-void GFrameBuffer::setForLightPass()
+void GFrameBufferTmp::setForLightPass()
 {
     m_frameBuffer->setClearMask({});
     m_frameBuffer->setDrawBuffers({});
@@ -100,7 +100,7 @@ void GFrameBuffer::setForLightPass()
     m_frameBuffer->setBlending(false);
 }
 
-void GFrameBuffer::setForBackgroundPass()
+void GFrameBufferTmp::setForBackgroundPass()
 {
     m_frameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Color0});
     m_frameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
@@ -115,7 +115,7 @@ void GFrameBuffer::setForBackgroundPass()
     m_frameBuffer->setBlending(false);
 }
 
-void GFrameBuffer::setForFinalPass()
+void GFrameBufferTmp::setForFinalPass()
 {
     m_frameBuffer->setClearMask({});
     m_frameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
@@ -131,7 +131,7 @@ void GFrameBuffer::setForFinalPass()
                                   graphics::BlendFactor::One, graphics::BlendFactor::SrcAlpha);
 }
 
-void GFrameBuffer::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
+void GFrameBufferTmp::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
                           const glm::uvec2 &viewportSize)
 {
     if (m_viewportSize != viewportSize)
@@ -165,7 +165,7 @@ void GFrameBuffer::resize(const std::shared_ptr<graphics::RendererBase> &graphic
     }
 }
 
-graphics::PConstTexture GFrameBuffer::colorTexture() const
+graphics::PConstTexture GFrameBufferTmp::colorTexture() const
 {
     graphics::PConstTexture result;
 
@@ -175,7 +175,7 @@ graphics::PConstTexture GFrameBuffer::colorTexture() const
     return result;
 }
 
-graphics::PConstTexture GFrameBuffer::depthTexture() const
+graphics::PConstTexture GFrameBufferTmp::depthTexture() const
 {
     graphics::PConstTexture result;
 
@@ -185,7 +185,7 @@ graphics::PConstTexture GFrameBuffer::depthTexture() const
     return result;
 }
 
-graphics::PConstTexture GFrameBuffer::stencilTexture() const
+graphics::PConstTexture GFrameBufferTmp::stencilTexture() const
 {
     graphics::PConstTexture result;
 
@@ -195,12 +195,12 @@ graphics::PConstTexture GFrameBuffer::stencilTexture() const
     return result;
 }
 
-graphics::PConstImage GFrameBuffer::oitDepthImage()
+graphics::PConstImage GFrameBufferTmp::oitDepthImage() const
 {
     return m_oitDepthImage;
 }
 
-graphics::PConstImage GFrameBuffer::oitIndicesImage()
+graphics::PConstImage GFrameBufferTmp::oitIndicesImage() const
 {
     return m_oitIndicesImage;
 }

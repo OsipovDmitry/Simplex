@@ -25,5 +25,10 @@ std::shared_ptr<SoundsManager> &AudioEnginePrivate::soundsManager()
     return m_soundsManager;
 }
 
+std::shared_ptr<Scene>& AudioEnginePrivate::scene()
+{
+    return m_scene;
+}
+
 }
 }

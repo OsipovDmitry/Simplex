@@ -1,0 +1,25 @@
+layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+
+#include<descriptions.glsl>
+
+layout (std430) readonly buffer ssbo_meshesBuffer { MeshDescription meshes[]; };
+layout (std430) readonly buffer ssbo_drawablesBuffer { DrawableDescription drawables[]; };
+layout (std430) readonly buffer ssbo_drawDataBuffer { uint numDrawData; DrawDataDescription drawData[]; };
+layout (std430) writeonly buffer ssbo_commandsBuffer { uint numCommnads; MultiDrawElementsIndirectCommand commands[]; };
+
+void main(void)
+{
+    uint drawDataID = gl_GlobalInvocationID.x;
+    if (drawDataID < numDrawData)
+    {
+        uint drawableOffset = drawData[drawDataID].drawableOffset;
+        uint meshOffset = drawables[drawableOffset].meshOffset;
+        
+        commands[atomicAdd(numCommnads, 1)] = MultiDrawElementsIndirectCommand(
+            meshes[meshOffset].numElements,
+            1,
+            meshes[meshOffset].indexOffset,
+            0,
+            0);
+    }
+}

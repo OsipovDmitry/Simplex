@@ -10,10 +10,14 @@ namespace core
 namespace resources
 {
 
-static const std::filesystem::path DefaultIBLEnvironmentMapPath = "C:/res/textures/ibl/environment.json";
-static const std::filesystem::path DefaultIBLBRDFLutMapPath = "C:/res/textures/ibl/brdf.json";
-static const std::filesystem::path DefaultIBLDiffuseMapPath = "C:/res/textures/ibl/irradiance.json";
-static const std::filesystem::path DefaultIBLSpecularMapPath = "C:/res/textures/ibl/radiance.json";
+static const std::filesystem::path DefaultIBLEnvironmentMapPath = "./resources/textures/ibl/environment.json";
+static const std::filesystem::path DefaultIBLBRDFLutMapPath = "./resources/textures/ibl/brdf.json";
+static const std::filesystem::path DefaultIBLDiffuseMapPath = "./resources/textures/ibl/irradiance.json";
+static const std::filesystem::path DefaultIBLSpecularMapPath = "./resources/textures/ibl/radiance.json";
+
+static const std::filesystem::path BuildBackgroundsCommandsBufferPassComputeProgramPath = "./resources/shaders/build_backgrounds_commands_buffer_pass.comp";
+static const std::filesystem::path BuildDrawDataCommandsBufferPassComputeProgramPath = "./resources/shaders/build_drawdata_commands_buffer_pass.comp";
+
 
 }
 }

@@ -51,6 +51,21 @@ std::shared_ptr<const IRenderer> AudioEngine::renderer() const
     return audioRenderer();
 }
 
+std::shared_ptr<core::Scene> AudioEngine::scene()
+{
+    return m_->scene();
+}
+
+std::shared_ptr<const core::Scene> AudioEngine::scene() const
+{
+    return const_cast<AudioEngine*>(this)->scene();
+}
+
+void AudioEngine::setScene(const std::shared_ptr<core::Scene>& value)
+{
+    m_->scene() = value;
+}
+
 std::shared_ptr<audio::RendererBase> AudioEngine::audioRenderer()
 {
     return m_->renderer();
@@ -71,16 +86,13 @@ std::shared_ptr<const SoundsManager> AudioEngine::soundsManager() const
     return const_cast<AudioEngine*>(this)->soundsManager();
 }
 
-void AudioEngine::update(const std::shared_ptr<Scene>& scene,
-    uint64_t /*time*/,
-    uint32_t /*dt*/,
-    debug::SceneInformation&)
+void AudioEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInformation&)
 {
     static const auto s_localDirection = glm::vec3(0.f, 0.f, -1.f);
 
+    auto scene = AudioEngine::scene();
     if (!scene)
     {
-        LOG_CRITICAL << "Scene can't be nullptr";
         return;
     }
 

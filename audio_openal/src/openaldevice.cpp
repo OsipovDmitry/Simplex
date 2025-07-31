@@ -35,8 +35,7 @@ bool OpenALDevice::isInitialized() const
 
 void OpenALDevice::update(uint64_t time, uint32_t dt, core::debug::SceneInformation& sceneInfo)
 {
-    if (auto& scene = m_->scene())
-        m_->engine()->update(scene, time, dt, sceneInfo);
+    m_->engine()->update(time, dt, sceneInfo);
 }
 
 std::shared_ptr<core::IEngine> OpenALDevice::engine()
@@ -47,21 +46,6 @@ std::shared_ptr<core::IEngine> OpenALDevice::engine()
 std::shared_ptr<const core::IEngine> OpenALDevice::engine() const
 {
     return audioEngine();
-}
-
-std::shared_ptr<core::Scene> OpenALDevice::scene()
-{
-    return m_->scene();
-}
-
-std::shared_ptr<const core::Scene> OpenALDevice::scene() const
-{
-    return const_cast<OpenALDevice*>(this)->scene();
-}
-
-void OpenALDevice::setScene(const std::shared_ptr<core::Scene> &value)
-{
-    m_->scene() = value;
 }
 
 std::shared_ptr<core::AudioEngine> OpenALDevice::audioEngine()

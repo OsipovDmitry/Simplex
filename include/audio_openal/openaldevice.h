@@ -35,10 +35,6 @@ public:
     std::shared_ptr<core::IEngine> engine() override;
     std::shared_ptr<const core::IEngine> engine() const override;
 
-    std::shared_ptr<core::Scene> scene() override;
-    std::shared_ptr<const core::Scene> scene() const override;
-    void setScene(const std::shared_ptr<core::Scene>&) override;
-
     std::shared_ptr<core::AudioEngine> audioEngine() override;
     std::shared_ptr<const core::AudioEngine> audioEngine() const override;
 

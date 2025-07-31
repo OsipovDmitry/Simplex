@@ -33,13 +33,17 @@
 #include "blur.h"
 #include "nodevisitorhelpers.h"
 #include "framebufferhelpers.h"
+#include "renderpasshelpers.h"
+#include "sceneprivate.h"
+#include "scenedata.h"
+#include "gframebuffer.h"
 
 namespace simplex
 {
 namespace core
 {
 
-GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<graphics::RendererBase> renderer)
+GraphicsEngine::GraphicsEngine(const std::string &name, const std::shared_ptr<graphics::RendererBase>& renderer)
     : m_(std::make_unique<GraphicsEnginePrivate>(name))
 {
     static const auto &settings = settings::Settings::instance();
@@ -74,12 +78,11 @@ GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<graphics
     auto texturesManager = std::make_shared<TexturesManager>(renderer);
     m_->texturesManager() = texturesManager;
 
-    const uint32_t maxFragments = settings.graphics().maxFragmants();
-    const size_t fragmentsBufferSize = sizeof(maxFragments) + maxFragments * 24u; // 24 bytes per node
-    auto fragmentsBuffer = renderer->createBuffer(fragmentsBufferSize);
-    reinterpret_cast<uint32_t*>(fragmentsBuffer->map(graphics::IBuffer::MapAccess::WriteOnly, 0u, sizeof(uint32_t))->get())[0] = maxFragments;
+    m_->GBuffer() = std::make_shared<GFramebuffer>(glm::uvec2(0u));
+
+    auto fragmentsBuffer = OITNodesBuffer::element_type::create();
+    fragmentsBuffer->resize(settings.graphics().maxFragmants());
     m_->fragmentsBuffer() = fragmentsBuffer;
-    m_->fragmentsCounter() = renderer->createBuffer(sizeof(uint32_t));
 
     const std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, utils::VertexComponentType>> screenQuadVertexDeclaration{
         {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}};
@@ -118,7 +121,6 @@ GraphicsEngine::GraphicsEngine(const std::string &name, std::shared_ptr<graphics
 
     utils::MeshPainter directionalLightAreaPainter(utils::Mesh::createEmptyMesh(lightAreaVertexDeclaration));
     m_->directionalLightAreaVertexArray() = renderer->createVertexArray(directionalLightAreaPainter.drawCube(glm::vec3(2.f)).mesh());
-
 
 //    auto boundingBoxMesh = std::make_shared<utils::Mesh>();
 //    boundingBoxMesh->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
@@ -165,6 +167,40 @@ std::shared_ptr<const IRenderer> GraphicsEngine::renderer() const
     return graphicsRenderer();
 }
 
+std::shared_ptr<core::Scene> GraphicsEngine::scene()
+{
+    return m_->scene();
+}
+
+std::shared_ptr<const core::Scene> GraphicsEngine::scene() const
+{
+    return const_cast<GraphicsEngine*>(this)->scene();
+}
+
+void GraphicsEngine::setScene(const std::shared_ptr<core::Scene>& value)
+{
+    m_->scene() = value;
+
+    auto& sceneData = m_->scene()->m().sceneData();
+
+    auto& passes = m_->passes();
+    passes.clear();
+
+    passes.push_back(std::make_shared<BuildBackgroundsCommandsBufferPass>(
+        m_->programsManager(),
+        sceneData->meshesBuffer(),
+        sceneData->backgroundsBuffer(),
+        sceneData->backgroundsCommandsBuffer()));
+
+    passes.push_back(std::make_shared<BuildDrawDataCommandsBufferPass>(
+        m_->programsManager(),
+        sceneData->meshesBuffer(),
+        sceneData->drawablesBuffer(),
+        sceneData->drawDataBuffer(),
+        sceneData->drawDataCommandsBuffer()
+    ));
+}
+
 std::shared_ptr<graphics::RendererBase> GraphicsEngine::graphicsRenderer()
 {
     return m_->renderer();
@@ -195,10 +231,7 @@ std::shared_ptr<const ProgramsManager> GraphicsEngine::programsManager() const
     return const_cast<GraphicsEngine*>(this)->programsManager();
 }
 
-void GraphicsEngine::update(const std::shared_ptr<Scene>& scene,
-    uint64_t /*time*/,
-    uint32_t /*dt*/,
-    debug::SceneInformation& sceneInfo)
+void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInformation& sceneInfo)
 {
     static const auto& settings = settings::Settings::instance();
     static const auto& debugRenderingSettings = settings.graphics().debugRendering();
@@ -212,20 +245,18 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene,
         visualDrawableBoundingBoxFlag ||
         lightNodeAreaBoundingBoxFlag;
 
+    auto scene = GraphicsEngine::scene();
     if (!scene)
-    {
-        LOG_CRITICAL << "Scene can't be nullptr";
         return;
-    }
 
-    auto& renderer = m_->renderer();
+    auto renderer = graphicsRenderer();
     if (!renderer)
     {
         LOG_CRITICAL << "Graphics renderer can't be nullptr";
         return;
     }
 
-    auto& programsManager = m_->programsManager();
+    auto programsManager = GraphicsEngine::programsManager();
     if (!programsManager)
     {
         LOG_CRITICAL << "Programs manager can't be nullptr";
@@ -234,7 +265,18 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene,
 
     renderer->makeCurrent();
 
-    const auto& screenSize = renderer->screenSize();
+    auto widget = renderer->widget();
+    if (!widget)
+    {
+        LOG_CRITICAL << "Graphics widget can't be nullptr";
+        return;
+    }
+
+    const auto screenSize = widget->size();
+    m_->GBuffer()->resize(screenSize);
+
+    for (auto& pass : m_->passes())
+        pass->run(renderer);
 
     auto rootNode = scene->sceneRootNode();
 
@@ -253,9 +295,14 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene,
         if (!camera->isRenderingEnabled())
             continue;
 
-        cameraPrivate.resize(renderer, screenSize);
+        std::shared_ptr<GFramebuffer> cameraGBuffer = m_->GBuffer();
+        if (!camera->isDefaultFramebufferUsed())
+            cameraGBuffer = cameraPrivate.GBuffer();
 
-        const auto& cameraViewportSize = cameraPrivate.gFrameBuffer()->viewportSize();
+        //tmp
+        cameraPrivate.resize(renderer, cameraGBuffer->size());
+
+        const auto& cameraViewportSize = cameraGBuffer->size();
         const auto cameraViewTransform = camera->globalTransform().inverted();
 
         ZRangeCalculator cameraZRangeCalculator(cameraViewTransform,
@@ -298,17 +345,17 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene,
         }
 
         auto cameraRenderInfo = std::make_shared<RenderInfo>();
-        cameraRenderInfo->setGBuffer(cameraPrivate.gFrameBuffer()->colorTexture(),
-            cameraPrivate.gFrameBuffer()->depthTexture(),
-            cameraPrivate.gFrameBuffer()->oitDepthImage(),
-            cameraPrivate.gFrameBuffer()->oitIndicesImage(),
-            m_->fragmentsBuffer(),
-            m_->fragmentsCounter());
+        cameraRenderInfo->setGBuffer(
+            cameraGBuffer->colorTexture0(),
+            cameraGBuffer->colorTexture1(),
+            cameraGBuffer->colorTexture2(),
+            cameraGBuffer->depthTexture(),
+            cameraGBuffer->OITDepthTexture(),
+            cameraGBuffer->OITIndicesTexture(),
+            m_->fragmentsBuffer()->buffer());
 
         // reset fragments counter buffer
-        auto &fragmentsCounterBuffer = m_->fragmentsCounter();
-        if (auto fragmentsCounterBufferData = fragmentsCounterBuffer->map(graphics::IBuffer::MapAccess::WriteOnly); fragmentsCounterBuffer)
-            *reinterpret_cast<uint32_t*>(fragmentsCounterBufferData->get()) = 0u;
+        m_->fragmentsBuffer()->setReservedData({settings.graphics().maxFragmants(), 0u});
 
         // clear indices image
         renderer->compute(programsManager->loadOrGetOITClearPassComputeProgram(),
@@ -356,8 +403,7 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene,
             cameraRenderInfo);
 
         // get number of fragments rendered
-        if (auto nodesCounterBufferData = fragmentsCounterBuffer->map(graphics::IBuffer::MapAccess::ReadOnly); nodesCounterBufferData)
-            cameraInfo.numFragmentsRendered = *reinterpret_cast<uint32_t*>(nodesCounterBufferData->get());
+        cameraInfo.numFragmentsRendered = m_->fragmentsBuffer()->reservedData().numOITNodes;
 
         // sort fragments
         renderer->compute(programsManager->loadOrGetOITSortNodesPassComputeProgram(), glm::uvec3(cameraViewportSize, 1u), cameraRenderInfo);

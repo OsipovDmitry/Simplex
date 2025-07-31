@@ -19,13 +19,17 @@ class CORE_SHARED_EXPORT GraphicsEngine : public IEngine
     PRIVATE_IMPL(GraphicsEngine)
 
 public:
-    GraphicsEngine(const std::string&, std::shared_ptr<graphics::RendererBase>);
+    GraphicsEngine(const std::string&, const std::shared_ptr<graphics::RendererBase>&);
     ~GraphicsEngine() override;
 
     const std::string& name() const override;
 
     std::shared_ptr<IRenderer> renderer() override final;
     std::shared_ptr<const IRenderer> renderer() const override final;
+
+    std::shared_ptr<Scene> scene() override final;
+    std::shared_ptr<const Scene> scene() const override final;
+    void setScene(const std::shared_ptr<Scene>&) override final;
 
     std::shared_ptr<graphics::RendererBase> graphicsRenderer();
     std::shared_ptr<const graphics::RendererBase> graphicsRenderer() const;
@@ -36,10 +40,7 @@ public:
     std::shared_ptr<ProgramsManager> programsManager();
     std::shared_ptr<const ProgramsManager> programsManager() const;
 
-    void update(const std::shared_ptr<Scene>&,
-        uint64_t time,
-        uint32_t dt,
-        debug::SceneInformation&);
+    void update(uint64_t time, uint32_t dt, debug::SceneInformation&);
 
     void setF(int);
     bool b = false;

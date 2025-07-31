@@ -42,6 +42,7 @@ struct MeshDescription
     uint32_t indexOffset;
     uint32_t numElements; // number of indices
 };
+
 struct MaterialMapDescription
 {
     graphics::TextureHandle handle;
@@ -70,31 +71,6 @@ struct MaterialDescription
     // 24..31 - free (8 bits)
 };
 
-inline float occlusionMapStrength(uint32_t flags) { return static_cast<float>((flags >> 0u) & 0xFF) / 255.f; }
-inline float normalMapScale(uint32_t flags) { return static_cast<float>((flags >> 8u) & 0xFF) / 255.f; }
-inline uint32_t occlusionSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 16u) & 0x3); }
-inline uint32_t roughnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 18u) & 0x3); }
-inline uint32_t metalnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 20u) & 0x3); }
-inline bool isLighted(uint32_t flags) { return (flags >> 22u) & 0x1; }
-inline bool isShadowed(uint32_t flags) { return (flags >> 23u) & 0x1; }
-inline uint32_t makeMaterialFlags(
-    float occlusionMapStrength,
-    float normalMapScale,
-    const glm::u32vec3& ORMSwizzleMask,
-    bool isLighted,
-    bool isShadowed)
-{
-    uint32_t result = 0u;
-    result |= (static_cast<uint32_t>(glm::clamp(occlusionMapStrength, 0.f, 1.f) * 255.f) & 0xFF) << 0u;
-    result |= (static_cast<uint32_t>(glm::clamp(normalMapScale, 0.f, 1.f) * 255.f) & 0xFF) << 8u;
-    result |= (ORMSwizzleMask.r & 0x3) << 16u;
-    result |= (ORMSwizzleMask.g & 0x3) << 18u;
-    result |= (ORMSwizzleMask.b & 0x3) << 20u;
-    result |= ((isLighted ? 1u : 0u) & 0x1) << 22u;
-    result |= ((isShadowed ? 1u : 0u) & 0x1) << 23u;
-    return result;
-}
-
 struct DrawableDescription
 {
     uint32_t meshOffset;
@@ -115,7 +91,23 @@ struct BackgroundDescription
     float blurPower;
 };
 
-struct DrawElementsIndirectCommand
+struct OITNode
+{
+    uint32_t packedBaseColor;
+    uint32_t packedFinalColor;
+    uint32_t packedORMAlpha;
+    uint32_t packedNormalFlags;
+    float depth;
+    uint32_t next;
+};
+
+struct OITBufferReservedData
+{
+    uint32_t maxNumOITNodes;
+    uint32_t numOITNodes;
+};
+
+struct MultiDrawElementsIndirectCommand
 {
     uint32_t count;
     uint32_t instanceCount;
@@ -123,6 +115,22 @@ struct DrawElementsIndirectCommand
     int32_t  baseVertex;
     uint32_t baseInstance;
 };
+
+using PositionsBuffer = std::shared_ptr<graphics::DynamicBufferT<PositionDescription>>;
+using NormalsBuffer = std::shared_ptr<graphics::DynamicBufferT<NormalDescription>>;
+using TexCoordsBuffer = std::shared_ptr<graphics::DynamicBufferT<TexCoordsDescription>>;
+using BonesBuffer = std::shared_ptr<graphics::DynamicBufferT<BonesDescription>>;
+using TangentsBuffer = std::shared_ptr<graphics::DynamicBufferT<TangentDescription>>;
+using ColorsBuffer = std::shared_ptr<graphics::DynamicBufferT<ColorDescription>>;
+using IndicesBuffer = std::shared_ptr<graphics::DynamicBufferT<IndexDescription>>;
+using MeshesBuffer = std::shared_ptr<graphics::DynamicBufferT<MeshDescription>>;
+using MaterialMapsBuffer = std::shared_ptr<graphics::DynamicBufferT<MaterialMapDescription>>;
+using MaterialsBuffer = std::shared_ptr<graphics::DynamicBufferT<MaterialDescription>>;
+using DrawablesBuffer = std::shared_ptr<graphics::DynamicBufferT<DrawableDescription>>;
+using DrawDataBuffer = std::shared_ptr<graphics::DynamicBufferT<DrawDataDescription, uint32_t>>;
+using BackgroundsBuffer = std::shared_ptr<graphics::DynamicBufferT<BackgroundDescription, uint32_t>>;
+using OITNodesBuffer = std::shared_ptr<graphics::DynamicBufferT<OITNode, OITBufferReservedData>>;
+using CommandsBuffer = std::shared_ptr<graphics::DynamicBufferT<MultiDrawElementsIndirectCommand, uint32_t>>;
 
 class SceneData;
 
@@ -189,7 +197,7 @@ private:
 class DrawDataHandler
 {
 public:
-    DrawDataHandler(const std::weak_ptr<SceneData>& sceneData, size_t id);
+    DrawDataHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID);
     ~DrawDataHandler();
 
     size_t ID() const;
@@ -202,14 +210,16 @@ private:
 class BackgroundHandler
 {
 public:
-    BackgroundHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Background>& background);
+    BackgroundHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Background>& background, size_t ID);
     ~BackgroundHandler();
 
-    const std::weak_ptr<const Background>& background();
+    std::weak_ptr<const Background> &background();
+    size_t ID() const;
 
 private:
     std::weak_ptr<SceneData> m_sceneData;
     std::weak_ptr<const Background> m_background;
+    size_t m_ID;
 };
 
 class SceneData : public std::enable_shared_from_this<SceneData>
@@ -241,36 +251,41 @@ public:
     void onDrawDataChanged(const std::shared_ptr<const Drawable>&, const glm::mat4x4&, size_t);
 
     void addBackground(const std::shared_ptr<const Background>&);
-    void removeBackground();
-    void onBackgroundChanged(const std::shared_ptr<const Background>&);
+    void removeBackground(size_t);
+    void onBackgroundChanged(const std::shared_ptr<const Background>&, size_t);
 
-    std::shared_ptr<graphics::DynamicBufferT<PositionDescription>>& positionsBuffer();
-    std::shared_ptr<graphics::DynamicBufferT<NormalDescription>>& normalsBuffer();
-    std::shared_ptr<graphics::DynamicBufferT<TexCoordsDescription>>& texCoordsBuffer();
-    std::shared_ptr<graphics::DynamicBufferT<BonesDescription>>& bonesBuffer();
-    std::shared_ptr<graphics::DynamicBufferT<TangentDescription>>& tangentsBuffer();
-    std::shared_ptr<graphics::DynamicBufferT<ColorDescription>>& colorsBuffer();
-    std::shared_ptr<graphics::DynamicBufferT<IndexDescription>>& indicesBuffer();
-    std::shared_ptr<graphics::DynamicBufferT<MeshDescription>>& meshesBuffer();
-    std::shared_ptr<graphics::DynamicBufferT<MaterialMapDescription>>& texturesBuffer();
-    std::shared_ptr<graphics::DynamicBufferT<MaterialDescription>>& materialBuffer();
-    std::shared_ptr<graphics::DynamicBufferT<DrawableDescription>>& drawablesBuffer();
-    std::shared_ptr<graphics::DynamicBufferT<DrawDataDescription>>& drawDataBuffer();
+    PositionsBuffer& positionsBuffer();
+    NormalsBuffer& normalsBuffer();
+    TexCoordsBuffer& texCoordsBuffer();
+    BonesBuffer& bonesBuffer();
+    TangentsBuffer& tangentsBuffer();
+    ColorsBuffer& colorsBuffer();
+    IndicesBuffer& indicesBuffer();
+    MeshesBuffer& meshesBuffer();
+    MaterialMapsBuffer& materialMapsBuffer();
+    MaterialsBuffer& materialBuffer();
+    DrawablesBuffer& drawablesBuffer();
+    DrawDataBuffer& drawDataBuffer();
+    BackgroundsBuffer& backgroundsBuffer();
+    CommandsBuffer& drawDataCommandsBuffer();
+    CommandsBuffer& backgroundsCommandsBuffer();
 
 private:
-    std::shared_ptr<graphics::DynamicBufferT<PositionDescription>> m_positionsBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<NormalDescription>> m_normalsBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<TexCoordsDescription>> m_texCoordsBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<BonesDescription>> m_bonesBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<TangentDescription>> m_tangentsBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<ColorDescription>> m_colorsBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<IndexDescription>> m_indicesBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<MeshDescription>> m_meshesBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<MaterialMapDescription>> m_materialMapsBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<MaterialDescription>> m_materialsBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<DrawableDescription>> m_drawablesBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<DrawDataDescription>> m_drawDataBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<BackgroundDescription>> m_backgroundsBuffer;
+    PositionsBuffer m_positionsBuffer;
+    NormalsBuffer m_normalsBuffer;
+    TexCoordsBuffer m_texCoordsBuffer;
+    BonesBuffer m_bonesBuffer;
+    TangentsBuffer m_tangentsBuffer;
+    ColorsBuffer m_colorsBuffer;
+    IndicesBuffer m_indicesBuffer;
+    MeshesBuffer m_meshesBuffer;
+    MaterialMapsBuffer m_materialMapsBuffer;
+    MaterialsBuffer m_materialsBuffer;
+    DrawablesBuffer m_drawablesBuffer;
+    DrawDataBuffer m_drawDataBuffer;
+    BackgroundsBuffer m_backgroundsBuffer;
+    CommandsBuffer m_drawDataCommandsBuffer;
+    CommandsBuffer m_backgroundsCommandsBuffer;
 
     utils::IDsGenerator m_meshIDsGenerator;
     std::unordered_map<std::shared_ptr<const Mesh>, std::weak_ptr<MeshHandler>> m_meshes;
@@ -286,10 +301,7 @@ private:
     std::unordered_map<std::shared_ptr<const Drawable>, std::weak_ptr<DrawableHandler>> m_drawables;
 
     std::deque<std::weak_ptr<DrawDataHandler>> m_drawDataHandlers;
-    std::weak_ptr<BackgroundHandler> m_backgroundHandler;
-
-    std::shared_ptr<graphics::DynamicBufferT<DrawElementsIndirectCommand>> m_drawDataCommandsBuffer;
-    std::shared_ptr<graphics::DynamicBufferT<DrawElementsIndirectCommand>> m_backgroundCommandsBuffer;
+    std::deque<std::weak_ptr<BackgroundHandler>> m_backgroundsHandlers;
 };
 
 }

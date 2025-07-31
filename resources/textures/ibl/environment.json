@@ -1,0 +1,5 @@
+{
+	"Type" : "Cube",
+	"InternalFormat" : "RGB9_E5",
+	"Data" : ["environment/0.hdr", "environment/1.hdr", "environment/2.hdr", "environment/3.hdr", "environment/4.hdr", "environment/5.hdr"]
+}

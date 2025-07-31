@@ -366,7 +366,6 @@ static void closeWidget(const GLFWWidget& widget)
         if (auto graphicsRenderer = graphicsEngine->graphicsRenderer())
         {
             graphicsRenderer->makeCurrent();
-            widgetPrivate.scene() = nullptr;
             widgetPrivate.defaultFrameBuffer() = nullptr;
             widgetPrivate.engine() = nullptr;
         }
@@ -421,17 +420,9 @@ static void GLFWResizeCallback(GLFWwindow* window, int width, int height)
     if (!widget)
         return;
 
+    //glfwGetFramebufferSize(window, &width, &height);
+
     const glm::uvec2 size(width, height);
-
-    auto& widgetPrivate = widget->m();
-
-    if (auto& graphicsEngine = widgetPrivate.engine())
-        if (auto graphicsRenderer = graphicsEngine->graphicsRenderer())
-        {
-            graphicsRenderer->makeCurrent();
-            //glfwGetFramebufferSize(window, &width, &height);
-            graphicsRenderer->resize(size);
-        }
 
     if (auto callback = widget->resizeCallback())
         callback(size);
@@ -570,8 +561,7 @@ void GLFWWidget::update(uint64_t time, uint32_t dt, core::debug::SceneInformatio
     if (auto &callback = m_->updateCallback())
         callback(time, dt);
 
-    if (auto &scene = m_->scene())
-        m_->engine()->update(scene, time, dt, sceneInfo);
+    m_->engine()->update(time, dt, sceneInfo);
 
     glfwSwapBuffers(m_->window());
 }
@@ -584,21 +574,6 @@ std::shared_ptr<core::IEngine> GLFWWidget::engine()
 std::shared_ptr<const core::IEngine> GLFWWidget::engine() const
 {
     return graphicsEngine();
-}
-
-std::shared_ptr<core::Scene> GLFWWidget::scene()
-{
-    return m_->scene();
-}
-
-std::shared_ptr<const core::Scene> GLFWWidget::scene() const
-{
-    return const_cast<GLFWWidget*>(this)->scene();
-}
-
-void GLFWWidget::setScene(const std::shared_ptr<core::Scene> &value)
-{
-    m_->scene() = value;
 }
 
 std::shared_ptr<core::GraphicsEngine> GLFWWidget::graphicsEngine()
@@ -897,8 +872,6 @@ std::shared_ptr<GLFWWidget> GLFWWidget::getOrCreate(const std::string &name, con
         auto& resultPrivate = result->m();
 
         auto renderer = std::make_shared<GLFWRenderer>(name + "Renderer", result);
-        renderer->makeCurrent();
-        renderer->resize(result->size());
 
         auto engine = std::make_shared<core::GraphicsEngine>(name + "Engine", renderer);
         resultPrivate.engine() = engine;

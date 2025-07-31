@@ -17,10 +17,14 @@ public:
     std::shared_ptr<audio::RendererBase> &renderer();
     std::shared_ptr<SoundsManager> &soundsManager();
 
+    std::shared_ptr<Scene>& scene();
+
 private:
     std::string m_name;
     std::shared_ptr<audio::RendererBase> m_renderer;
     std::shared_ptr<SoundsManager> m_soundsManager;
+
+    std::shared_ptr<Scene> m_scene;
 };
 
 }

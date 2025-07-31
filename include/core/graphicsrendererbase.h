@@ -342,7 +342,6 @@ public:
     virtual void setAccess(DataAccess) = 0;
 
     virtual uint32_t mipmapLevel() const = 0;
-    virtual PixelInternalFormat format() const = 0;
     virtual PConstTexture texture() const = 0;
     virtual void setTexture(const PConstTexture&, uint32_t) = 0;
 };
@@ -590,9 +589,6 @@ public:
 
     virtual const SupportedImageFormats &supportedImageFormats() const = 0;
 
-    virtual const glm::uvec2 &screenSize() const = 0;
-    virtual void resize(const glm::uvec2&) = 0;
-
     virtual void clearRenderData() = 0;
     virtual void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
                                const std::shared_ptr<const Drawable>&,
@@ -613,42 +609,61 @@ protected:
     std::unique_ptr<RendererBasePrivate> m_;
 };
 
-template <typename T>
+template <typename T, typename ReservedType = void>
 class DynamicBufferT final
 {
 public:
     using value_type = T;
+    static constexpr size_t sizeofT() { return sizeof(value_type); }
+
+    using reserved_type = ReservedType;
+    static constexpr size_t sizeofReservedType() {
+        if constexpr (std::is_same_v<reserved_type, void>) return 0u;
+        else return sizeof(reserved_type);
+    }
 
     ~DynamicBufferT() = default;
 
     std::shared_ptr<const IDynamicBuffer> buffer() const { return m_buffer; }
 
-    size_t capacity() const { return m_buffer->capacity() / sizeof(value_type); }
-    void reserve(size_t value) { m_buffer->reserve(value * sizeof(value_type)); }
-
-    size_t size() const { return m_buffer->size() / sizeof(value_type); }
-    void resize(size_t value) { m_buffer->resize(value * sizeof(value_type)); }
-
-    void pushBack(const value_type& value) { m_buffer->pushBack(&value, sizeof(value_type)); }
-    void set(size_t index, const T& value)
-    {
-        if (index >= size())
-            LOG_CRITICAL << "Index is out of range";
-
-        *reinterpret_cast<T*>(m_buffer->map(
-            IBuffer::MapAccess::WriteOnly,
-            index * sizeof(value_type),
-            sizeof(value_type))->get()) = value;
+    template <typename U = reserved_type, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
+    reserved_type reservedData() const {
+        return *reinterpret_cast<reserved_type*>(m_buffer->map(IBuffer::MapAccess::ReadOnly, 0u, sizeofReservedType())->get());
     }
-    T get(size_t index) const
+
+    template <typename U = reserved_type, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
+    void setReservedData(const U& value) {
+        *reinterpret_cast<reserved_type*>(m_buffer->map(IBuffer::MapAccess::WriteOnly, 0u, sizeofReservedType())->get()) = value;
+    }
+
+    size_t capacity() const { return (m_buffer->capacity() - sizeofReservedType()) / sizeofT(); }
+    void reserve(size_t value) { m_buffer->reserve(value * sizeofT() + sizeofReservedType()); }
+
+    size_t size() const { return (m_buffer->size() - sizeofReservedType()) / sizeofT(); }
+    void resize(size_t value) { m_buffer->resize(value * sizeofT() + sizeofReservedType()); }
+
+    void clear() { resize(0u); }
+
+    void pushBack(const value_type& value) { m_buffer->pushBack(&value, sizeofT()); }
+    void set(size_t index, const value_type& value)
     {
         if (index >= size())
             LOG_CRITICAL << "Index is out of range";
 
-        return *reinterpret_cast<T*>(m_buffer->map(
+        *reinterpret_cast<value_type*>(m_buffer->map(
+            IBuffer::MapAccess::WriteOnly,
+            index * sizeofT() + sizeofReservedType(),
+            sizeofT())->get()) = value;
+    }
+    value_type get(size_t index) const
+    {
+        if (index >= size())
+            LOG_CRITICAL << "Index is out of range";
+
+        return *reinterpret_cast<value_type*>(m_buffer->map(
            IBuffer::MapAccess::ReadOnly,
-           index * sizeof(value_type),
-           sizeof(value_type))->get());
+           index * sizeofT() + sizeofReservedType(),
+            sizeofT())->get());
     }
     void erase(size_t index, size_t count)
     {
@@ -676,16 +691,16 @@ public:
             currentContext->copyBufferSubData(
                 m_buffer,
                 m_buffer,
-                dstOffset * sizeof(value_type),
-                srcOffset * sizeof(value_type),
-                copySize * sizeof(value_type));
+                dstOffset * sizeofT() + sizeofReservedType(),
+                srcOffset * sizeofT() + sizeofReservedType(),
+                copySize * sizeofT());
 
             dstOffset = srcOffset;
         }
 
         resize(newSize);
     }
-    void insert(size_t index, size_t count, const T* data)
+    void insert(size_t index, size_t count, const value_type* data)
     {
         if (!count)
             return;
@@ -712,16 +727,21 @@ public:
             currentContext->copyBufferSubData(
                 m_buffer,
                 m_buffer,
-                dstOffset * sizeof(value_type),
-                srcOffset * sizeof(value_type),
-                copySize * sizeof(value_type));
+                dstOffset * sizeofT() + sizeofReservedType(),
+                srcOffset * sizeofT() + sizeofReservedType(),
+                copySize * sizeofT());
         }
 
-        std::memcpy(m_buffer->map(IBuffer::MapAccess::WriteOnly, index * sizeof(value_type), count * sizeof(value_type))->get(),
-            data, count * sizeof(value_type));
+        std::memcpy(
+            m_buffer->map(
+                IBuffer::MapAccess::WriteOnly,
+                index * sizeofT() + sizeofReservedType(),
+                count * sizeofT())->get(),
+            data,
+            count * sizeofT());
     }
 
-    static std::shared_ptr<DynamicBufferT<T>> create(std::initializer_list<T> l = {})
+    static std::shared_ptr<DynamicBufferT<value_type, reserved_type>> create(std::initializer_list<value_type> l = {})
     {
         auto currentContext = RendererBase::current();
         if (!currentContext)
@@ -729,15 +749,17 @@ public:
             LOG_CRITICAL << "No current context";
             return nullptr;
         }
-        
-        return std::shared_ptr<DynamicBufferT<value_type>>(new DynamicBufferT<value_type>(
+
+        return std::shared_ptr<DynamicBufferT<value_type, reserved_type>>(new DynamicBufferT<value_type, reserved_type>(
             currentContext->createDynamicBuffer(), l.size(), l.begin()));
     }
 
 private:
-    DynamicBufferT(const std::shared_ptr<IDynamicBuffer>& buffer, size_t count, const T* data)
+    DynamicBufferT(const std::shared_ptr<IDynamicBuffer>& buffer, size_t count, const value_type* data)
         : m_buffer(buffer)
     {
+        clear();
+        insert(0u, count, data);
     }
 
     std::shared_ptr<IDynamicBuffer> m_buffer;

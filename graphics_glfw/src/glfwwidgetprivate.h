@@ -23,7 +23,6 @@ public:
 
     std::string &name();
     std::shared_ptr<core::GraphicsEngine>& engine();
-    std::shared_ptr<core::Scene> &scene();
 
     GLFWwindow *&window();
     GLFWcursor *&cursor();
@@ -47,7 +46,6 @@ public:
 private:
     std::string m_name;
     std::shared_ptr<core::GraphicsEngine> m_engine;
-    std::shared_ptr<core::Scene> m_scene;
 
     GLFWwindow *m_GLFWWindow;
     GLFWcursor* m_GLFWCursor;

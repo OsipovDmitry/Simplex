@@ -1,0 +1,11 @@
+{
+	"Type" : "Cube",
+	"InternalFormat" : "RGB9_E5",
+	"Data" : [
+		["radiance/0_0.hdr", "radiance/0_1.hdr", "radiance/0_2.hdr", "radiance/0_3.hdr", "radiance/0_4.hdr", "radiance/0_5.hdr", "radiance/0_6.hdr", "radiance/0_7.hdr", "radiance/0_8.hdr"],
+		["radiance/1_0.hdr", "radiance/1_1.hdr", "radiance/1_2.hdr", "radiance/1_3.hdr", "radiance/1_4.hdr", "radiance/1_5.hdr", "radiance/1_6.hdr", "radiance/1_7.hdr", "radiance/1_8.hdr"],
+		["radiance/2_0.hdr", "radiance/2_1.hdr", "radiance/2_2.hdr", "radiance/2_3.hdr", "radiance/2_4.hdr", "radiance/2_5.hdr", "radiance/2_6.hdr", "radiance/2_7.hdr", "radiance/2_8.hdr"],
+		["radiance/3_0.hdr", "radiance/3_1.hdr", "radiance/3_2.hdr", "radiance/3_3.hdr", "radiance/3_4.hdr", "radiance/3_5.hdr", "radiance/3_6.hdr", "radiance/3_7.hdr", "radiance/3_8.hdr"],
+		["radiance/4_0.hdr", "radiance/4_1.hdr", "radiance/4_2.hdr", "radiance/4_3.hdr", "radiance/4_4.hdr", "radiance/4_5.hdr", "radiance/4_6.hdr", "radiance/4_7.hdr", "radiance/4_8.hdr"],
+		["radiance/5_0.hdr", "radiance/5_1.hdr", "radiance/5_2.hdr", "radiance/5_3.hdr", "radiance/5_4.hdr", "radiance/5_5.hdr", "radiance/5_6.hdr", "radiance/5_7.hdr", "radiance/5_8.hdr"]]
+}

@@ -22,7 +22,6 @@ public:
 
     std::string &name();
     std::shared_ptr<core::AudioEngine> &engine();
-    std::shared_ptr<core::Scene>& scene();
 
     ALCdevice*& device();
 
@@ -31,7 +30,6 @@ public:
 private:
     std::string m_name;
     std::shared_ptr<core::AudioEngine> m_engine;
-    std::shared_ptr<core::Scene> m_scene;
 
     ALCdevice* m_device;
 

@@ -41,7 +41,7 @@ std::pair<std::shared_ptr<SceneData>, std::shared_ptr<BackgroundHandler>>& Backg
 void BackgroundPrivate::onChanged()
 {
     if (m_handler.first)
-        m_handler.first->onBackgroundChanged(m_handler.second->background().lock());
+        m_handler.first->onBackgroundChanged(m_handler.second->background().lock(), m_handler.second->ID());
 }
 
 }

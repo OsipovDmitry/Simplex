@@ -1,0 +1,6 @@
+{
+	"Type" : "2D",
+	"InternalFormat" : "RG8",
+	"Wrap" : "ClampToEdge",
+	"Data" : "brdf/brdf.png"
+}
