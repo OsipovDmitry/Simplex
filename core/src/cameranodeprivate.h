@@ -12,7 +12,7 @@ namespace simplex
 namespace core
 {
 
-class GFramebuffer;
+class GeometryBuffer;
 class GFrameBufferTmp;
 class SSAOFrameBuffer;
 class BlurFrameBuffer;
@@ -21,14 +21,12 @@ class PostprocessFrameBuffer;
 class CameraNodePrivate : public NodePrivate
 {
 public:
-    CameraNodePrivate(CameraNode&, const std::string&);
+    CameraNodePrivate(CameraNode&, const std::string&, /*tmp*/const std::shared_ptr<graphics::IFrameBuffer>&);
     ~CameraNodePrivate() override;
 
     bool &isRenderingEnabled();
 
-    std::shared_ptr<GFramebuffer> &GBuffer();
-
-    std::shared_ptr<graphics::IFrameBuffer> &userFrameBuffer();
+    std::shared_ptr<GeometryBuffer> &geometryBuffer();
 
     utils::ClipSpaceType &clipSpaceType();
     float &clipSpaceVerticalParam();
@@ -43,14 +41,14 @@ public:
     std::shared_ptr<BlurFrameBuffer> &ssaoBlurFrameBuffer();
     std::shared_ptr<PostprocessFrameBuffer> &postprocessFrameBuffer();
 
-    void resize(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
+    void resize(const std::shared_ptr<graphics::RendererBase>&, const std::shared_ptr<graphics::IFrameBuffer>&, const std::shared_ptr<GeometryBuffer>&);
 
 private:
     bool m_isRenderingEnabled;
 
-    std::shared_ptr<GFramebuffer> m_GBuffer;
+    std::shared_ptr<GeometryBuffer> m_geometryBuffer;
 
-    std::shared_ptr<graphics::IFrameBuffer> m_userFrameBuffer;
+    /*tmp*/std::shared_ptr<graphics::IFrameBuffer> m_defaultFrameBuffer;
 
     utils::ClipSpaceType m_clipSpaceType;
     float m_clipSpaceVerticalParam;

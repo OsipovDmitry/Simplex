@@ -239,7 +239,7 @@ std::shared_ptr<graphics::IRenderProgram> ProgramsManager::loadOrGetBlurRenderPr
 std::shared_ptr<graphics::IComputeProgram> ProgramsManager::loadOrGetBlurComputeProgram(graphics::TextureType textureType,
                                                                                         graphics::PixelInternalFormat imageFormat)
 {
-    const auto &supportedFormats = m_->renderer()->supportedImageFormats();
+    const auto &supportedFormats = graphics::Image::supportedImageFormats();
 
     utils::ShaderDefines defines;
     ProgramsManagerPrivate::prepareImageTypeDefines(textureType, "SOURCE_IMAGE", defines);

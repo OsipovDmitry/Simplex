@@ -3,17 +3,26 @@ layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 #include<descriptions.glsl>
 
 layout (std430) readonly buffer ssbo_meshesBuffer { MeshDescription meshes[]; };
-layout (std430) readonly buffer ssbo_backgroundsBuffer { uint numBackgrounds; BackgroundDescription backgrounds[]; };
-layout (std430) writeonly buffer ssbo_commandsBuffer { uint numCommnads; MultiDrawElementsIndirectCommand commands[]; };
+
+layout (std430) readonly buffer ssbo_backgroundsBuffer {
+	BackgroundsBufferReservedData backgroundsBufferReservedData;
+	BackgroundDescription backgrounds[];
+};
+
+layout (std430) writeonly buffer ssbo_commandsBuffer {
+	DrawIndirectCommandsBufferReservedData drawIndirectCommandsBufferReservedData;
+	DrawElementsIndirectCommand commands[];
+};
 
 void main(void)
 {
     uint backgroundID = gl_GlobalInvocationID.x;
-    if (backgroundID < numBackgrounds)
+    if (backgroundID < backgroundsBufferReservedData.count)
     {
         uint meshOffset = backgrounds[backgroundID].meshOffset;
         MeshDescription mesh = meshes[meshOffset];
         
-        commands[atomicAdd(numCommnads, 1)] = MultiDrawElementsIndirectCommand(mesh.numElements, 1u, mesh.indexOffset, 0, 0u);
+        commands[atomicAdd(drawIndirectCommandsBufferReservedData.count, 1)] =
+			DrawElementsIndirectCommand(mesh.numElements, 1u, mesh.indexOffset, 0, 0u);
     }
 }

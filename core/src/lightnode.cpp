@@ -20,6 +20,11 @@ std::shared_ptr<const LightNode> LightNode::asLightNode() const
     return const_cast<LightNode*>(this)->asLightNode();
 }
 
+LightType LightNode::type() const
+{
+    return m().type();
+}
+
 std::shared_ptr<PointLightNode> LightNode::asPointLightNode()
 {
     return nullptr;

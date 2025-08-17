@@ -9,7 +9,7 @@ namespace simplex
 namespace core
 {
 
-FlatDrawable::FlatDrawable(const std::shared_ptr<graphics::IVertexArray> &vao, const utils::BoundingBox &bb)
+FlatDrawable::FlatDrawable(const std::shared_ptr<graphics::VAOMesh> &vao, const utils::BoundingBox &bb)
     : VisualDrawable(std::make_unique<VisualDrawablePrivate>(vao, bb))
 {
 }

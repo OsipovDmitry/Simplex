@@ -26,8 +26,8 @@ public:
     graphics::PConstTexture run(const std::shared_ptr<graphics::RendererBase>&, const std::shared_ptr<ProgramsManager>&);
 
 private:
-    graphics::PConstBuffer kernelBuffer();
-    void setKernelBuffer(const graphics::PConstBuffer&);
+    graphics::PConstBufferRange kernelBuffer();
+    void setKernelBuffer(const graphics::PConstBufferRange&);
 
     float m_sigma;
     std::array<std::pair<graphics::PConstTexture, uint32_t>, 2u> m_pingpongSourceMap;

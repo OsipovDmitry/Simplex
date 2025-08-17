@@ -23,14 +23,14 @@ class SceneData;
 class DrawablePrivate : public StateSetPrivate
 {
 public:
-    DrawablePrivate(const std::shared_ptr<graphics::IVertexArray>&);
+    DrawablePrivate(const std::shared_ptr<graphics::VAOMesh>&);
     DrawablePrivate(const std::shared_ptr<const Mesh>&, const std::shared_ptr<const Material>& material);
     ~DrawablePrivate() override;
 
     std::shared_ptr<const Mesh> &mesh();
     std::shared_ptr<const Material> &material();
 
-    std::shared_ptr<graphics::IVertexArray> &vertexArray();
+    std::shared_ptr<graphics::VAOMesh> &vertexArray();
 
     bool &isDoubleSided();
 
@@ -40,7 +40,7 @@ public:
 protected:
     std::shared_ptr<const Mesh> m_mesh;
     std::shared_ptr<const Material> m_material;
-    std::shared_ptr<graphics::IVertexArray> m_vertexArray;
+    std::shared_ptr<graphics::VAOMesh> m_VAOMesh;
     bool m_isDoubleSided;
     std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>> m_handlers;
 

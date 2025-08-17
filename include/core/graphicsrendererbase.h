@@ -32,7 +32,6 @@ namespace graphics
 {
 
 ENUMCLASS(PixelInternalFormat, uint16_t,
-          Undefined,
           R8, R8_SNORM, R16, R16_SNORM,
           RG8, RG8_SNORM, RG16, RG16_SNORM,
           R3_G3_B2, RGB4, RGB5, RGB8, RGB8_SNORM, RGB10, RGB12, RGB16, RGB16_SNORM, RGBA2,
@@ -47,7 +46,9 @@ ENUMCLASS(PixelInternalFormat, uint16_t,
           RGBA8I, RGBA8UI, RGBA16I, RGBA16UI, RGBA32I, RGBA32UI,
           Depth16, Depth24, Depth32F, Stencil8, Depth24Stencil8, Dept32FStencil8)
 
-static core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(uint32_t, utils::PixelComponentType);
+CORE_SHARED_EXPORT core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(
+    uint32_t,
+    utils::PixelComponentType);
 
 ENUMCLASS(TextureType, uint16_t,
           Type1D,
@@ -104,7 +105,6 @@ ENUMCLASS(FrameBufferClearColorType, uint16_t,
 using FrameBufferClearColor = std::pair<FrameBufferClearColorType, FrameBufferClearColorValue>;
 
 ENUMCLASS(UniformType, uint16_t,
-          Undefined,
           Bool,
           Single,
           SingleVec2,
@@ -148,16 +148,23 @@ ENUMCLASS(UniformType, uint16_t,
 
 struct AttributeInfo
 {
-    utils::VertexAttribute id;
+    utils::VertexAttribute ID;
     uint16_t index;
     int32_t location;
     uint16_t numComponents;
     utils::VertexComponentType componentType;
 };
 
+struct OutputInfo
+{
+    FrameBufferAttachment ID;
+    uint16_t index;
+    int32_t location;
+};
+
 struct UniformInfo
 {
-    uint16_t id;
+    UniformId id;
     uint16_t index;
     int32_t location;
     UniformType type;
@@ -165,14 +172,17 @@ struct UniformInfo
 
 struct SSBOVariableInfo
 {
+    std::string name;
     uint16_t index;
     //SSBOVariableType type;
     uint16_t offset;
+    uint16_t arrayStride;
+    uint16_t topLevelArrayStride;
 };
 
 struct SSBOInfo
 {
-    uint16_t id;
+    SSBOId id;
     uint16_t index;
     std::vector<SSBOVariableInfo> variables;
 };
@@ -247,11 +257,11 @@ class IVertexArray
 public:
     virtual ~IVertexArray() = default;
 
-    virtual uint32_t attachVertexBuffer(std::shared_ptr<IBuffer> buffer, size_t offset, uint32_t stride) = 0; // returns bindingIndex
+    virtual uint32_t attachVertexBuffer(std::shared_ptr<IBuffer> buffer, size_t offset, size_t stride) = 0; // returns bindingIndex
     virtual void detachVertexBuffer(uint32_t bindingIndex) = 0;
     virtual std::shared_ptr<const IBuffer> vertexBuffer(uint32_t bindingIndex) const = 0;
     virtual size_t vertexBufferOffset(uint32_t bindingIndex) const = 0;
-    virtual uint32_t vertexBufferStride(uint32_t bindingIndex) const = 0;
+    virtual size_t vertexBufferStride(uint32_t bindingIndex) const = 0;
 
     virtual void declareVertexAttribute(utils::VertexAttribute,
                                         uint32_t bindingIndex,
@@ -267,10 +277,6 @@ public:
     virtual void attachIndexBuffer(std::shared_ptr<IBuffer> buffer) = 0;
     virtual void detachIndexBuffer() = 0;
     virtual std::shared_ptr<const IBuffer> indexBuffer() const = 0;
-
-    virtual void addPrimitiveSet(std::shared_ptr<utils::PrimitiveSet>) = 0;
-    virtual void removePrimitiveSet(std::shared_ptr<utils::PrimitiveSet>) = 0;
-    virtual const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> &primitiveSets() const = 0;
 };
 
 class ISurface
@@ -332,20 +338,6 @@ public:
     virtual void doneResident() = 0;
 };
 
-class IImage
-{
-public:
-    virtual ~IImage() = default;
-
-    ENUMCLASS(DataAccess, uint8_t, ReadOnly, WriteOnly, ReadWrite)
-    virtual DataAccess access() const = 0;
-    virtual void setAccess(DataAccess) = 0;
-
-    virtual uint32_t mipmapLevel() const = 0;
-    virtual PConstTexture texture() const = 0;
-    virtual void setTexture(const PConstTexture&, uint32_t) = 0;
-};
-
 class IRenderBuffer : public ISurface
 {
 public:
@@ -354,28 +346,17 @@ public:
 class IFrameBuffer
 {
 public:
-    struct AttachmentInfo
-    {
-        AttachmentInfo(std::shared_ptr<const ISurface> _renderSurface = nullptr, uint32_t _level = 0u, uint32_t _layer = 0u)
-            : renderSurface(_renderSurface), level(_level), layer(_layer)
-        {}
-
-        std::shared_ptr<const ISurface> renderSurface;
-        uint32_t level;
-        uint32_t layer;
-    };
-
-    using Attachments = std::unordered_map<FrameBufferAttachment, AttachmentInfo>;
-
     virtual ~IFrameBuffer() = default;
 
     virtual bool isComplete() const = 0;
-
-    virtual const Attachments &attachments() const = 0;
-    virtual bool attachment(FrameBufferAttachment, AttachmentInfo&) const = 0;
+    
     virtual void attach(FrameBufferAttachment, std::shared_ptr<const ISurface>, uint32_t level = 0u) = 0;
     virtual void attachLayer(FrameBufferAttachment, std::shared_ptr<const ITexture>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
     virtual void detach(FrameBufferAttachment) = 0;
+    virtual void detachAll() = 0;
+    virtual std::shared_ptr<const ISurface> attachmentSurface(FrameBufferAttachment) const = 0;
+    virtual uint32_t attachmentMipmapLevel(FrameBufferAttachment) const = 0;
+    virtual uint32_t attachmentLayer(FrameBufferAttachment) const = 0;
 
     virtual const FrameBufferClearColor &clearColor(uint32_t) const = 0;
     virtual void setClearColor(uint32_t, const glm::vec4&) = 0;
@@ -388,8 +369,6 @@ public:
 
     virtual const std::unordered_set<FrameBufferAttachment> &clearMask() const = 0;
     virtual void setClearMask(const std::unordered_set<FrameBufferAttachment>&) = 0;
-
-    virtual void setDrawBuffers(const std::vector<FrameBufferAttachment>&) = 0; 
 
     virtual bool faceCulling() const = 0;
     virtual FaceType cullFaceType() const = 0;
@@ -416,13 +395,13 @@ public:
 
     virtual bool blending() const = 0;
     virtual void setBlending(bool) = 0;
-    virtual BlendEquation blendColorEquation(uint32_t) = 0;
-    virtual BlendEquation blendAlphaEquation(uint32_t) = 0;
+    virtual BlendEquation blendColorEquation(uint32_t) const = 0;
+    virtual BlendEquation blendAlphaEquation(uint32_t) const = 0;
     virtual void setBlendEquation(uint32_t, BlendEquation, BlendEquation) = 0;
-    virtual BlendFactor blendColorSourceFactor(uint32_t) = 0;
-    virtual BlendFactor blendAlphaSourceFactor(uint32_t) = 0;
-    virtual BlendFactor blendColorDestinationFactor(uint32_t) = 0;
-    virtual BlendFactor blendAlphaDestinationFactor(uint32_t) = 0;
+    virtual BlendFactor blendColorSourceFactor(uint32_t) const = 0;
+    virtual BlendFactor blendAlphaSourceFactor(uint32_t) const = 0;
+    virtual BlendFactor blendColorDestinationFactor(uint32_t) const = 0;
+    virtual BlendFactor blendAlphaDestinationFactor(uint32_t) const = 0;
     virtual void setBlendFactor(uint32_t, BlendFactor srcColor, BlendFactor dstColor, BlendFactor srcAlpha, BlendFactor dstAlpha) = 0;
     virtual glm::vec3 blendConstantColor() const = 0;
     virtual void setBlendConstantColor(const glm::vec3&) = 0;
@@ -435,7 +414,7 @@ class IProgram
 public:
     virtual ~IProgram() = default;
 
-    virtual int32_t uniformLocationByName(const std::string&) const = 0;
+    //virtual int32_t uniformLocationByName(const std::string&) const = 0;
 
     virtual const std::vector<UniformInfo> &uniformsInfo() const = 0;
     virtual const std::vector<SSBOInfo> &SSBOsInfo() const = 0;
@@ -451,9 +430,12 @@ public:
 class IRenderProgram : public virtual IProgram
 {
 public:
-    virtual int32_t attributeLocationByName(const std::string&) const = 0;
+    //virtual int32_t attributeLocationByName(const std::string&) const = 0;
     virtual const std::vector<AttributeInfo> &attributesInfo() const = 0;
     virtual std::string attributeNameByIndex(uint16_t) const = 0;
+
+    virtual const std::vector<OutputInfo>& outputsInfo() const = 0;
+    virtual std::string outputNameByIndex(uint16_t) const = 0;
 };
 
 class IComputeProgram : public virtual IProgram
@@ -476,6 +458,22 @@ public:
     static std::shared_ptr<RendererBase> current();
     static bool areShared(const std::shared_ptr<const RendererBase>&, const std::shared_ptr<const RendererBase>&);
 
+    bool registerAttribute(const std::string&, utils::VertexAttribute);
+    bool unregisterAttribute(const std::string&);
+    utils::VertexAttribute attributeByName(const std::string&) const;
+
+    bool registerOutput(const std::string&, FrameBufferAttachment);
+    bool unregisterOutput(const std::string&);
+    FrameBufferAttachment outputByName(const std::string&) const;
+
+    bool registerUniform(const std::string&, UniformId);
+    bool unregisterUniform(const std::string&);
+    UniformId uniformByName(const std::string&) const;
+
+    bool registerSSBO(const std::string&, SSBOId);
+    bool unregisterSSBO(const std::string&);
+    SSBOId SSBOByName(const std::string&) const;
+
     virtual std::shared_ptr<IGraphicsWidget> widget() = 0;
     virtual std::shared_ptr<const IGraphicsWidget> widget() const = 0;
 
@@ -492,28 +490,14 @@ public:
         size_t srcOffset,
         size_t size) const = 0;
 
-
-    virtual bool registerVertexAttribute(const std::string&, utils::VertexAttribute) = 0;
-    virtual bool unregisterVertexAttribute(const std::string&) = 0;
-    virtual utils::VertexAttribute vertexAttributeByName(const std::string&) const = 0;
-
-    virtual bool registerUniformId(const std::string&, uint16_t) = 0;
-    virtual bool unregisterUniformId(const std::string&) = 0;
-    virtual uint16_t uniformIdByName(const std::string&) const = 0;
-
-    virtual bool registerSSBOId(const std::string&, uint16_t) = 0;
-    virtual bool unregisterSSBOId(const std::string&) = 0;
-    virtual uint16_t SSBOIdByName(const std::string&) const = 0;
-
     virtual std::shared_ptr<IBuffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
     virtual std::shared_ptr<IDynamicBuffer> createDynamicBuffer(size_t size = 0u, const void* data = nullptr) const = 0;
-    virtual std::shared_ptr<IVertexArray> createVertexArray(const std::shared_ptr<const utils::Mesh>& = nullptr,
-                                                            bool uniteBuffers = true) const = 0;
+    virtual std::shared_ptr<IVertexArray> createVertexArray() const = 0;
     virtual std::shared_ptr<ITexture> createTexture1DEmpty(uint32_t width,
                                                            PixelInternalFormat,
                                                            uint32_t numLevels = 1) const = 0;
     virtual std::shared_ptr<ITexture> createTexture1D(const std::shared_ptr<const utils::Image>&,
-                                                      PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                      PixelInternalFormat = PixelInternalFormat::Count,
                                                       uint32_t numLevels = 0,
                                                       bool genMipmaps = true) const = 0;
     virtual std::shared_ptr<ITexture> createTexture2DEmpty(uint32_t width,
@@ -521,7 +505,7 @@ public:
                                                            PixelInternalFormat,
                                                            uint32_t numLevels = 1) const = 0;
     virtual std::shared_ptr<ITexture> createTexture2D(const std::shared_ptr<const utils::Image>&,
-                                                      PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                      PixelInternalFormat = PixelInternalFormat::Count,
                                                       uint32_t numLevels = 0,
                                                       bool genMipmaps = true) const = 0;
     virtual std::shared_ptr<ITexture> createTexture3DEmpty(uint32_t width,
@@ -530,7 +514,7 @@ public:
                                                            PixelInternalFormat,
                                                            uint32_t numLevels = 1) const = 0;
     virtual std::shared_ptr<ITexture> createTexture3D(const std::vector<std::shared_ptr<const utils::Image>>&,
-                                                      PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                      PixelInternalFormat = PixelInternalFormat::Count,
                                                       uint32_t numLevels = 0,
                                                       bool genMipmaps = true) const = 0;
     virtual std::shared_ptr<ITexture> createTextureCubeEmpty(uint32_t width,
@@ -538,7 +522,7 @@ public:
                                                              PixelInternalFormat,
                                                              uint32_t numLevels = 1) const = 0;
     virtual std::shared_ptr<ITexture> createTextureCube(const std::vector<std::shared_ptr<const utils::Image>>&,
-                                                        PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                        PixelInternalFormat = PixelInternalFormat::Count,
                                                         uint32_t numLevels = 0,
                                                         bool genMipmaps = true) const = 0;
     virtual std::shared_ptr<ITexture> createTexture1DArrayEmpty(uint32_t width,
@@ -546,7 +530,7 @@ public:
                                                                 PixelInternalFormat,
                                                                 uint32_t numLevels = 1) const = 0;
     virtual std::shared_ptr<ITexture> createTexture1DArray(const std::vector<std::shared_ptr<const utils::Image>>&,
-                                                           PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                           PixelInternalFormat = PixelInternalFormat::Count,
                                                            uint32_t numLevels = 0,
                                                            bool genMipmaps = true) const = 0;
     virtual std::shared_ptr<ITexture> createTexture2DArrayEmpty(uint32_t width,
@@ -555,7 +539,7 @@ public:
                                                                 PixelInternalFormat,
                                                                 uint32_t numLevels = 1) const = 0;
     virtual std::shared_ptr<ITexture> createTexture2DArray(const std::vector<std::shared_ptr<const utils::Image>>&,
-                                                           PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                           PixelInternalFormat = PixelInternalFormat::Count,
                                                            uint32_t numLevels = 0,
                                                            bool genMipmaps = true) const = 0;
     virtual std::shared_ptr<ITexture> createTextureCubeArrayEmpty(uint32_t width,
@@ -564,18 +548,15 @@ public:
                                                                   PixelInternalFormat,
                                                                   uint32_t numLevels = 1) const = 0;
     virtual std::shared_ptr<ITexture> createTextureCubeArray(const std::vector<std::vector<std::shared_ptr<const utils::Image>>>&, //[layer][face]
-                                                             PixelInternalFormat = PixelInternalFormat::Undefined,
+                                                             PixelInternalFormat = PixelInternalFormat::Count,
                                                              uint32_t numLevels = 0,
                                                              bool genMipmaps = true) const = 0;
     virtual std::shared_ptr<ITexture> createTextureRectEmpty(uint32_t width,
                                                              uint32_t height,
                                                              core::graphics::PixelInternalFormat) const = 0;
     virtual std::shared_ptr<ITexture> createTextureRect(const std::shared_ptr<const utils::Image>&,
-                                                        core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Undefined) const = 0;
+                                                        core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Count) const = 0;
     virtual std::shared_ptr<ITextureHandle> createTextureHandle(const PConstTexture&) const = 0;
-    virtual std::shared_ptr<IImage> createImage(IImage::DataAccess,
-                                                const PConstTexture&,
-                                                uint32_t level = 0u) const = 0;
     virtual std::shared_ptr<IRenderBuffer> createRenderBuffer(uint32_t width,
                                                               uint32_t height,
                                                               PixelInternalFormat) const = 0;
@@ -587,20 +568,168 @@ public:
                                                                 const std::shared_ptr<utils::Shader> &fragmentShader) const = 0;
     virtual std::shared_ptr<IComputeProgram> createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const = 0;
 
-    virtual const SupportedImageFormats &supportedImageFormats() const = 0;
+    virtual void compute(
+        const std::shared_ptr<IComputeProgram>&,
+        const glm::uvec3&,
+        const StateSetList&) = 0;
+
+    virtual void drawArrays(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        size_t first,
+        size_t count) = 0;
+
+    virtual void drawElements(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        size_t count,
+        utils::DrawElementsIndexType,
+        size_t offset) = 0;
+
+    virtual void multiDrawArrays(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        const std::vector<size_t>& firsts,
+        const std::vector<size_t>& counts) = 0;
+
+    virtual void multiDrawElements(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        const std::vector<size_t>& counts,
+        utils::DrawElementsIndexType,
+        const std::vector<size_t>& offsets) = 0;
+
+    virtual void drawElementsBaseVertex(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        size_t count,
+        utils::DrawElementsIndexType,
+        size_t offset,
+        uint32_t baseVertex) = 0;
+
+    virtual void drawArraysInstanced(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        size_t first,
+        size_t count,
+        size_t numInstances) = 0;
+
+    virtual void drawElementsInstanced(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        size_t count,
+        utils::DrawElementsIndexType,
+        size_t offset,
+        size_t numInstances) = 0;
+
+    virtual void drawArraysInstancedBaseInstance(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        size_t first,
+        size_t count,
+        size_t numInstances,
+        uint32_t baseInstance) = 0;
+
+    virtual void drawElementsInstancedBaseInstance(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        size_t count,
+        utils::DrawElementsIndexType,
+        size_t offset,
+        size_t numInstances,
+        uint32_t baseInstance) = 0;
+
+    virtual void drawArraysIndirect(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        const std::shared_ptr<const graphics::BufferRange>&) = 0;
+
+    virtual void drawElementsIndirect(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        utils::DrawElementsIndexType,
+        const std::shared_ptr<const graphics::BufferRange>&) = 0;
+
+    virtual void multiDrawArraysIndirect(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        const std::shared_ptr<const graphics::BufferRange>&,
+        size_t count) = 0;
+
+    virtual void multiDrawElementsIndirect(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        utils::DrawElementsIndexType,
+        const std::shared_ptr<const graphics::BufferRange>&,
+        size_t count) = 0;
+
+    virtual void multiDrawArraysIndirectCount(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        const std::shared_ptr<const graphics::BufferRange>& drawIndirectBufferRange,
+        const std::shared_ptr<const graphics::BufferRange>& parameterBufferRange,
+        size_t maxDrawCount) = 0;
+
+    virtual void multiDrawElementsIndirectCount(
+        const std::shared_ptr<graphics::IRenderProgram>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const StateSetList&,
+        utils::PrimitiveType,
+        utils::DrawElementsIndexType,
+        const std::shared_ptr<const graphics::BufferRange>& drawIndirectBufferRange,
+        const std::shared_ptr<const graphics::BufferRange>& parameterBufferRange,
+        size_t maxDrawCount) = 0;
 
     virtual void clearRenderData() = 0;
     virtual void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
-                               const std::shared_ptr<const Drawable>&,
+                               const std::shared_ptr<Drawable>&,
                                const glm::mat4x4& = glm::mat4x4(1.f)) = 0;
     virtual void render(const std::shared_ptr<IFrameBuffer>&,
                         const glm::uvec4 &viewport,
-                        const glm::mat4x4 &viewMatrix,
-                        const glm::mat4x4 &projectionMatrix,
-                        const PConstStateSet&) = 0;
-    virtual void compute(const std::shared_ptr<IComputeProgram>&,
-                         const glm::uvec3&,
-                         const PConstStateSet&) = 0;
+                        const std::shared_ptr<const StateSet>&) = 0;
 
 protected:
     virtual bool doMakeCurrent() = 0;
@@ -612,6 +741,7 @@ protected:
 template <typename T, typename ReservedType = void>
 class DynamicBufferT final
 {
+    NONCOPYBLE(DynamicBufferT)
 public:
     using value_type = T;
     static constexpr size_t sizeofT() { return sizeof(value_type); }
@@ -765,54 +895,73 @@ private:
     std::shared_ptr<IDynamicBuffer> m_buffer;
 };
 
-inline core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(uint32_t numComponents,
-                                                                                                        utils::PixelComponentType type)
+class CORE_SHARED_EXPORT BufferRange final
 {
-    PixelInternalFormat result = core::graphics::PixelInternalFormat::Undefined;
+    NONCOPYBLE(BufferRange)
+public:
+    ~BufferRange();
 
-    switch (type)
-    {
-    case utils::PixelComponentType::Uint8:
-    {
-        switch (numComponents)
-        {
-        case 1: { result = core::graphics::PixelInternalFormat::R8; break; }
-        case 2: { result = core::graphics::PixelInternalFormat::RG8; break; }
-        case 3: { result = core::graphics::PixelInternalFormat::RGB8; break; }
-        case 4: { result = core::graphics::PixelInternalFormat::RGBA8; break; }
-        default: { break; }
-        }
-    break;
-    }
-        case utils::PixelComponentType::Uint16:
-        {
-        switch (numComponents)
-        {
-        case 1: { result = core::graphics::PixelInternalFormat::R16; break; }
-        case 2: { result = core::graphics::PixelInternalFormat::RG16; break; }
-        case 3: { result = core::graphics::PixelInternalFormat::RGB16; break; }
-        case 4: { result = core::graphics::PixelInternalFormat::RGBA16; break; }
-        default: { break; }
-        }
-        break;
-        }
-    case utils::PixelComponentType::Single:
-    {
-        switch (numComponents)
-        {
-        case 1: { result = core::graphics::PixelInternalFormat::R16F; break; }
-        case 2: { result = core::graphics::PixelInternalFormat::RG16F; break; }
-        case 3: { result = core::graphics::PixelInternalFormat::RGB16F; break; }
-        case 4: { result = core::graphics::PixelInternalFormat::RGBA16F; break; }
-        default: { break; }
-        }
-    break;
-    }
-    default: { break; }
-    }
+    std::shared_ptr<const IBuffer> buffer() const;
+    size_t offset() const;
+    size_t size() const;
 
-    return result;
-}
+    static std::shared_ptr<BufferRange> create(
+        const std::shared_ptr<const IBuffer>&,
+        size_t offset = 0u,
+        size_t size = static_cast<size_t>(-1));
+
+private:
+    BufferRange(const std::shared_ptr<const IBuffer>&, size_t, size_t);
+
+    std::shared_ptr<const IBuffer> m_buffer;
+    size_t m_offset;
+    size_t m_size;
+};
+
+class CORE_SHARED_EXPORT Image final
+{
+public:
+    ~Image();
+
+    ENUMCLASS(DataAccess, uint8_t, ReadOnly, WriteOnly, ReadWrite)
+
+    DataAccess access() const;
+    PConstTexture texture() const;
+    uint32_t mipmapLevel() const;
+
+    static const SupportedImageFormats& supportedImageFormats();
+    static std::shared_ptr<Image> create(DataAccess, const PConstTexture&, uint32_t mipmapLevel = 0u);
+
+private:
+    Image(DataAccess, const PConstTexture&, uint32_t mipmapLevel);
+
+    DataAccess m_access;
+    uint32_t m_mipmapLevel;
+    PConstTexture m_texture;
+};
+
+class CORE_SHARED_EXPORT VAOMesh final
+{
+    NONCOPYBLE(VAOMesh)
+public:
+    ~VAOMesh();
+
+    std::shared_ptr<IVertexArray> vao();
+    std::shared_ptr<const IVertexArray> vao() const;
+
+    void addPrimitiveSet(const std::shared_ptr<utils::PrimitiveSet>&);
+    void removePrimitiveSet(const std::shared_ptr<utils::PrimitiveSet>&);
+    const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>>& primitiveSets() const;
+
+    static std::shared_ptr<VAOMesh> create(
+        const std::shared_ptr<const utils::Mesh>& = nullptr,
+        bool uniteVertexBuffers = true);
+private:
+    VAOMesh(const std::shared_ptr<IVertexArray>&);
+
+    std::shared_ptr<IVertexArray> m_vao;
+    std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> m_primitiveSets;
+};
 
 inline UniformType IProgram::uniformTypeByTextureType(TextureType textureType)
 {
@@ -828,7 +977,7 @@ inline UniformType IProgram::uniformTypeByTextureType(TextureType textureType)
         };
 
         auto it = s_table.find(textureType);
-        return (it == s_table.end()) ? UniformType::Undefined : it->second;
+        return (it == s_table.end()) ? UniformType::Count : it->second;
 }
 
 inline UniformType IProgram::uniformTypeByImageTextureType(TextureType textureType)
@@ -845,7 +994,7 @@ inline UniformType IProgram::uniformTypeByImageTextureType(TextureType textureTy
         };
 
         auto it = s_table.find(textureType);
-        return (it == s_table.end()) ? UniformType::Undefined : it->second;
+        return (it == s_table.end()) ? UniformType::Count : it->second;
 }
 
 }

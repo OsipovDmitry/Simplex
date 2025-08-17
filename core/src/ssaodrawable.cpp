@@ -14,7 +14,7 @@ namespace simplex
 namespace core
 {
 
-SSAODrawable::SSAODrawable(const std::shared_ptr<graphics::IVertexArray> &vao)
+SSAODrawable::SSAODrawable(const std::shared_ptr<graphics::VAOMesh> &vao)
     : Drawable(vao)
 {
     const auto &SSAOSettings = settings::Settings::instance().graphics().ssao();
@@ -105,7 +105,7 @@ void SSAODrawable::update(const std::shared_ptr<graphics::RendererBase> &graphic
             p += sizeof(glm::vec4);
         }
 
-        setKernelBuffer(kernelBuffer);
+        setKernelBuffer(graphics::BufferRange::create(kernelBuffer));
     }
 
     if (!noiseTexture())
@@ -126,12 +126,12 @@ void SSAODrawable::update(const std::shared_ptr<graphics::RendererBase> &graphic
     }
 }
 
-graphics::PConstBuffer SSAODrawable::kernelBuffer() const
+graphics::PConstBufferRange SSAODrawable::kernelBuffer() const
 {
     return SSBO(SSBOId::SSAOKernel);
 }
 
-void SSAODrawable::setKernelBuffer(const graphics::PConstBuffer &value)
+void SSAODrawable::setKernelBuffer(const graphics::PConstBufferRange &value)
 {
     static SSBOId s_SSBOId = SSBOId::SSAOKernel;
 

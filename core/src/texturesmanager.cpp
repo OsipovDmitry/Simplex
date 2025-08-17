@@ -113,25 +113,7 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetTexture(
     std::string name = key;
     if (name == "autogen")
     {
-        name = std::to_string(graphics::castFromPixelInternalFormat(internalFormat)) +
-            std::to_string(numLevels) +
-            std::to_string(image->width()) +
-            std::to_string(image->height()) +
-            std::to_string(image->numComponents()) +
-            std::to_string(utils::castFromPixelComponentType(image->type()));
-
-        static constexpr uint32_t s_smallWidth = 8u;
-        static constexpr uint32_t s_smallHeight = 8u;
-        static constexpr uint32_t s_smallNumComponents = 3u;
-        auto smallImage = image->converted(
-            glm::min(s_smallWidth, image->width()),
-            glm::min(s_smallHeight, image->height()),
-            glm::min(s_smallNumComponents, image->numComponents()),
-            image->type());
-        
-        name.append(
-            reinterpret_cast<char*>(smallImage->data()),
-            utils::sizeOfPixelComponentType(smallImage->type()) * smallImage->width() * smallImage->height() * smallImage->numComponents());
+        name = std::to_string(reinterpret_cast<uintptr_t>(image.get()));
     }
 
     if (auto it = m_->resources().find(name); it != m_->resources().end())
@@ -150,7 +132,7 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetTexture(
 std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetDefaultIBLEnvironmentTexture()
 {
     return loadOrGetTexture(TexturesManagerPrivate::defaultIBLEnvironmentTexturePath(),
-                            graphics::PixelInternalFormat::Undefined,
+                            graphics::PixelInternalFormat::Count,
                             0u,
                             false,
                             TexturesManagerPrivate::defaultIBLEnvironmentTextureName());
@@ -159,7 +141,7 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetDefaultIBLEnvironm
 std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetDefaultIBLBRDFLutTexture()
 {
     return loadOrGetTexture(TexturesManagerPrivate::defaultIBLBRDFLutTexturePath(),
-                            graphics::PixelInternalFormat::Undefined,
+                            graphics::PixelInternalFormat::Count,
                             0u,
                             false,
                             TexturesManagerPrivate::defaultIBLBRDFLutTextureName());
@@ -168,7 +150,7 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetDefaultIBLBRDFLutT
 std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetDefaultIBLDiffuseTexture()
 {
     return loadOrGetTexture(TexturesManagerPrivate::defaultIBLDiffuseTexturePath(),
-                            graphics::PixelInternalFormat::Undefined,
+                            graphics::PixelInternalFormat::Count,
                             0u,
                             false,
                             TexturesManagerPrivate::defaultIBLDiffuseTextureName());
@@ -177,7 +159,7 @@ std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetDefaultIBLDiffuseT
 std::shared_ptr<graphics::ITexture> TexturesManager::loadOrGetDefaultIBLSpecularTexture()
 {
     return loadOrGetTexture(TexturesManagerPrivate::defaultIBLSpecularTexturePath(),
-                            graphics::PixelInternalFormat::Undefined,
+                            graphics::PixelInternalFormat::Count,
                             0u,
                             false,
                             TexturesManagerPrivate::defaultIBLSpecularTextureName());
@@ -215,7 +197,7 @@ inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared
         return nullptr;
     }
 
-    auto textureInternalFormat = graphics::PixelInternalFormat::Undefined;
+    auto textureInternalFormat = graphics::PixelInternalFormat::Count;
     if (document.HasMember(s_internalFormatField.c_str()))
     {
         auto &internalFormatField = document[s_internalFormatField.c_str()];
@@ -226,7 +208,7 @@ inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared
         }
 
         textureInternalFormat = string2PixelInternalFormat(internalFormatField.GetString());
-        if (textureInternalFormat == graphics::PixelInternalFormat::Undefined)
+        if (textureInternalFormat == graphics::PixelInternalFormat::Count)
         {
             LOG_ERROR << "Internal format \"" << internalFormatField.GetString() << "\" is undefined";
             return nullptr;
@@ -799,7 +781,7 @@ inline graphics::PixelInternalFormat string2PixelInternalFormat(const std::strin
     };
 
     auto it = s_table.find(value);
-    return (it == s_table.end()) ? graphics::PixelInternalFormat::Undefined : it->second;
+    return (it == s_table.end()) ? graphics::PixelInternalFormat::Count : it->second;
 }
 
 }

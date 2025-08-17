@@ -212,7 +212,9 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
                 {
                     utils::BoundingBox boundingBox;
                     uint32_t numVertices = 0u;
-                    auto vao = renderer->createVertexArray();
+
+                    auto VAOMesh = graphics::VAOMesh::create();
+                    auto vao = VAOMesh->vao();
 
                     for (const auto& [rawAttributeName, accessorIndex] : rawPrimitive.attributes)
                     {
@@ -281,7 +283,7 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
                             return nullptr;
                         }
 
-                        vao->addPrimitiveSet(std::make_shared<utils::DrawElements>(primitiveType,
+                        VAOMesh->addPrimitiveSet(std::make_shared<utils::DrawElements>(primitiveType,
                             static_cast<uint32_t>(rawAccessor.count),
                             drawElementsIndexType,
                             rawBufferView.byteOffset + rawAccessor.byteOffset,
@@ -289,10 +291,10 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
                     }
                     else
                     {
-                        vao->addPrimitiveSet(std::make_shared<utils::DrawArrays>(primitiveType, 0u, numVertices));
+                        VAOMesh->addPrimitiveSet(std::make_shared<utils::DrawArrays>(primitiveType, 0u, numVertices));
                     }
 
-                    auto pbrDrawable = std::make_shared<PBRDrawable>(vao, boundingBox);
+                    auto pbrDrawable = std::make_shared<PBRDrawable>(VAOMesh, boundingBox);
                     pbrDrawable->setORMSwizzleMask(glm::uvec4(0u, 1u, 2u, 3u));
                     visualDrawableNode->addVisualDrawable(pbrDrawable);
 

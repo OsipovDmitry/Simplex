@@ -2,7 +2,8 @@
     layout (location = POSITION_ATTRIBUTE) in vec3 a_position;
     
     #if defined(POINT_LIGHT_TYPE) || defined(SPOT_LIGHT_TYPE)
-        uniform mat4 u_modelViewProjectionMatrix;
+        uniform mat4 u_modelMatrix;
+        uniform mat4 u_viewProjectionMatrix;
     #endif
 #endif
 
@@ -12,7 +13,7 @@ void main(void)
     vec4 pos = vec4(a_position, 1.0f);
 
     #if defined(POINT_LIGHT_TYPE) || defined(SPOT_LIGHT_TYPE)
-        pos = u_modelViewProjectionMatrix * pos;
+        pos = u_viewProjectionMatrix * u_modelMatrix * pos;
     #endif
     
     gl_Position = pos;

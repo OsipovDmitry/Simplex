@@ -11,7 +11,7 @@ namespace core
 class VisualDrawablePrivate : public DrawablePrivate
 {
 public:
-    VisualDrawablePrivate(const std::shared_ptr<graphics::IVertexArray>&, const utils::BoundingBox&);
+    VisualDrawablePrivate(const std::shared_ptr<graphics::VAOMesh>&, const utils::BoundingBox&);
     VisualDrawablePrivate(const std::shared_ptr<Mesh>&, const std::shared_ptr<Material>&, const utils::BoundingBox&);
     ~VisualDrawablePrivate() override;
 

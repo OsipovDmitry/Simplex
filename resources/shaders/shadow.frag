@@ -25,11 +25,11 @@
 #endif
 
 #ifdef SHADING_FILTER_VSM
-    layout (location = 0) out vec4 o_fragColor0;
+    out vec4 o_fragColor0;
 #endif
 
 #ifdef SHADING_MODE_COLOR
-    layout (location = 1) out vec4 o_fragColor1;
+    out vec4 o_fragColor1;
 #endif
 
 #ifdef HAS_ALPHA_CUTOFF

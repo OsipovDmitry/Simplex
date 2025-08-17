@@ -41,6 +41,9 @@ struct MeshDescription
     uint32_t colorOffset;
     uint32_t indexOffset;
     uint32_t numElements; // number of indices
+    uint32_t flags;
+    //  0.. 0 - is transparent
+    //  1..31 - free (31 bits)
 };
 
 struct MaterialMapDescription
@@ -56,11 +59,10 @@ struct MaterialDescription
     uint32_t roughnessTextureOffset;
     uint32_t metalnessTextureOffset;
     uint32_t normalTextureOffset;
-    glm::vec4 baseColor;
-    glm::vec3 emission;
     float roughness;
     float metalness;
-    uint32_t flags;
+    glm::vec4 baseColor;
+    glm::vec4 emissionAndFlags;
     //  0.. 7 - occlusionMapStrength
     //  8..15 - normalMapScale
     // 16..17 - occlusion map swizzle
@@ -68,7 +70,8 @@ struct MaterialDescription
     // 20..21 - metalness map swizzle
     // 22..22 - is lighted
     // 23..23 - is shadowed
-    // 24..31 - free (8 bits)
+    // 24..24 - is transparent
+    // 25..31 - free (7 bits)
 };
 
 struct DrawableDescription
@@ -77,37 +80,32 @@ struct DrawableDescription
     uint32_t materialOffset;
 };
 
+struct DrawDataBufferReservedData { uint32_t count; uint32_t padding[3u]; };
 struct DrawDataDescription
 {
     glm::mat4x4 modelMatrix;
-    uint32_t drawableOffset;
+    glm::mat3x4 normalMatrixAndDrawableOffset;
+    // [0][0]..[2][2] - normal matrix
+    // [0][3] - drawable offset
 };
 
+struct BackgroundsBufferReservedData { uint32_t count; uint32_t padding[3u]; };
 struct BackgroundDescription
 {
     uint32_t meshOffset;
     uint32_t environmentMapOffset;
-    glm::vec3 environmentColor;
-    float blurPower;
+    glm::vec4 environmentColorAndBlurPower;
 };
 
-struct OITNode
+struct DrawIndirectCommandsBufferReservedData { uint32_t count; uint32_t padding[3u]; };
+struct DrawArraysIndirectCommand
 {
-    uint32_t packedBaseColor;
-    uint32_t packedFinalColor;
-    uint32_t packedORMAlpha;
-    uint32_t packedNormalFlags;
-    float depth;
-    uint32_t next;
+    uint32_t count;
+    uint32_t instanceCount;
+    uint32_t first;
+    uint32_t baseInstance;
 };
-
-struct OITBufferReservedData
-{
-    uint32_t maxNumOITNodes;
-    uint32_t numOITNodes;
-};
-
-struct MultiDrawElementsIndirectCommand
+struct DrawElementsIndirectCommand
 {
     uint32_t count;
     uint32_t instanceCount;
@@ -127,10 +125,10 @@ using MeshesBuffer = std::shared_ptr<graphics::DynamicBufferT<MeshDescription>>;
 using MaterialMapsBuffer = std::shared_ptr<graphics::DynamicBufferT<MaterialMapDescription>>;
 using MaterialsBuffer = std::shared_ptr<graphics::DynamicBufferT<MaterialDescription>>;
 using DrawablesBuffer = std::shared_ptr<graphics::DynamicBufferT<DrawableDescription>>;
-using DrawDataBuffer = std::shared_ptr<graphics::DynamicBufferT<DrawDataDescription, uint32_t>>;
-using BackgroundsBuffer = std::shared_ptr<graphics::DynamicBufferT<BackgroundDescription, uint32_t>>;
-using OITNodesBuffer = std::shared_ptr<graphics::DynamicBufferT<OITNode, OITBufferReservedData>>;
-using CommandsBuffer = std::shared_ptr<graphics::DynamicBufferT<MultiDrawElementsIndirectCommand, uint32_t>>;
+using DrawDataBuffer = std::shared_ptr<graphics::DynamicBufferT<DrawDataDescription, DrawDataBufferReservedData>>;
+using BackgroundsBuffer = std::shared_ptr<graphics::DynamicBufferT<BackgroundDescription, BackgroundsBufferReservedData>>;
+using DrawIndirectArraysCommandsBuffer = std::shared_ptr<graphics::DynamicBufferT<DrawArraysIndirectCommand, DrawIndirectCommandsBufferReservedData>>;
+using DrawIndirectElementsCommandsBuffer = std::shared_ptr<graphics::DynamicBufferT<DrawElementsIndirectCommand, DrawIndirectCommandsBufferReservedData>>;
 
 class SceneData;
 
@@ -247,8 +245,8 @@ public:
     void onDrawableChanged(const std::shared_ptr<const Drawable>&, utils::IDsGenerator::value_type);
 
     std::shared_ptr<DrawDataHandler> addDrawData(const std::shared_ptr<const Drawable>&, const glm::mat4x4&);
-    void removeDrawData(size_t);
-    void onDrawDataChanged(const std::shared_ptr<const Drawable>&, const glm::mat4x4&, size_t);
+    void removeDrawData(utils::IDsGenerator::value_type);
+    void onDrawDataChanged(const std::shared_ptr<const Drawable>&, const glm::mat4x4&, utils::IDsGenerator::value_type);
 
     void addBackground(const std::shared_ptr<const Background>&);
     void removeBackground(size_t);
@@ -263,12 +261,13 @@ public:
     IndicesBuffer& indicesBuffer();
     MeshesBuffer& meshesBuffer();
     MaterialMapsBuffer& materialMapsBuffer();
-    MaterialsBuffer& materialBuffer();
+    MaterialsBuffer& materialsBuffer();
     DrawablesBuffer& drawablesBuffer();
     DrawDataBuffer& drawDataBuffer();
     BackgroundsBuffer& backgroundsBuffer();
-    CommandsBuffer& drawDataCommandsBuffer();
-    CommandsBuffer& backgroundsCommandsBuffer();
+    DrawIndirectElementsCommandsBuffer& opaqueDrawDataCommandsBuffer();
+    DrawIndirectElementsCommandsBuffer& transparentDrawDataCommandsBuffer();
+    DrawIndirectElementsCommandsBuffer& backgroundsCommandsBuffer();
 
 private:
     PositionsBuffer m_positionsBuffer;
@@ -284,8 +283,9 @@ private:
     DrawablesBuffer m_drawablesBuffer;
     DrawDataBuffer m_drawDataBuffer;
     BackgroundsBuffer m_backgroundsBuffer;
-    CommandsBuffer m_drawDataCommandsBuffer;
-    CommandsBuffer m_backgroundsCommandsBuffer;
+    DrawIndirectElementsCommandsBuffer m_opaqueDrawDataCommandsBuffer;
+    DrawIndirectElementsCommandsBuffer m_transparentDrawDataCommandsBuffer;
+    DrawIndirectElementsCommandsBuffer m_backgroundsCommandsBuffer;
 
     utils::IDsGenerator m_meshIDsGenerator;
     std::unordered_map<std::shared_ptr<const Mesh>, std::weak_ptr<MeshHandler>> m_meshes;
@@ -300,7 +300,10 @@ private:
     utils::IDsGenerator m_drawableIDsGenerator;
     std::unordered_map<std::shared_ptr<const Drawable>, std::weak_ptr<DrawableHandler>> m_drawables;
 
+    utils::IDsGenerator m_drawDataIDsGenerator;
     std::deque<std::weak_ptr<DrawDataHandler>> m_drawDataHandlers;
+
+    utils::IDsGenerator m_backgroundIDsGenerator;
     std::deque<std::weak_ptr<BackgroundHandler>> m_backgroundsHandlers;
 };
 

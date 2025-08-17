@@ -38,11 +38,6 @@ PointLightNode::PointLightNode(const std::string &name)
     setRadiuses(glm::vec2(1.f, 2.f));
 }
 
-LightType PointLightNode::type() const
-{
-    return LightType::Point;
-}
-
 PointLightNode::~PointLightNode() = default;
 
 std::shared_ptr<PointLightNode> PointLightNode::asPointLightNode()

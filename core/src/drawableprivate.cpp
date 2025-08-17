@@ -8,9 +8,9 @@ namespace simplex
 namespace core
 {
 
-DrawablePrivate::DrawablePrivate(const std::shared_ptr<graphics::IVertexArray> &vao)
+DrawablePrivate::DrawablePrivate(const std::shared_ptr<graphics::VAOMesh> &vao)
     : StateSetPrivate()
-    , m_vertexArray(vao)
+    , m_VAOMesh(vao)
     , m_isDoubleSided(true)
 {}
 
@@ -33,9 +33,9 @@ std::shared_ptr<const Material>& DrawablePrivate::material()
     return m_material;
 }
 
-std::shared_ptr<graphics::IVertexArray> &DrawablePrivate::vertexArray()
+std::shared_ptr<graphics::VAOMesh> &DrawablePrivate::vertexArray()
 {
-    return m_vertexArray;
+    return m_VAOMesh;
 }
 
 bool &DrawablePrivate::isDoubleSided()

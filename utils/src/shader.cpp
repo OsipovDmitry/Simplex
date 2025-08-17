@@ -9,7 +9,7 @@ namespace simplex
 namespace utils
 {
 
-std::string Shader::s_version = "450 core";
+std::string Shader::s_version = "460 core";
 bool Shader::s_printDebugShaders = false;
 
 Shader::Shader()

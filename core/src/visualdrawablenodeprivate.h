@@ -31,15 +31,16 @@ public:
 
     void addDrawDataToScene(const std::shared_ptr<Scene>&, const std::shared_ptr<const VisualDrawable>&);
     void removeDrawDataFromScene(const std::shared_ptr<Scene>&, const std::shared_ptr<const VisualDrawable>&);
+    void changeDrawDataInScene(const std::shared_ptr<Scene>&);
 
-    std::unordered_set<std::shared_ptr<const VisualDrawable>> &visualDrawables();
+    std::unordered_set<std::shared_ptr<VisualDrawable>> &visualDrawables();
 
     const utils::BoundingBox &localBoundingBox();
 
     void dirtyLocalBoundingBox();
 
 private:
-    std::unordered_set<std::shared_ptr<const VisualDrawable>> m_visualDrawables;
+    std::unordered_set<std::shared_ptr<VisualDrawable>> m_visualDrawables;
     std::unordered_map<std::shared_ptr<const VisualDrawable>, std::shared_ptr<DrawDataHandler>> m_handlers;
     utils::BoundingBox m_localBoundingBox;
     bool m_isLocalBoundingBoxDirty;

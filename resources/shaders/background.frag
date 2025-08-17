@@ -14,7 +14,7 @@
     uniform float u_backgroundRoughness;
 #endif
 
-out vec4 o_fragColor;
+out vec4 o_fragColor0;
 
 void main(void)
 {
@@ -33,5 +33,5 @@ void main(void)
         color *= textureLod(u_backgroundColorMap, v_texCoord, roughness).rgb;
     #endif
     
-    o_fragColor = vec4(color, 1.0f);
+    o_fragColor0 = vec4(color, 1.0f);
 }

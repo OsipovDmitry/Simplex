@@ -1,6 +1,7 @@
 #ifdef POSITION_ATTRIBUTE
     layout (location = POSITION_ATTRIBUTE) in vec3 a_position;
-    uniform mat4x4 u_modelViewProjectionMatrix;
+    uniform mat4x4 u_modelMatrix;
+    uniform mat4x4 u_viewProjectionMatrix;
 
     #if defined(BONES_IDS_ATTRIBUTE) && defined(BONES_WEIGHTS_ATTRIBUTE)
         layout (location = BONES_IDS_ATTRIBUTE) in uvec4 a_bonesIDs;
@@ -48,7 +49,7 @@ void main(void)
         localPosition = vec4(localPosition * bonesMatrix, 1.0f);
     #endif
 
-    gl_Position = u_modelViewProjectionMatrix * localPosition;
+    gl_Position = u_viewProjectionMatrix * u_modelMatrix * localPosition;
 #endif
 
 #ifdef TEX_COORDS_ATTRIBUTE

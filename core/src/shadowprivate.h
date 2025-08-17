@@ -15,6 +15,7 @@ namespace simplex
 namespace core
 {
 
+class ShadowBuffer;
 class ShadowFrameBuffer;
 class Blur;
 
@@ -22,7 +23,7 @@ class ShadowPrivate
 {
 public:
     ShadowPrivate();
-    virtual ~ShadowPrivate();
+    ~ShadowPrivate();
 
     ShadingMode &mode();
     ShadingFilter &filter();
@@ -30,13 +31,15 @@ public:
     glm::uvec2 &mapSize();
     utils::Range &cullPlanesLimits();
 
+    std::shared_ptr<ShadowBuffer>& shadowBuffer();
     std::shared_ptr<ShadowFrameBuffer> &frameBuffer();
     std::shared_ptr<Blur> &blur();
 
-    graphics::PBuffer &layeredMatricesBuffer();
+    struct LayeredMatricesBufferReservedData { uint32_t numLayers; uint32_t padding[3]; };
+    using LayeredMatricesBuffer = std::shared_ptr<graphics::DynamicBufferT<glm::mat4x4, LayeredMatricesBufferReservedData>>;
+    LayeredMatricesBuffer& layeredMatricesBuffer();
 
-    virtual std::shared_ptr<ShadowFrameBuffer> createShadowFrameBuffer(const std::shared_ptr<graphics::RendererBase>&) const = 0;
-    void update(const std::shared_ptr<graphics::RendererBase>&, const std::vector<glm::mat4x4>&);
+    void update(const std::shared_ptr<graphics::IFrameBuffer>&, const std::vector<glm::mat4x4>&);
 
 private:
     ShadingMode m_mode;
@@ -45,10 +48,11 @@ private:
     glm::uvec2 m_mapSize;
     utils::Range m_cullPlanesLimits;
 
+    std::shared_ptr<ShadowBuffer> m_shadowBuffer;
     std::shared_ptr<ShadowFrameBuffer> m_frameBuffer;
     std::shared_ptr<Blur> m_blur;
 
-    graphics::PBuffer m_layeredMatricesBuffer;
+    LayeredMatricesBuffer m_layeredMatricesBuffer;
 
 };
 

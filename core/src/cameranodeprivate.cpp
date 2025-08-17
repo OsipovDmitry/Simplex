@@ -7,18 +7,23 @@
 #include "ssaoprivate.h"
 #include "ssaodrawable.h"
 #include "bilaterialblur.h"
+#include "geometrybuffer.h"
 
 namespace simplex
 {
 namespace core
 {
 
-CameraNodePrivate::CameraNodePrivate(CameraNode &cameraNode, const std::string &name)
+CameraNodePrivate::CameraNodePrivate(
+    CameraNode &cameraNode,
+    const std::string &name,
+    /*tmp*/const std::shared_ptr<graphics::IFrameBuffer>& defaultFrameBuffer)
     : NodePrivate(cameraNode, name)
     , m_isRenderingEnabled(true)
     , m_clipSpaceType(utils::ClipSpaceType::Perspective)
     , m_clipSpaceVerticalParam(glm::pi<float>() / 3.f)
     , m_clipSpace()
+    , m_defaultFrameBuffer(defaultFrameBuffer)
 {
 }
 
@@ -29,14 +34,9 @@ bool &CameraNodePrivate::isRenderingEnabled()
     return m_isRenderingEnabled;
 }
 
-std::shared_ptr<GFramebuffer>& CameraNodePrivate::GBuffer()
+std::shared_ptr<GeometryBuffer>& CameraNodePrivate::geometryBuffer()
 {
-    return m_GBuffer;
-}
-
-std::shared_ptr<graphics::IFrameBuffer> &CameraNodePrivate::userFrameBuffer()
-{
-    return m_userFrameBuffer;
+    return m_geometryBuffer;
 }
 
 utils::ClipSpaceType &CameraNodePrivate::clipSpaceType()
@@ -84,9 +84,12 @@ std::shared_ptr<PostprocessFrameBuffer> &CameraNodePrivate::postprocessFrameBuff
     return m_postprocessFrameBuffer;
 }
 
-void CameraNodePrivate::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer, const glm::uvec2 &value)
+void CameraNodePrivate::resize(
+    const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
+    const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<GeometryBuffer>& geometryBuffer)
 {
-    const auto viewportSize = glm::max(glm::uvec2(1u), value);
+    const auto viewportSize = glm::max(glm::uvec2(1u), geometryBuffer->size());
     const float viewportAspectRatio = static_cast<float>(viewportSize[0u]) / static_cast<float>(viewportSize[1u]);
 
     switch (m_clipSpaceType)
@@ -108,9 +111,9 @@ void CameraNodePrivate::resize(const std::shared_ptr<graphics::RendererBase> &gr
     }
     }
 
-    if (!m_gFrameBuffer)
-        m_gFrameBuffer = std::make_shared<GFrameBufferTmp>(graphicsRenderer);
-    m_gFrameBuffer->resize(graphicsRenderer, viewportSize);
+    //tmp
+    m_gFrameBuffer = std::make_shared<GFrameBufferTmp>(framebuffer, geometryBuffer);
+    m_postprocessFrameBuffer = std::make_shared<PostprocessFrameBuffer>(m_defaultFrameBuffer);
 
     if (m_ssao.mode() != SSAOMode::Disabled)
     {
@@ -134,9 +137,6 @@ void CameraNodePrivate::resize(const std::shared_ptr<graphics::RendererBase> &gr
         m_ssaoBlurFrameBuffer = nullptr;
     }
 
-    if (!m_postprocessFrameBuffer)
-        m_postprocessFrameBuffer = std::make_shared<PostprocessFrameBuffer>(graphicsRenderer, m_userFrameBuffer);
-    m_postprocessFrameBuffer->resize(graphicsRenderer, viewportSize);
 }
 
 }

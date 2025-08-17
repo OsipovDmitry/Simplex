@@ -53,6 +53,10 @@
         "Blur": {
             "Sigma": 2.0
         },
+		"OIT": {
+			"NodesPerPixel": 4,
+			"MaxNodes": 12441600
+		},
         "DebugRendering": {
             "NodeBoundingBox": {
                 "IsEnabled": false,
@@ -70,8 +74,7 @@
                 "IsEnabled": false,
                 "Color": [1.0, 1.0, 1.0, 0.2]
             }
-        },
-        "MaxFragments": 12441600
+        }
     },
     "Audio": {
         "Source": {

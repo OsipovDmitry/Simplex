@@ -22,8 +22,8 @@ class UTILS_SHARED_EXPORT ImageManager final
 public:
     ~ImageManager();
 
-
     std::shared_ptr<Image> loadOrGet(const std::filesystem::path&);
+    std::shared_ptr<Image> loadOrGetDescription(const std::filesystem::path&);
 
 private:
     ImageManager();

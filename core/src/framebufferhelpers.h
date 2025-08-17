@@ -10,6 +10,9 @@ namespace simplex
 namespace core
 {
 
+class GeometryBuffer;
+class ShadowBuffer;
+
 class FrameBufferWrapper
 {
 public:
@@ -24,10 +27,10 @@ protected:
     glm::uvec2 m_viewportSize;
 };
 
-class GFrameBufferTmp : public FrameBufferWrapper
+class GFrameBufferTmp
 {
 public:
-    GFrameBufferTmp(const std::shared_ptr<graphics::RendererBase>&);
+    GFrameBufferTmp(const std::shared_ptr<graphics::IFrameBuffer>&, const std::shared_ptr<GeometryBuffer>&);
 
     void setForGeometryOpaquePass();
     void setForGeometryTransparentPass();
@@ -38,67 +41,46 @@ public:
     void setForBackgroundPass();
     void setForFinalPass();
 
-    void resize(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
-    graphics::PConstTexture colorTexture() const;
-    graphics::PConstTexture depthTexture() const;
-    graphics::PConstTexture stencilTexture() const;
-    graphics::PConstImage oitDepthImage() const;
-    graphics::PConstImage oitIndicesImage() const;
+    std::shared_ptr<graphics::IFrameBuffer> frameBuffer() const;
 
 private:
-    graphics::PConstImage m_oitDepthImage;
-    graphics::PConstImage m_oitIndicesImage;
+    std::shared_ptr<graphics::IFrameBuffer> m_frameBuffer;
+    std::shared_ptr<GeometryBuffer> m_GBuffer;
 };
 
-class PostprocessFrameBuffer : public FrameBufferWrapper
+class PostprocessFrameBuffer
 {
 public:
-    PostprocessFrameBuffer(const std::shared_ptr<graphics::RendererBase>&, const std::shared_ptr<graphics::IFrameBuffer>&);
+    PostprocessFrameBuffer(const std::shared_ptr<graphics::IFrameBuffer>&);
 
-    void resize(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
+    void setForPass();
+
+    std::shared_ptr<graphics::IFrameBuffer> frameBuffer() const;
 
 private:
-    bool m_useUserFrameBuffer;
+    std::shared_ptr<graphics::IFrameBuffer> m_frameBuffer;
 };
 
-class ShadowFrameBuffer : public FrameBufferWrapper
+class ShadowFrameBuffer
 {
 public:
-    ShadowFrameBuffer(const std::shared_ptr<graphics::RendererBase>&);
-
-    uint32_t numLayers() const;
+    ShadowFrameBuffer(
+        const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
+        const std::shared_ptr<ShadowBuffer>& shadowBuffer);
 
     void setForOpaquePass();
     void setForTransparentPass();
 
-    void resize(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&, ShadingMode, ShadingFilter);
-    graphics::PConstTexture colorTexture() const;
-    graphics::PConstTexture depthTexture() const;
-    graphics::PConstTexture depthVSMTexture() const;
+    std::shared_ptr<graphics::IFrameBuffer> frameBuffer() const;
+    std::shared_ptr<ShadowBuffer> shadowBuffer() const;
 
-protected:
-    virtual graphics::PTexture doTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&, graphics::PixelInternalFormat) const = 0;
+
+private:
+    std::shared_ptr<graphics::IFrameBuffer> m_frameBuffer;
+    std::shared_ptr<ShadowBuffer> m_shadowBuffer;
 
     ShadingMode m_shadingMode;
     ShadingFilter m_shadingFilter;
-};
-
-class ShadowFrameBuffer2D : public ShadowFrameBuffer
-{
-public:
-    ShadowFrameBuffer2D(const std::shared_ptr<graphics::RendererBase>&);
-
-protected:
-    graphics::PTexture doTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&, graphics::PixelInternalFormat) const override;
-};
-
-class ShadowFrameBufferCube : public ShadowFrameBuffer
-{
-public:
-    ShadowFrameBufferCube(const std::shared_ptr<graphics::RendererBase>&);
-
-protected:
-    graphics::PTexture doTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&, graphics::PixelInternalFormat) const override;
 };
 
 class SSAOFrameBuffer : public FrameBufferWrapper

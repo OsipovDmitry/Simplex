@@ -17,7 +17,6 @@
 #include <core/flatdrawable.h>
 #include <core/nodecollector.h>
 #include <core/shadow.h>
-#include <core/renderinfo.h>
 #include <core/settings.h>
 #include <core/uniform.h>
 #include <core/debuginformation.h>
@@ -36,7 +35,10 @@
 #include "renderpasshelpers.h"
 #include "sceneprivate.h"
 #include "scenedata.h"
-#include "gframebuffer.h"
+#include "geometrybuffer.h"
+#include "shadowbuffer.h"
+#include "geometryrenderinfo.h"
+#include "shadowrenderinfo.h"
 
 namespace simplex
 {
@@ -56,44 +58,51 @@ GraphicsEngine::GraphicsEngine(const std::string &name, const std::shared_ptr<gr
     m_->renderer()->makeCurrent();
 
     for (typename std::underlying_type<utils::VertexAttribute>::type i = 0u; i < utils::numElementsVertexAttribute(); ++i)
-        if (const auto &name = GraphicsEnginePrivate::vertexAttributeNameById(utils::castToVertexAttribute(i)); !name.empty())
-            renderer->registerVertexAttribute(name, utils::castToVertexAttribute(i));
+        if (const auto &name = GraphicsEnginePrivate::attributeNameById(utils::castToVertexAttribute(i)); !name.empty())
+            renderer->registerAttribute(name, utils::castToVertexAttribute(i));
         else
-            LOG_ERROR << "Attribute name is not set for id = " << i;
+            LOG_ERROR << "Attribute name has not been set for ID = " << i;
 
-    for (typename std::underlying_type<UniformId>::type i = 1u; i < numElementsUniformId(); ++i) // 0u (undefined) is missed
+    for (typename std::underlying_type<graphics::FrameBufferAttachment>::type i = 0u;
+        i < graphics::FrameBufferColorAttachmentsCount();
+        ++i)
+        if (const auto& name = GraphicsEnginePrivate::outputNameById(graphics::FrameBufferColorAttachment(i)); !name.empty())
+            renderer->registerOutput(name, graphics::castToFrameBufferAttachment(i));
+        else
+            LOG_ERROR << "Output name has not been set for ID = " << i;
+
+    for (typename std::underlying_type<UniformId>::type i = 0u; i < numElementsUniformId(); ++i)
         if (const auto &name = GraphicsEnginePrivate::uniformNameById(castToUniformId(i)); !name.empty())
-            renderer->registerUniformId(name, i);
+            renderer->registerUniform(name, core::castToUniformId(i));
         else
-            LOG_ERROR << "Uniform name is not set for id = " << i;
+            LOG_ERROR << "Uniform name has not been set for ID = " << i;
 
-    for (typename std::underlying_type<SSBOId>::type i = 1u; i < numElementsSSBOId(); ++i) // 0u (undefined) is missed
+    for (typename std::underlying_type<SSBOId>::type i = 0u; i < numElementsSSBOId(); ++i)
         if (const auto &name = GraphicsEnginePrivate::SSBONameById(castToSSBOId(i)); !name.empty())
-            renderer->registerSSBOId(name, i);
+            renderer->registerSSBO(name, core::castToSSBOId(i));
         else
-            LOG_ERROR << "SSBO name is not set for id = " << i;
+            LOG_ERROR << "SSBO name has not been set for ID = " << i;
 
     m_->programsManager() = std::make_shared<ProgramsManager>(renderer);
 
     auto texturesManager = std::make_shared<TexturesManager>(renderer);
     m_->texturesManager() = texturesManager;
 
-    m_->GBuffer() = std::make_shared<GFramebuffer>(glm::uvec2(0u));
+    m_->frameBuffer() = m_->renderer()->createFrameBuffer();
+    m_->vertexArray() = m_->renderer()->createVertexArray();
 
-    auto fragmentsBuffer = OITNodesBuffer::element_type::create();
-    fragmentsBuffer->resize(settings.graphics().maxFragmants());
-    m_->fragmentsBuffer() = fragmentsBuffer;
+    m_->geometryBuffer() = std::make_shared<GeometryBuffer>(glm::uvec2(0u));
 
     const std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, utils::VertexComponentType>> screenQuadVertexDeclaration{
         {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}};
-    m_->screenQuadVertexArray() = renderer->createVertexArray(utils::MeshPainter(utils::Mesh::createEmptyMesh(screenQuadVertexDeclaration)).drawScreenQuad().mesh());
+    m_->screenQuadVertexArray() = graphics::VAOMesh::create(utils::MeshPainter(utils::Mesh::createEmptyMesh(screenQuadVertexDeclaration)).drawScreenQuad().mesh());
     m_->screenQuadDrawable() = std::make_shared<Drawable>(m_->screenQuadVertexArray());
 
     const std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, utils::VertexComponentType>> debugBoundingBoxVertexDeclaration{
         {utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}}};
 
     utils::MeshPainter debugBoundingBoxPainter(utils::Mesh::createEmptyMesh(debugBoundingBoxVertexDeclaration));
-    auto debugBoundingBoxVertexArray = renderer->createVertexArray(debugBoundingBoxPainter.drawBoundingBox().mesh());
+    auto debugBoundingBoxVertexArray = graphics::VAOMesh::create(debugBoundingBoxPainter.drawBoundingBox().mesh());
     auto debugBoundingBoxBB = debugBoundingBoxPainter.calculateBoundingBox();
 
     m_->nodeBoundingBoxDrawable() = std::make_shared<FlatDrawable>(debugBoundingBoxVertexArray, debugBoundingBoxBB);
@@ -112,15 +121,15 @@ GraphicsEngine::GraphicsEngine(const std::string &name, const std::shared_ptr<gr
         {utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}}};
 
     utils::MeshPainter pointLightAreaPainter(utils::Mesh::createEmptyMesh(lightAreaVertexDeclaration));
-    m_->pointLightAreaVertexArray() = renderer->createVertexArray(pointLightAreaPainter.drawSphere(8u).mesh());
+    m_->pointLightAreaVertexArray() = graphics::VAOMesh::create(pointLightAreaPainter.drawSphere(8u).mesh());
     m_->pointLightAreaBoundingBox() = pointLightAreaPainter.calculateBoundingBox();
 
     utils::MeshPainter spotLightAreaPainter(utils::Mesh::createEmptyMesh(lightAreaVertexDeclaration));
-    m_->spotLightAreaVertexArray() = renderer->createVertexArray(spotLightAreaPainter.drawCone(8u).mesh());
+    m_->spotLightAreaVertexArray() = graphics::VAOMesh::create(spotLightAreaPainter.drawCone(8u).mesh());
     m_->spotLightAreaBoundingBox() = spotLightAreaPainter.calculateBoundingBox();
 
     utils::MeshPainter directionalLightAreaPainter(utils::Mesh::createEmptyMesh(lightAreaVertexDeclaration));
-    m_->directionalLightAreaVertexArray() = renderer->createVertexArray(directionalLightAreaPainter.drawCube(glm::vec3(2.f)).mesh());
+    m_->directionalLightAreaVertexArray() = graphics::VAOMesh::create(directionalLightAreaPainter.drawCube(glm::vec3(2.f)).mesh());
 
 //    auto boundingBoxMesh = std::make_shared<utils::Mesh>();
 //    boundingBoxMesh->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
@@ -185,20 +194,26 @@ void GraphicsEngine::setScene(const std::shared_ptr<core::Scene>& value)
 
     auto& passes = m_->passes();
     passes.clear();
+    passes.push_back(std::make_shared<BuildBackgroundsCommandsBufferPass>(m_->programsManager(), sceneData));
+    passes.push_back(std::make_shared<BuildDrawDataCommandsBufferPass>(m_->programsManager(), sceneData));
+    passes.push_back(std::make_shared<RenderOpaqueDrawDataGeometryPass>(m_->programsManager(), sceneData));
 
-    passes.push_back(std::make_shared<BuildBackgroundsCommandsBufferPass>(
-        m_->programsManager(),
-        sceneData->meshesBuffer(),
-        sceneData->backgroundsBuffer(),
-        sceneData->backgroundsCommandsBuffer()));
 
-    passes.push_back(std::make_shared<BuildDrawDataCommandsBufferPass>(
-        m_->programsManager(),
-        sceneData->meshesBuffer(),
-        sceneData->drawablesBuffer(),
-        sceneData->drawDataBuffer(),
-        sceneData->drawDataCommandsBuffer()
-    ));
+    std::vector<DrawDataDescription> drawData;
+    for (size_t i = 0u; i < sceneData->drawDataBuffer()->size(); ++i)
+        drawData.push_back(sceneData->drawDataBuffer()->get(i));
+
+    std::vector<DrawableDescription> drawables;
+    for (size_t i = 0u; i < sceneData->drawablesBuffer()->size(); ++i)
+        drawables.push_back(sceneData->drawablesBuffer()->get(i));
+
+    std::vector<MeshDescription> meshes;
+    for (size_t i = 0u; i < sceneData->meshesBuffer()->size(); ++i)
+        meshes.push_back(sceneData->meshesBuffer()->get(i));
+
+    std::vector<MaterialDescription> materials;
+    for (size_t i = 0u; i < sceneData->materialsBuffer()->size(); ++i)
+        materials.push_back(sceneData->materialsBuffer()->get(i));
 }
 
 std::shared_ptr<graphics::RendererBase> GraphicsEngine::graphicsRenderer()
@@ -273,10 +288,7 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
     }
 
     const auto screenSize = widget->size();
-    m_->GBuffer()->resize(screenSize);
-
-    for (auto& pass : m_->passes())
-        pass->run(renderer);
+    m_->geometryBuffer()->resize(screenSize);
 
     auto rootNode = scene->sceneRootNode();
 
@@ -295,14 +307,13 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
         if (!camera->isRenderingEnabled())
             continue;
 
-        std::shared_ptr<GFramebuffer> cameraGBuffer = m_->GBuffer();
+        std::shared_ptr<GeometryBuffer> cameraGeometryBuffer = m_->geometryBuffer();
         if (!camera->isDefaultFramebufferUsed())
-            cameraGBuffer = cameraPrivate.GBuffer();
+            cameraGeometryBuffer = cameraPrivate.geometryBuffer();
 
-        //tmp
-        cameraPrivate.resize(renderer, cameraGBuffer->size());
+        cameraPrivate.resize(renderer, m_->frameBuffer(), cameraGeometryBuffer);
 
-        const auto& cameraViewportSize = cameraGBuffer->size();
+        const auto& cameraViewportSize = cameraGeometryBuffer->size();
         const auto cameraViewTransform = camera->globalTransform().inverted();
 
         ZRangeCalculator cameraZRangeCalculator(cameraViewTransform,
@@ -344,23 +355,21 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
                 cameraVisualDrawables.push_back(std::make_tuple(m_->lightNodeAreaBoundingBoxDrawable(), modelMatrix));
         }
 
-        auto cameraRenderInfo = std::make_shared<RenderInfo>();
-        cameraRenderInfo->setGBuffer(
-            cameraGBuffer->colorTexture0(),
-            cameraGBuffer->colorTexture1(),
-            cameraGBuffer->colorTexture2(),
-            cameraGBuffer->depthTexture(),
-            cameraGBuffer->OITDepthTexture(),
-            cameraGBuffer->OITIndicesTexture(),
-            m_->fragmentsBuffer()->buffer());
+        auto cameraRenderInfo = std::make_shared<GeometryRenderInfo>();
+        cameraRenderInfo->setViewMatrix(cameraViewTransform);
+        cameraRenderInfo->setProjectionMatrix(cameraProjectionMatrix);
+        cameraRenderInfo->setGeometryBuffer(cameraGeometryBuffer);
+
+        for (auto& pass : m_->passes())
+            pass->run(renderer, m_->frameBuffer(), m_->vertexArray(), cameraRenderInfo);
 
         // reset fragments counter buffer
-        m_->fragmentsBuffer()->setReservedData({settings.graphics().maxFragmants(), 0u});
+        cameraGeometryBuffer->clearOITNodesBuffer();
 
         // clear indices image
         renderer->compute(programsManager->loadOrGetOITClearPassComputeProgram(),
-            glm::uvec3(cameraPrivate.gFrameBuffer()->viewportSize(), 1u),
-            cameraRenderInfo);
+            glm::uvec3(cameraGeometryBuffer->size(), 1u),
+            { cameraRenderInfo });
 
         // render opaque geometries
         cameraPrivate.gFrameBuffer()->setForGeometryOpaquePass();
@@ -377,9 +386,7 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
                 ++cameraInfo.numOpaqueDrawablesRendered;
             }
         renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-            glm::uvec4(0u, 0u, cameraPrivate.gFrameBuffer()->viewportSize()),
-            cameraViewTransform,
-            cameraProjectionMatrix,
+            glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
             cameraRenderInfo);
 
         // render transparent geometries
@@ -397,16 +404,17 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
                 ++cameraInfo.numTransparentDrawablesRendered;
             }
         renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-            glm::uvec4(0u, 0u, cameraPrivate.gFrameBuffer()->viewportSize()),
-            cameraViewTransform,
-            cameraProjectionMatrix,
+            glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
             cameraRenderInfo);
 
         // get number of fragments rendered
-        cameraInfo.numFragmentsRendered = m_->fragmentsBuffer()->reservedData().numOITNodes;
+        cameraInfo.numFragmentsRendered = cameraGeometryBuffer->OITNodesBuffer()->reservedData().numOITNodes;
 
         // sort fragments
-        renderer->compute(programsManager->loadOrGetOITSortNodesPassComputeProgram(), glm::uvec3(cameraViewportSize, 1u), cameraRenderInfo);
+        renderer->compute(
+            programsManager->loadOrGetOITSortNodesPassComputeProgram(),
+            glm::uvec3(cameraViewportSize, 1u),
+            { cameraRenderInfo });
 
         // render background layer (it's here because next stencil buffer will be reused for light-areas rendering)
         cameraPrivate.gFrameBuffer()->setForBackgroundPass();
@@ -417,9 +425,7 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
             backgroundDrawable->uniformCollection()),
             backgroundDrawable);
         renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-            glm::uvec4(0u, 0u, cameraPrivate.gFrameBuffer()->viewportSize()),
-            cameraViewTransform,
-            cameraProjectionMatrix,
+            glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
             cameraRenderInfo);
 
         // render SSAO
@@ -480,8 +486,8 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
 
             auto& lightPrivate = lightNode->m();
             auto& shadow = lightNode->shadow();
-            auto shadingMode = shadow.mode();
-            auto shadingFilter = shadow.filter();
+            const auto shadingMode = shadow.mode();
+            const auto shadingFilter = shadow.filter();
 
             // render shadows
             if (shadingMode != ShadingMode::Disabled)
@@ -508,10 +514,11 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
                 std::vector<glm::mat4x4> layeredShadowMatrices(shadowTransform.layeredViewTransforms.size());
                 for (size_t i = 0u; i < shadowTransform.layeredViewTransforms.size(); ++i)
                     layeredShadowMatrices[i] = shadowProjectionMatrix * shadowTransform.layeredViewTransforms[i];
-                shadowPrivate.update(renderer, layeredShadowMatrices);
+                shadowPrivate.update(m_->frameBuffer(), layeredShadowMatrices);
 
-                auto shadowRenderInfo = std::make_shared<RenderInfo>();
-                shadowRenderInfo->setLayeredShadowMatricesBuffer(shadowPrivate.layeredMatricesBuffer());
+                auto shadowRenderInfo = std::make_shared<ShadowRenderInfo>();
+                shadowRenderInfo->setViewportSize(shadowPrivate.mapSize());
+                shadowRenderInfo->setLayeredShadowMatricesBuffer(shadowPrivate.layeredMatricesBuffer()->buffer());
 
                 auto& shadowFrameBuffer = shadowPrivate.frameBuffer();
                 const auto shadowViewport = glm::uvec4(0u, 0u, shadowPrivate.mapSize());
@@ -532,8 +539,6 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
                 }
                 renderer->render(shadowFrameBuffer->frameBuffer(),
                     shadowViewport,
-                    glm::mat4x4(1.f),
-                    glm::mat4x4(1.f),
                     shadowRenderInfo);
 
                 // render transparent shadow
@@ -554,19 +559,19 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
                     }
                     renderer->render(shadowFrameBuffer->frameBuffer(),
                         shadowViewport,
-                        glm::mat4x4(1.f),
-                        glm::mat4x4(1.f),
                         shadowRenderInfo);
                 }
 
                 // update light drawable
-                auto shadowDepthMap = shadowFrameBuffer->depthTexture();
-                auto shadowColorMap = shadowFrameBuffer->colorTexture();
+                auto& shadowBuffer = shadowPrivate.shadowBuffer();
+                
+                auto shadowDepthMap = shadowBuffer->depthTexture();
+                auto shadowColorMap = shadowBuffer->colorTexture();
 
                 if (shadingFilter == ShadingFilter::VSM)
                 {
                     auto& blur = shadowPrivate.blur();
-                    blur->setSourceMap(shadowFrameBuffer->depthVSMTexture(), 0u, true);
+                    blur->setSourceMap(shadowBuffer->depthVSMTexture(), 0u, true);
                     shadowDepthMap = blur->run(renderer, m_->programsManager());
                 }
 
@@ -592,9 +597,7 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
                 lightDrawable,
                 modelMatrix);
             renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-                glm::uvec4(0u, 0u, cameraPrivate.gFrameBuffer()->viewportSize()),
-                cameraViewTransform,
-                cameraProjectionMatrix,
+                glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
                 cameraRenderInfo);
 
             // light pass
@@ -609,9 +612,7 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
                 lightDrawable,
                 modelMatrix);
             renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-                glm::uvec4(0u, 0u, cameraPrivate.gFrameBuffer()->viewportSize()),
-                cameraViewTransform,
-                cameraProjectionMatrix,
+                glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
                 cameraRenderInfo);
 
             ++cameraInfo.numLightsRendered;
@@ -624,20 +625,17 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
             m_->screenQuadDrawable()->vertexAttrubiteSet()),
             m_->screenQuadDrawable());
         renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-            glm::uvec4(0u, 0u, cameraPrivate.gFrameBuffer()->viewportSize()),
-            cameraViewTransform,
-            cameraProjectionMatrix,
+            glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
             cameraRenderInfo);
 
         // postprocess
+        cameraPrivate.postprocessFrameBuffer()->setForPass();
         renderer->clearRenderData();
         renderer->addRenderData(programsManager->loadOrGetPostprocessPassRenderProgram(
             m_->screenQuadDrawable()->vertexAttrubiteSet()),
             m_->screenQuadDrawable());
         renderer->render(cameraPrivate.postprocessFrameBuffer()->frameBuffer(),
-            glm::uvec4(0u, 0u, cameraPrivate.postprocessFrameBuffer()->viewportSize()),
-            cameraViewTransform,
-            cameraProjectionMatrix,
+            glm::uvec4(0u, 0u, screenSize),
             cameraRenderInfo);
 
         sceneInfo.camerasInformation.push_back(cameraInfo);

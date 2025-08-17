@@ -7,20 +7,19 @@
 
 #include "graphicsengineprivate.h"
 #include "spotlightnodeprivate.h"
-#include "spotshadowprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-inline float extendedRadius(float value)
+static inline float extendedRadius(float value)
 {
     return value * 1.15f;
 }
 
 SpotLightNodePrivate::SpotLightNodePrivate(SpotLightNode &spotLightNode, const std::string &name)
-    : LightNodePrivate(spotLightNode, name, std::make_unique<SpotShadowPrivate>())
+    : LightNodePrivate(spotLightNode, name, LightType::Spot)
 {
 }
 
@@ -53,12 +52,16 @@ LightNodePrivate::ShadowTransform SpotLightNodePrivate::doShadowTransform(const 
     const auto clipSpace = utils::ClipSpace::makePerspective(shadowBB.minPoint().x, shadowBB.maxPoint().x,
                                                              shadowBB.minPoint().y, shadowBB.maxPoint().y);
 
+    const auto numLayers = numLayeredShadowMatrices();
+
     ShadowTransform result;
     result.frustumViewTransform = viewTransform;
     result.frustumClipSpace = clipSpace;
-    result.layeredViewTransforms = { viewTransform };
+    result.layeredViewTransforms.resize(numLayers);
+    for (uint32_t i = 0; i < numLayers; ++i)
+        result.layeredViewTransforms[i] = viewTransform;
     result.clipSpase = clipSpace;
-    result.cullPlanesLimits = m_shadow.cullPlanesLimits() * utils::Range(0.f, dPublic.radiuses()[1u]);
+    result.cullPlanesLimits = shadow().cullPlanesLimits() * utils::Range(0.f, dPublic.radiuses()[1u]);
     return result;
 }
 

@@ -15,7 +15,7 @@ namespace core
 class LightDrawable : public Drawable
 {
 public:
-    LightDrawable(const std::shared_ptr<graphics::IVertexArray>&);
+    LightDrawable(const std::shared_ptr<graphics::VAOMesh>&);
     ~LightDrawable() override;
 
     float dielectricSpecular() const;

@@ -18,6 +18,7 @@
 
 #include <graphics_glfw/glfwwidget.h>
 
+
 static std::shared_ptr<simplex::core::Scene> createScene(
     const std::string& name,
     const std::shared_ptr<simplex::core::graphics::IFrameBuffer> &defaultFramebuffer,
@@ -55,9 +56,9 @@ static std::shared_ptr<simplex::core::Scene> createScene(
         glm::vec3(0.f, 1.f, 0.f)).inverted());
     scene->sceneRootNode()->attach(cameraNode);
 
-    auto lighNode = std::make_shared<simplex::core::IBLLightNode>("");
-    lighNode->setContribution(.1f);
-    scene->sceneRootNode()->attach(lighNode);
+    auto lightNode = std::make_shared<simplex::core::IBLLightNode>("");
+    lightNode->setContribution(.5f);
+    scene->sceneRootNode()->attach(lightNode);
 
     return scene;
 }
@@ -81,7 +82,8 @@ int main(int argc, char* argv[])
             if (auto it = std::find_if(nodes.begin(), nodes.end(), [](const std::shared_ptr<simplex::core::Node>& node) {
                 return node->name() == "TeapotNode";}); it != nodes.end())
             {
-                (*it)->setTransform(simplex::utils::Transform::makeRotation(glm::qua<float>(glm::vec3(time * 0.001f, time * 0.001f, 0.f))));
+                (*it)->setTransform(
+                    simplex::utils::Transform::makeRotation(glm::qua<float>(glm::vec3(time * 0.001f, time * 0.001f, 0.f))));
             }
         });
 

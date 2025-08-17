@@ -4,6 +4,7 @@
 #include <utils/frustum.h>
 #include <utils/clipspace.h>
 
+#include <core/lightnode.h>
 #include <core/shadow.h>
 
 #include "nodeprivate.h"
@@ -29,10 +30,15 @@ public:
         utils::Range cullPlanesLimits;
     };
 
-    LightNodePrivate(LightNode&, const std::string&, std::unique_ptr<ShadowPrivate>);
+    LightNodePrivate(LightNode&, const std::string&, LightType);
     ~LightNodePrivate() override;
 
     utils::BoundingBox doBoundingBox() override;
+
+    LightType& type();
+
+    static uint32_t numLayeredShadowMatrices(LightType type);
+    uint32_t numLayeredShadowMatrices() const;
 
     bool &isLightingEnabled();
 
@@ -46,11 +52,12 @@ public:
     void dirtyAreaMatrix();
     void dirtyAreaBoundingBox();
 
-protected:
-    Shadow m_shadow;
-
 private:
+    LightType m_type;
+
     bool m_isLightingEnabled;
+
+    std::shared_ptr<Shadow> m_shadow;
 
     ShadowTransform m_shadowTransform;
     std::shared_ptr<LightDrawable> m_areaDrawable;
@@ -64,7 +71,6 @@ private:
 
     virtual glm::mat4x4 doAreaMatrix() = 0;
     virtual utils::BoundingBox doAreaBoundingBox() = 0;
-
 };
 
 }

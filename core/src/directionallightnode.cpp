@@ -38,11 +38,6 @@ DirectionalLightNode::DirectionalLightNode(const std::string &name)
     setColor(glm::vec3(1.f));
 }
 
-LightType DirectionalLightNode::type() const
-{
-    return LightType::Directional;
-}
-
 DirectionalLightNode::~DirectionalLightNode() = default;
 
 std::shared_ptr<DirectionalLightNode> DirectionalLightNode::asDirectionalLightNode()

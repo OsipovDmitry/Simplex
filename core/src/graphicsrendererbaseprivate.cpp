@@ -19,6 +19,26 @@ const std::string& RendererBasePrivate::name()
     return m_name;
 }
 
+std::unordered_map<std::string, utils::VertexAttribute>& RendererBasePrivate::attributeIDs()
+{
+    return m_attributeIDs;
+}
+
+std::unordered_map<std::string, core::graphics::FrameBufferAttachment>& RendererBasePrivate::outputIDs()
+{
+    return m_outputIDs;
+}
+
+std::unordered_map<std::string, core::UniformId>& RendererBasePrivate::uniformIDs()
+{
+    return m_uniformIDs;
+}
+
+std::unordered_map<std::string, core::SSBOId>& RendererBasePrivate::SSBOIDs()
+{
+    return m_SSBOIDs;
+}
+
 std::weak_ptr<RendererBase>& RendererBasePrivate::current()
 {
     return s_current;

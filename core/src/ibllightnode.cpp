@@ -48,11 +48,6 @@ IBLLightNode::IBLLightNode(const std::string &name)
 
 IBLLightNode::~IBLLightNode() = default;
 
-LightType IBLLightNode::type() const
-{
-    return LightType::IBL;
-}
-
 std::shared_ptr<IBLLightNode> IBLLightNode::asIBLLightNode()
 {
     auto wp = weak_from_this();

@@ -5,7 +5,7 @@ namespace simplex
 namespace core
 {
 
-VisualDrawablePrivate::VisualDrawablePrivate(const std::shared_ptr<graphics::IVertexArray> &vao, const utils::BoundingBox &bb)
+VisualDrawablePrivate::VisualDrawablePrivate(const std::shared_ptr<graphics::VAOMesh> &vao, const utils::BoundingBox &bb)
     : DrawablePrivate(vao)
     , m_boundingBox(bb)
 {

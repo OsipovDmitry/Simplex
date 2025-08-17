@@ -13,7 +13,6 @@
 #include <utils/image.h>
 #include <utils/shader.h>
 
-#include <core/renderinfo.h>
 #include <core/drawable.h>
 #include <core/uniform.h>
 
@@ -22,6 +21,10 @@
 #include "glfwwidgetprivate.h"
 #include "glfwrenderer.h"
 #include "mvpstateset.h"
+
+#define DEFAULT_SETUP \
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); \
+    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
 namespace simplex
 {
@@ -74,7 +77,6 @@ GLenum Conversions::DrawElementsIndexType2GL(utils::DrawElementsIndexType value)
 GLenum Conversions::PixelInternalFormat2GL(core::graphics::PixelInternalFormat value)
 {
     static std::array<GLenum, core::graphics::numElementsPixelInternalFormat()> s_table {
-        GL_NONE,
         GL_R8, GL_R8_SNORM, GL_R16, GL_R16_SNORM,
         GL_RG8, GL_RG8_SNORM, GL_RG16, GL_RG16_SNORM,
         GL_R3_G3_B2, GL_RGB4, GL_RGB5, GL_RGB8, GL_RGB8_SNORM, GL_RGB10, GL_RGB12, GL_RGB16, GL_RGB16_SNORM, GL_RGBA2,
@@ -168,7 +170,7 @@ core::graphics::PixelInternalFormat Conversions::GL2PixelInternalFormat(GLenum v
     };
 
     auto it = s_table.find(value);
-    return (it == s_table.end()) ? core::graphics::PixelInternalFormat::Undefined : it->second;
+    return (it == s_table.end()) ? core::graphics::PixelInternalFormat::Count : it->second;
 }
 
 GLenum Conversions::PixelNumComponents2GL(uint32_t value)
@@ -266,15 +268,15 @@ GLbitfield Conversions::BufferMapAccess2GL(core::graphics::IBuffer::MapAccess va
     return s_table[core::graphics::IBuffer::castFromMapAccess(value)];
 }
 
-GLenum Conversions::ImageDataAccess2GL(core::graphics::IImage::DataAccess value)
+GLenum Conversions::ImageDataAccess2GL(core::graphics::Image::DataAccess value)
 {
-    static std::array<GLbitfield, core::graphics::IImage::numElementsDataAccess()> s_table {
+    static std::array<GLbitfield, core::graphics::Image::numElementsDataAccess()> s_table {
         GL_READ_ONLY,
         GL_WRITE_ONLY,
         GL_READ_WRITE
     };
 
-    return s_table[core::graphics::IImage::castFromDataAccess(value)];
+    return s_table[core::graphics::Image::castFromDataAccess(value)];
 }
 
 uint16_t Conversions::GL2VertexNumComponents(GLenum value)
@@ -461,7 +463,7 @@ core::graphics::UniformType Conversions::GL2UniformType(GLenum value)
     };
 
     auto it = s_table.find(value);
-    return (it == s_table.end()) ? core::graphics::UniformType::Undefined : it->second;
+    return (it == s_table.end()) ? core::graphics::UniformType::Count : it->second;
 }
 
 GLenum Conversions::FaceType2GL(core::graphics::FaceType value)
@@ -543,12 +545,12 @@ BufferBase_4_5::MappedData_4_5::MappedData_4_5(const std::weak_ptr<const BufferB
     : m_mappedBuffer(mappedBuffer)
     , m_data(data)
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
 }
 
 BufferBase_4_5::MappedData_4_5::~MappedData_4_5()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (!m_mappedBuffer.expired())
     {
         auto bufferBase_4_5 = m_mappedBuffer.lock();
@@ -559,13 +561,13 @@ BufferBase_4_5::MappedData_4_5::~MappedData_4_5()
 
 const uint8_t *Buffer_4_5::MappedData_4_5::get() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return const_cast<MappedData_4_5*>(this)->get();
 }
 
 uint8_t *Buffer_4_5::MappedData_4_5::get()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_mappedBuffer.expired() ? nullptr : m_data;
 }
 
@@ -573,19 +575,19 @@ uint8_t *Buffer_4_5::MappedData_4_5::get()
 
 BufferBase_4_5::~BufferBase_4_5()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     glDeleteBuffers(1, &m_id);
 }
 
 GLuint BufferBase_4_5::id() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_id;
 }
 
 size_t BufferBase_4_5::fullSize() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     GLint result = 0;
     glGetNamedBufferParameteriv(m_id, GL_BUFFER_SIZE, &result);
     return static_cast<size_t>(result);
@@ -593,7 +595,7 @@ size_t BufferBase_4_5::fullSize() const
 
 void BufferBase_4_5::setFullSize(size_t newSize)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
 
     size_t oldSize = fullSize();
     if (oldSize == newSize)
@@ -609,14 +611,14 @@ void BufferBase_4_5::setFullSize(size_t newSize)
 
 BufferBase_4_5::BufferBase_4_5(uint64_t size, const void* data)
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
         glCreateBuffers(1, &m_id);
     glNamedBufferStorage(m_id, size, data, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
 }
 
 std::unique_ptr<BufferBase_4_5::MappedData_4_5> BufferBase_4_5::mapData(core::graphics::IBuffer::MapAccess access, size_t offset, size_t size)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (m_isMapped)
     {
         LOG_ERROR << "Buffer is already mapped";
@@ -644,7 +646,7 @@ std::unique_ptr<BufferBase_4_5::MappedData_4_5> BufferBase_4_5::mapData(core::gr
 
 std::unique_ptr<const BufferBase_4_5::MappedData_4_5> BufferBase_4_5::mapData(core::graphics::IBuffer::MapAccess access, size_t offset, size_t size) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return const_cast<BufferBase_4_5*>(this)->mapData(access, offset, size);
 }
 
@@ -653,32 +655,32 @@ std::unique_ptr<const BufferBase_4_5::MappedData_4_5> BufferBase_4_5::mapData(co
 Buffer_4_5::Buffer_4_5(uint64_t size, const void* data)
     : BufferBase_4_5(size, data)
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
 }
 
 Buffer_4_5::~Buffer_4_5() = default;
 
 size_t Buffer_4_5::size() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return fullSize();
 }
 
 void Buffer_4_5::resize(size_t size)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     setFullSize(size);
 }
 
 std::unique_ptr<const core::graphics::IBuffer::MappedData> Buffer_4_5::map(MapAccess access, size_t offset, size_t size) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return mapData(access, offset, size);
 }
 
 std::unique_ptr<core::graphics::IBuffer::MappedData> Buffer_4_5::map(MapAccess access, size_t offset, size_t size)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return mapData(access, offset, size);
 }
 
@@ -694,27 +696,27 @@ DynamicBuffer_4_5::DynamicBuffer_4_5(uint64_t size, const void* data)
     , m_size(size)
 
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
 }
 
 DynamicBuffer_4_5::~DynamicBuffer_4_5() = default;
 
 size_t DynamicBuffer_4_5::capacity() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return fullSize();
 }
 
 void DynamicBuffer_4_5::reserve(size_t size)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (size > capacity())
         setFullSize(size);
 }
 
 void DynamicBuffer_4_5::pushBack(const void* data, size_t size)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     expand(m_size + size);
     std::memcpy(map(IBuffer::MapAccess::WriteOnly, m_size, size)->get(), data, size);
     m_size += size;
@@ -722,26 +724,26 @@ void DynamicBuffer_4_5::pushBack(const void* data, size_t size)
 
 size_t DynamicBuffer_4_5::size() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_size;
 }
 
 void DynamicBuffer_4_5::resize(size_t size)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     expand(size);
     m_size = size;
 }
 
 std::unique_ptr<const core::graphics::IBuffer::MappedData> DynamicBuffer_4_5::map(MapAccess access, size_t offset, size_t size) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return mapData(access, offset, size);
 }
 
 std::unique_ptr<core::graphics::IBuffer::MappedData> DynamicBuffer_4_5::map(MapAccess access, size_t offset, size_t size)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return mapData(access, offset, size);
 }
 
@@ -753,7 +755,7 @@ std::shared_ptr<DynamicBuffer_4_5> DynamicBuffer_4_5::create(size_t size, const 
 
 void DynamicBuffer_4_5::expand(size_t requiredSize)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (requiredSize > capacity())
         reserve(glm::max(requiredSize, capacity() * 2u));
 }
@@ -762,41 +764,41 @@ void DynamicBuffer_4_5::expand(size_t requiredSize)
 
 VertexArray_4_5::VertexArray_4_5()
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     glCreateVertexArrays(1, &m_id);
 }
 
 VertexArray_4_5::~VertexArray_4_5()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     glDeleteVertexArrays(1, &m_id);
 }
 
 GLuint VertexArray_4_5::id() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_id;
 }
 
-uint32_t VertexArray_4_5::attachVertexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer, size_t offset, uint32_t stride)
+uint32_t VertexArray_4_5::attachVertexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer, size_t offset, size_t stride)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
     if (!buffer_4_5)
         LOG_CRITICAL << "Buffer can't be nullptr";
 
     auto bindingIndex = static_cast<uint32_t>(-1);
 
-    auto tuple = std::make_tuple(buffer_4_5, offset, stride);
+    auto declaration = VertexBufferDeclaration{ buffer_4_5, offset, stride };
 
-    if (auto it = std::find(m_vertexBuffers.begin(), m_vertexBuffers.end(), tuple); it != m_vertexBuffers.end())
+    if (auto it = std::find(m_vertexBuffers.begin(), m_vertexBuffers.end(), declaration); it != m_vertexBuffers.end())
         return static_cast<uint32_t>(it - m_vertexBuffers.begin());
-
-    auto it = std::find_if(m_vertexBuffers.begin(), m_vertexBuffers.end(), [](const auto &v){ return std::get<0>(v) == nullptr;});
+    
+    auto it = std::find_if(m_vertexBuffers.begin(), m_vertexBuffers.end(), [](const VertexBufferDeclaration&v){ return v.buffer == nullptr;});
     bindingIndex = static_cast<uint32_t>(it - m_vertexBuffers.begin());
     if (it == m_vertexBuffers.end())
         m_vertexBuffers.resize(m_vertexBuffers.size() + 1);
-    m_vertexBuffers[bindingIndex] = tuple;
+    m_vertexBuffers[bindingIndex] = declaration;
 
     glVertexArrayVertexBuffer(m_id, static_cast<GLuint>(bindingIndex), buffer_4_5->id(), static_cast<GLintptr>(offset), static_cast<GLsizei>(stride));
 
@@ -805,33 +807,35 @@ uint32_t VertexArray_4_5::attachVertexBuffer(std::shared_ptr<core::graphics::IBu
 
 void VertexArray_4_5::detachVertexBuffer(uint32_t bindingIndex)
 {
-    CHECK_CURRENT_CONTEXT
-    m_vertexBuffers[bindingIndex] = std::make_tuple(nullptr, static_cast<size_t>(0), static_cast<uint32_t>(0));
+    CHECK_CURRENT_CONTEXT;
+        m_vertexBuffers[bindingIndex] = VertexBufferDeclaration{ nullptr, 0u, 0u };
 
-    for (const auto &[attrib, tuple]: m_vertexDeclarations)
-        if (std::get<0>(tuple) == bindingIndex)
+    for (const auto &[attrib, attributeDeclaration]: m_attributes)
+        if (attributeDeclaration.bindingIndex == bindingIndex)
+        {
             undeclareVertexAttribute(attrib);
+            break;
+        }
 
     glVertexArrayVertexBuffer(m_id, static_cast<GLuint>(bindingIndex), 0, 0, 0);
-
 }
 
 std::shared_ptr<const core::graphics::IBuffer> VertexArray_4_5::vertexBuffer(uint32_t bindingIndex) const
 {
-    CHECK_CURRENT_CONTEXT
-    return std::get<0>(m_vertexBuffers[bindingIndex]);
+    CHECK_CURRENT_CONTEXT;
+    return m_vertexBuffers[bindingIndex].buffer;
 }
 
 size_t VertexArray_4_5::vertexBufferOffset(uint32_t bindingIndex) const
 {
-    CHECK_CURRENT_CONTEXT
-    return std::get<1>(m_vertexBuffers[bindingIndex]);
+    CHECK_CURRENT_CONTEXT;
+    return m_vertexBuffers[bindingIndex].offset;
 }
 
-uint32_t VertexArray_4_5::vertexBufferStride(uint32_t bindingIndex) const
+size_t VertexArray_4_5::vertexBufferStride(uint32_t bindingIndex) const
 {
-    CHECK_CURRENT_CONTEXT
-    return std::get<2>(m_vertexBuffers[bindingIndex]);
+    CHECK_CURRENT_CONTEXT;
+    return m_vertexBuffers[bindingIndex].stride;
 }
 
 void VertexArray_4_5::declareVertexAttribute(utils::VertexAttribute attrib,
@@ -840,94 +844,54 @@ void VertexArray_4_5::declareVertexAttribute(utils::VertexAttribute attrib,
                                              utils::VertexComponentType type,
                                              uint32_t relativeOffset)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (numComponents < 1 || numComponents > 4)
         LOG_CRITICAL << "Num components must be [1..4]";
 
-    m_vertexDeclarations[attrib] = std::make_tuple(bindingIndex, numComponents, type, relativeOffset);
+    m_attributes[attrib] = AttributeDeclaration{ bindingIndex, numComponents, type, relativeOffset };
 
-    auto loc = static_cast<GLuint>(attrib);
-
-    glVertexArrayAttribBinding(m_id, loc, static_cast<GLuint>(bindingIndex));
-    glEnableVertexArrayAttrib(m_id, loc);
-
-    switch (type)
-    {
-    case utils::VertexComponentType::Single: {
-        glVertexArrayAttribFormat(m_id,
-                                            loc,
-                                            static_cast<GLint>(numComponents),
-                                            Conversions::VertexComponentType2GL(type),
-                                            GL_FALSE,
-                                            static_cast<GLuint>(relativeOffset));
-        break;
-    }
-    case utils::VertexComponentType::Double: {
-        glVertexArrayAttribLFormat(m_id,
-                                             loc,
-                                             static_cast<GLint>(numComponents),
-                                             Conversions::VertexComponentType2GL(type),
-                                             static_cast<GLuint>(relativeOffset));
-        break;
-    }
-    case utils::VertexComponentType::Int8:
-    case utils::VertexComponentType::Uint8:
-    case utils::VertexComponentType::Int16:
-    case utils::VertexComponentType::Uint16:
-    case utils::VertexComponentType::Int32:
-    case utils::VertexComponentType::Uint32: {
-        glVertexArrayAttribIFormat(m_id,
-                                             loc,
-                                             static_cast<GLint>(numComponents),
-                                             Conversions::VertexComponentType2GL(type),
-                                             static_cast<GLuint>(relativeOffset));
-        break;
-    }
-    default: {
-        break;
-    }
-    }
+    setupVertexAttrubute(attrib, static_cast<GLuint>(utils::castFromVertexAttribute(attrib)));
 }
 
 void VertexArray_4_5::undeclareVertexAttribute(utils::VertexAttribute attrib)
 {
-    CHECK_CURRENT_CONTEXT
-    glDisableVertexArrayAttrib(m_id, static_cast<GLuint>(attrib));
+    CHECK_CURRENT_CONTEXT;
+    glDisableVertexArrayAttrib(m_id, static_cast<GLuint>(utils::castFromVertexAttribute(attrib)));
 
-    m_vertexDeclarations.erase(attrib);
+    m_attributes.erase(attrib);
 }
 
 uint32_t VertexArray_4_5::vertexAttributeBindingIndex(utils::VertexAttribute attrib) const
 {
-    CHECK_CURRENT_CONTEXT
-    auto it = m_vertexDeclarations.find(attrib);
-    return (it != m_vertexDeclarations.end()) ? std::get<0>(it->second) : static_cast<uint32_t>(-1);
+    CHECK_CURRENT_CONTEXT;
+    auto it = m_attributes.find(attrib);
+    return (it != m_attributes.end()) ? it->second.bindingIndex : static_cast<uint32_t>(-1);
 }
 
 uint32_t VertexArray_4_5::vertexAttributeNumComponents(utils::VertexAttribute attrib) const
 {
-    CHECK_CURRENT_CONTEXT
-    auto it = m_vertexDeclarations.find(attrib);
-    return (it != m_vertexDeclarations.end()) ? std::get<1>(it->second) : 0u;
+    CHECK_CURRENT_CONTEXT;
+    auto it = m_attributes.find(attrib);
+    return (it != m_attributes.end()) ? it->second.numComponents : 0u;
 }
 
 utils::VertexComponentType VertexArray_4_5::vertexAttributeComponentType(utils::VertexAttribute attrib) const
 {
-    CHECK_CURRENT_CONTEXT
-    auto it = m_vertexDeclarations.find(attrib);
-    return (it != m_vertexDeclarations.end()) ? std::get<2>(it->second) : utils::VertexComponentType::Count;
+    CHECK_CURRENT_CONTEXT;
+    auto it = m_attributes.find(attrib);
+    return (it != m_attributes.end()) ? it->second.componentType : utils::VertexComponentType::Count;
 }
 
 uint32_t VertexArray_4_5::vertexAttributeRelativeOffset(utils::VertexAttribute attrib) const
 {
-    CHECK_CURRENT_CONTEXT
-    auto it = m_vertexDeclarations.find(attrib);
-    return (it != m_vertexDeclarations.end()) ? std::get<3>(it->second) : 0u;
+    CHECK_CURRENT_CONTEXT;
+    auto it = m_attributes.find(attrib);
+    return (it != m_attributes.end()) ? it->second.relativeOffset : 0u;
 }
 
 void VertexArray_4_5::attachIndexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
     if (!buffer_4_5)
         LOG_CRITICAL << "Buffer can't be nullptr";
@@ -939,7 +903,7 @@ void VertexArray_4_5::attachIndexBuffer(std::shared_ptr<core::graphics::IBuffer>
 
 void VertexArray_4_5::detachIndexBuffer()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_indexBuffer = nullptr;
 
     glVertexArrayElementBuffer(m_id, 0);
@@ -947,123 +911,64 @@ void VertexArray_4_5::detachIndexBuffer()
 
 std::shared_ptr<const core::graphics::IBuffer> VertexArray_4_5::indexBuffer() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_indexBuffer;
 }
 
-void VertexArray_4_5::addPrimitiveSet(std::shared_ptr<utils::PrimitiveSet> primitiveSet)
+std::shared_ptr<VertexArray_4_5> VertexArray_4_5::create()
 {
-    CHECK_CURRENT_CONTEXT
-    if (!primitiveSet)
-        LOG_CRITICAL << "Primitive set can't be nullptr";
-
-    m_primitiveSets.insert(primitiveSet);
+    return std::make_shared<VertexArray_4_5>();;
 }
 
-void VertexArray_4_5::removePrimitiveSet(std::shared_ptr<utils::PrimitiveSet> primitiveSet)
+void VertexArray_4_5::setupVertexAttrubute(utils::VertexAttribute attrib, int32_t loc)
 {
-    CHECK_CURRENT_CONTEXT
-    m_primitiveSets.erase(primitiveSet);
-}
-
-const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> &VertexArray_4_5::primitiveSets() const
-{
-    CHECK_CURRENT_CONTEXT
-    return m_primitiveSets;
-}
-
-std::shared_ptr<VertexArray_4_5> VertexArray_4_5::create(const std::shared_ptr<const utils::Mesh> & mesh, bool uniteVertexBuffers)
-{
-    auto vertexArray = std::make_shared<VertexArray_4_5>();
-
-    if (mesh)
+    auto it = m_attributes.find(attrib);
+    if (it == m_attributes.end())
     {
-        size_t numVertices = mesh->vertexBuffers().empty() ? 0u : mesh->vertexBuffers().begin()->second->numVertices();
-
-        if (uniteVertexBuffers)
-        {
-            size_t totalSize = 0u;
-            size_t stride = 0u;
-            for (auto const &[attrib, buffer] : mesh->vertexBuffers())
-            {
-                if (numVertices != buffer->numVertices())
-                    LOG_CRITICAL << "Buffers have different size";
-
-                totalSize += buffer->sizeInBytes();
-                stride += buffer->numComponents() * utils::sizeOfVertexComponentType(buffer->componentType());
-            }
-
-            auto buffer = Buffer_4_5::create(totalSize);
-            auto bindingIndex = vertexArray->attachVertexBuffer(buffer, 0u, stride);
-
-            size_t relativeOffset = 0u;
-            auto bufferData = buffer->map(core::graphics::IBuffer::MapAccess::WriteOnly);
-            for (auto const &[attrib, buffer] : mesh->vertexBuffers())
-            {
-                size_t vertexSize = buffer->numComponents() * utils::sizeOfVertexComponentType(buffer->componentType());
-                for (size_t i = 0; i < buffer->numVertices(); ++i)
-                    std::memcpy(static_cast<uint8_t*>(bufferData->get()) + stride * i + relativeOffset, buffer->vertex(i), vertexSize);
-                vertexArray->declareVertexAttribute(attrib, bindingIndex, buffer->numComponents(), buffer->componentType(), relativeOffset);
-                relativeOffset += vertexSize;
-            }
-        }
-        else
-        {
-            for (auto const &[attrib, buffer] : mesh->vertexBuffers())
-            {
-                if (numVertices != buffer->numVertices())
-                    LOG_CRITICAL << "Buffers have different size";
-
-                auto bindingIndex = vertexArray->attachVertexBuffer(Buffer_4_5::create(buffer->sizeInBytes(), buffer->data()),
-                                                                    0u,
-                                                                    buffer->numComponents() * utils::sizeOfVertexComponentType(buffer->componentType()));
-                vertexArray->declareVertexAttribute(attrib, bindingIndex, buffer->numComponents(), buffer->componentType(), 0u);
-            }
-        }
-
-        size_t indexBufferTotalSize = 0u;
-
-        for (auto &primitiveSet : mesh->primitiveSets())
-        {
-            if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
-            {
-                vertexArray->addPrimitiveSet(std::make_shared<utils::DrawArrays>(drawArrays->primitiveType(),
-                                                                                 drawArrays->first(),
-                                                                                 drawArrays->count()));
-            }
-            else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
-                if (auto drawElementsBuffer = drawElements->asDrawElementsBuffer(); drawElementsBuffer)
-                {
-                    vertexArray->addPrimitiveSet(std::make_shared<utils::DrawElements>(drawElementsBuffer->primitiveType(),
-                                                                                       drawElementsBuffer->count(),
-                                                                                       drawElementsBuffer->indexType(),
-                                                                                       indexBufferTotalSize,
-                                                                                       drawElementsBuffer->baseVertex()));
-                    indexBufferTotalSize += drawElementsBuffer->sizeInBytes();
-                }
-        }
-
-        if (indexBufferTotalSize)
-        {
-            auto buffer = Buffer_4_5::create(indexBufferTotalSize);
-            vertexArray->attachIndexBuffer(buffer);
-
-            auto bufferData = buffer->map(core::graphics::IBuffer::MapAccess::WriteOnly);
-            size_t offset = 0;
-
-            for (auto &primitiveSet : mesh->primitiveSets())
-            {
-                if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
-                    if (auto drawElementsBuffer = drawElements->asDrawElementsBuffer(); drawElementsBuffer)
-                    {
-                        std::memcpy(static_cast<uint8_t*>(bufferData->get()) + offset, drawElementsBuffer->data(), drawElementsBuffer->sizeInBytes());
-                        offset += drawElementsBuffer->sizeInBytes();
-                    }
-            }
-        }
+        LOG_CRITICAL << "Vertex attribute is not found";
+        return;
     }
 
-    return vertexArray;
+    glVertexArrayAttribBinding(m_id, static_cast<GLuint>(loc), static_cast<GLuint>(it->second.bindingIndex));
+    glEnableVertexArrayAttrib(m_id, static_cast<GLuint>(loc));
+
+    switch (it->second.componentType)
+    {
+    case utils::VertexComponentType::Single: {
+        glVertexArrayAttribFormat(m_id,
+            loc,
+            static_cast<GLint>(it->second.numComponents),
+            Conversions::VertexComponentType2GL(it->second.componentType),
+            GL_FALSE,
+            static_cast<GLuint>(it->second.relativeOffset));
+        break;
+    }
+    case utils::VertexComponentType::Double: {
+        glVertexArrayAttribLFormat(m_id,
+            loc,
+            static_cast<GLint>(it->second.numComponents),
+            Conversions::VertexComponentType2GL(it->second.componentType),
+            static_cast<GLuint>(it->second.relativeOffset));
+        break;
+    }
+    case utils::VertexComponentType::Int8:
+    case utils::VertexComponentType::Uint8:
+    case utils::VertexComponentType::Int16:
+    case utils::VertexComponentType::Uint16:
+    case utils::VertexComponentType::Int32:
+    case utils::VertexComponentType::Uint32: {
+        glVertexArrayAttribIFormat(m_id,
+            loc,
+            static_cast<GLint>(it->second.numComponents),
+            Conversions::VertexComponentType2GL(it->second.componentType),
+            static_cast<GLuint>(it->second.relativeOffset));
+        break;
+    }
+    default: {
+        LOG_CRITICAL << "Undefined verte component type";
+        break;
+    }
+    }
 }
 
 // TextureBase_4_5
@@ -1071,24 +976,24 @@ std::shared_ptr<VertexArray_4_5> VertexArray_4_5::create(const std::shared_ptr<c
 TextureBase_4_5::TextureBase_4_5()
     : m_id(0u)
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
 }
 
 TextureBase_4_5::~TextureBase_4_5()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     glDeleteTextures(1, &m_id);
 }
 
 GLuint TextureBase_4_5::id() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_id;
 }
 
 GLenum TextureBase_4_5::GLinternalFormat() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     GLint result;
 
     glGetTextureLevelParameteriv(m_id, 0, GL_TEXTURE_INTERNAL_FORMAT, &result);
@@ -1098,19 +1003,19 @@ GLenum TextureBase_4_5::GLinternalFormat() const
 
 glm::uvec2 TextureBase_4_5::size() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return mipmapSize(0u);
 }
 
 core::graphics::PixelInternalFormat TextureBase_4_5::internalFormat() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return Conversions::GL2PixelInternalFormat(GLinternalFormat());
 }
 
 bool TextureBase_4_5::hasAlpha() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     GLint result;
 
     glGetTextureLevelParameteriv(m_id, 0, GL_TEXTURE_ALPHA_SIZE, &result);
@@ -1120,7 +1025,7 @@ bool TextureBase_4_5::hasAlpha() const
 
 bool TextureBase_4_5::hasDepth() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     GLint result;
 
     glGetTextureLevelParameteriv(m_id, 0, GL_TEXTURE_DEPTH_SIZE, &result);
@@ -1130,7 +1035,7 @@ bool TextureBase_4_5::hasDepth() const
 
 glm::uvec3 TextureBase_4_5::mipmapSize(uint32_t level) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     GLint w, h, d;
 
     glGetTextureLevelParameteriv(m_id, static_cast<GLint>(level), GL_TEXTURE_WIDTH, &w);
@@ -1142,7 +1047,7 @@ glm::uvec3 TextureBase_4_5::mipmapSize(uint32_t level) const
 
 uint32_t TextureBase_4_5::numMipmapLevels() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     GLint result;
 
     glGetTextureParameteriv(m_id, GL_TEXTURE_IMMUTABLE_LEVELS, &result);
@@ -1152,7 +1057,7 @@ uint32_t TextureBase_4_5::numMipmapLevels() const
 
 uint32_t TextureBase_4_5::numFaces() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return 1u;
 }
 
@@ -1180,19 +1085,19 @@ void TextureBase_4_5::subImage(uint32_t level,
 
 void TextureBase_4_5::generateMipmaps()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     glGenerateTextureMipmap(m_id);
 }
 
 void TextureBase_4_5::setBorderColor(const glm::vec4 &value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     glTextureParameterfv(m_id, GL_TEXTURE_BORDER_COLOR, glm::value_ptr(value));
 }
 
 void TextureBase_4_5::setWrapMode(core::graphics::TextureWrapMode value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto glValue = static_cast<GLint>(Conversions::TextureWrapMode2GL(value));
 
     glTextureParameteri(m_id, GL_TEXTURE_WRAP_S, glValue);
@@ -1202,7 +1107,7 @@ void TextureBase_4_5::setWrapMode(core::graphics::TextureWrapMode value)
 
 void TextureBase_4_5::setFilterMode(core::graphics::TextureFilterMode value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     switch (value)
     {
     case core::graphics::TextureFilterMode::Point: {
@@ -1231,7 +1136,7 @@ void TextureBase_4_5::setFilterMode(core::graphics::TextureFilterMode value)
 
 void TextureBase_4_5::setSwizzleMask(const core::graphics::TextureSwizzleMask &value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     const std::array<GLint, 4u> glValues {
         static_cast<GLint>(Conversions::TextureSwizzle2GL(value[0u])),
         static_cast<GLint>(Conversions::TextureSwizzle2GL(value[1u])),
@@ -1244,7 +1149,7 @@ void TextureBase_4_5::setSwizzleMask(const core::graphics::TextureSwizzleMask &v
 
 core::graphics::PTexture TextureBase_4_5::copy() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto result = std::dynamic_pointer_cast<TextureBase_4_5>(copyEmpty());
     if (!result)
         return nullptr;
@@ -1277,7 +1182,7 @@ core::graphics::PTexture TextureBase_4_5::copy() const
 Texture1D_4_5::Texture1D_4_5(uint32_t width, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
     : TextureBase_4_5()
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     glCreateTextures(GL_TEXTURE_1D, 1, &m_id);
     glTextureStorage1D(m_id,
                                  static_cast<GLsizei>(numLevels),
@@ -1289,13 +1194,13 @@ Texture1D_4_5::~Texture1D_4_5() = default;
 
 core::graphics::TextureType Texture1D_4_5::type() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return core::graphics::TextureType::Type1D;
 }
 
 void Texture1D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
@@ -1313,7 +1218,7 @@ void Texture1D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const 
 
 core::graphics::PTexture Texture1D_4_5::copyEmpty() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto baseSize = mipmapSize();
     return createEmpty(baseSize.x, internalFormat(), numMipmapLevels());
 }
@@ -1323,7 +1228,7 @@ std::shared_ptr<Texture1D_4_5> Texture1D_4_5::createEmpty(uint32_t width, core::
     if (width == 0u)
         LOG_CRITICAL << "Width can't be 0";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         LOG_CRITICAL << "Undefined pixel internal format";
 
     auto numMipmapLevels = static_cast<uint32_t>(glm::levels(width));
@@ -1347,7 +1252,7 @@ std::shared_ptr<Texture1D_4_5> Texture1D_4_5::create(
     if (!image)
         LOG_CRITICAL << "Image can't be nullptr";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(image->numComponents(), image->type());
 
     auto result = createEmpty(image->width(), internalFormat, numLevels);
@@ -1364,7 +1269,7 @@ std::shared_ptr<Texture1D_4_5> Texture1D_4_5::create(
 Texture2D_4_5::Texture2D_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
     : TextureBase_4_5()
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     glCreateTextures(GL_TEXTURE_2D, 1, &m_id);
     glTextureStorage2D(m_id,
                                  static_cast<GLsizei>(numLevels),
@@ -1377,13 +1282,13 @@ Texture2D_4_5::~Texture2D_4_5() = default;
 
 core::graphics::TextureType Texture2D_4_5::type() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return core::graphics::TextureType::Type2D;
 }
 
 void Texture2D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
@@ -1401,7 +1306,7 @@ void Texture2D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const 
 
 core::graphics::PTexture Texture2D_4_5::copyEmpty() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto baseSize = mipmapSize();
     return createEmpty(baseSize.x, baseSize.y, internalFormat(), numMipmapLevels());
 }
@@ -1414,7 +1319,7 @@ std::shared_ptr<Texture2D_4_5> Texture2D_4_5::createEmpty(uint32_t width,
     if (width * height == 0u)
         LOG_CRITICAL << "Width and height can't be 0";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         LOG_CRITICAL << "Undefined pixel internal format";
 
     auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec2(width, height)));
@@ -1437,7 +1342,7 @@ std::shared_ptr<Texture2D_4_5> Texture2D_4_5::create(const std::shared_ptr<const
     if (!image)
         LOG_CRITICAL << "Image can't be nullptr";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(image->numComponents(), image->type());
 
     auto result = createEmpty(image->width(), image->height(), internalFormat, numLevels);
@@ -1454,7 +1359,7 @@ std::shared_ptr<Texture2D_4_5> Texture2D_4_5::create(const std::shared_ptr<const
 Texture3D_4_5::Texture3D_4_5(uint32_t width, uint32_t height, uint32_t depth, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
     : TextureBase_4_5()
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     glCreateTextures(GL_TEXTURE_3D, 1, &m_id);
     glTextureStorage3D(m_id,
                                  static_cast<GLsizei>(numLevels),
@@ -1468,13 +1373,13 @@ Texture3D_4_5::~Texture3D_4_5() = default;
 
 core::graphics::TextureType Texture3D_4_5::type() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return core::graphics::TextureType::Type3D;
 }
 
 void Texture3D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
@@ -1492,7 +1397,7 @@ void Texture3D_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const 
 
 core::graphics::PTexture Texture3D_4_5::copyEmpty() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto baseSize = mipmapSize();
     return createEmpty(baseSize.x, baseSize.y, baseSize.z, internalFormat(), numMipmapLevels());
 }
@@ -1506,7 +1411,7 @@ std::shared_ptr<Texture3D_4_5> Texture3D_4_5::createEmpty(uint32_t width,
     if (width * height * depth == 0u)
         LOG_CRITICAL << "Width, height and depth can't be 0";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         LOG_CRITICAL << "Undefined pixel internal format";
 
     auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec3(width, height, depth)));
@@ -1545,7 +1450,7 @@ std::shared_ptr<Texture3D_4_5> Texture3D_4_5::create(const std::vector<std::shar
             (type != image->type()))
             LOG_CRITICAL << "All the layers of 3D teture must be the the same size, components count and component pixel type";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
 
     auto result = createEmpty(width, height, static_cast<uint32_t>(images.size()), internalFormat, numLevels);
@@ -1563,7 +1468,7 @@ std::shared_ptr<Texture3D_4_5> Texture3D_4_5::create(const std::vector<std::shar
 TextureCube_4_5::TextureCube_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
     : TextureBase_4_5()
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_id);
     glTextureStorage2D(m_id,
                                  static_cast<GLsizei>(numLevels),
@@ -1576,19 +1481,19 @@ TextureCube_4_5::~TextureCube_4_5() = default;
 
 core::graphics::TextureType TextureCube_4_5::type() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return core::graphics::TextureType::TypeCube;
 }
 
 uint32_t TextureCube_4_5::numFaces() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return 6u;
 }
 
 void TextureCube_4_5::setSubImage(uint32_t level,const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (offset.z + size.z > 6u)
         LOG_CRITICAL << "Number of cubemap faces must be 6";
 
@@ -1609,7 +1514,7 @@ void TextureCube_4_5::setSubImage(uint32_t level,const glm::uvec3 &offset, const
 
 core::graphics::PTexture TextureCube_4_5::copyEmpty() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto baseSize = mipmapSize();
     return createEmpty(baseSize.x, baseSize.y, internalFormat(), numMipmapLevels());
 }
@@ -1622,7 +1527,7 @@ std::shared_ptr<TextureCube_4_5> TextureCube_4_5::createEmpty(uint32_t width,
     if (width * height == 0u)
         LOG_CRITICAL << "Width and height can't be 0";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         LOG_CRITICAL << "Undefined pixel internal format";
 
     auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec2(width, height)));
@@ -1660,7 +1565,7 @@ std::shared_ptr<TextureCube_4_5> TextureCube_4_5::create(const std::vector<std::
             (type != image->type()))
             LOG_CRITICAL << "All the faces of cubemap must be the the same size, components count and component pixel type";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
 
     auto result = createEmpty(width, height, internalFormat, numLevels);
@@ -1678,7 +1583,7 @@ std::shared_ptr<TextureCube_4_5> TextureCube_4_5::create(const std::vector<std::
 Texture1DArray_4_5::Texture1DArray_4_5(uint32_t width, uint32_t numLayers, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
     : TextureBase_4_5()
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     glCreateTextures(GL_TEXTURE_1D_ARRAY, 1, &m_id);
     glTextureStorage2D(m_id,
                                  static_cast<GLsizei>(numLevels),
@@ -1691,13 +1596,13 @@ Texture1DArray_4_5::~Texture1DArray_4_5() = default;
 
 core::graphics::TextureType Texture1DArray_4_5::type() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return core::graphics::TextureType::Type1DArray;
 }
 
 void Texture1DArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
@@ -1715,7 +1620,7 @@ void Texture1DArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, c
 
 core::graphics::PTexture Texture1DArray_4_5::copyEmpty() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto baseSize = mipmapSize();
     return createEmpty(baseSize.x, baseSize.y, internalFormat(), numMipmapLevels());
 }
@@ -1728,7 +1633,7 @@ std::shared_ptr<Texture1DArray_4_5> Texture1DArray_4_5::createEmpty(uint32_t wid
     if (width * numLayers == 0u)
         LOG_CRITICAL << "Width and layers count of 1D array texture can't be 0";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         LOG_CRITICAL << "Undefined pixel internal format";
 
     auto numMipmapLevels = static_cast<uint32_t>(glm::levels(width));
@@ -1765,7 +1670,7 @@ std::shared_ptr<Texture1DArray_4_5> Texture1DArray_4_5::create(const std::vector
             (type != image->type()))
             LOG_CRITICAL << "All the layers of 1D texture array must be the the same size, components count and component pixel type";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
 
     auto result = createEmpty(width, static_cast<uint32_t>(images.size()), internalFormat, numLevels);
@@ -1783,7 +1688,7 @@ std::shared_ptr<Texture1DArray_4_5> Texture1DArray_4_5::create(const std::vector
 Texture2DArray_4_5::Texture2DArray_4_5(uint32_t width, uint32_t height, uint32_t numLayers, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
     : TextureBase_4_5()
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &m_id);
     glTextureStorage3D(m_id,
                                  static_cast<GLsizei>(numLevels),
@@ -1797,13 +1702,13 @@ Texture2DArray_4_5::~Texture2DArray_4_5() = default;
 
 core::graphics::TextureType Texture2DArray_4_5::type() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return core::graphics::TextureType::Type2DArray;
 }
 
 void Texture2DArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if ((numComponents < 1) || (numComponents > 4))
         LOG_CRITICAL << "Num components must be in [1..4]";
 
@@ -1821,7 +1726,7 @@ void Texture2DArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, c
 
 core::graphics::PTexture Texture2DArray_4_5::copyEmpty() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto baseSize = mipmapSize();
     return createEmpty(baseSize.x, baseSize.y, baseSize.z, internalFormat(), numMipmapLevels());
 }
@@ -1835,7 +1740,7 @@ std::shared_ptr<Texture2DArray_4_5> Texture2DArray_4_5::createEmpty(uint32_t wid
     if (width * height * numLayers == 0u)
         LOG_CRITICAL << "Width, height and layers count of 2D array texture can't be 0";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         LOG_CRITICAL << "Undefined pixel internal format";
 
     auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec2(width, height)));
@@ -1874,7 +1779,7 @@ std::shared_ptr<Texture2DArray_4_5> Texture2DArray_4_5::create(const std::vector
             (type != image->type()))
             LOG_CRITICAL << "All the layers of 2D texture array must be the the same size, components count and component pixel type";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
 
     auto result = createEmpty(width, height, static_cast<uint32_t>(images.size()), internalFormat, numLevels);
@@ -1892,7 +1797,7 @@ std::shared_ptr<Texture2DArray_4_5> Texture2DArray_4_5::create(const std::vector
 TextureCubeArray_4_5::TextureCubeArray_4_5(uint32_t width, uint32_t height, uint32_t numLayers, core::graphics::PixelInternalFormat internalFormat, uint32_t numLevels)
     : TextureBase_4_5()
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     glCreateTextures(GL_TEXTURE_CUBE_MAP_ARRAY, 1, &m_id);
     glTextureStorage3D(m_id,
                                  static_cast<GLsizei>(numLevels),
@@ -1906,13 +1811,13 @@ TextureCubeArray_4_5::~TextureCubeArray_4_5() = default;
 
 core::graphics::TextureType TextureCubeArray_4_5::type() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return core::graphics::TextureType::TypeCubeArray;
 }
 
 uint32_t TextureCubeArray_4_5::numFaces() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return 6u;
 }
 
@@ -1935,7 +1840,7 @@ void TextureCubeArray_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset,
 
 core::graphics::PTexture TextureCubeArray_4_5::copyEmpty() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto baseSize = mipmapSize();
     return createEmpty(baseSize.x, baseSize.y, baseSize.z, internalFormat(), numMipmapLevels());
 }
@@ -1949,7 +1854,7 @@ std::shared_ptr<TextureCubeArray_4_5> TextureCubeArray_4_5::createEmpty(uint32_t
     if (width * height * numLayers == 0u)
         LOG_CRITICAL << "Width, height and layers count of cubemap array texture can't be 0";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         LOG_CRITICAL << "Undefined pixel internal format";
 
     auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec2(width, height)));
@@ -1993,7 +1898,7 @@ std::shared_ptr<TextureCubeArray_4_5> TextureCubeArray_4_5::create(const std::ve
                 (type != image->type()))
                 LOG_CRITICAL << "All the layers of cubemap texture array must be the the same size, components count and component pixel type";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
 
     auto result = createEmpty(width, height, static_cast<uint32_t>(images.size()), internalFormat, numLevels);
@@ -2012,7 +1917,7 @@ std::shared_ptr<TextureCubeArray_4_5> TextureCubeArray_4_5::create(const std::ve
 TextureRect_4_5::TextureRect_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat internalFormat)
     : TextureBase_4_5()
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     glCreateTextures(GL_TEXTURE_RECTANGLE, 1, &m_id);
     glTextureStorage2D(m_id,
                                  1u,
@@ -2025,13 +1930,13 @@ TextureRect_4_5::~TextureRect_4_5() = default;
 
 core::graphics::TextureType TextureRect_4_5::type() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return core::graphics::TextureType::TypeRect;
 }
 
 void TextureRect_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, const glm::uvec3 &size, uint32_t numComponents, utils::PixelComponentType type, const void *data)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (level != 0)
         LOG_CRITICAL << "Level must be 0 for TextureRect";
 
@@ -2052,7 +1957,7 @@ void TextureRect_4_5::setSubImage(uint32_t level, const glm::uvec3 &offset, cons
 
 core::graphics::PTexture TextureRect_4_5::copyEmpty() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto baseSize = mipmapSize();
     return createEmpty(baseSize.x, baseSize.y, internalFormat());
 }
@@ -2064,7 +1969,7 @@ std::shared_ptr<TextureRect_4_5> TextureRect_4_5::createEmpty(uint32_t width,
     if (width * height == 0u)
         LOG_CRITICAL << "Width and height can't be 0";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         LOG_CRITICAL << "Undefined pixel internal format";
 
     auto result = std::make_shared<TextureRect_4_5>(width, height, internalFormat);
@@ -2080,7 +1985,7 @@ std::shared_ptr<TextureRect_4_5> TextureRect_4_5::create(const std::shared_ptr<c
     if (!image)
         LOG_CRITICAL << "Image can't be nullptr";
 
-    if (internalFormat == core::graphics::PixelInternalFormat::Undefined)
+    if (internalFormat == core::graphics::PixelInternalFormat::Count)
         internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(image->numComponents(), image->type());
 
     auto result = createEmpty(image->width(), image->height(), internalFormat);
@@ -2094,7 +1999,7 @@ std::shared_ptr<TextureRect_4_5> TextureRect_4_5::create(const std::shared_ptr<c
 TextureHandle_4_5::TextureHandle_4_5(const core::graphics::PConstTexture& texture)
     : m_texture(texture)
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
 
     if (auto texture_4_5 = std::dynamic_pointer_cast<const TextureBase_4_5>(m_texture); texture_4_5)
     {
@@ -2113,19 +2018,19 @@ core::graphics::TextureHandle TextureHandle_4_5::handle() const
 
 core::graphics::PConstTexture TextureHandle_4_5::texture() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_texture;
 }
 
 void TextureHandle_4_5::makeResident()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     glMakeTextureHandleResidentARB(m_id);
 }
 
 void TextureHandle_4_5::doneResident()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     glMakeTextureHandleNonResidentARB(m_id);
 }
 
@@ -2134,122 +2039,11 @@ std::shared_ptr<TextureHandle_4_5> TextureHandle_4_5::create(const core::graphic
     return std::make_shared<TextureHandle_4_5>(texture);
 }
 
-// Image_4_5
-
-Image_4_5::Image_4_5(DataAccess access, const core::graphics::PConstTexture &texture, uint32_t level)
-    : m_texture(nullptr)
-    , m_level(0u)
-    , m_access(DataAccess::ReadWrite)
-{
-    SAVE_CURRENT_CONTEXT
-    setAccess(access);
-
-    if (texture)
-        setTexture(texture, level);
-}
-
-Image_4_5::~Image_4_5() = default;
-
-core::graphics::IImage::DataAccess Image_4_5::access() const
-{
-    CHECK_CURRENT_CONTEXT
-    return m_access;
-}
-
-void Image_4_5::setAccess(DataAccess value)
-{
-    CHECK_CURRENT_CONTEXT
-    m_access = value;
-}
-
-uint32_t Image_4_5::mipmapLevel() const
-{
-    CHECK_CURRENT_CONTEXT
-    return m_level;
-}
-
-core::graphics::PConstTexture Image_4_5::texture() const
-{
-    CHECK_CURRENT_CONTEXT
-    return m_texture;
-}
-
-void Image_4_5::setTexture(const core::graphics::PConstTexture &texture, uint32_t level)
-{
-    CHECK_CURRENT_CONTEXT
-    if (!texture)
-        LOG_CRITICAL << "Texture can't be nullptr";
-
-    if (level >= texture->numMipmapLevels())
-        LOG_CRITICAL << "Level must be less than texture levels count";
-
-    if (const auto internalFormat = texture->internalFormat();
-        supportedImageFormats().find(internalFormat) == supportedImageFormats().end())
-        LOG_CRITICAL << "Unsupported image format";
-
-    m_texture = texture;
-    m_level = level;
-}
-
-const core::graphics::SupportedImageFormats& Image_4_5::supportedImageFormats()
-{
-    static const core::graphics::SupportedImageFormats s_supportdFormats{
-        { core::graphics::PixelInternalFormat::RGBA32F, "rgba32f" },
-        { core::graphics::PixelInternalFormat::RGBA16F, "rgba16f" },
-        { core::graphics::PixelInternalFormat::RG32F, "rg32f" },
-        { core::graphics::PixelInternalFormat::RG16F, "rg16f" },
-        { core::graphics::PixelInternalFormat::R11F_G11F_B10F, "r11f_g11f_b10f" },
-        { core::graphics::PixelInternalFormat::R32F, "r32f" },
-        { core::graphics::PixelInternalFormat::R16F, "r16f" },
-        { core::graphics::PixelInternalFormat::RGBA32UI, "rgba32ui" },
-        { core::graphics::PixelInternalFormat::RGBA16UI, "rgba16ui" },
-        { core::graphics::PixelInternalFormat::RGB10_A2UI, "rgb10a2ui" },
-        { core::graphics::PixelInternalFormat::RGBA8UI, "rgba8ui" },
-        { core::graphics::PixelInternalFormat::RG32UI, "rg32ui" },
-        { core::graphics::PixelInternalFormat::RG16UI, "rg16ui" },
-        { core::graphics::PixelInternalFormat::RG8UI, "rg8ui" },
-        { core::graphics::PixelInternalFormat::R32UI, "r32ui" },
-        { core::graphics::PixelInternalFormat::R16UI, "r18ui" },
-        { core::graphics::PixelInternalFormat::R8UI, "r8ui" },
-        { core::graphics::PixelInternalFormat::RGBA32I, "rgba32i" },
-        { core::graphics::PixelInternalFormat::RGBA16I, "rgba16i" },
-        { core::graphics::PixelInternalFormat::RGBA8I, "rgba8i" },
-        { core::graphics::PixelInternalFormat::RG32I, "rg32i" },
-        { core::graphics::PixelInternalFormat::RG16I, "rg16i" },
-        { core::graphics::PixelInternalFormat::RG8I, "rg8i" },
-        { core::graphics::PixelInternalFormat::R32I, "rg32i" },
-        { core::graphics::PixelInternalFormat::R16I, "rg16i" },
-        { core::graphics::PixelInternalFormat::R8I, "r8i" },
-        { core::graphics::PixelInternalFormat::RGBA16, "rgba16" },
-        { core::graphics::PixelInternalFormat::RGB10_A2, "rgb10a2" },
-        { core::graphics::PixelInternalFormat::RGBA8, "rgba8" },
-        { core::graphics::PixelInternalFormat::RG16, "rg16" },
-        { core::graphics::PixelInternalFormat::RG8, "rg8" },
-        { core::graphics::PixelInternalFormat::R16, "r16" },
-        { core::graphics::PixelInternalFormat::R8, "r8" },
-        { core::graphics::PixelInternalFormat::RGBA16_SNORM, "rgba16_snorm" },
-        { core::graphics::PixelInternalFormat::RGBA8_SNORM, "rgba8_snorm" },
-        { core::graphics::PixelInternalFormat::RG16_SNORM, "rg16_snorm" },
-        { core::graphics::PixelInternalFormat::RG8_SNORM, "rg8_snorm" },
-        { core::graphics::PixelInternalFormat::R16_SNORM, "r16_snorm" },
-        { core::graphics::PixelInternalFormat::R8_SNORM, "r8_snorm" }
-    };
-
-    return s_supportdFormats;
-}
-
-std::shared_ptr<Image_4_5> Image_4_5::create(core::graphics::IImage::DataAccess access,
-    const core::graphics::PConstTexture& texture,
-    uint32_t level)
-{
-    return std::make_shared<Image_4_5>(access, texture, level);
-}
-
 // RenderBuffer_4_5
 
 RenderBuffer_4_5::RenderBuffer_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat internalFormat)
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     glCreateRenderbuffers(1, &m_id);
     glNamedRenderbufferStorage(m_id,
                                          Conversions::PixelInternalFormat2GL(internalFormat),
@@ -2259,19 +2053,19 @@ RenderBuffer_4_5::RenderBuffer_4_5(uint32_t width, uint32_t height, core::graphi
 
 RenderBuffer_4_5::~RenderBuffer_4_5()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     glDeleteRenderbuffers(1, &m_id);
 }
 
 GLuint RenderBuffer_4_5::id() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_id;
 }
 
 glm::uvec2 RenderBuffer_4_5::size() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     GLint width, height;
     glGetNamedRenderbufferParameteriv(m_id, GL_RENDERBUFFER_WIDTH, &width);
     glGetNamedRenderbufferParameteriv(m_id, GL_RENDERBUFFER_HEIGHT, &height);
@@ -2281,7 +2075,7 @@ glm::uvec2 RenderBuffer_4_5::size() const
 
 core::graphics::PixelInternalFormat RenderBuffer_4_5::internalFormat() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     GLint result;
     glGetNamedRenderbufferParameteriv(m_id, GL_RENDERBUFFER_INTERNAL_FORMAT, &result);
 
@@ -2290,7 +2084,7 @@ core::graphics::PixelInternalFormat RenderBuffer_4_5::internalFormat() const
 
 bool RenderBuffer_4_5::hasAlpha() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     GLint result;
     glGetNamedRenderbufferParameteriv(m_id, GL_RENDERBUFFER_ALPHA_SIZE, &result);
 
@@ -2299,7 +2093,7 @@ bool RenderBuffer_4_5::hasAlpha() const
 
 bool RenderBuffer_4_5::hasDepth() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     GLint result;
     glGetNamedRenderbufferParameteriv(m_id, GL_RENDERBUFFER_DEPTH_SIZE, &result);
 
@@ -2318,7 +2112,7 @@ std::shared_ptr<RenderBuffer_4_5> RenderBuffer_4_5::create(uint32_t width,
 FrameBufferBase_4_5::FrameBufferBase_4_5(GLuint id)
     : m_id(id)
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     for (uint32_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
         setClearColor(i, glm::vec4(.5f, .5f, 1.f, 1.f));
 
@@ -2351,13 +2145,13 @@ FrameBufferBase_4_5::~FrameBufferBase_4_5() = default;
 
 GLuint FrameBufferBase_4_5::id() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_id;
 }
 
 void FrameBufferBase_4_5::clear()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     bool depthStensilWasCleared = false;
     for (auto attachment : m_clearMask)
     {
@@ -2434,30 +2228,40 @@ void FrameBufferBase_4_5::clear()
 
 bool FrameBufferBase_4_5::isComplete() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return glCheckNamedFramebufferStatus(m_id, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
 }
 
-const core::graphics::IFrameBuffer::Attachments &FrameBufferBase_4_5::attachments() const
+std::shared_ptr<const core::graphics::ISurface> FrameBufferBase_4_5::attachmentSurface(core::graphics::FrameBufferAttachment value) const
 {
-    CHECK_CURRENT_CONTEXT
-    return m_attachments;
+    CHECK_CURRENT_CONTEXT;
+    std::shared_ptr<const core::graphics::ISurface> result;
+    if (auto it = m_attachments.find(value); it != m_attachments.end())
+        result = it->second.surface;
+    return result;
 }
 
-bool FrameBufferBase_4_5::attachment(core::graphics::FrameBufferAttachment value, AttachmentInfo &result) const
+uint32_t FrameBufferBase_4_5::attachmentMipmapLevel(core::graphics::FrameBufferAttachment value) const
 {
-    CHECK_CURRENT_CONTEXT
-    auto it = m_attachments.find(value);
-    if (it == m_attachments.end())
-        return false;
+    CHECK_CURRENT_CONTEXT;
+    auto result = static_cast<uint32_t>(-1);
+    if (auto it = m_attachments.find(value); it != m_attachments.end())
+        result = it->second.mipmapLevel;
+    return result;
+}
 
-    result = it->second;
-    return true;
+uint32_t FrameBufferBase_4_5::attachmentLayer(core::graphics::FrameBufferAttachment value) const
+{
+    CHECK_CURRENT_CONTEXT;
+    auto result = static_cast<uint32_t>(-1);
+    if (auto it = m_attachments.find(value); it != m_attachments.end())
+        result = it->second.layer;
+    return result;
 }
 
 const core::graphics::FrameBufferClearColor &FrameBufferBase_4_5::clearColor(uint32_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (index >= core::graphics::FrameBufferColorAttachmentsCount())
         LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
 
@@ -2466,7 +2270,7 @@ const core::graphics::FrameBufferClearColor &FrameBufferBase_4_5::clearColor(uin
 
 void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::vec4 &value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (index >= core::graphics::FrameBufferColorAttachmentsCount())
         LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
 
@@ -2477,7 +2281,7 @@ void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::vec4 &value)
 
 void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::i32vec4 &value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (index >= core::graphics::FrameBufferColorAttachmentsCount())
         LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
 
@@ -2488,7 +2292,7 @@ void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::i32vec4 &valu
 
 void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::u32vec4 &value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (index >= core::graphics::FrameBufferColorAttachmentsCount())
         LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
 
@@ -2499,79 +2303,57 @@ void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::u32vec4 &valu
 
 float FrameBufferBase_4_5::clearDepth() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_clearDepth;
 }
 
 int32_t FrameBufferBase_4_5::clearStencil() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_clearStencil;
 }
 
 void FrameBufferBase_4_5::setClearDepthStencil(float depth, uint8_t stencil)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_clearDepth = depth;
     m_clearStencil = stencil;
 }
 
 const std::unordered_set<core::graphics::FrameBufferAttachment> &FrameBufferBase_4_5::clearMask() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_clearMask;
 }
 
 void FrameBufferBase_4_5::setClearMask(const std::unordered_set<core::graphics::FrameBufferAttachment> &value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_clearMask = value;
-}
-
-void FrameBufferBase_4_5::setDrawBuffers(const std::vector<core::graphics::FrameBufferAttachment> &attachments)
-{
-    CHECK_CURRENT_CONTEXT
-    std::vector<GLenum> buffers;
-    for (const auto &attachment : attachments)
-    {
-        if (attachment == core::graphics::FrameBufferAttachment::Count)
-            buffers.push_back(GL_NONE);
-        else
-        {
-            if (!core::graphics::IsFrameBufferColorAttachment(attachment))
-                LOG_CRITICAL << "Not color attachment can be draw buffer";
-
-            buffers.push_back(GL_COLOR_ATTACHMENT0 + core::graphics::FrameBufferColorAttachmentIndex(attachment));
-        }
-    }
-
-    glNamedFramebufferDrawBuffers(m_id,
-                                            static_cast<GLsizei>(buffers.size()),
-                                            buffers.data());
 }
 
 bool FrameBufferBase_4_5::faceCulling() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_faceCulling;
 }
 
 core::graphics::FaceType FrameBufferBase_4_5::cullFaceType() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_cullFaceType;
 }
 
 void FrameBufferBase_4_5::setFaceCulling(bool value, core::graphics::FaceType type)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_faceCulling = value;
     m_cullFaceType = type;
 }
 
 bool FrameBufferBase_4_5::colorMask(uint32_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (index >= core::graphics::FrameBufferColorAttachmentsCount())
         LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
 
@@ -2580,7 +2362,7 @@ bool FrameBufferBase_4_5::colorMask(uint32_t index) const
 
 void FrameBufferBase_4_5::setColorMask(uint32_t index, bool value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (index >= core::graphics::FrameBufferColorAttachmentsCount())
         LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
 
@@ -2589,57 +2371,57 @@ void FrameBufferBase_4_5::setColorMask(uint32_t index, bool value)
 
 void FrameBufferBase_4_5::setColorMasks(bool value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     for (auto &mask : m_colorMasks)
         mask = value;
 }
 
 bool FrameBufferBase_4_5::depthTest() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_depthTest;
 }
 
 core::graphics::ComparingFunc FrameBufferBase_4_5::depthFunc() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_depthFunc;
 }
 
 void FrameBufferBase_4_5::setDepthTest(bool value, core::graphics::ComparingFunc func)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_depthTest = value;
     m_depthFunc = func;
 }
 
 bool FrameBufferBase_4_5::depthMask() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_depthMask;
 }
 
 void FrameBufferBase_4_5::setDepthMask(bool value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_depthMask = value;
 }
 
 bool FrameBufferBase_4_5::stencilTest() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_stencilTest;
 }
 
 void FrameBufferBase_4_5::setStencilTest(bool value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_stencilTest = value;
 }
 
 core::graphics::ComparingFunc FrameBufferBase_4_5::stencilComparingFunc(core::graphics::FaceType value) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto result = core::graphics::ComparingFunc::Always;
 
     switch (value)
@@ -2660,7 +2442,7 @@ core::graphics::ComparingFunc FrameBufferBase_4_5::stencilComparingFunc(core::gr
 
 uint8_t FrameBufferBase_4_5::stencilReferenceValue(core::graphics::FaceType value) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     uint8_t result = 0x00u;
 
     switch (value)
@@ -2681,7 +2463,7 @@ uint8_t FrameBufferBase_4_5::stencilReferenceValue(core::graphics::FaceType valu
 
 uint8_t FrameBufferBase_4_5::stencilMaskValue(core::graphics::FaceType value) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     uint8_t result = 0x00u;
 
     switch (value)
@@ -2702,7 +2484,7 @@ uint8_t FrameBufferBase_4_5::stencilMaskValue(core::graphics::FaceType value) co
 
 void FrameBufferBase_4_5::setStencilFunc(core::graphics::FaceType face, core::graphics::ComparingFunc func, uint8_t ref, uint8_t mask)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     switch (face)
     {
     case core::graphics::FaceType::Front:
@@ -2728,7 +2510,7 @@ void FrameBufferBase_4_5::setStencilFunc(core::graphics::FaceType face, core::gr
 
 const core::graphics::StencilOperations &FrameBufferBase_4_5::stencilOperations(core::graphics::FaceType value) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     static core::graphics::StencilOperations errorResult;
 
     switch (value)
@@ -2747,7 +2529,7 @@ const core::graphics::StencilOperations &FrameBufferBase_4_5::stencilOperations(
 
 void FrameBufferBase_4_5::setStencilOperations(core::graphics::FaceType face, const core::graphics::StencilOperations &value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     switch (face)
     {
     case core::graphics::FaceType::Front:
@@ -2767,56 +2549,56 @@ void FrameBufferBase_4_5::setStencilOperations(core::graphics::FaceType face, co
 
 bool FrameBufferBase_4_5::blending() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_blending;
 }
 
 void FrameBufferBase_4_5::setBlending(bool value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_blending = value;
 }
 
-core::graphics::BlendEquation FrameBufferBase_4_5::blendColorEquation(uint32_t index)
+core::graphics::BlendEquation FrameBufferBase_4_5::blendColorEquation(uint32_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_blendColorEquation[index];
 }
 
-core::graphics::BlendEquation FrameBufferBase_4_5::blendAlphaEquation(uint32_t index)
+core::graphics::BlendEquation FrameBufferBase_4_5::blendAlphaEquation(uint32_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_blendAlphaEquation[index];
 }
 
 void FrameBufferBase_4_5::setBlendEquation(uint32_t index, core::graphics::BlendEquation colorValue, core::graphics::BlendEquation alphaValue)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_blendColorEquation[index] = colorValue;
     m_blendAlphaEquation[index] = alphaValue;
 }
 
-core::graphics::BlendFactor FrameBufferBase_4_5::blendColorSourceFactor(uint32_t index)
+core::graphics::BlendFactor FrameBufferBase_4_5::blendColorSourceFactor(uint32_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_blendColorSourceFactor[index];
 }
 
-core::graphics::BlendFactor FrameBufferBase_4_5::blendAlphaSourceFactor(uint32_t index)
+core::graphics::BlendFactor FrameBufferBase_4_5::blendAlphaSourceFactor(uint32_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_blendAlphaSourceFactor[index];
 }
 
-core::graphics::BlendFactor FrameBufferBase_4_5::blendColorDestinationFactor(uint32_t index)
+core::graphics::BlendFactor FrameBufferBase_4_5::blendColorDestinationFactor(uint32_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_blendColorDestFactor[index];
 }
 
-core::graphics::BlendFactor FrameBufferBase_4_5::blendAlphaDestinationFactor(uint32_t index)
+core::graphics::BlendFactor FrameBufferBase_4_5::blendAlphaDestinationFactor(uint32_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_blendAlphaDestFactor[index];
 }
 
@@ -2826,7 +2608,7 @@ void FrameBufferBase_4_5::setBlendFactor(uint32_t index,
                                          core::graphics::BlendFactor alphaSourceValue,
                                          core::graphics::BlendFactor alphaDestValue)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_blendColorSourceFactor[index] = colorSourceValue;
     m_blendColorDestFactor[index] = colorDestValue;
     m_blendAlphaSourceFactor[index] = alphaSourceValue;
@@ -2835,25 +2617,25 @@ void FrameBufferBase_4_5::setBlendFactor(uint32_t index,
 
 glm::vec3 FrameBufferBase_4_5::blendConstantColor() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_blendConstColor;
 }
 
 void FrameBufferBase_4_5::setBlendConstantColor(const glm::vec3 &value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_blendConstColor = value;
 }
 
 float FrameBufferBase_4_5::blendConstantAlpha() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_blendConstAlpha;
 }
 
 void FrameBufferBase_4_5::setBlendConstantAlpha(float value)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     m_blendConstAlpha = value;
 }
 
@@ -2862,13 +2644,13 @@ void FrameBufferBase_4_5::setBlendConstantAlpha(float value)
 FrameBuffer_4_5::FrameBuffer_4_5()
     : FrameBufferBase_4_5(0u)
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     glCreateFramebuffers(1, &m_id);
 }
 
 FrameBuffer_4_5::~FrameBuffer_4_5()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     glDeleteFramebuffers(1, &m_id);
 }
 
@@ -2876,7 +2658,7 @@ void FrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment key,
                              std::shared_ptr<const core::graphics::ISurface> surface,
                              uint32_t level)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     detach(key);
 
     if (auto texture_4_5 = std::dynamic_pointer_cast<const TextureBase_4_5>(surface); texture_4_5)
@@ -2901,7 +2683,7 @@ void FrameBuffer_4_5::attachLayer(core::graphics::FrameBufferAttachment key,
                                   uint32_t level,
                                   uint32_t layer)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     detach(key);
 
     if (auto texture_4_5 = std::dynamic_pointer_cast<const TextureBase_4_5>(texture); texture_4_5)
@@ -2919,15 +2701,23 @@ void FrameBuffer_4_5::attachLayer(core::graphics::FrameBufferAttachment key,
 
 void FrameBuffer_4_5::detach(core::graphics::FrameBufferAttachment key)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     if (auto it = m_attachments.find(key); it != m_attachments.end())
     {
-        glNamedFramebufferRenderbuffer(m_id,
-                                                 Conversions::FrameBufferAttachment2GL(key),
-                                                 GL_RENDERBUFFER,
-                                                 0u);
+        glNamedFramebufferRenderbuffer(
+            m_id,
+            Conversions::FrameBufferAttachment2GL(key),
+            GL_RENDERBUFFER,
+            0u);
         m_attachments.erase(it);
     }
+}
+
+void FrameBuffer_4_5::detachAll()
+{
+    CHECK_CURRENT_CONTEXT;
+    while (!m_attachments.empty())
+        detach(m_attachments.begin()->first);
 }
 
 std::shared_ptr<FrameBuffer_4_5> FrameBuffer_4_5::create()
@@ -2940,7 +2730,7 @@ std::shared_ptr<FrameBuffer_4_5> FrameBuffer_4_5::create()
 DefaultFrameBuffer_4_5::DefaultFrameBuffer_4_5(GLuint defaultFbo)
     : FrameBufferBase_4_5(defaultFbo)
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
 
     //GLint objType = GL_NONE;
     //glGetNamedFramebufferAttachmentParameteriv(defaultFbo, GL_DEPTH_STENCIL_ATTACHMENT, GL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &objType);
@@ -2974,49 +2764,54 @@ DefaultFrameBuffer_4_5::DefaultFrameBuffer_4_5(GLuint defaultFbo)
 
     m_attachments[core::graphics::FrameBufferAttachment::Depth] = {nullptr, 0, 0};
     m_attachments[core::graphics::FrameBufferAttachment::Stencil] = {nullptr, 0, 0};
-    m_attachments[core::graphics::FrameBufferColorAttachment(0)] = {nullptr, 0, 0};
+    m_attachments[core::graphics::FrameBufferColorAttachment(0u)] = {nullptr, 0, 0};
 }
 
 DefaultFrameBuffer_4_5::~DefaultFrameBuffer_4_5() = default;
 
 void DefaultFrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment, std::shared_ptr<const core::graphics::ISurface>, uint32_t)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
 }
 
 void DefaultFrameBuffer_4_5::attachLayer(core::graphics::FrameBufferAttachment, std::shared_ptr<const core::graphics::ITexture>, uint32_t, uint32_t)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
 }
 
 void DefaultFrameBuffer_4_5::detach(core::graphics::FrameBufferAttachment)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
+}
+
+void DefaultFrameBuffer_4_5::detachAll()
+{
+    CHECK_CURRENT_CONTEXT;
 }
 
 void DefaultFrameBuffer_4_5::setClearColor(uint32_t, const glm::vec4&)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
 }
 
 void DefaultFrameBuffer_4_5::setClearColor(uint32_t, const glm::i32vec4&)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
 }
 
 void DefaultFrameBuffer_4_5::setClearColor(uint32_t, const glm::u32vec4&)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
 }
 
 void DefaultFrameBuffer_4_5::setClearDepthStencil(float, uint8_t)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
 }
 
 void DefaultFrameBuffer_4_5::setClearMask(const std::unordered_set<core::graphics::FrameBufferAttachment>&)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
 }
 
 std::shared_ptr<DefaultFrameBuffer_4_5> DefaultFrameBuffer_4_5::create(GLuint id)
@@ -3027,14 +2822,17 @@ std::shared_ptr<DefaultFrameBuffer_4_5> DefaultFrameBuffer_4_5::create(GLuint id
 // ProgramBase_4_5
 
 ProgramBase_4_5::ProgramBase_4_5()
+    : m_SSBONameMaxLength(0)
+    , m_bufferVariableNameMaxLength(0)
+    , m_uniformNameMaxLength(0)
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
     m_id = glCreateProgram();
 }
 
 ProgramBase_4_5::~ProgramBase_4_5()
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     GLint count;
     glGetProgramiv(m_id, GL_ATTACHED_SHADERS, &count);
 
@@ -3055,7 +2853,7 @@ ProgramBase_4_5::~ProgramBase_4_5()
 
 bool ProgramBase_4_5::compileAndLink(const std::unordered_map<GLenum, std::reference_wrapper<const std::string>>& shadersData)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     static const std::unordered_map<GLenum, std::string> s_shaderTypesTable{
         {GL_COMPUTE_SHADER, "Compute"},
         {GL_VERTEX_SHADER, "Vertex"},
@@ -3154,19 +2952,19 @@ bool ProgramBase_4_5::compileAndLink(const std::unordered_map<GLenum, std::refer
 
 GLuint ProgramBase_4_5::id() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_id;
 }
 
 bool ProgramBase_4_5::preBuild(std::string &)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return true;
 }
 
 bool ProgramBase_4_5::postBuild(std::string &)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto currentRenderer = core::graphics::RendererBase::current();
     if (!currentRenderer)
         LOG_CRITICAL << "Graphics renderer can't be nullptr";
@@ -3217,7 +3015,7 @@ bool ProgramBase_4_5::postBuild(std::string &)
                                            nullptr,
                                            uniformName.data());
 
-        m_uniformsInfo.push_back({ currentRenderer->uniformIdByName(uniformName.data()),
+        m_uniformsInfo.push_back({ currentRenderer->uniformByName(uniformName.data()),
                                    static_cast<uint16_t>(uniformIndex),
                                    uniformValues[2u],
                                    Conversions::GL2UniformType(static_cast<GLenum>(uniformValues[1u])) });
@@ -3231,6 +3029,7 @@ bool ProgramBase_4_5::postBuild(std::string &)
     std::vector<GLchar> SSBOName(static_cast<size_t>(m_SSBONameMaxLength));
 
     glGetProgramInterfaceiv(m_id, GL_BUFFER_VARIABLE, GL_MAX_NAME_LENGTH, &m_bufferVariableNameMaxLength);
+    std::vector<GLchar> bufferVariableName(static_cast<size_t>(m_bufferVariableNameMaxLength));
 
     for (GLuint SSBOIndex = 0; SSBOIndex < static_cast<GLuint>(numSSBOs); ++SSBOIndex)
     {
@@ -3263,21 +3062,32 @@ bool ProgramBase_4_5::postBuild(std::string &)
 
         for (auto varIndex : variablesIndices)
         {
-            static const std::array<GLenum, 2u> variableProperties {GL_TYPE, GL_OFFSET};
-            std::array<GLint, 2u> uniformValues {};
+            static const std::array<GLenum, 4u> variableProperties {GL_TYPE, GL_OFFSET, GL_ARRAY_STRIDE, GL_TOP_LEVEL_ARRAY_STRIDE};
+            std::array<GLint, 4u> variableValues {};
 
             glGetProgramResourceiv(m_id,
                                              GL_BUFFER_VARIABLE,
                                              static_cast<GLuint>(varIndex),
                                              variableProperties.size(),
                                              variableProperties.data(),
-                                             static_cast<GLsizei>(uniformValues.size()),
+                                             static_cast<GLsizei>(variableValues.size()),
                                              nullptr,
-                                             uniformValues.data());
+                                             variableValues.data());
 
-            variables.push_back({ static_cast<uint16_t>(varIndex),
-//                                  Conversions::GL2SSBOVariableType(static_cast<GLenum>(uniformValues[0u])),
-                                  static_cast<uint16_t>(uniformValues[1u]) });
+            glGetProgramResourceName(m_id,
+                GL_BUFFER_VARIABLE,
+                static_cast<GLuint>(varIndex),
+                m_bufferVariableNameMaxLength,
+                nullptr,
+                bufferVariableName.data());
+
+            variables.push_back({
+                std::string(bufferVariableName.data()),
+                static_cast<uint16_t>(varIndex),
+                // Conversions::GL2SSBOVariableType(static_cast<GLenum>(uniformValues[0u])),
+                static_cast<uint16_t>(variableValues[1u]),
+                static_cast<uint16_t>(variableValues[2u]),
+                static_cast<uint16_t>(variableValues[3u]) });
         }
 
 
@@ -3288,7 +3098,7 @@ bool ProgramBase_4_5::postBuild(std::string &)
                                            nullptr,
                                            SSBOName.data());
 
-        m_SSBOsInfo.push_back({ currentRenderer->SSBOIdByName(SSBOName.data()),
+        m_SSBOsInfo.push_back({ currentRenderer->SSBOByName(SSBOName.data()),
                                 static_cast<uint16_t>(SSBOIndex),
                                 std::move(variables) });
     }
@@ -3296,41 +3106,41 @@ bool ProgramBase_4_5::postBuild(std::string &)
     return true;
 }
 
-int32_t ProgramBase_4_5::uniformLocationByName(const std::string &value) const
-{
-    CHECK_CURRENT_CONTEXT
-    return glGetProgramResourceLocation(m_id, GL_UNIFORM, value.data());
-}
+//int32_t ProgramBase_4_5::uniformLocationByName(const std::string &value) const
+//{
+//    CHECK_CURRENT_CONTEXT;
+//    return glGetProgramResourceLocation(m_id, GL_UNIFORM, value.data());
+//}
 
 const std::vector<core::graphics::UniformInfo> &ProgramBase_4_5::uniformsInfo() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_uniformsInfo;
 }
 
 const std::vector<core::graphics::SSBOInfo> &ProgramBase_4_5::SSBOsInfo() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_SSBOsInfo;
 }
 
 std::string ProgramBase_4_5::uniformNameByIndex(uint16_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     std::vector<GLchar> name(static_cast<size_t>(m_uniformNameMaxLength));
     glGetProgramResourceName(m_id,
-                                       GL_UNIFORM,
-                                       static_cast<GLuint>(index),
-                                       m_uniformNameMaxLength,
-                                       nullptr,
-                                       name.data());
+                             GL_UNIFORM,
+                             static_cast<GLuint>(index),
+                             m_uniformNameMaxLength,
+                             nullptr,
+                             name.data());
 
     return name.data();
 }
 
 std::string ProgramBase_4_5::SSBOVariableNameByIndex(uint16_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     std::vector<GLchar> name(static_cast<size_t>(m_uniformNameMaxLength));
     glGetProgramResourceName(m_id,
                                        GL_BUFFER_VARIABLE,
@@ -3344,7 +3154,7 @@ std::string ProgramBase_4_5::SSBOVariableNameByIndex(uint16_t index) const
 
 std::string ProgramBase_4_5::SSBONameByIndex(uint16_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     std::vector<GLchar> name(static_cast<size_t>(m_SSBONameMaxLength));
     glGetProgramResourceName(m_id,
                                        GL_SHADER_STORAGE_BLOCK,
@@ -3360,8 +3170,9 @@ std::string ProgramBase_4_5::SSBONameByIndex(uint16_t index) const
 
 RenderProgram_4_5::RenderProgram_4_5()
     : ProgramBase_4_5()
+    , m_attributeNameMaxLength(0)
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
 }
 
 RenderProgram_4_5::~RenderProgram_4_5() = default;
@@ -3369,7 +3180,7 @@ RenderProgram_4_5::~RenderProgram_4_5() = default;
 
 bool RenderProgram_4_5::postBuild(std::string &log)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     auto currentRenderer = core::graphics::RendererBase::current();
     if (!currentRenderer)
         LOG_CRITICAL << "Graphics renderer can't be nullptr";
@@ -3402,38 +3213,108 @@ bool RenderProgram_4_5::postBuild(std::string &log)
                                            nullptr,
                                            attributeName.data());
 
-        m_attributesInfo.push_back({ currentRenderer->vertexAttributeByName(attributeName.data()),
-                                     static_cast<uint16_t>(i),
-                                     values[1],
-                                     Conversions::GL2VertexNumComponents(static_cast<GLenum>(values[0])),
-                                     Conversions::GL2VertexComponentType(static_cast<GLenum>(values[0])) });
+        static const std::unordered_set<std::string> s_excludedAttributes{
+            "gl_DrawID",
+            "gl_VertexID" };
+
+        if (const std::string attributeNameString = attributeName.data(); !s_excludedAttributes.count(attributeNameString))
+        {
+            m_attributesInfo.push_back({
+                currentRenderer->attributeByName(attributeNameString),
+                static_cast<uint16_t>(i),
+                static_cast<int32_t>(values[1u]),
+                Conversions::GL2VertexNumComponents(static_cast<GLenum>(values[0u])),
+                Conversions::GL2VertexComponentType(static_cast<GLenum>(values[0u])) });
+        }
+    }
+
+    GLint numOutputs;
+    glGetProgramInterfaceiv(m_id, GL_PROGRAM_OUTPUT, GL_ACTIVE_RESOURCES, &numOutputs);
+    m_outputInfo.reserve(static_cast<size_t>(numOutputs));
+
+    glGetProgramInterfaceiv(m_id, GL_PROGRAM_OUTPUT, GL_MAX_NAME_LENGTH, &m_outputNameMaxLength);
+    std::vector<GLchar> outputName(static_cast<size_t>(m_outputNameMaxLength));
+
+    for (GLuint i = 0; i < static_cast<GLuint>(numOutputs); ++i)
+    {
+        static const std::array<GLenum, 2> properties{ GL_TYPE, GL_LOCATION };
+        static std::array<GLint, 2> values{};
+
+        glGetProgramResourceiv(m_id,
+            GL_PROGRAM_OUTPUT,
+            i,
+            properties.size(),
+            properties.data(),
+            values.size(),
+            nullptr,
+            values.data());
+
+        glGetProgramResourceName(m_id,
+            GL_PROGRAM_OUTPUT,
+            i,
+            m_outputNameMaxLength,
+            nullptr,
+            outputName.data());
+
+        static const std::unordered_set<std::string> s_excludedOutputs{
+            "gl_FragDepth" };
+
+        if (const std::string outputNameString = outputName.data(); !s_excludedOutputs.count(outputNameString))
+        {
+            m_outputInfo.push_back({
+                currentRenderer->outputByName(outputNameString),
+                static_cast<uint16_t>(i),
+                static_cast<int32_t>(values[1u]) });
+        }
     }
 
     return ProgramBase_4_5::postBuild(log);
 }
 
-int32_t RenderProgram_4_5::attributeLocationByName(const std::string &value) const
-{
-    CHECK_CURRENT_CONTEXT
-    return glGetProgramResourceLocation(m_id, GL_PROGRAM_INPUT, value.data());
-}
+//int32_t RenderProgram_4_5::attributeLocationByName(const std::string &value) const
+//{
+//    CHECK_CURRENT_CONTEXT;
+//    return glGetProgramResourceLocation(m_id, GL_PROGRAM_INPUT, value.data());
+//}
 
 const std::vector<core::graphics::AttributeInfo> &RenderProgram_4_5::attributesInfo() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_attributesInfo;
 }
 
 std::string RenderProgram_4_5::attributeNameByIndex(uint16_t index) const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     std::vector<GLchar> name(static_cast<size_t>(m_attributeNameMaxLength));
-    glGetProgramResourceName(m_id,
-                                       GL_PROGRAM_INPUT,
-                                       static_cast<GLuint>(index),
-                                       m_attributeNameMaxLength,
-                                       nullptr,
-                                       name.data());
+    glGetProgramResourceName(
+        m_id,
+        GL_PROGRAM_INPUT,
+        static_cast<GLuint>(index),
+        m_attributeNameMaxLength,
+        nullptr,
+        name.data());
+
+    return name.data();
+}
+
+const std::vector<core::graphics::OutputInfo>& RenderProgram_4_5::outputsInfo() const
+{
+    CHECK_CURRENT_CONTEXT;
+    return m_outputInfo;
+}
+
+std::string RenderProgram_4_5::outputNameByIndex(uint16_t index) const
+{
+    CHECK_CURRENT_CONTEXT;
+    std::vector<GLchar> name(static_cast<size_t>(m_outputNameMaxLength));
+    glGetProgramResourceName(
+        m_id,
+        GL_PROGRAM_OUTPUT,
+        static_cast<GLuint>(index),
+        m_outputNameMaxLength,
+        nullptr,
+        name.data());
 
     return name.data();
 }
@@ -3482,7 +3363,7 @@ std::shared_ptr<RenderProgram_4_5> RenderProgram_4_5::create(const std::shared_p
 ComputeProgram_4_5::ComputeProgram_4_5()
     : ProgramBase_4_5()
 {
-    SAVE_CURRENT_CONTEXT
+    SAVE_CURRENT_CONTEXT;
 }
 
 ComputeProgram_4_5::~ComputeProgram_4_5() = default;
@@ -3490,7 +3371,7 @@ ComputeProgram_4_5::~ComputeProgram_4_5() = default;
 
 bool ComputeProgram_4_5::postBuild(std::string &log)
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     std::array<GLint, 3> params;
     glGetProgramiv(m_id, GL_COMPUTE_WORK_GROUP_SIZE, params.data());
     m_workGroupSize = glm::uvec3(static_cast<uint32_t>(params[0]),
@@ -3502,7 +3383,7 @@ bool ComputeProgram_4_5::postBuild(std::string &log)
 
 glm::uvec3 ComputeProgram_4_5::workGroupSize() const
 {
-    CHECK_CURRENT_CONTEXT
+    CHECK_CURRENT_CONTEXT;
     return m_workGroupSize;
 }
 
@@ -3551,18 +3432,18 @@ void GLFWRenderer::blitFrameBuffer(std::shared_ptr<const core::graphics::IFrameB
                                             bool colorMsk, bool depthMask, bool stencilMask,
                                             bool linearFilter)
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     auto srcFramebuffer = std::dynamic_pointer_cast<const FrameBufferBase_4_5>(src);
     if (!srcFramebuffer)
         LOG_CRITICAL << "Source framebuffer can't be nullptr";
 
-    CHECK_RESOURCE_CONTEXT(srcFramebuffer)
+    CHECK_RESOURCE_CONTEXT(srcFramebuffer);
 
     auto dstFramebuffer = std::dynamic_pointer_cast<FrameBufferBase_4_5>(dst);
     if (!dstFramebuffer)
         LOG_CRITICAL << "Destination framebuffer can't be nullptr";
 
-    CHECK_RESOURCE_CONTEXT(dstFramebuffer)
+    CHECK_RESOURCE_CONTEXT(dstFramebuffer);
 
     GLbitfield mask = 0;
     if (colorMsk)
@@ -3584,17 +3465,17 @@ void GLFWRenderer::blitFrameBuffer(std::shared_ptr<const core::graphics::IFrameB
 
 void GLFWRenderer::copyBufferSubData(const std::shared_ptr<core::graphics::IBuffer>& dst, const std::shared_ptr<const core::graphics::IBuffer>& src, size_t dstOffset, size_t srcOffset, size_t size) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
 
     auto dst_4_5 = std::dynamic_pointer_cast<BufferBase_4_5>(dst);
     if (!dst_4_5)
         LOG_CRITICAL << "Destination buffer can't be nullptr";
-    CHECK_RESOURCE_CONTEXT(dst_4_5)
+    CHECK_RESOURCE_CONTEXT(dst_4_5);
 
     auto src_4_5 = std::dynamic_pointer_cast<const BufferBase_4_5>(src);
     if (!src_4_5)
         LOG_CRITICAL << "Source buffer can't be nullptr";
-    CHECK_RESOURCE_CONTEXT(src_4_5)
+    CHECK_RESOURCE_CONTEXT(src_4_5);
 
     size = glm::min(size, dst_4_5->fullSize() - dstOffset);
     size = glm::min(size, src_4_5->fullSize() - srcOffset);
@@ -3602,141 +3483,29 @@ void GLFWRenderer::copyBufferSubData(const std::shared_ptr<core::graphics::IBuff
     glCopyNamedBufferSubData(src_4_5->id(), dst_4_5->id(), srcOffset, dstOffset, size);
 }
 
-bool GLFWRenderer::registerVertexAttribute(const std::string& name, utils::VertexAttribute id)
-{
-    CHECK_THIS_CONTEXT
-    if (auto it = m_attributeIds.find(name); it != m_attributeIds.end())
-    {
-        LOG_ERROR << "Attribute " << name << " is already registered";
-        return false;
-    }
-
-    m_attributeIds.insert({ name, id });
-    return true;
-}
-
-bool GLFWRenderer::unregisterVertexAttribute(const std::string& name)
-{
-    CHECK_THIS_CONTEXT
-    if (auto it = m_attributeIds.find(name); it != m_attributeIds.end())
-    {
-        m_attributeIds.erase(it);
-        return true;
-    }
-
-    LOG_ERROR << "Attribute " << name << " has not been registered";
-    return false;
-}
-
-utils::VertexAttribute GLFWRenderer::vertexAttributeByName(const std::string& name) const
-{
-    CHECK_THIS_CONTEXT
-    auto it = m_attributeIds.find(name);
-    return it != m_attributeIds.end() ? it->second : utils::VertexAttribute::Count;
-}
-
-bool GLFWRenderer::registerUniformId(const std::string& name, uint16_t id)
-{
-    CHECK_THIS_CONTEXT
-    if (auto it = m_uniformIds.find(name); it != m_uniformIds.end())
-    {
-        LOG_ERROR << "Uniform " << name << " is already registered";
-        return false;
-    }
-
-    if (id == 0u)
-    {
-        LOG_ERROR << "Uniform id can't be 0";
-        return false;
-    }
-
-    m_uniformIds.insert({ name, id });
-    return true;
-}
-
-bool GLFWRenderer::unregisterUniformId(const std::string& name)
-{
-    CHECK_THIS_CONTEXT
-    if (auto it = m_uniformIds.find(name); it != m_uniformIds.end())
-    {
-        m_uniformIds.erase(it);
-        return true;
-    }
-
-    LOG_ERROR << "Uniform " << name << " has not been registered";
-    return false;
-}
-
-uint16_t GLFWRenderer::uniformIdByName(const std::string& name) const
-{
-    CHECK_THIS_CONTEXT
-    auto it = m_uniformIds.find(name);
-    return it != m_uniformIds.end() ? it->second : 0u;
-}
-
-bool GLFWRenderer::registerSSBOId(const std::string& name, uint16_t id)
-{
-    CHECK_THIS_CONTEXT
-    if (auto it = m_SSBOIds.find(name); it != m_SSBOIds.end())
-    {
-        LOG_ERROR << "SSBO " << name << " is already registered";
-        return false;
-    }
-
-    if (id == 0u)
-    {
-        LOG_ERROR << "SSBO id can't be 0";
-        return false;
-    }
-
-    m_SSBOIds.insert({ name, id });
-    return true;
-}
-
-bool GLFWRenderer::unregisterSSBOId(const std::string& name)
-{
-    CHECK_THIS_CONTEXT
-    if (auto it = m_SSBOIds.find(name); it != m_SSBOIds.end())
-    {
-        m_SSBOIds.erase(it);
-        return true;
-    }
-
-    LOG_ERROR << "SSBO " << name << " has not been registered";
-    return false;
-}
-
-uint16_t GLFWRenderer::SSBOIdByName(const std::string& name) const
-{
-    CHECK_THIS_CONTEXT
-    auto it = m_SSBOIds.find(name);
-    return it != m_SSBOIds.end() ? it->second : 0u;
-}
-
 std::shared_ptr<core::graphics::IBuffer> GLFWRenderer::createBuffer(size_t size, const void *data) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return Buffer_4_5::create(size, data);
 }
 
 std::shared_ptr<core::graphics::IDynamicBuffer> GLFWRenderer::createDynamicBuffer(size_t size, const void* data) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return DynamicBuffer_4_5::create(size, data);
 }
 
-std::shared_ptr<core::graphics::IVertexArray> GLFWRenderer::createVertexArray(const std::shared_ptr<const utils::Mesh> &mesh,
-                                                                                       bool uniteVertexBuffers) const
+std::shared_ptr<core::graphics::IVertexArray> GLFWRenderer::createVertexArray() const
 {
-    CHECK_THIS_CONTEXT
-    return VertexArray_4_5::create(mesh, uniteVertexBuffers);
+    CHECK_THIS_CONTEXT;
+    return VertexArray_4_5::create();
 }
 
 std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture1DEmpty(uint32_t width,
                                                                                       core::graphics::PixelInternalFormat internalFormat,
                                                                                       uint32_t numLevels) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return Texture1D_4_5::createEmpty(width, internalFormat, numLevels);
 }
 
@@ -3745,7 +3514,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture1D(const st
                                                                                  uint32_t numLevels,
                                                                                  bool genMipmaps) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return Texture1D_4_5::create(image, internalFormat, numLevels, genMipmaps);
 }
 
@@ -3754,7 +3523,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture2DEmpty(uin
                                                                                       core::graphics::PixelInternalFormat internalFormat,
                                                                                       uint32_t numLevels) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return Texture2D_4_5::createEmpty(width, height, internalFormat, numLevels);
 }
 
@@ -3763,7 +3532,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture2D(const st
                                                                                  uint32_t numLevels,
                                                                                  bool genMipmaps) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return Texture2D_4_5::create(image, internalFormat, numLevels, genMipmaps);
 }
 
@@ -3773,7 +3542,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture3DEmpty(uin
                                                                                       core::graphics::PixelInternalFormat internalFormat,
                                                                                       uint32_t numLevels) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return Texture3D_4_5::createEmpty(width, height, depth, internalFormat, numLevels);
 }
 
@@ -3782,7 +3551,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture3D(const st
                                                                                  uint32_t numLevels,
                                                                                  bool genMipmaps) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return Texture3D_4_5::create(images, internalFormat, numLevels, genMipmaps);
 }
 
@@ -3791,7 +3560,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureCubeEmpty(u
                                                                                         core::graphics::PixelInternalFormat internalFormat,
                                                                                         uint32_t numLevels) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return TextureCube_4_5::createEmpty(width, height, internalFormat, numLevels);
 }
 
@@ -3800,7 +3569,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureCube(const 
                                                                                    uint32_t numLevels,
                                                                                    bool genMipmaps) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return TextureCube_4_5::create(images, internalFormat, numLevels, genMipmaps);
 }
 
@@ -3809,7 +3578,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture1DArrayEmpt
                                                                                            core::graphics::PixelInternalFormat internalFormat,
                                                                                            uint32_t numLevels) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return Texture1DArray_4_5::createEmpty(width, numLayers, internalFormat, numLevels);
 }
 
@@ -3818,7 +3587,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture1DArray(con
                                                                                       uint32_t numLevels,
                                                                                       bool genMipmaps) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return Texture1DArray_4_5::create(images, internalFormat, numLevels, genMipmaps);
 }
 
@@ -3828,7 +3597,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture2DArrayEmpt
                                                                                            core::graphics::PixelInternalFormat internalFormat,
                                                                                            uint32_t numLevels) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return Texture2DArray_4_5::createEmpty(width, height, numLayers, internalFormat, numLevels);
 }
 
@@ -3837,7 +3606,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTexture2DArray(con
                                                                                       uint32_t numLevels,
                                                                                       bool genMipmaps) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return Texture2DArray_4_5::create(images, internalFormat, numLevels, genMipmaps);
 }
 
@@ -3847,7 +3616,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureCubeArrayEm
                                                                                              core::graphics::PixelInternalFormat internalFormat,
                                                                                              uint32_t numLevels) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return TextureCubeArray_4_5::createEmpty(width, height, numLayers, internalFormat, numLevels);
 }
 
@@ -3856,7 +3625,7 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureCubeArray(c
                                                                                         uint32_t numLevels,
                                                                                         bool genMipmaps) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return TextureCubeArray_4_5::create(images, internalFormat, numLevels, genMipmaps);
 }
 
@@ -3864,50 +3633,42 @@ std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureRectEmpty(u
                                                                                         uint32_t height,
                                                                                         core::graphics::PixelInternalFormat internalFormat) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return TextureRect_4_5::createEmpty(width, height, internalFormat);
 }
 
 std::shared_ptr<core::graphics::ITexture> GLFWRenderer::createTextureRect(const std::shared_ptr<const utils::Image> &image,
                                                                                    core::graphics::PixelInternalFormat internalFormat) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return TextureRect_4_5::create(image, internalFormat);
 }
 
 std::shared_ptr<core::graphics::ITextureHandle> GLFWRenderer::createTextureHandle(
     const core::graphics::PConstTexture& texture) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return TextureHandle_4_5::create(texture);
-}
-
-std::shared_ptr<core::graphics::IImage> GLFWRenderer::createImage(core::graphics::IImage::DataAccess access,
-                                                                           const core::graphics::PConstTexture &texture,
-                                                                           uint32_t level) const
-{
-    CHECK_THIS_CONTEXT
-    return Image_4_5::create(access, texture, level);
 }
 
 std::shared_ptr<core::graphics::IRenderBuffer> GLFWRenderer::createRenderBuffer(uint32_t width,
                                                                                          uint32_t height,
                                                                                          core::graphics::PixelInternalFormat internalFormat) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return RenderBuffer_4_5::create(width, height, internalFormat);
 }
 
 std::shared_ptr<core::graphics::IFrameBuffer> GLFWRenderer::createFrameBuffer() const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return FrameBuffer_4_5::create();
 }
 
 std::shared_ptr<core::graphics::IRenderProgram> GLFWRenderer::createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
                                                                                            const std::shared_ptr<utils::Shader> &fragmentShader) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return RenderProgram_4_5::create(vertexShader, fragmentShader);
 }
 
@@ -3915,38 +3676,424 @@ std::shared_ptr<core::graphics::IRenderProgram> GLFWRenderer::createRenderProgra
                                                                                            const std::shared_ptr<utils::Shader> &geometryShader,
                                                                                            const std::shared_ptr<utils::Shader> &fragmentShader) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return RenderProgram_4_5::create(vertexShader, geometryShader, fragmentShader);
 }
 
 std::shared_ptr<core::graphics::IComputeProgram> GLFWRenderer::createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     return ComputeProgram_4_5::create(computeShader);
 }
 
-const core::graphics::SupportedImageFormats & GLFWRenderer::supportedImageFormats() const
+void GLFWRenderer::compute(
+    const std::shared_ptr<core::graphics::IComputeProgram>& computeProgram,
+    const glm::uvec3& numInvocations,
+    const core::StateSetList& stateSetList)
 {
-    CHECK_THIS_CONTEXT
-    return Image_4_5::supportedImageFormats();
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupCompute(computeProgram, stateSetList);
+
+    auto numWorkGroups = glm::uvec3(glm::ceil(glm::vec3(numInvocations) / glm::vec3(computeProgram->workGroupSize())) + glm::vec3(.5f));
+    glDispatchCompute(numWorkGroups.x, numWorkGroups.y, numWorkGroups.z);
+
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}
+
+void GLFWRenderer::drawArrays(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList, 
+    utils::PrimitiveType primitiveType,
+    size_t first,
+    size_t count)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+
+    glDrawArrays(
+        Conversions::PrimitiveType2GL(primitiveType),
+        static_cast<GLint>(first),
+        static_cast<GLsizei>(count));
+}
+
+void GLFWRenderer::drawElements(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    size_t count,
+    utils::DrawElementsIndexType indexType,
+    size_t offset)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+
+    glDrawElements(
+        Conversions::PrimitiveType2GL(primitiveType),
+        static_cast<GLsizei>(count),
+        Conversions::DrawElementsIndexType2GL(indexType),
+        reinterpret_cast<const void*>(offset));
+}
+
+void GLFWRenderer::multiDrawArrays(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    const std::vector<size_t>& firsts,
+    const std::vector<size_t>& counts)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    const auto count = firsts.size();
+    if (counts.size() != count)
+    {
+        LOG_CRITICAL << "The arrays \"firsts\" and \"counts\" have different sizes";
+        return;
+    }
+
+    std::vector<GLint> GLFirsts(count);
+    std::vector<GLsizei> GLCounts(count);
+    for (size_t i = 0u; i < count; ++i)
+    {
+        GLFirsts[i] = static_cast<GLint>(firsts[i]);
+        GLCounts[i] = static_cast<GLsizei>(counts[i]);
+    }
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+
+    glMultiDrawArrays(
+        Conversions::PrimitiveType2GL(primitiveType),
+        GLFirsts.data(),
+        GLCounts.data(),
+        static_cast<GLsizei>(count));
+}
+
+void GLFWRenderer::multiDrawElements(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    const std::vector<size_t>& counts,
+    utils::DrawElementsIndexType indexType,
+    const std::vector<size_t>& offsets)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    const auto count = counts.size();
+    if (offsets.size() != count)
+    {
+        LOG_CRITICAL << "The arrays \"counts\" and \"offsets\" have different sizes";
+        return;
+    }
+
+    std::vector<GLsizei> GLCounts(count);
+    std::vector<void*> GLIndices(count);
+    for (size_t i = 0u; i < count; ++i)
+    {
+        GLCounts[i] = static_cast<GLint>(counts[i]);
+        GLIndices[i] = reinterpret_cast<void*>(offsets[i]);
+    }
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+
+    glMultiDrawElements(
+        Conversions::PrimitiveType2GL(primitiveType),
+        GLCounts.data(),
+        Conversions::DrawElementsIndexType2GL(indexType),
+        GLIndices.data(),
+        static_cast<GLsizei>(count));
+}
+
+void GLFWRenderer::drawElementsBaseVertex(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    size_t count,
+    utils::DrawElementsIndexType indexType,
+    size_t offset,
+    uint32_t baseVertex)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+
+    glDrawElementsBaseVertex(
+        Conversions::PrimitiveType2GL(primitiveType),
+        static_cast<GLsizei>(count),
+        Conversions::DrawElementsIndexType2GL(indexType),
+        reinterpret_cast<const void*>(offset),
+        static_cast<GLint>(baseVertex));
+}
+
+void GLFWRenderer::drawArraysInstanced(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    size_t first,
+    size_t count,
+    size_t numInstances)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+
+    glDrawArraysInstanced(
+        Conversions::PrimitiveType2GL(primitiveType),
+        static_cast<GLint>(first),
+        static_cast<GLsizei>(count),
+        static_cast<GLsizei>(numInstances));
+}
+
+void GLFWRenderer::drawElementsInstanced(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    size_t count,
+    utils::DrawElementsIndexType indexType,
+    size_t offset,
+    size_t numInstances)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+
+    glDrawElementsInstanced(
+        Conversions::PrimitiveType2GL(primitiveType),
+        static_cast<GLsizei>(count),
+        Conversions::DrawElementsIndexType2GL(indexType),
+        reinterpret_cast<const void*>(offset),
+        static_cast<GLsizei>(numInstances));
+}
+
+void GLFWRenderer::drawArraysInstancedBaseInstance(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    size_t first,
+    size_t count,
+    size_t numInstances,
+    uint32_t baseInstance)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+
+    glDrawArraysInstancedBaseInstance(
+        Conversions::PrimitiveType2GL(primitiveType),
+        static_cast<GLint>(first),
+        static_cast<GLsizei>(count),
+        static_cast<GLsizei>(numInstances),
+        static_cast<GLuint>(baseInstance));
+}
+
+void GLFWRenderer::drawElementsInstancedBaseInstance(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    size_t count,
+    utils::DrawElementsIndexType indexType,
+    size_t offset,
+    size_t numInstances,
+    uint32_t baseInstance)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+
+    glDrawElementsInstancedBaseInstance(
+        Conversions::PrimitiveType2GL(primitiveType),
+        static_cast<GLsizei>(count),
+        Conversions::DrawElementsIndexType2GL(indexType),
+        reinterpret_cast<const void*>(offset),
+        static_cast<GLsizei>(numInstances),
+        static_cast<GLuint>(baseInstance));
+}
+
+void GLFWRenderer::drawArraysIndirect(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    const std::shared_ptr<const core::graphics::BufferRange>& commandsBufferRange)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(commandsBufferRange->buffer());
+
+    glDrawArraysIndirect(
+        Conversions::PrimitiveType2GL(primitiveType),
+        reinterpret_cast<const void*>(commandsBufferRange->offset()));
+}
+
+void GLFWRenderer::drawElementsIndirect(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    utils::DrawElementsIndexType indexType,
+    const std::shared_ptr<const core::graphics::BufferRange>& commandsBufferRange)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(commandsBufferRange->buffer());
+
+    glDrawElementsIndirect(
+        Conversions::PrimitiveType2GL(primitiveType),
+        Conversions::DrawElementsIndexType2GL(indexType),
+        reinterpret_cast<const void*>(commandsBufferRange->offset()));
+}
+
+void GLFWRenderer::multiDrawArraysIndirect(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    const std::shared_ptr<const core::graphics::BufferRange>& drawIndirectBufferRange,
+    size_t count)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(drawIndirectBufferRange->buffer());
+
+    glMultiDrawArraysIndirect(
+        Conversions::PrimitiveType2GL(primitiveType),
+        reinterpret_cast<const void*>(drawIndirectBufferRange->offset()),
+        static_cast<GLsizei>(count),
+        static_cast<GLsizei>(0u));
+}
+
+void GLFWRenderer::multiDrawElementsIndirect(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    utils::DrawElementsIndexType indexType,
+    const std::shared_ptr<const core::graphics::BufferRange>& drawIndirectBufferRange,
+    size_t count)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(drawIndirectBufferRange->buffer());
+
+    glMultiDrawElementsIndirect(
+        Conversions::PrimitiveType2GL(primitiveType),
+        Conversions::DrawElementsIndexType2GL(indexType),
+        reinterpret_cast<const void*>(drawIndirectBufferRange->offset()),
+        static_cast<GLsizei>(count),
+        static_cast<GLsizei>(0u));
+}
+
+void GLFWRenderer::multiDrawArraysIndirectCount(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    const std::shared_ptr<const core::graphics::BufferRange>& drawIndirectBufferRange,
+    const std::shared_ptr<const core::graphics::BufferRange>& parameterBufferRange,
+    size_t maxDrawCount)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(drawIndirectBufferRange->buffer());
+    bindParameterBuffer(parameterBufferRange->buffer());
+
+    glMultiDrawArraysIndirectCount(
+        Conversions::PrimitiveType2GL(primitiveType),
+        reinterpret_cast<const void*>(drawIndirectBufferRange->offset()),
+        static_cast<GLintptr>(parameterBufferRange->offset()),
+        static_cast<GLsizei>(maxDrawCount),
+        static_cast<GLsizei>(0u));
+}
+
+void GLFWRenderer::multiDrawElementsIndirectCount(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList,
+    utils::PrimitiveType primitiveType,
+    utils::DrawElementsIndexType indexType,
+    const std::shared_ptr<const core::graphics::BufferRange>& drawIndirectBufferRange,
+    const std::shared_ptr<const core::graphics::BufferRange>& parameterBufferRange,
+    size_t maxDrawCount)
+{
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
+
+    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(drawIndirectBufferRange->buffer());
+    bindParameterBuffer(parameterBufferRange->buffer());
+
+    /*tmp*/std::dynamic_pointer_cast<FrameBufferBase_4_5>(framebuffer)->clear();
+
+    glMultiDrawElementsIndirectCountARB(
+        Conversions::PrimitiveType2GL(primitiveType),
+        Conversions::DrawElementsIndexType2GL(indexType),
+        reinterpret_cast<const void*>(drawIndirectBufferRange->offset()),
+        static_cast<GLintptr>(parameterBufferRange->offset()),
+        static_cast<GLsizei>(maxDrawCount),
+        static_cast<GLsizei>(0u));
 }
 
 void GLFWRenderer::clearRenderData()
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     m_renderData.clear();
 }
 
 void GLFWRenderer::addRenderData(const std::shared_ptr<core::graphics::IRenderProgram> &renderProgram,
-                                          const std::shared_ptr<const core::Drawable> &drawable,
+                                          const std::shared_ptr<core::Drawable> &drawable,
                                           const glm::mat4x4 &transform)
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     auto renderProgram_4_5 = std::dynamic_pointer_cast<RenderProgram_4_5>(renderProgram);
     if (!renderProgram_4_5)
         LOG_CRITICAL << "Render program can't be nullptr";
 
-    CHECK_RESOURCE_CONTEXT(renderProgram_4_5)
+    CHECK_RESOURCE_CONTEXT(renderProgram_4_5);
 
     if (!drawable)
         LOG_CRITICAL << "Drawable can't be nullptr";
@@ -3956,87 +4103,16 @@ void GLFWRenderer::addRenderData(const std::shared_ptr<core::graphics::IRenderPr
 
 void GLFWRenderer::render(const std::shared_ptr<core::graphics::IFrameBuffer> &frameBuffer,
                                    const glm::uvec4 &viewport,
-                                   const glm::mat4x4 &viewMatrix,
-                                   const glm::mat4x4 &projectionMatrix,
-                                   const core::PConstStateSet &globalStateSet)
+                                   const std::shared_ptr<const core::StateSet>& globalStateSet)
 {
-    CHECK_THIS_CONTEXT
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    CHECK_THIS_CONTEXT;
+    DEFAULT_SETUP;
 
     auto frameBuffer_4_5 = std::dynamic_pointer_cast<FrameBufferBase_4_5>(frameBuffer);
     if (!frameBuffer_4_5)
         LOG_CRITICAL << "Framebuffer can't be nullptr";
+    CHECK_RESOURCE_CONTEXT(frameBuffer_4_5);
 
-    CHECK_RESOURCE_CONTEXT(frameBuffer_4_5)
-
-    if (frameBuffer_4_5->faceCulling())
-    {
-        glCullFace(Conversions::FaceType2GL(frameBuffer_4_5->cullFaceType()));
-        glEnable(GL_CULL_FACE);
-    }
-    else
-        glDisable(GL_CULL_FACE);
-
-    for (uint16_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
-    {
-        GLboolean mask = frameBuffer_4_5->colorMask(i);
-        glColorMaski(i, mask, mask, mask, mask);
-    }
-
-    if (frameBuffer_4_5->depthTest())
-    {
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(Conversions::ComparingFunc2GL(frameBuffer_4_5->depthFunc()));
-        glDepthMask(frameBuffer_4_5->depthMask());
-    }
-    else
-        glDisable(GL_DEPTH_TEST);
-
-    if (frameBuffer_4_5->stencilTest())
-    {
-        glEnable(GL_STENCIL_TEST);
-        for (const auto &face : {core::graphics::FaceType::Front, core::graphics::FaceType::Back})
-        {
-            const auto &operations = frameBuffer_4_5->stencilOperations(face);
-
-            glStencilOpSeparate(Conversions::FaceType2GL(face),
-                                Conversions::StencilOperation2GL(operations[0]),
-                                Conversions::StencilOperation2GL(operations[1]),
-                                Conversions::StencilOperation2GL(operations[2]));
-
-            glStencilFuncSeparate(Conversions::FaceType2GL(face),
-                                  Conversions::ComparingFunc2GL(frameBuffer_4_5->stencilComparingFunc(face)),
-                frameBuffer_4_5->stencilReferenceValue(face),
-                frameBuffer_4_5->stencilMaskValue(face));
-        }
-    }
-    else
-        glDisable(GL_STENCIL_TEST);
-
-    if (frameBuffer_4_5->blending())
-    {
-        glEnable(GL_BLEND);
-
-        auto blendConstantColor = frameBuffer_4_5->blendConstantColor();
-        glBlendColor(blendConstantColor.r, blendConstantColor.g, blendConstantColor.b, frameBuffer_4_5->blendConstantAlpha());
-
-        for (uint16_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
-        {
-            glBlendEquationSeparatei(i,
-                                     Conversions::BlendEquetion2GL(frameBuffer_4_5->blendColorEquation(i)),
-                                     Conversions::BlendEquetion2GL(frameBuffer_4_5->blendAlphaEquation(i)));
-            glBlendFuncSeparatei(i,
-                                 Conversions::BlendFactor2GL(frameBuffer_4_5->blendColorSourceFactor(i)),
-                                 Conversions::BlendFactor2GL(frameBuffer_4_5->blendColorDestinationFactor(i)),
-                                 Conversions::BlendFactor2GL(frameBuffer_4_5->blendAlphaSourceFactor(i)),
-                                 Conversions::BlendFactor2GL(frameBuffer_4_5->blendAlphaDestinationFactor(i)));
-        }
-    }
-    else
-        glDisable(GL_BLEND);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer_4_5->id());
     frameBuffer_4_5->clear();
 
     glViewport(static_cast<GLint>(viewport.x),
@@ -4045,34 +4121,18 @@ void GLFWRenderer::render(const std::shared_ptr<core::graphics::IFrameBuffer> &f
                static_cast<GLsizei>(viewport.w));
 
     auto mvpStateSet = std::make_shared<MVPStateSet>();
-    mvpStateSet->setViewportSize(glm::uvec2(viewport.z, viewport.w));
-    mvpStateSet->setViewMatrix(viewMatrix);
-    mvpStateSet->setProjectionMatrix(projectionMatrix);
 
     for (auto &renderData : m_renderData)
     {
         auto &drawable = std::get<2>(renderData);
-
-        auto vao_4_5 = std::dynamic_pointer_cast<const VertexArray_4_5>(drawable->vertexArray());
-        if (!vao_4_5)
-            LOG_CRITICAL << "VAO can't be nullptr";
-        CHECK_RESOURCE_CONTEXT(vao_4_5)
-        glBindVertexArray(vao_4_5->id());
-
-        auto renderProgram_4_5 = std::get<1>(renderData);
-        if (!renderProgram_4_5)
-            LOG_CRITICAL << "Render program can't be nullptr";
-        CHECK_RESOURCE_CONTEXT(renderProgram_4_5)
+        auto VAOMesh = drawable->vertexArray();
 
         mvpStateSet->setModelMatrix(std::get<0>(renderData));
-        std::list<core::PConstStateSet> stateSetList {globalStateSet, mvpStateSet, drawable};
+        core::StateSetList stateSetList {globalStateSet, mvpStateSet, drawable};
 
-        glUseProgram(renderProgram_4_5->id());
-        setupVertexAttributes(renderProgram_4_5, vao_4_5);
-        setupUniforms(renderProgram_4_5, stateSetList);
-        setupSSBOs(renderProgram_4_5, stateSetList);
+        setupRender(std::get<1>(renderData), frameBuffer, VAOMesh->vao(), stateSetList);
 
-        for (auto &primitiveSet : vao_4_5->primitiveSets())
+        for (auto &primitiveSet : VAOMesh->primitiveSets())
         {
             if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
                 glDrawArrays(Conversions::PrimitiveType2GL(drawArrays->primitiveType()),
@@ -4086,28 +4146,6 @@ void GLFWRenderer::render(const std::shared_ptr<core::graphics::IFrameBuffer> &f
                                          static_cast<GLint>(drawElements->baseVertex()));
         }
     }
-
-    glMemoryBarrier(GL_ALL_BARRIER_BITS);
-}
-
-void GLFWRenderer::compute(const std::shared_ptr<core::graphics::IComputeProgram> &computeProgram,
-                                    const glm::uvec3 &numInvocations,
-                                    const core::PConstStateSet &globalStateSet)
-{
-    CHECK_THIS_CONTEXT
-    auto computeProgram_4_5 = std::dynamic_pointer_cast<ComputeProgram_4_5>(computeProgram);
-    if (!computeProgram_4_5)
-        LOG_CRITICAL << "Compute program can't be nullptr";
-    CHECK_RESOURCE_CONTEXT(computeProgram_4_5)
-
-    std::list<core::PConstStateSet> stateSetList {globalStateSet};
-
-    glUseProgram(computeProgram_4_5->id());
-    setupUniforms(computeProgram_4_5, stateSetList);
-    setupSSBOs(computeProgram_4_5, stateSetList);
-
-    auto numWorkGroups = glm::uvec3(glm::ceil(glm::vec3(numInvocations) / glm::vec3(computeProgram->workGroupSize())) + glm::vec3(.5f));
-    glDispatchCompute(numWorkGroups.x, numWorkGroups.y, numWorkGroups.z);
 
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
@@ -4135,151 +4173,403 @@ bool GLFWRenderer::doDoneCurrent()
     return true;
 }
 
-void GLFWRenderer::setupVertexAttributes(const std::shared_ptr<RenderProgram_4_5> &renderProgram,
-                                                  const std::shared_ptr<const VertexArray_4_5> &vao)
+void GLFWRenderer::setupCompute(
+    const std::shared_ptr<core::graphics::IComputeProgram>& computeProgram,
+    const core::StateSetList& stateSetList)
 {
-    CHECK_THIS_CONTEXT
-    CHECK_RESOURCE_CONTEXT(renderProgram)
-    CHECK_RESOURCE_CONTEXT(vao)
+    CHECK_THIS_CONTEXT;
+
+    auto computeProgram_4_5 = std::dynamic_pointer_cast<ComputeProgram_4_5>(computeProgram);
+    if (!computeProgram_4_5)
+        LOG_CRITICAL << "Compute program can't be nullptr";
+    CHECK_RESOURCE_CONTEXT(computeProgram_4_5);
+    glUseProgram(computeProgram_4_5->id());
+
+    setupUniforms(computeProgram_4_5, stateSetList);
+    setupSSBOs(computeProgram_4_5, stateSetList);
+}
+
+void GLFWRenderer::setupRender(
+    const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
+    const std::shared_ptr<core::graphics::IFrameBuffer>& framebufferBase,
+    const std::shared_ptr<core::graphics::IVertexArray>& VAO,
+    const core::StateSetList& stateSetList)
+{
+    CHECK_THIS_CONTEXT;
+
+    auto frameBufferBase_4_5 = std::dynamic_pointer_cast<FrameBufferBase_4_5>(framebufferBase);
+    if (!frameBufferBase_4_5)
+        LOG_CRITICAL << "Framebuffer can't be nullptr";
+    CHECK_RESOURCE_CONTEXT(frameBufferBase_4_5);
+
+    auto vao_4_5 = std::dynamic_pointer_cast<VertexArray_4_5>(VAO);
+    if (!vao_4_5)
+        LOG_CRITICAL << "VAO can't be nullptr";
+    CHECK_RESOURCE_CONTEXT(vao_4_5);
+
+    auto renderProgram_4_5 = std::dynamic_pointer_cast<RenderProgram_4_5>(renderProgram);
+    if (!renderProgram_4_5)
+        LOG_CRITICAL << "Render program can't be nullptr";
+    CHECK_RESOURCE_CONTEXT(renderProgram_4_5);
+    glUseProgram(renderProgram_4_5->id());
+
+    setupFramebuffer(renderProgram_4_5, frameBufferBase_4_5);
+    setupVAO(renderProgram_4_5, vao_4_5);
+
+    setupUniforms(renderProgram_4_5, stateSetList);
+    setupSSBOs(renderProgram_4_5, stateSetList);
+}
+
+void GLFWRenderer::setupFramebuffer(
+    const std::shared_ptr<const RenderProgram_4_5>& renderProgram,
+    const std::shared_ptr<FrameBufferBase_4_5>& framebuffer)
+{
+    CHECK_THIS_CONTEXT;
+    CHECK_RESOURCE_CONTEXT(renderProgram);
+    CHECK_RESOURCE_CONTEXT(framebuffer);
+
+    if (framebuffer->faceCulling())
+    {
+        glCullFace(Conversions::FaceType2GL(framebuffer->cullFaceType()));
+        glEnable(GL_CULL_FACE);
+    }
+    else
+        glDisable(GL_CULL_FACE);
+
+    for (uint16_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
+    {
+        GLboolean mask = framebuffer->colorMask(i);
+        glColorMaski(i, mask, mask, mask, mask);
+    }
+
+    if (framebuffer->depthTest())
+    {
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(Conversions::ComparingFunc2GL(framebuffer->depthFunc()));
+        glDepthMask(framebuffer->depthMask());
+    }
+    else
+        glDisable(GL_DEPTH_TEST);
+
+    if (framebuffer->stencilTest())
+    {
+        glEnable(GL_STENCIL_TEST);
+        for (const auto& face : { core::graphics::FaceType::Front, core::graphics::FaceType::Back })
+        {
+            const auto& operations = framebuffer->stencilOperations(face);
+
+            glStencilOpSeparate(Conversions::FaceType2GL(face),
+                Conversions::StencilOperation2GL(operations[0]),
+                Conversions::StencilOperation2GL(operations[1]),
+                Conversions::StencilOperation2GL(operations[2]));
+
+            glStencilFuncSeparate(Conversions::FaceType2GL(face),
+                Conversions::ComparingFunc2GL(framebuffer->stencilComparingFunc(face)),
+                framebuffer->stencilReferenceValue(face),
+                framebuffer->stencilMaskValue(face));
+        }
+    }
+    else
+        glDisable(GL_STENCIL_TEST);
+
+    if (framebuffer->blending())
+    {
+        glEnable(GL_BLEND);
+
+        auto blendConstantColor = framebuffer->blendConstantColor();
+        glBlendColor(blendConstantColor.r, blendConstantColor.g, blendConstantColor.b, framebuffer->blendConstantAlpha());
+
+        for (uint16_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
+        {
+            glBlendEquationSeparatei(i,
+                Conversions::BlendEquetion2GL(framebuffer->blendColorEquation(i)),
+                Conversions::BlendEquetion2GL(framebuffer->blendAlphaEquation(i)));
+            glBlendFuncSeparatei(i,
+                Conversions::BlendFactor2GL(framebuffer->blendColorSourceFactor(i)),
+                Conversions::BlendFactor2GL(framebuffer->blendColorDestinationFactor(i)),
+                Conversions::BlendFactor2GL(framebuffer->blendAlphaSourceFactor(i)),
+                Conversions::BlendFactor2GL(framebuffer->blendAlphaDestinationFactor(i)));
+        }
+    }
+    else
+        glDisable(GL_BLEND);
+
+    int32_t maxOuputLocation = -1;
+    for (const auto& outputInfo : renderProgram->outputsInfo())
+        maxOuputLocation = glm::max(maxOuputLocation, outputInfo.location);
+
+    std::vector<GLenum> bufs(static_cast<size_t>(maxOuputLocation + 1), GL_NONE);
+    for (const auto& outputInfo : renderProgram->outputsInfo())
+    {
+        if (outputInfo.ID == core::graphics::FrameBufferAttachment::Count)
+            LOG_CRITICAL << "Output \"" << renderProgram->outputNameByIndex(outputInfo.index) << "\" is undefined";
+
+        bufs[static_cast<size_t>(outputInfo.location)] =
+            GL_COLOR_ATTACHMENT0 + core::graphics::FrameBufferColorAttachmentIndex(outputInfo.ID);
+    }
+    glNamedFramebufferDrawBuffers(framebuffer->id(), static_cast<GLsizei>(bufs.size()), bufs.data());
+
+    if (!framebuffer->isComplete())
+    {
+        LOG_CRITICAL << "Frame buffer is not complete";
+        return;
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->id());
+
+    /* Uncomment this when GLFWRenderer::render method is removed */
+    //framebuffer->clear();
+}
+
+void GLFWRenderer::setupVAO(
+    const std::shared_ptr<const RenderProgram_4_5> &renderProgram,
+    const std::shared_ptr<VertexArray_4_5> &vao)
+{
+    CHECK_THIS_CONTEXT;
+    CHECK_RESOURCE_CONTEXT(renderProgram);
+    CHECK_RESOURCE_CONTEXT(vao);
+
     for (const auto &attributeInfo : renderProgram->attributesInfo())
     {
-        if (attributeInfo.id == utils::VertexAttribute::Count)
-            continue;
+        if (attributeInfo.ID == utils::VertexAttribute::Count)
+            LOG_CRITICAL << "Attribute \"" << renderProgram->attributeNameByIndex(attributeInfo.index) << "\" is undefined";
 
         // TODO: component type can be different for integer vertex attributes
 //        if (attributeInfo.componentType != vao->vertexAttributeComponentType(attributeInfo.id))
 //            LOG_CRITICAL << "Vertex attribute \"" << renderProgram->attributeNameByIndex(attributeInfo.index) << "\" has wrong component type";
 
-        if (attributeInfo.numComponents != vao->vertexAttributeNumComponents(attributeInfo.id))
+        if (attributeInfo.numComponents != vao->vertexAttributeNumComponents(attributeInfo.ID))
             LOG_CRITICAL << "Vertex attribute \"" << renderProgram->attributeNameByIndex(attributeInfo.index) << "\" has wrong number of components";
+    
+        vao->setupVertexAttrubute(attributeInfo.ID, attributeInfo.location);
     }
+
+    glBindVertexArray(vao->id());
 }
 
-void GLFWRenderer::setupUniform(GLuint rpId,
-                                         GLint loc,
-                                         int32_t &textureUnit,
-                                         int32_t &imageUnit,
-                                         const core::PConstAbstractUniform &uniform)
+bool GLFWRenderer::setupUniform(
+    GLuint rpId,
+    core::graphics::UniformType type,
+    GLint loc,
+    int32_t &textureUnit,
+    int32_t &imageUnit,
+    const core::PConstAbstractUniform &abstactUniform)
 {
-    CHECK_THIS_CONTEXT
-    if (!uniform)
+    CHECK_THIS_CONTEXT;
+    auto result = false;
+    if (!abstactUniform)
+    {
         LOG_CRITICAL << "Uniform can't be nullptr";
+        return result;
+    }
 
-    switch (uniform->type())
+    switch (type)
     {
     case core::graphics::UniformType::Bool:
     {
-        glProgramUniform1i(rpId, loc, core::uniform_cast<bool>(uniform)->data());
+        if (auto uniform = core::uniform_cast<bool>(abstactUniform))
+        {
+            glProgramUniform1i(rpId, loc, uniform->data());
+            result = true;
+        }
         break;
     }
     case core::graphics::UniformType::Single:
     {
-        glProgramUniform1f(rpId, loc, core::uniform_cast<float>(uniform)->data());
+        if (auto uniform = core::uniform_cast<float>(abstactUniform))
+        {
+            glProgramUniform1f(rpId, loc, uniform->data());
+            result = true;
+        }
         break;
     }
     case core::graphics::UniformType::SingleVec2:
     {
-        glProgramUniform2fv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::vec2>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::vec2>(abstactUniform))
+        {
+            glProgramUniform2fv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+            result = true;
+        }
         break;
     }
     case core::graphics::UniformType::SingleVec3:
     {
-        glProgramUniform3fv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::vec3>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::vec3>(abstactUniform))
+        {
+        glProgramUniform3fv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::SingleVec4:
     {
-        glProgramUniform4fv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::vec4>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::vec4>(abstactUniform))
+        {
+        glProgramUniform4fv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::SingleMat2:
     {
-        glProgramUniformMatrix2fv(rpId, loc, 1, GL_FALSE, glm::value_ptr(core::uniform_cast<glm::mat2x2>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::mat2x2>(abstactUniform))
+        {
+        glProgramUniformMatrix2fv(rpId, loc, 1, GL_FALSE, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::SingleMat3:
     {
-        glProgramUniformMatrix3fv(rpId, loc, 1, GL_FALSE, glm::value_ptr(core::uniform_cast<glm::mat3x3>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::mat3x3>(abstactUniform))
+        {
+        glProgramUniformMatrix3fv(rpId, loc, 1, GL_FALSE, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::SingleMat4:
     {
-        glProgramUniformMatrix4fv(rpId, loc, 1, GL_FALSE, glm::value_ptr(core::uniform_cast<glm::mat4x4>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::mat4x4>(abstactUniform))
+        {
+        glProgramUniformMatrix4fv(rpId, loc, 1, GL_FALSE, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::Double:
     {
-        glProgramUniform1d(rpId, loc, core::uniform_cast<double>(uniform)->data());
+        if (auto uniform = core::uniform_cast<double>(abstactUniform))
+        {
+        glProgramUniform1d(rpId, loc, uniform->data());
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::DoubleVec2:
     {
-        glProgramUniform2dv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::dvec2>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::dvec2>(abstactUniform))
+        {
+        glProgramUniform2dv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::DoubleVec3:
     {
-        glProgramUniform3dv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::dvec3>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::dvec3>(abstactUniform))
+        {
+        glProgramUniform3dv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::DoubleVec4:
     {
-        glProgramUniform4dv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::dvec4>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::dvec4>(abstactUniform))
+        {
+        glProgramUniform4dv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::DoubleMat2:
     {
-        glProgramUniformMatrix2dv(rpId, loc, 1, GL_FALSE, glm::value_ptr(core::uniform_cast<glm::dmat2x2>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::dmat2x2>(abstactUniform))
+        {
+        glProgramUniformMatrix2dv(rpId, loc, 1, GL_FALSE, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::DoubleMat3:
     {
-        glProgramUniformMatrix3dv(rpId, loc, 1, GL_FALSE, glm::value_ptr(core::uniform_cast<glm::dmat3x3>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::dmat3x3>(abstactUniform))
+        {
+        glProgramUniformMatrix3dv(rpId, loc, 1, GL_FALSE, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::DoubleMat4:
     {
-        glProgramUniformMatrix4dv(rpId, loc, 1, GL_FALSE, glm::value_ptr(core::uniform_cast<glm::dmat4x4>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::dmat4x4>(abstactUniform))
+        {
+        glProgramUniformMatrix4dv(rpId, loc, 1, GL_FALSE, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::Int32:
     {
-        glProgramUniform1i(rpId, loc, core::uniform_cast<int32_t>(uniform)->data());
+        if (auto uniform = core::uniform_cast<int32_t>(abstactUniform))
+        {
+        glProgramUniform1i(rpId, loc, uniform->data());
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::Int32Vec2:
     {
-        glProgramUniform2iv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::i32vec2>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::i32vec2>(abstactUniform))
+        {
+        glProgramUniform2iv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::Int32Vec3:
     {
-        glProgramUniform3iv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::i32vec3>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::i32vec3>(abstactUniform))
+        {
+        glProgramUniform3iv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::Int32Vec4:
     {
-        glProgramUniform4iv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::i32vec4>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::i32vec4>(abstactUniform))
+        {
+        glProgramUniform4iv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::Uint32:
     {
-        glProgramUniform1ui(rpId, loc, core::uniform_cast<uint32_t>(uniform)->data());
+        if (auto uniform = core::uniform_cast<uint32_t>(abstactUniform))
+        {
+        glProgramUniform1ui(rpId, loc, uniform->data());
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::Uint32Vec2:
     {
-        glProgramUniform2uiv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::u32vec2>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::u32vec2>(abstactUniform))
+        {
+        glProgramUniform2uiv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::Uint32Vec3:
     {
-        glProgramUniform3uiv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::u32vec3>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::u32vec3>(abstactUniform))
+        {
+        glProgramUniform3uiv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::Uint32Vec4:
     {
-        glProgramUniform4uiv(rpId, loc, 1, glm::value_ptr(core::uniform_cast<glm::u32vec4>(uniform)->data()));
+        if (auto uniform = core::uniform_cast<glm::u32vec4>(abstactUniform))
+        {
+        glProgramUniform4uiv(rpId, loc, 1, glm::value_ptr(uniform->data()));
+        result = true;
+    }
         break;
     }
     case core::graphics::UniformType::Sampler1D:
@@ -4291,9 +4581,12 @@ void GLFWRenderer::setupUniform(GLuint rpId,
     case core::graphics::UniformType::SamplerCubeArray:
     case core::graphics::UniformType::SamplerRect:
     {
-        auto textureUniform = core::uniform_cast<core::graphics::PConstTexture>(uniform)->data();
-        bindTexture(textureUnit, textureUniform);
-        glProgramUniform1i(rpId, loc, textureUnit++);
+        if (auto textureUniform = core::uniform_cast<core::graphics::PConstTexture>(abstactUniform))
+        {
+            bindTexture(textureUnit, textureUniform->data());
+            glProgramUniform1i(rpId, loc, textureUnit++);
+            result = true;
+        }
         break;
     }
     case core::graphics::UniformType::Image1D:
@@ -4305,10 +4598,16 @@ void GLFWRenderer::setupUniform(GLuint rpId,
     case core::graphics::UniformType::ImageCubeArray:
     case core::graphics::UniformType::ImageRect:
     {
-        if (auto imageUniform = core::uniform_cast<core::graphics::PConstImage>(uniform))
+        if (auto imageUniform = core::uniform_cast<core::graphics::PConstImage>(abstactUniform))
+        {
             bindImage(imageUnit, imageUniform->data());
-        else if (auto textureUniform = core::uniform_cast<core::graphics::PConstTexture>(uniform))
-            bindImage(imageUnit, textureUniform->data(), 0u, core::graphics::IImage::DataAccess::ReadWrite);
+            result = true;
+        }
+        else if (auto textureUniform = core::uniform_cast<core::graphics::PConstTexture>(abstactUniform))
+        {
+            bindImage(imageUnit, textureUniform->data(), 0u, core::graphics::Image::DataAccess::ReadWrite);
+            result = true;
+        }
         else
             LOG_CRITICAL << "Failed to bind image";
 
@@ -4317,8 +4616,11 @@ void GLFWRenderer::setupUniform(GLuint rpId,
     }
     case core::graphics::UniformType::AtomicCounterUint:
     {
-        auto atomicCounterUniform = core::uniform_cast<core::graphics::PConstBuffer>(uniform)->data();
-        bindAtomicCounterBuffer(static_cast<GLuint>(loc), atomicCounterUniform);
+        if (auto atomicCounterUniform = core::uniform_cast<core::graphics::PConstBufferRange>(abstactUniform))
+        {
+            bindAtomicCounterBuffer(static_cast<GLuint>(loc), atomicCounterUniform->data());
+            result = true;
+        }
         break;
     }
     default:
@@ -4326,89 +4628,90 @@ void GLFWRenderer::setupUniform(GLuint rpId,
         break;
     }
     }
+
+    return result;
 }
 
 void GLFWRenderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5> &program,
-                                          const std::list<core::PConstStateSet> &stateSetList)
+                                          const core::StateSetList &stateSetList)
 {
-    CHECK_THIS_CONTEXT
-    CHECK_RESOURCE_CONTEXT(program)
+    CHECK_THIS_CONTEXT;
+    CHECK_RESOURCE_CONTEXT(program);
     int32_t textureUnit = 0;
     int32_t imageUnit = 0;
 
     for (const auto &uniformInfo : program->uniformsInfo())
     {
-        core::PConstAbstractUniform uniform;
-        const auto uniformId = core::castToUniformId(uniformInfo.id);
+        core::PConstAbstractUniform abstractUniform;
+        const auto uniformId = uniformInfo.id;
 
         for (const auto &stateSet: stateSetList)
-            if (uniform = stateSet->uniform(uniformId); uniform)
+            if (abstractUniform = stateSet->uniform(uniformId); abstractUniform)
                 break;
 
-        if (!uniform)
+        if (!abstractUniform)
         {
             const auto uniformName = program->uniformNameByIndex(uniformInfo.index);
             for (const auto &stateSet: stateSetList)
-                if (uniform = stateSet->userUniform(uniformName); uniform)
+                if (abstractUniform = stateSet->userUniform(uniformName); abstractUniform)
                     break;
         }
 
-        if (!uniform)
+        if (!abstractUniform)
             LOG_CRITICAL << "Uniform \"" << program->uniformNameByIndex(uniformInfo.index) << "\" has not set";
 
-        if (uniformInfo.type != uniform->type())
-            LOG_CRITICAL << "Uniform \"" << program->uniformNameByIndex(uniformInfo.index) << "\" has wrong type";
-
-        setupUniform(program->id(), uniformInfo.location, textureUnit, imageUnit, uniform);
+        if (!setupUniform(program->id(), uniformInfo.type, uniformInfo.location, textureUnit, imageUnit, abstractUniform))
+            LOG_CRITICAL << "Failed to setup uniform \"" << program->uniformNameByIndex(uniformInfo.index) << "\". It has wrong type";
     }
 }
 
 void GLFWRenderer::setupSSBOs(const std::shared_ptr<ProgramBase_4_5> &program,
-                                       const std::list<core::PConstStateSet> &stateSetList)
+                                       const core::StateSetList &stateSetList)
 {
-    CHECK_THIS_CONTEXT
-    CHECK_RESOURCE_CONTEXT(program)
+    CHECK_THIS_CONTEXT;
+    CHECK_RESOURCE_CONTEXT(program);
     uint32_t bufferUnit = 0u;
 
     for (const auto &ssboInfo : program->SSBOsInfo())
     {
-        core::graphics::PConstBuffer bufferRange;
-        const auto ssboId = core::castToSSBOId(ssboInfo.id);
+        core::graphics::PConstBufferRange SSBOBuffer;
+        const auto ssboId = ssboInfo.id;
 
         for (const auto &stateSet: stateSetList)
-            if (bufferRange = stateSet->SSBO(ssboId); bufferRange)
+            if (SSBOBuffer = stateSet->SSBO(ssboId); SSBOBuffer)
                 break;
 
-        if (!bufferRange)
+        if (!SSBOBuffer)
         {
-            const auto uniformName = program->SSBONameByIndex(ssboInfo.index);
+            const auto SSBOName = program->SSBONameByIndex(ssboInfo.index);
 //            for (const auto &stateSet: stateSetList)
-//                if (bufferRange = stateSet->userSSBO(uniformName); bufferRange)
+//                if (bufferRange = stateSet->userSSBO(SSBOName); bufferRange)
 //                    break;
         }
 
-        if (!bufferRange)
+        if (!SSBOBuffer)
             LOG_CRITICAL << "SSBO \"" << program->SSBONameByIndex(ssboInfo.index) << "\" has not set";
 
-        bindSSBO(bufferUnit, bufferRange);
+
+        bindSSBO(bufferUnit, SSBOBuffer);
         glShaderStorageBlockBinding(program->id(), ssboInfo.index, bufferUnit++);
     }
 }
 
 void GLFWRenderer::bindTexture(int32_t unit, const core::graphics::PConstTexture &texture)
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(texture);
     if (!textureBase)
         LOG_CRITICAL << "Texture can't be nullptr";
-    CHECK_RESOURCE_CONTEXT(textureBase)
+    CHECK_RESOURCE_CONTEXT(textureBase);
 
     glBindTextureUnit(static_cast<GLuint>(unit), textureBase->id());
 }
 
 void GLFWRenderer::bindImage(int32_t unit, const core::graphics::PConstImage &image)
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     bindImage(unit, image->texture(), image->mipmapLevel(), image->access());
 }
 
@@ -4416,13 +4719,13 @@ void GLFWRenderer::bindImage(
     int32_t unit,
     const core::graphics::PConstTexture& texture,
     uint32_t level,
-    core::graphics::IImage::DataAccess access)
+    core::graphics::Image::DataAccess access)
 {
-    CHECK_THIS_CONTEXT
-        auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(texture);
+    CHECK_THIS_CONTEXT;
+    auto textureBase = std::dynamic_pointer_cast<const TextureBase_4_5>(texture);
     if (!textureBase)
         LOG_CRITICAL << "Image's texture can't be nullptr";
-    CHECK_RESOURCE_CONTEXT(textureBase)
+    CHECK_RESOURCE_CONTEXT(textureBase);
 
     glBindImageTexture(static_cast<GLuint>(unit),
         textureBase->id(),
@@ -4433,31 +4736,63 @@ void GLFWRenderer::bindImage(
         Conversions::PixelInternalFormat2GL(texture->internalFormat()));
 }
 
-void GLFWRenderer::bindBuffer(GLenum target, GLuint bindingPoint, const core::graphics::PConstBuffer &buffer)
+void GLFWRenderer::bindBuffer(
+    GLenum target,
+    const core::graphics::PConstBuffer& buffer)
 {
-    CHECK_THIS_CONTEXT
+    CHECK_THIS_CONTEXT;
     auto buffer_4_5 = std::dynamic_pointer_cast<const BufferBase_4_5>(buffer);
-    if (!buffer)
+    if (!buffer_4_5)
         LOG_CRITICAL << "Buffer can't be nullptr";
-    CHECK_RESOURCE_CONTEXT(buffer_4_5)
+    CHECK_RESOURCE_CONTEXT(buffer_4_5);
+
+    glBindBuffer(target, buffer_4_5->id());
+}
+
+void GLFWRenderer::bindBufferRange(
+    GLenum target,
+    GLuint bindingPoint,
+    const core::graphics::PConstBufferRange &bufferRange)
+{
+    CHECK_THIS_CONTEXT;
+    auto buffer_4_5 = std::dynamic_pointer_cast<const BufferBase_4_5>(bufferRange->buffer());
+    if (!buffer_4_5)
+        LOG_CRITICAL << "Buffer can't be nullptr";
+    CHECK_RESOURCE_CONTEXT(buffer_4_5);
 
     glBindBufferRange(target,
                       bindingPoint,
                       buffer_4_5->id(),
-                      0u,
-                      static_cast<GLsizeiptr>(buffer_4_5->fullSize()));
+                      static_cast<GLintptr>(bufferRange->offset()),
+                      static_cast<GLsizeiptr>(bufferRange->size()));
 }
 
-void GLFWRenderer::bindSSBO(uint32_t unit, const core::graphics::PConstBuffer &bufferRange)
+void GLFWRenderer::bindSSBO(
+    uint32_t unit,
+    const core::graphics::PConstBufferRange &bufferRange)
 {
-    CHECK_THIS_CONTEXT
-    bindBuffer(GL_SHADER_STORAGE_BUFFER, unit, bufferRange);
+    CHECK_THIS_CONTEXT;
+    bindBufferRange(GL_SHADER_STORAGE_BUFFER, unit, bufferRange);
 }
 
-void GLFWRenderer::bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBuffer &bufferRange)
+void GLFWRenderer::bindAtomicCounterBuffer(
+    GLuint bindingPoint,
+    const core::graphics::PConstBufferRange &bufferRange)
 {
-    CHECK_THIS_CONTEXT
-    bindBuffer(GL_ATOMIC_COUNTER_BUFFER, bindingPoint, bufferRange);
+    CHECK_THIS_CONTEXT;
+    bindBufferRange(GL_ATOMIC_COUNTER_BUFFER, bindingPoint, bufferRange);
+}
+
+void GLFWRenderer::bindDrawIndirectBuffer(const core::graphics::PConstBuffer& buffer)
+{
+    CHECK_THIS_CONTEXT;
+    bindBuffer(GL_DRAW_INDIRECT_BUFFER, buffer);
+}
+
+void GLFWRenderer::bindParameterBuffer(const core::graphics::PConstBuffer& buffer)
+{
+    CHECK_THIS_CONTEXT;
+    bindBuffer(GL_PARAMETER_BUFFER, buffer);
 }
 
 }

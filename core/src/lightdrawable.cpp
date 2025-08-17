@@ -8,7 +8,7 @@ namespace simplex
 namespace core
 {
 
-LightDrawable::LightDrawable(const std::shared_ptr<graphics::IVertexArray> &vao)
+LightDrawable::LightDrawable(const std::shared_ptr<graphics::VAOMesh> &vao)
     : Drawable(vao)
 {
     setDoubleSided(true);

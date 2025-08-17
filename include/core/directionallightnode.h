@@ -18,8 +18,6 @@ public:
     DirectionalLightNode(const std::string&);
     ~DirectionalLightNode() override;
 
-    LightType type() const override;
-
     std::shared_ptr<DirectionalLightNode> asDirectionalLightNode() override;
     std::shared_ptr<const DirectionalLightNode> asDirectionalLightNode() const override;
 

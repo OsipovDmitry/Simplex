@@ -12,15 +12,18 @@ namespace simplex
 namespace core
 {
 
-class RenderPass;
-class ComputePass;
+class GeometryRenderInfo;
 
 class Pass : public std::enable_shared_from_this<Pass>, public StateSet
 {
 public:
     ~Pass() override;
 
-    virtual void run(const std::shared_ptr<graphics::RendererBase>&) = 0;
+    virtual void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<GeometryRenderInfo>&) = 0;
 
 protected:
     Pass();

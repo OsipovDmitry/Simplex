@@ -61,6 +61,7 @@ union FrameBufferClearColorValue;
 enum class FrameBufferClearColorType : uint16_t;
 enum class UniformType : uint16_t;
 struct AttributeInfo;
+struct OutputInfo;
 struct UniformInfo;
 struct SSBOVariableInfo;
 struct SSBOInfo;
@@ -76,7 +77,6 @@ class ISurface;
 class ITexture;
 using TextureHandle = uint64_t;
 class ITextureHandle;
-class IImage;
 class IRenderBuffer;
 class IFrameBuffer;
 class IProgram;
@@ -85,6 +85,8 @@ class IComputeProgram;
 class RendererBase;
 class DynamicBufferBase;
 template <typename T, typename ReservedType = void> class DynamicBufferT;
+class BufferRange;
+class VAOMesh;
 
 class IGraphicsWidget;
 enum class KeyState : uint16_t;
@@ -106,14 +108,19 @@ using MouseScrollCallback = std::function<void(const glm::ivec2&)>;
 using PConstBuffer = std::shared_ptr<const IBuffer>;
 using PBuffer = std::shared_ptr<IBuffer>;
 
+using PConstBufferRange = std::shared_ptr<const BufferRange>;
+using PBufferRange = std::shared_ptr<BufferRange>;
+
+class Image;
+
 using PConstTexture = std::shared_ptr<const ITexture>;
 using PTexture = std::shared_ptr<ITexture>;
 
 using PConstTextureHandle = std::shared_ptr<const ITextureHandle>;
 using PTextureHandle = std::shared_ptr<ITextureHandle>;
 
-using PConstImage = std::shared_ptr<const IImage>;
-using PImage = std::shared_ptr<IImage>;
+using PConstImage = std::shared_ptr<const Image>;
+using PImage = std::shared_ptr<Image>;
 }
 
 namespace audio
@@ -137,7 +144,7 @@ class ApplicationBase;
 using ApplicationTimeCallback = std::function<uint64_t()>;
 using ApplicationPollEventsCallback = std::function<void()>;
 
-class RenderInfo;
+class GeometryRenderInfo;
 
 class IEngine;
 class GraphicsEngine;
@@ -155,10 +162,9 @@ enum class UniformId : uint16_t;
 using UniformCollection = std::unordered_map<UniformId, PAbstractUniform>;
 using UserUniformCollection = std::unordered_map<std::string, PAbstractUniform>;
 enum class SSBOId : uint16_t;
-using SSBOCollection = std::unordered_map<SSBOId, graphics::PConstBuffer>;
+using SSBOCollection = std::unordered_map<SSBOId, graphics::PConstBufferRange>;
 class StateSet;
-using PStateSet = std::shared_ptr<StateSet>;
-using PConstStateSet = std::shared_ptr<const StateSet>;
+using StateSetList = std::list<std::shared_ptr<const StateSet>>;
 
 class Mesh;
 

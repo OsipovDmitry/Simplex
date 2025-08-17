@@ -13,7 +13,7 @@ namespace core
 class CORE_SHARED_EXPORT FlatDrawable : public VisualDrawable
 {
 public:
-    FlatDrawable(const std::shared_ptr<graphics::IVertexArray>&, const utils::BoundingBox&);
+    FlatDrawable(const std::shared_ptr<graphics::VAOMesh>&, const utils::BoundingBox&);
     ~FlatDrawable() override;
 
     const glm::vec4 &color() const;

@@ -1,7 +1,6 @@
 #include <core/ibllightnode.h>
 
 #include "ibllightnodeprivate.h"
-#include "iblshadowprivate.h"
 
 namespace simplex
 {
@@ -9,7 +8,7 @@ namespace core
 {
 
 IBLLightNodePrivate::IBLLightNodePrivate(IBLLightNode &iblLightNode, const std::string &name)
-    : LightNodePrivate(iblLightNode, name, std::make_unique<IBLShadowPrivate>())
+    : LightNodePrivate(iblLightNode, name, LightType::IBL)
 {
 }
 

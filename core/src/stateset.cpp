@@ -73,16 +73,16 @@ const SSBOCollection &StateSet::ssboCollection() const
     return m_->ssboCollection();
 }
 
-graphics::PConstBuffer StateSet::SSBO(SSBOId id) const
+graphics::PConstBufferRange StateSet::SSBO(SSBOId id) const
 {
     auto it = m_->ssboCollection().find(id);
     return it != m_->ssboCollection().end() ? it->second : nullptr;
 }
 
-graphics::PConstBuffer &StateSet::getOrCreateSSBO(SSBOId id)
+graphics::PConstBufferRange &StateSet::getOrCreateSSBO(SSBOId id)
 {
     auto it = m_->ssboCollection().find(id);
-    return it != m_->ssboCollection().end() ? it->second : (m_->ssboCollection()[id] = graphics::PConstBuffer());
+    return it != m_->ssboCollection().end() ? it->second : (m_->ssboCollection()[id] = graphics::PConstBufferRange());
 }
 
 void StateSet::removeSSBO(SSBOId id)

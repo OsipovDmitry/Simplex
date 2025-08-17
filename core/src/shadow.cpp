@@ -1,24 +1,52 @@
 #include <utils/logger.h>
 
+#include <core/lightnode.h>
 #include <core/settings.h>
 #include <core/shadow.h>
+#include <core/graphicsrendererbase.h>
 
+#include "lightnodeprivate.h"
 #include "shadowprivate.h"
+#include "shadowbuffer.h"
 
 namespace simplex
 {
 namespace core
 {
 
-Shadow::Shadow(std::unique_ptr<ShadowPrivate> mPrivate)
-    : m_(std::move(mPrivate))
+Shadow::Shadow(LightType lightType)
+    : m_(std::make_unique<ShadowPrivate>())
 {
+    switch (lightType)
+    {
+    case LightType::Point:
+    {
+        m_->shadowBuffer() = std::make_shared<ShadowBufferCube>();
+        break;
+    }
+    case LightType::Directional:
+    case LightType::Spot:
+    {
+        m_->shadowBuffer() = std::make_shared<ShadowBuffer2D>();
+        break;
+    }
+    default:
+        break;
+    }
+
+    const auto numLayeredMatrices = LightNodePrivate::numLayeredShadowMatrices(lightType);
+
+    auto layeredMatricesBuffer = ShadowPrivate::LayeredMatricesBuffer::element_type::create();
+    layeredMatricesBuffer->resize(numLayeredMatrices);
+    layeredMatricesBuffer->setReservedData({ numLayeredMatrices, 0u, 0u, 0u });
+    m_->layeredMatricesBuffer() = layeredMatricesBuffer;
+
     const auto &graphicsSettings = settings::Settings::instance().graphics();
     const auto &shadowSettings = graphicsSettings.shadow();
+    setMapSize(glm::uvec2(shadowSettings.mapSize()));
     setMode(shadowSettings.mode());
     setFilter(shadowSettings.filter());
     setDepthBias(shadowSettings.depthBias());
-    setMapSize(glm::uvec2(shadowSettings.mapSize()));
     setCullPlanesLimits(graphicsSettings.cullPlaneLimits());
 }
 
@@ -31,11 +59,7 @@ ShadingMode Shadow::mode() const
 
 void Shadow::setMode(ShadingMode value)
 {
-    auto &mPrivate = m();
-    mPrivate.mode() = value;
-    mPrivate.frameBuffer() = nullptr; // reset to update
-    mPrivate.blur() = nullptr; // reset to update
-    mPrivate.layeredMatricesBuffer() = nullptr; // reset to update
+    m().mode() = value;
 }
 
 ShadingFilter Shadow::filter() const
@@ -45,10 +69,7 @@ ShadingFilter Shadow::filter() const
 
 void Shadow::setFilter(ShadingFilter value)
 {
-    auto &mPrivate = m();
-    mPrivate.filter() = value;
-    mPrivate.blur() = nullptr; // reset to update
-    mPrivate.frameBuffer() = nullptr; // reset to update
+    m().filter() = value;
 }
 
 float Shadow::depthBias() const
@@ -71,9 +92,7 @@ const glm::uvec2 &Shadow::mapSize() const
 
 void Shadow::setMapSize(const glm::uvec2 &value)
 {
-    auto &mPrivate = m();
-    mPrivate.mapSize() = value;
-    mPrivate.frameBuffer() = nullptr; // reset to update
+    m().mapSize() = value;
 }
 
 const utils::Range &Shadow::cullPlanesLimits() const

@@ -133,6 +133,16 @@ public:
     float sigma() const;
 };
 
+class CORE_SHARED_EXPORT OIT : public utils::SettingsComponent
+{
+public:
+    OIT(const rapidjson::Document::ValueType*);
+    ~OIT() override;
+
+    uint32_t nodesPerPixel() const;
+    uint32_t maxNodes() const;
+};
+
 class CORE_SHARED_EXPORT NodeBoundingBox : public utils::SettingsComponent
 {
 public:
@@ -200,8 +210,8 @@ public:
     const Shadow &shadow() const;
     const SSAO &ssao() const;
     const Blur &blur() const;
+    const OIT& oit() const;
     const DebugRendering &debugRendering() const;
-    uint32_t maxFragmants() const;
 };
 
 class CORE_SHARED_EXPORT Source : public utils::SettingsComponent

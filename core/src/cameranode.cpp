@@ -7,20 +7,18 @@
 #include <core/settings.h>
 
 #include "cameranodeprivate.h"
-#include "gframebuffer.h"
+#include "geometrybuffer.h"
 
 namespace simplex
 {
 namespace core
 {
 
-CameraNode::CameraNode(const std::string &name, const std::shared_ptr<graphics::IFrameBuffer> &frameBuffer)
-    : Node(std::make_unique<CameraNodePrivate>(*this, name))
+CameraNode::CameraNode(const std::string &name, const std::shared_ptr<graphics::IFrameBuffer> &defaultFrameBuffer)
+    : Node(std::make_unique<CameraNodePrivate>(*this, name, defaultFrameBuffer))
 {
     setRenderingEnabled(true);
     useDefaultFramebuffer();
-
-    setFrameBuffer(frameBuffer);
 
     auto &graphicsSettings = settings::Settings::instance().graphics();
     auto &cameraSettings = graphicsSettings.camera();
@@ -57,35 +55,17 @@ void CameraNode::setRenderingEnabled(bool value)
 
 bool CameraNode::isDefaultFramebufferUsed() const
 {
-    return m().GBuffer() == nullptr;
+    return m().geometryBuffer() == nullptr;
 }
 
 void CameraNode::useDefaultFramebuffer()
 {
-    m().GBuffer() = nullptr;
+    m().geometryBuffer() = nullptr;
 }
 
 void CameraNode::useSeparateFramebuffer(const glm::uvec2& size)
 {
-    m().GBuffer() = std::make_shared<GFramebuffer>(size);
-
-}
-
-std::shared_ptr<graphics::IFrameBuffer> CameraNode::frameBuffer()
-{
-    return m().userFrameBuffer();
-}
-
-std::shared_ptr<const graphics::IFrameBuffer> CameraNode::frameBuffer() const
-{
-    return const_cast<CameraNode*>(this)->frameBuffer();
-}
-
-void CameraNode::setFrameBuffer(const std::shared_ptr<graphics::IFrameBuffer> &value)
-{
-    auto &mPrivate = m();
-    mPrivate.userFrameBuffer() = value;
-    mPrivate.postprocessFrameBuffer() = nullptr; // reset to update
+    m().geometryBuffer() = std::make_shared<GeometryBuffer>(size);
 }
 
 const utils::ClipSpace &CameraNode::clipSpace() const

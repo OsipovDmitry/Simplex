@@ -1,6 +1,7 @@
 #include <utils/mesh.h>
 
 #include <core/stateset.h>
+#include <core/graphicsrendererbase.h>
 
 #include "graphicsengineprivate.h"
 
@@ -44,22 +45,27 @@ std::vector<std::shared_ptr<Pass>>& GraphicsEnginePrivate::passes()
     return m_passes;
 }
 
-std::shared_ptr<GFramebuffer>& GraphicsEnginePrivate::GBuffer()
+std::shared_ptr<graphics::IFrameBuffer>& GraphicsEnginePrivate::frameBuffer()
 {
-    return m_GBuffer;
+    return m_frameBuffer;
 }
 
-OITNodesBuffer& GraphicsEnginePrivate::fragmentsBuffer()
+std::shared_ptr<graphics::IVertexArray>& GraphicsEnginePrivate::vertexArray()
 {
-    return m_fragmentsBuffer;
+    return m_vertexArray;
 }
 
-std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::screenQuadVertexArray()
+std::shared_ptr<GeometryBuffer>& GraphicsEnginePrivate::geometryBuffer()
+{
+    return m_geometryBuffer;
+}
+
+std::shared_ptr<graphics::VAOMesh> &GraphicsEnginePrivate::screenQuadVertexArray()
 {
     return m_screenQuadVertexArray;
 }
 
-std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::pointLightAreaVertexArray()
+std::shared_ptr<graphics::VAOMesh> &GraphicsEnginePrivate::pointLightAreaVertexArray()
 {
     return m_pointLightAreaVertexArray;
 }
@@ -69,7 +75,7 @@ utils::BoundingBox &GraphicsEnginePrivate::pointLightAreaBoundingBox()
     return m_pointLightAreaBoundingBox;
 }
 
-std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::spotLightAreaVertexArray()
+std::shared_ptr<graphics::VAOMesh> &GraphicsEnginePrivate::spotLightAreaVertexArray()
 {
     return m_spotLightAreaVertexArray;
 }
@@ -79,7 +85,7 @@ utils::BoundingBox &GraphicsEnginePrivate::spotLightAreaBoundingBox()
     return m_spotLightAreaBoundingBox;
 }
 
-std::shared_ptr<graphics::IVertexArray> &GraphicsEnginePrivate::directionalLightAreaVertexArray()
+std::shared_ptr<graphics::VAOMesh> &GraphicsEnginePrivate::directionalLightAreaVertexArray()
 {
     return m_directionalLightAreaVertexArray;
 }
@@ -109,7 +115,7 @@ std::shared_ptr<FlatDrawable> &GraphicsEnginePrivate::lightNodeAreaBoundingBoxDr
     return m_lightNodeAreaBoundingBoxDrawable;
 }
 
-const std::string &GraphicsEnginePrivate::vertexAttributeNameById(utils::VertexAttribute id)
+const std::string &GraphicsEnginePrivate::attributeNameById(utils::VertexAttribute ID)
 {
     static const std::string s_undefinedId = "";
     static const std::unordered_map<utils::VertexAttribute, std::string> s_table {
@@ -122,10 +128,23 @@ const std::string &GraphicsEnginePrivate::vertexAttributeNameById(utils::VertexA
         { utils::VertexAttribute::Color, "a_color" },
     };
 
-    return s_table.count(id) ? s_table.at(id) : s_undefinedId;
+    return s_table.count(ID) ? s_table.at(ID) : s_undefinedId;
 }
 
-const std::string &GraphicsEnginePrivate::uniformNameById(UniformId id)
+const std::string& GraphicsEnginePrivate::outputNameById(graphics::FrameBufferAttachment ID)
+{
+    static const std::string s_undefinedId = "";
+    static const std::unordered_map<graphics::FrameBufferAttachment, std::string> s_table{
+        { graphics::FrameBufferAttachment::Color0, "o_fragColor0" },
+        { graphics::FrameBufferAttachment::Color1, "o_fragColor1" },
+        { graphics::FrameBufferAttachment::Color2, "o_fragColor2" },
+        { graphics::FrameBufferAttachment::Color3, "o_fragColor3" },
+    };
+
+    return s_table.count(ID) ? s_table.at(ID) : s_undefinedId;
+}
+
+const std::string &GraphicsEnginePrivate::uniformNameById(UniformId ID)
 {
     static const std::string s_undefinedId = "";
     static const std::unordered_map<UniformId, std::string> s_table {
@@ -139,9 +158,6 @@ const std::string &GraphicsEnginePrivate::uniformNameById(UniformId id)
         { UniformId::ProjectionMatrixInverse, "u_projectionMatrixInverse" },
         { UniformId::ViewProjectionMatrix, "u_viewProjectionMatrix" },
         { UniformId::ViewProjectionMatrixInverse, "u_viewProjectionMatrixInverse" },
-        { UniformId::ModelViewMatrix, "u_modelViewMatrix" },
-        { UniformId::NormalViewMatrix, "u_normalViewMatrix" },
-        { UniformId::ModelViewProjectionMatrix, "u_modelViewProjectionMatrix" },
         { UniformId::ModelPosition, "u_modelPosition" },
         { UniformId::ModelXDirection, "u_modelXDirection" },
         { UniformId::ModelYDirection, "u_modelYDirection" },
@@ -159,6 +175,7 @@ const std::string &GraphicsEnginePrivate::uniformNameById(UniformId id)
         { UniformId::GBufferDepthMap, "u_GBufferDepthMap" },
         { UniformId::OITDepthImage, "u_OITDepthImage" },
         { UniformId::OITIndicesImage, "u_OITIndicesImage" },
+        { UniformId::GBufferFinalMap, "u_GBufferFinalMap" },
         { UniformId::SSAOMap, "u_SSAOMap" },
         { UniformId::SSAOContribution, "u_SSAOContribution" },
         { UniformId::SSAONoiseMap, "u_SSAONoiseMap" },
@@ -199,10 +216,10 @@ const std::string &GraphicsEnginePrivate::uniformNameById(UniformId id)
         { UniformId::BlurMaxDepthDifference, "u_blurMaxDepthDifference" }
     };
 
-    return s_table.count(id) ? s_table.at(id) : s_undefinedId;
+    return s_table.count(ID) ? s_table.at(ID) : s_undefinedId;
 }
 
-const std::string &GraphicsEnginePrivate::SSBONameById(SSBOId id)
+const std::string &GraphicsEnginePrivate::SSBONameById(SSBOId ID)
 {
     static const std::string s_undefinedId = "";
     static const std::unordered_map<SSBOId, std::string> s_table {
@@ -211,7 +228,7 @@ const std::string &GraphicsEnginePrivate::SSBONameById(SSBOId id)
         { SSBOId::TexCoordsBuffer, "ssbo_texCoordsBuffer" },
         { SSBOId::BonesBuffer, "ssbo_bonesBuffer" },
         { SSBOId::TangentsBuffer, "ssbo_tangentsBuffer" },
-        { SSBOId::ColorBuffer, "ssbo_colorsBuffer" },
+        { SSBOId::ColorsBuffer, "ssbo_colorsBuffer" },
         { SSBOId::IndicesBuffer, "ssbo_indicesBuffer" },
         { SSBOId::MeshesBuffer, "ssbo_meshesBuffer" },
         { SSBOId::MaterialMapsBuffer, "ssbo_materialMapsBuffer" },
@@ -220,13 +237,15 @@ const std::string &GraphicsEnginePrivate::SSBONameById(SSBOId id)
         { SSBOId::DrawDataBuffer, "ssbo_drawDataBuffer" },
         { SSBOId::BackgroundsBuffer, "ssbo_backgroundsBuffer" },
         { SSBOId::CommandsBuffer, "ssbo_commandsBuffer" },
+        { SSBOId::OpaqueCommandsBuffer, "ssbo_opaqueCommandsBuffer" },
+        { SSBOId::TransparentCommandsBuffer, "ssbo_transparentCommandsBuffer" },
         { SSBOId::OITNodesBuffer, "ssbo_OITNodesBuffer" },
         { SSBOId::LayeredShadowMatrices, "ssbo_layeredShadowMatricesBuffer" },
         { SSBOId::SSAOKernel, "ssbo_SSAOKernelBuffer" },
         { SSBOId::BlurKernel, "ssbo_blurKernelBuffer" }
     };
 
-    return s_table.count(id) ? s_table.at(id) : s_undefinedId;
+    return s_table.count(ID) ? s_table.at(ID) : s_undefinedId;
 }
 
 }

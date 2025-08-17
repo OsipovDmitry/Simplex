@@ -13,7 +13,7 @@ namespace core
 {
 
 class Pass;
-class GFramebuffer;
+class GeometryBuffer;
 
 class GraphicsEnginePrivate
 {
@@ -30,18 +30,19 @@ public:
 
     std::vector<std::shared_ptr<Pass>> &passes();
 
-    std::shared_ptr<GFramebuffer>& GBuffer();
-    OITNodesBuffer& fragmentsBuffer();
+    std::shared_ptr<graphics::IFrameBuffer>& frameBuffer();
+    std::shared_ptr<graphics::IVertexArray>& vertexArray();
+    std::shared_ptr<GeometryBuffer>& geometryBuffer();
 
-    std::shared_ptr<graphics::IVertexArray> &screenQuadVertexArray();
+    std::shared_ptr<graphics::VAOMesh> &screenQuadVertexArray();
 
-    std::shared_ptr<graphics::IVertexArray> &pointLightAreaVertexArray();
+    std::shared_ptr<graphics::VAOMesh> &pointLightAreaVertexArray();
     utils::BoundingBox &pointLightAreaBoundingBox();
 
-    std::shared_ptr<graphics::IVertexArray> &spotLightAreaVertexArray();
+    std::shared_ptr<graphics::VAOMesh> &spotLightAreaVertexArray();
     utils::BoundingBox &spotLightAreaBoundingBox();
 
-    std::shared_ptr<graphics::IVertexArray> &directionalLightAreaVertexArray();
+    std::shared_ptr<graphics::VAOMesh> &directionalLightAreaVertexArray();
 
     std::shared_ptr<Drawable> &screenQuadDrawable();
 
@@ -50,7 +51,8 @@ public:
     std::shared_ptr<FlatDrawable> &visualDrawableBoundingBoxDrawable();
     std::shared_ptr<FlatDrawable> &lightNodeAreaBoundingBoxDrawable();
 
-    static const std::string &vertexAttributeNameById(utils::VertexAttribute);
+    static const std::string &attributeNameById(utils::VertexAttribute);
+    static const std::string& outputNameById(graphics::FrameBufferAttachment);
     static const std::string &uniformNameById(UniformId);
     static const std::string &SSBONameById(SSBOId);
 
@@ -65,18 +67,19 @@ private:
 
     std::vector<std::shared_ptr<Pass>> m_passes;
 
-    std::shared_ptr<GFramebuffer> m_GBuffer;
-    OITNodesBuffer m_fragmentsBuffer;
+    std::shared_ptr<graphics::IFrameBuffer> m_frameBuffer;
+    std::shared_ptr<graphics::IVertexArray> m_vertexArray;
+    std::shared_ptr<GeometryBuffer> m_geometryBuffer;
 
-    std::shared_ptr<graphics::IVertexArray> m_screenQuadVertexArray;
+    std::shared_ptr<graphics::VAOMesh> m_screenQuadVertexArray;
 
-    std::shared_ptr<graphics::IVertexArray> m_pointLightAreaVertexArray;
+    std::shared_ptr<graphics::VAOMesh> m_pointLightAreaVertexArray;
     utils::BoundingBox m_pointLightAreaBoundingBox;
 
-    std::shared_ptr<graphics::IVertexArray> m_spotLightAreaVertexArray;
+    std::shared_ptr<graphics::VAOMesh> m_spotLightAreaVertexArray;
     utils::BoundingBox m_spotLightAreaBoundingBox;
 
-    std::shared_ptr<graphics::IVertexArray> m_directionalLightAreaVertexArray;
+    std::shared_ptr<graphics::VAOMesh> m_directionalLightAreaVertexArray;
 
     std::shared_ptr<Drawable> m_screenQuadDrawable;
 

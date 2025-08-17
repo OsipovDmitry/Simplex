@@ -1,3 +1,6 @@
+#include <utils/glm/gtc/matrix_inverse.hpp>
+#include <utils/imagemanager.h>
+
 #include <core/scene.h>
 #include <core/drawable.h>
 #include <core/material.h>
@@ -21,19 +24,21 @@ namespace simplex
 namespace core
 {
 
-inline float occlusionMapStrength(uint32_t flags) { return static_cast<float>((flags >> 0u) & 0xFF) / 255.f; }
-inline float normalMapScale(uint32_t flags) { return static_cast<float>((flags >> 8u) & 0xFF) / 255.f; }
-inline uint32_t occlusionSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 16u) & 0x3); }
-inline uint32_t roughnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 18u) & 0x3); }
-inline uint32_t metalnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 20u) & 0x3); }
-inline bool isLighted(uint32_t flags) { return (flags >> 22u) & 0x1; }
-inline bool isShadowed(uint32_t flags) { return (flags >> 23u) & 0x1; }
-uint32_t makeMaterialFlags(
+static inline float materialOcclusionMapStrength(uint32_t flags) { return static_cast<float>((flags >> 0u) & 0xFF) / 255.f; }
+static inline float materialNormalMapScale(uint32_t flags) { return static_cast<float>((flags >> 8u) & 0xFF) / 255.f; }
+static inline uint32_t materialOcclusionSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 16u) & 0x3); }
+static inline uint32_t materialRoughnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 18u) & 0x3); }
+static inline uint32_t materialMetalnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 20u) & 0x3); }
+static inline bool isMaterialLighted(uint32_t flags) { return (flags >> 22u) & 0x1; }
+static inline bool isMaterialShadowed(uint32_t flags) { return (flags >> 23u) & 0x1; }
+static inline bool isMaterialTransparent(uint32_t flags) { return (flags >> 24u) & 0x1; }
+static inline uint32_t makeMaterialFlags(
     float occlusionMapStrength,
     float normalMapScale,
     const glm::u32vec3& ORMSwizzleMask,
     bool isLighted,
-    bool isShadowed)
+    bool isShadowed,
+    bool isTransparent)
 {
     uint32_t result = 0u;
     result |= (static_cast<uint32_t>(glm::clamp(occlusionMapStrength, 0.f, 1.f) * 255.f) & 0xFF) << 0u;
@@ -43,7 +48,67 @@ uint32_t makeMaterialFlags(
     result |= (ORMSwizzleMask.b & 0x3) << 20u;
     result |= ((isLighted ? 1u : 0u) & 0x1) << 22u;
     result |= ((isShadowed ? 1u : 0u) & 0x1) << 23u;
+    result |= ((isTransparent ? 1u : 0u) & 0x1) << 24u;
     return result;
+}
+
+static inline bool isMeshTransparent(uint32_t flags) { return (flags >> 0u) & 0x1; }
+static inline uint32_t makeMeshFlags(
+    bool isTransparent)
+{
+    uint32_t result = 0u;
+    result |= ((isTransparent ? 1u : 0u) & 0x1) << 0u;
+    return result;
+}
+
+static inline bool isMaterialTransparent(const std::shared_ptr<const Material>& material)
+{
+    if (material->baseColor().a < 1.f - utils::epsilon<float>()) return true;
+
+    if (auto baseColorMap = material->materialMap(MaterialMapTarget::BaseColor))
+    {
+        std::shared_ptr<const utils::Image> baseColorImage;
+        if (auto path = baseColorMap->asFilesystemPath(); !path.empty())
+        {
+            baseColorImage = utils::ImageManager::instance().loadOrGetDescription(path);
+        }
+        else if (auto image = baseColorMap->asImage(); image)
+        {
+            baseColorImage = image;
+        }
+
+        if (baseColorImage && (baseColorImage->numComponents() == 4u))
+            return true;
+    }
+
+    // other future conditions like opacity map
+
+    return false;
+}
+
+static inline bool isMeshTransparent(const std::shared_ptr<const Mesh>& mesh)
+{
+    if (auto utilsMesh = mesh->mesh())
+    {
+        const auto& vertexBuffers = utilsMesh->vertexBuffers();
+        if (auto it = vertexBuffers.find(utils::VertexAttribute::Color); it != vertexBuffers.end())
+            if (it->second->numComponents() == 4u)
+                return true;
+    }
+
+    return false;
+}
+
+static glm::mat3x4 makeDrawDataNormalMatrixAndDrawableOffset(const glm::mat4x4& modelMatrix, utils::IDsGenerator::value_type ID)
+{
+    glm::mat3x4 result = glm::mat3x4(glm::inverseTranspose(modelMatrix));
+    result[0u][3u] = glm::uintBitsToFloat(ID);
+    return result;
+}
+
+static glm::vec4 makeBackgroundEnvironmentColorAndBlurPower(const glm::vec3& environmentColor, float blurPower)
+{
+    return glm::vec4(environmentColor, blurPower);
 }
 
 MeshHandler::MeshHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Mesh>& mesh, utils::IDsGenerator::value_type id)
@@ -194,8 +259,9 @@ SceneData::SceneData()
     m_drawablesBuffer = DrawablesBuffer::element_type::create();
     m_drawDataBuffer = DrawDataBuffer::element_type::create();
     m_backgroundsBuffer = BackgroundsBuffer::element_type::create();
-    m_drawDataCommandsBuffer = CommandsBuffer::element_type::create();
-    m_backgroundsCommandsBuffer = CommandsBuffer::element_type::create();
+    m_opaqueDrawDataCommandsBuffer = DrawIndirectElementsCommandsBuffer::element_type::create();
+    m_transparentDrawDataCommandsBuffer = DrawIndirectElementsCommandsBuffer::element_type::create();
+    m_backgroundsCommandsBuffer = DrawIndirectElementsCommandsBuffer::element_type::create();
 }
 
 SceneData::~SceneData() = default;
@@ -266,15 +332,22 @@ void SceneData::onMeshChanged(const std::shared_ptr<const Mesh>& mesh, utils::ID
 
 void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsGenerator::value_type ID)
 {
-    uint32_t positionOffset = 0xFFFFFFFF;
-    uint32_t normalOffset = 0xFFFFFFFF;
-    uint32_t texCoordsOffset = 0xFFFFFFFF;
-    uint32_t bonesOffset = 0xFFFFFFFF;
-    uint32_t tangentOffset = 0xFFFFFFFF;
-    uint32_t colorOffset = 0xFFFFFFFF;
-    uint32_t indexOffset = 0xFFFFFFFF;
+    auto utilsMesh = mesh->mesh();
+    if (!utilsMesh)
+    {
+        LOG_CRITICAL << "Mesh can't be nullptr";
+        return;
+    }
 
-    auto& vertexBuffers = mesh->mesh()->vertexBuffers();
+    uint32_t positionOffset = 0xFFFFFFFFu;
+    uint32_t normalOffset = 0xFFFFFFFFu;
+    uint32_t texCoordsOffset = 0xFFFFFFFFu;
+    uint32_t bonesOffset = 0xFFFFFFFFu;
+    uint32_t tangentOffset = 0xFFFFFFFFu;
+    uint32_t colorOffset = 0xFFFFFFFFu;
+    uint32_t indexOffset = 0xFFFFFFFFu;
+
+    auto& vertexBuffers = utilsMesh->vertexBuffers();
 
     if (auto it = vertexBuffers.find(utils::VertexAttribute::Position); it != vertexBuffers.end())
     {
@@ -404,7 +477,7 @@ void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsG
     indexOffset = m_indicesBuffer->size();
     uint32_t numElements = 0u;
 
-    for (const auto& primitiveSet : mesh->mesh()->primitiveSets())
+    for (const auto& primitiveSet : utilsMesh->primitiveSets())
     {
         std::shared_ptr<utils::DrawElementsBuffer> buffer;
         if (auto drawArrays = primitiveSet->asDrawArrays())
@@ -450,7 +523,8 @@ void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsG
         tangentOffset,
         colorOffset,
         indexOffset,
-        numElements
+        numElements,
+        makeMeshFlags(isMeshTransparent(mesh))
         });
 }
 
@@ -706,17 +780,18 @@ void SceneData::onMaterialChanged(const std::shared_ptr<const Material>& materia
         addMaterialMap(materialPrivate.maps()[castFromMaterialMapTarget(MaterialMapTarget::Roughness)]),
         addMaterialMap(materialPrivate.maps()[castFromMaterialMapTarget(MaterialMapTarget::Metalness)]),
         addMaterialMap(materialPrivate.maps()[castFromMaterialMapTarget(MaterialMapTarget::Normal)]),
-        materialPrivate.baseColor(),
-        materialPrivate.emission(),
         materialPrivate.roughness(),
         materialPrivate.metalness(),
-        makeMaterialFlags(
-            materialPrivate.occlusionMapStrength(),
-            materialPrivate.normalMapScale(),
-            materialPrivate.ORMSwizzleMask(),
-            materialPrivate.isLighted(),
-            materialPrivate.isShadowed()
-        )
+        materialPrivate.baseColor(),
+        glm::vec4(
+            materialPrivate.emission(),
+            glm::uintBitsToFloat(makeMaterialFlags(
+                materialPrivate.occlusionMapStrength(),
+                materialPrivate.normalMapScale(),
+                materialPrivate.ORMSwizzleMask(),
+                materialPrivate.isLighted(),
+                materialPrivate.isShadowed(),
+                isMaterialTransparent(material))))
         });
 }
 
@@ -797,17 +872,21 @@ std::shared_ptr<DrawDataHandler> SceneData::addDrawData(const std::shared_ptr<co
         return nullptr;
     }
 
-    const auto ID = m_drawDataHandlers.size();
+    const auto ID = m_drawDataIDsGenerator.generate();
 
     auto result = std::make_shared<DrawDataHandler>(weak_from_this(), ID);
-    m_drawDataHandlers.push_back(result);
+
+    if (m_drawDataHandlers.size() <= ID)
+        m_drawDataHandlers.resize(ID + 1u);
+
+    m_drawDataHandlers[ID] = result;
 
     onDrawDataChanged(drawable, modelMatrix, ID);
 
     return result;
 }
 
-void SceneData::removeDrawData(size_t ID)
+void SceneData::removeDrawData(utils::IDsGenerator::value_type ID)
 {
     if (ID >= m_drawDataHandlers.size())
     {
@@ -815,12 +894,15 @@ void SceneData::removeDrawData(size_t ID)
         return;
     }
 
-    m_drawDataHandlers.erase(std::next(m_drawDataHandlers.begin(), ID));
-    m_drawDataBuffer->erase(ID, 1u);
-    m_drawDataCommandsBuffer->erase(ID, 1u);
+    m_drawDataHandlers[ID].reset();
+    m_drawDataBuffer->set(ID, {
+        glm::mat4x4(1.f),
+        makeDrawDataNormalMatrixAndDrawableOffset(glm::mat4x4(1.f), utils::IDsGenerator::last())
+        });
+    m_drawDataIDsGenerator.clear(ID);
 }
 
-void SceneData::onDrawDataChanged(const std::shared_ptr<const Drawable>& drawable, const glm::mat4x4& modelMatrix, size_t ID)
+void SceneData::onDrawDataChanged(const std::shared_ptr<const Drawable>& drawable, const glm::mat4x4& modelMatrix, utils::IDsGenerator::value_type ID)
 {
     if (!drawable)
     {
@@ -837,18 +919,24 @@ void SceneData::onDrawDataChanged(const std::shared_ptr<const Drawable>& drawabl
     if (m_drawDataBuffer->size() <= ID)
     {
         m_drawDataBuffer->resize(ID + 1u);
-        m_drawDataBuffer->setReservedData(m_drawDataBuffer->size());
+        m_drawDataBuffer->setReservedData({ static_cast<uint32_t>(m_drawDataBuffer->size()), {0u, 0u, 0u} });
     }
 
-    if (m_drawDataCommandsBuffer->size() <= ID)
+    if (m_opaqueDrawDataCommandsBuffer->size() <= ID)
     {
-        m_drawDataCommandsBuffer->resize(ID + 1u);
-        m_drawDataCommandsBuffer->setReservedData(m_drawDataCommandsBuffer->size());
+        m_opaqueDrawDataCommandsBuffer->resize(ID + 1u);
+        m_opaqueDrawDataCommandsBuffer->setReservedData({ static_cast<uint32_t>(m_opaqueDrawDataCommandsBuffer->size()), {0u, 0u, 0u} });
+    }
+
+    if (m_transparentDrawDataCommandsBuffer->size() <= ID)
+    {
+        m_transparentDrawDataCommandsBuffer->resize(ID + 1u);
+        m_transparentDrawDataCommandsBuffer->setReservedData({ static_cast<uint32_t>(m_transparentDrawDataCommandsBuffer->size()), {0u, 0u, 0u} });
     }
 
     m_drawDataBuffer->set(ID, {
         modelMatrix,
-        addDrawable(drawable)
+        makeDrawDataNormalMatrixAndDrawableOffset(modelMatrix, addDrawable(drawable))
         });
 }
 
@@ -860,11 +948,15 @@ void SceneData::addBackground(const std::shared_ptr<const Background>& backgroun
         return;
     }
 
-    const auto ID = m_backgroundsHandlers.size();
+    const auto ID = m_backgroundIDsGenerator.generate();
 
     auto handler = std::make_shared<BackgroundHandler>(weak_from_this(), background, ID);
     background->m().handler() = { shared_from_this(), handler };
-    m_backgroundsHandlers.push_back(handler);
+
+    if (m_backgroundsHandlers.size() <= ID)
+        m_backgroundsHandlers.resize(ID + 1u);
+
+    m_backgroundsHandlers [ID] = handler;
 
     onBackgroundChanged(background, ID);
 }
@@ -877,13 +969,13 @@ void SceneData::removeBackground(size_t ID)
         return;
     }
 
-    m_backgroundsHandlers.erase(std::next(m_backgroundsHandlers.begin(), ID));
-
-    m_backgroundsBuffer->erase(ID, 1u);
-    m_backgroundsBuffer->setReservedData(m_backgroundsBuffer->size());
-
-    m_backgroundsCommandsBuffer->erase(ID, 1u);
-    m_backgroundsCommandsBuffer->setReservedData(m_backgroundsCommandsBuffer->size());
+    m_backgroundsHandlers[ID].reset();
+    m_backgroundsBuffer->set(ID, {
+        utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(),
+        makeBackgroundEnvironmentColorAndBlurPower(glm::vec3(0.f), 0.f)
+        });
+    m_backgroundIDsGenerator.clear(ID);
 }
 
 void SceneData::onBackgroundChanged(const std::shared_ptr<const Background>& background, size_t ID)
@@ -903,20 +995,19 @@ void SceneData::onBackgroundChanged(const std::shared_ptr<const Background>& bac
     if (m_backgroundsBuffer->size() <= ID)
     {
         m_backgroundsBuffer->resize(ID + 1u);
-        m_backgroundsBuffer->setReservedData(m_backgroundsBuffer->size());
+        m_backgroundsBuffer->setReservedData({ static_cast<uint32_t>(m_backgroundsBuffer->size()), {0u, 0u, 0u} });
     }
 
     if (m_backgroundsCommandsBuffer->size() <= ID)
     {
         m_backgroundsCommandsBuffer->resize(ID + 1u);
-        m_backgroundsCommandsBuffer->setReservedData(m_backgroundsCommandsBuffer->size());
+        m_backgroundsCommandsBuffer->setReservedData({ static_cast<uint32_t>(m_backgroundsCommandsBuffer->size()), {0u, 0u, 0u} });
     }
 
     m_backgroundsBuffer->set(ID, {
         addMesh(ScreenQuad::instance()),
         addMaterialMap(background->environmentMap()),
-        background->environmentColor(),
-        background->blurPower()
+        makeBackgroundEnvironmentColorAndBlurPower( background->environmentColor(), background->blurPower())
         });
 }
 
@@ -965,7 +1056,7 @@ MaterialMapsBuffer& SceneData::materialMapsBuffer()
     return m_materialMapsBuffer;
 }
 
-MaterialsBuffer& SceneData::materialBuffer()
+MaterialsBuffer& SceneData::materialsBuffer()
 {
     return m_materialsBuffer;
 }
@@ -985,14 +1076,19 @@ BackgroundsBuffer& SceneData::backgroundsBuffer()
     return m_backgroundsBuffer;
 }
 
-CommandsBuffer& SceneData::drawDataCommandsBuffer()
+DrawIndirectElementsCommandsBuffer& SceneData::opaqueDrawDataCommandsBuffer()
 {
-    return m_drawDataCommandsBuffer;
+    return m_opaqueDrawDataCommandsBuffer;
 }
 
-CommandsBuffer& SceneData::backgroundsCommandsBuffer()
+DrawIndirectElementsCommandsBuffer& SceneData::transparentDrawDataCommandsBuffer()
 {
-    return m_drawDataCommandsBuffer;
+    return m_transparentDrawDataCommandsBuffer;;
+}
+
+DrawIndirectElementsCommandsBuffer& SceneData::backgroundsCommandsBuffer()
+{
+    return m_backgroundsCommandsBuffer;
 }
 
 }

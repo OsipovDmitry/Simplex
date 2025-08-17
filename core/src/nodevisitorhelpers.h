@@ -171,7 +171,7 @@ class VisualDrawablesCollector : public FrustumCullingNodeVisitor
 {
 public:
     using VisualDrawableNodesCollection = std::deque<std::shared_ptr<VisualDrawableNode>>;
-    using VisualDrawablesCollection = std::deque<std::tuple<std::shared_ptr<const VisualDrawable>, glm::mat4x4>>;
+    using VisualDrawablesCollection = std::deque<std::tuple<std::shared_ptr<VisualDrawable>, glm::mat4x4>>;
 
     VisualDrawablesCollector(const utils::Frustum&);
 

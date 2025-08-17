@@ -1,7 +1,6 @@
 #include <core/directionallightnode.h>
 
 #include "directionallightnodeprivate.h"
-#include "directionalshadowprivate.h"
 
 namespace simplex
 {
@@ -9,7 +8,7 @@ namespace core
 {
 
 DirectionalLightNodePrivate::DirectionalLightNodePrivate(DirectionalLightNode &directionalLightNode, const std::string &name)
-    : LightNodePrivate(directionalLightNode, name, std::make_unique<DirectionalShadowPrivate>())
+    : LightNodePrivate(directionalLightNode, name, LightType::Directional)
 {
 }
 
@@ -23,8 +22,8 @@ DirectionalLightNodePrivate::~DirectionalLightNodePrivate() = default;
 
 LightNodePrivate::ShadowTransform DirectionalLightNodePrivate::doShadowTransform(const utils::Frustum::Points &cameraFrustumPoints)
 {
-    static const auto s_directionInLightSpace = glm::vec3(0.f, 0.f, -1.f);
-    const auto direction = glm::normalize(glm::vec3(d_.globalTransform() * glm::vec4(s_directionInLightSpace, 0.f)));
+    static const auto s_directionInLightSpace = glm::vec4(0.f, 0.f, -1.f, 0.f);
+    const auto direction = glm::normalize(glm::vec3(static_cast<glm::mat4x4>(d_.globalTransform()) * s_directionInLightSpace));
     const auto up = glm::abs(direction.y) < (1.f - utils::epsilon<float>()) ? glm::vec3(0.f, 1.f, 0.f) : glm::vec3(1.f, 0.f, 0.f);
 
     utils::BoundingBox cameraFrustumBB;
@@ -47,12 +46,16 @@ LightNodePrivate::ShadowTransform DirectionalLightNodePrivate::doShadowTransform
     const auto clipSpace = utils::ClipSpace::makeOrtho(-transformedShadowBBHalfSize.x, transformedShadowBBHalfSize.x,
                                                        -transformedShadowBBHalfSize.y, transformedShadowBBHalfSize.y);
 
+    const auto numLayers = numLayeredShadowMatrices();
+
     ShadowTransform result;
     result.frustumViewTransform = viewTransform;
     result.frustumClipSpace = clipSpace;
-    result.layeredViewTransforms = { viewTransform };
+    result.layeredViewTransforms.resize(numLayers);
+    for (uint32_t i = 0; i < numLayers; ++i)
+        result.layeredViewTransforms[i] = viewTransform;
     result.clipSpase = clipSpace;
-    result.cullPlanesLimits = m_shadow.cullPlanesLimits();
+    result.cullPlanesLimits = shadow().cullPlanesLimits();
     return result;
 }
 

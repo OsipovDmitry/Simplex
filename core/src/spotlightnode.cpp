@@ -41,11 +41,6 @@ SpotLightNode::SpotLightNode(const std::string &name)
     setHalfAngles(s_defaultHalfAngles);
 }
 
-LightType SpotLightNode::type() const
-{
-    return LightType::Spot;
-}
-
 SpotLightNode::~SpotLightNode() = default;
 
 std::shared_ptr<SpotLightNode> SpotLightNode::asSpotLightNode()

@@ -18,7 +18,7 @@ namespace simplex
 namespace core
 {
 
-PBRDrawable::PBRDrawable(const std::shared_ptr<graphics::IVertexArray> &vao, const utils::BoundingBox &bb)
+PBRDrawable::PBRDrawable(const std::shared_ptr<graphics::VAOMesh> &vao, const utils::BoundingBox &bb)
     : VisualDrawable(std::make_unique<VisualDrawablePrivate>(vao, bb))
 {
     setLighted(true);
@@ -48,7 +48,7 @@ PBRDrawable::PBRDrawable(
             return manager->loadOrGetTexture(image);
         else return nullptr;
     };
-    m().vertexArray() = renderer->createVertexArray(mesh->mesh());
+    m().vertexArray() = graphics::VAOMesh::create(mesh->mesh());
     setLighted(material->isLighted());
     setShadowed(material->isShadowed());
     setShadowCasted(material->isShadowCasted());

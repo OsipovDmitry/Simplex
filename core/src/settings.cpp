@@ -325,6 +325,23 @@ float Blur::sigma() const
     return readSingle("Sigma", 2.f);
 }
 
+OIT::OIT(const rapidjson::Document::ValueType* value)
+    : utils::SettingsComponent(value)
+{
+}
+
+OIT::~OIT() = default;
+
+uint32_t OIT::nodesPerPixel() const
+{
+    return readUint("NodesPerPixel", 4u);
+}
+
+uint32_t OIT::maxNodes() const
+{
+    return readUint("MaxNodes", 1920u * 1024u * 4u);
+}
+
 NodeBoundingBox::NodeBoundingBox(const rapidjson::Document::ValueType *value)
     : utils::SettingsComponent(value)
 {
@@ -490,15 +507,16 @@ const Blur &Graphics::blur() const
     return s_blur;
 }
 
+const OIT& Graphics::oit() const
+{
+    static const OIT s_OIT(read("OIT"));
+    return s_OIT;
+}
+
 const DebugRendering &Graphics::debugRendering() const
 {
     static const DebugRendering s_debugRender(read("DebugRendering"));
     return s_debugRender;
-}
-
-uint32_t Graphics::maxFragmants() const
-{
-    return readUint("MaxFragments", 1920u * 1080u * 6u);
 }
 
 Source::Source(const rapidjson::Document::ValueType *value)

@@ -14,7 +14,6 @@ namespace core
 {
 
 ENUMCLASS(UniformId, uint16_t,
-          Undefined,
           ViewportSize,
           ModelMatrix,
           NormalMatrix,
@@ -25,9 +24,6 @@ ENUMCLASS(UniformId, uint16_t,
           ProjectionMatrixInverse,
           ViewProjectionMatrix,
           ViewProjectionMatrixInverse,
-          ModelViewMatrix,
-          NormalViewMatrix,
-          ModelViewProjectionMatrix,
           ModelPosition,
           ModelXDirection,
           ModelYDirection,
@@ -45,6 +41,7 @@ ENUMCLASS(UniformId, uint16_t,
           GBufferDepthMap,
           OITDepthImage,
           OITIndicesImage,
+          GBufferFinalMap,
           SSAOMap,
           SSAOContribution,
           SSAONoiseMap,
@@ -85,14 +82,12 @@ ENUMCLASS(UniformId, uint16_t,
           BlurMaxDepthDifference)
 
 ENUMCLASS(SSBOId, uint16_t,
-    Undefined,
-
     PositionsBuffer,
     NormalsBuffer,
     TexCoordsBuffer,
     BonesBuffer,
     TangentsBuffer,
-    ColorBuffer,
+    ColorsBuffer,
     IndicesBuffer,
 
     MeshesBuffer,
@@ -103,6 +98,8 @@ ENUMCLASS(SSBOId, uint16_t,
     BackgroundsBuffer,
 
     CommandsBuffer,
+    OpaqueCommandsBuffer,
+    TransparentCommandsBuffer,
 
     LayeredShadowMatrices,
     OITNodesBuffer,
@@ -131,8 +128,8 @@ public:
     void removeUserUniform(const std::string&);
 
     const SSBOCollection &ssboCollection() const;
-    graphics::PConstBuffer SSBO(SSBOId) const;
-    graphics::PConstBuffer &getOrCreateSSBO(SSBOId);
+    graphics::PConstBufferRange SSBO(SSBOId) const;
+    graphics::PConstBufferRange &getOrCreateSSBO(SSBOId);
     void removeSSBO(SSBOId);
 
 protected:

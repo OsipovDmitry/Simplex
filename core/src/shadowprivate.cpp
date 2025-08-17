@@ -2,6 +2,7 @@
 #include <core/graphicsrendererbase.h>
 
 #include "shadowprivate.h"
+#include "shadowbuffer.h"
 #include "framebufferhelpers.h"
 #include "blur.h"
 
@@ -41,6 +42,11 @@ utils::Range &ShadowPrivate::cullPlanesLimits()
     return m_cullPlanesLimits;
 }
 
+std::shared_ptr<ShadowBuffer>& ShadowPrivate::shadowBuffer()
+{
+    return m_shadowBuffer;
+}
+
 std::shared_ptr<ShadowFrameBuffer> &ShadowPrivate::frameBuffer()
 {
     return m_frameBuffer;
@@ -51,23 +57,22 @@ std::shared_ptr<Blur> &ShadowPrivate::blur()
     return m_blur;
 }
 
-graphics::PBuffer &ShadowPrivate::layeredMatricesBuffer()
+ShadowPrivate::LayeredMatricesBuffer& ShadowPrivate::layeredMatricesBuffer()
 {
     return m_layeredMatricesBuffer;
 }
 
-void ShadowPrivate::update(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer, const std::vector<glm::mat4x4> &layeredShadowMatrices)
+void ShadowPrivate::update(
+    const std::shared_ptr<graphics::IFrameBuffer> &frameBuffer,
+    const std::vector<glm::mat4x4> &layeredShadowMatrices)
 {
-    if (!m_frameBuffer)
-    {
-        m_frameBuffer = createShadowFrameBuffer(graphicsRenderer);
-        m_frameBuffer->resize(graphicsRenderer, mapSize(), mode(), filter());
-    }
+    for (size_t i = 0u; i < layeredShadowMatrices.size(); ++i)
+        m_layeredMatricesBuffer->set(i, layeredShadowMatrices[i]);
 
-    if (!m_layeredMatricesBuffer)
-    {
-        m_layeredMatricesBuffer = graphicsRenderer->createBuffer(0u);
-    }
+    m_shadowBuffer->update(m_mapSize, m_mode, m_filter);
+
+    // tmp
+    m_frameBuffer = std::make_shared<ShadowFrameBuffer>(frameBuffer, m_shadowBuffer);
 
     if (m_filter == ShadingFilter::VSM)
     {
@@ -76,18 +81,6 @@ void ShadowPrivate::update(const std::shared_ptr<graphics::RendererBase> &graphi
     }
     else
         m_blur = nullptr; // blur is not needed if filter is not VSM
-
-    const size_t bufferSize = 4u * sizeof(uint32_t) + layeredShadowMatrices.size() * sizeof(glm::mat4x4);
-    m_layeredMatricesBuffer->resize(bufferSize);
-    auto data = m_layeredMatricesBuffer->map(graphics::IBuffer::MapAccess::WriteOnly);
-    auto p = data->get();
-    *reinterpret_cast<uint32_t*>(p) = static_cast<uint32_t>(layeredShadowMatrices.size());
-    p += 4u * sizeof(uint32_t);
-    for (size_t i = 0u; i < layeredShadowMatrices.size(); ++i)
-    {
-        *reinterpret_cast<glm::mat4x4*>(p) = layeredShadowMatrices[i];
-        p += sizeof(glm::mat4x4);
-    }
 }
 
 }

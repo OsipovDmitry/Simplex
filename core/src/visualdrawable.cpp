@@ -22,7 +22,7 @@ bool VisualDrawable::isTransparent() const
 {
     bool result = false;
 
-    if (vertexArray()->vertexAttributeNumComponents(utils::VertexAttribute::Color) > 3u)
+    if (vertexArray()->vao()->vertexAttributeNumComponents(utils::VertexAttribute::Color) > 3u)
         result = true;
 
     if (auto uni = uniform_cast<glm::vec4>(uniform(UniformId::BaseColor)); uni && (uni->data().a < 1.f - utils::epsilon<float>()))
@@ -62,12 +62,12 @@ bool VisualDrawable::isShadowCasted() const
     return m().isShadowCastedFlag();
 }
 
-graphics::PConstBuffer VisualDrawable::bonesBuffer() const
+graphics::PConstBufferRange VisualDrawable::bonesBuffer() const
 {
     return SSBO(SSBOId::BonesBuffer);
 }
 
-void VisualDrawable::setBonesBuffer(const graphics::PConstBuffer &value)
+void VisualDrawable::setBonesBuffer(const graphics::PConstBufferRange &value)
 {
     getOrCreateSSBO(SSBOId::BonesBuffer) = value;
 }

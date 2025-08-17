@@ -1,5 +1,3 @@
-#include <core/lightnode.h>
-
 #include "lightnodeprivate.h"
 #include "shadowprivate.h"
 
@@ -8,10 +6,11 @@ namespace simplex
 namespace core
 {
 
-LightNodePrivate::LightNodePrivate(LightNode &lightNode, const std::string &name, std::unique_ptr<ShadowPrivate> shadowPrivate)
+LightNodePrivate::LightNodePrivate(LightNode &lightNode, const std::string &name, LightType type)
     : NodePrivate(lightNode, name)
-    , m_shadow(std::move(shadowPrivate))
+    , m_type(type)
     , m_isLightingEnabled(true)
+    , m_shadow(std::make_shared<Shadow>(type))
     , m_shadowTransform()
     , m_areaDrawable()
     , m_isAreaMatrixDirty(true)
@@ -26,6 +25,40 @@ utils::BoundingBox LightNodePrivate::doBoundingBox()
     return areaBoundingBox();
 }
 
+LightType& LightNodePrivate::type()
+{
+    return m_type;
+}
+
+uint32_t LightNodePrivate::numLayeredShadowMatrices() const
+{
+    return numLayeredShadowMatrices(m_type);
+}
+
+uint32_t LightNodePrivate::numLayeredShadowMatrices(LightType type)
+{
+    uint32_t result = 0u;
+    switch (type)
+    {
+    case LightType::Point:
+    {
+        result = 6u;
+        break;
+    }
+    case LightType::Directional:
+    case LightType::Spot:
+    {
+        result = 1u;
+        break;
+    }
+    default:
+    {
+        break;
+    }
+    }
+    return result;
+}
+
 bool &LightNodePrivate::isLightingEnabled()
 {
     return m_isLightingEnabled;
@@ -33,7 +66,7 @@ bool &LightNodePrivate::isLightingEnabled()
 
 Shadow &LightNodePrivate::shadow()
 {
-    return m_shadow;
+    return *m_shadow;
 }
 
 LightNodePrivate::ShadowTransform &LightNodePrivate::shadowTransform(const utils::Frustum::Points &cameraFrustumPoints)

@@ -10,6 +10,7 @@
 #include <utils/forwarddecl.h>
 
 #include <core/coreglobal.h>
+#include <core/forwarddecl.h>
 
 namespace simplex
 {
@@ -32,7 +33,7 @@ class CORE_SHARED_EXPORT Shadow
 {
     PRIVATE_IMPL(Shadow)
 public:
-    Shadow(std::unique_ptr<ShadowPrivate>);
+    Shadow(LightType);
     ~Shadow();
 
     ShadingMode mode() const;

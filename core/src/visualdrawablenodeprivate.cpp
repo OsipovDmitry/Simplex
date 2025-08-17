@@ -26,11 +26,8 @@ utils::BoundingBox VisualDrawableNodePrivate::doBoundingBox()
 
 void VisualDrawableNodePrivate::doAfterTransformChanged()
 {
-    if (auto s = d().scene())
-    {
-        for (const auto& visualDrawable : m_visualDrawables)
-            addDrawDataToScene(s, visualDrawable);
-    }
+    if (auto scene = d().scene())
+        changeDrawDataInScene(scene);
 }
 
 void VisualDrawableNodePrivate::doAttachToScene(const std::shared_ptr<Scene>& scene)
@@ -97,7 +94,21 @@ void VisualDrawableNodePrivate::removeDrawDataFromScene(
     }
 }
 
-std::unordered_set<std::shared_ptr<const VisualDrawable>> &VisualDrawableNodePrivate::visualDrawables()
+void VisualDrawableNodePrivate::changeDrawDataInScene(const std::shared_ptr<Scene>& scene)
+{
+    if (!scene)
+    {
+        LOG_ERROR << "Scene can't be nullptr";
+        return;
+    }
+
+    auto& sceneData = scene->m().sceneData();
+    const auto& globalTranform = d().globalTransform();
+    for (const auto& handler : m_handlers)
+        sceneData->onDrawDataChanged(handler.first, globalTranform, handler.second->ID());
+}
+
+std::unordered_set<std::shared_ptr<VisualDrawable>> &VisualDrawableNodePrivate::visualDrawables()
 {
     return m_visualDrawables;
 }

@@ -100,7 +100,7 @@ graphics::PConstTexture Blur::run(const std::shared_ptr<graphics::RendererBase> 
         *reinterpret_cast<uint32_t*>(p) = radius;
         memcpy(p + 4u * sizeof(uint32_t), kernel.data(), kernel.size() * sizeof(glm::vec4));
 
-        setKernelBuffer(kernelBuffer);
+        setKernelBuffer(graphics::BufferRange::create(kernelBuffer, 0u, bufferSize));
     }
 
     checkMapsInvariants();
@@ -131,26 +131,26 @@ graphics::PConstTexture Blur::run(const std::shared_ptr<graphics::RendererBase> 
         const auto sourceIdx = pass % 2u;
         const auto destinationIdx = 1u - sourceIdx;
 
-        setSourceImage(graphicsRenderer->createImage(graphics::IImage::DataAccess::ReadOnly,
+        setSourceImage(graphics::Image::create(graphics::Image::DataAccess::ReadOnly,
                                                      m_pingpongSourceMap[sourceIdx].first,
                                                      m_pingpongSourceMap[sourceIdx].second));
-        setDestinationImage(graphicsRenderer->createImage(graphics::IImage::DataAccess::WriteOnly,
+        setDestinationImage(graphics::Image::create(graphics::Image::DataAccess::WriteOnly,
                                                           m_pingpongSourceMap[destinationIdx].first,
                                                           m_pingpongSourceMap[destinationIdx].second));
         setPassIndex(pass);
 
-        graphicsRenderer->compute(program, size, shared_from_this());
+        graphicsRenderer->compute(program, size, { shared_from_this() });
     }
 
     return m_pingpongSourceMap[numPasses % 2u].first;
 }
 
-graphics::PConstBuffer Blur::kernelBuffer()
+graphics::PConstBufferRange Blur::kernelBuffer()
 {
     return SSBO(SSBOId::BlurKernel);
 }
 
-void Blur::setKernelBuffer(const graphics::PConstBuffer &value)
+void Blur::setKernelBuffer(const graphics::PConstBufferRange &value)
 {
     static SSBOId s_SSBOId = SSBOId::BlurKernel;
 

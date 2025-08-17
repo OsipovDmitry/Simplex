@@ -30,12 +30,12 @@ std::shared_ptr<const VisualDrawableNode> VisualDrawableNode::asVisualDrawableNo
     return const_cast<VisualDrawableNode*>(this)->asVisualDrawableNode();
 }
 
-const std::unordered_set<std::shared_ptr<const VisualDrawable>> &VisualDrawableNode::visualDrawables() const
+const std::unordered_set<std::shared_ptr<VisualDrawable>> &VisualDrawableNode::visualDrawables() const
 {
     return m().visualDrawables();
 }
 
-void VisualDrawableNode::addVisualDrawable(std::shared_ptr<const VisualDrawable> drawable)
+void VisualDrawableNode::addVisualDrawable(std::shared_ptr<VisualDrawable> drawable)
 {
     if (!drawable)
     {
@@ -51,7 +51,7 @@ void VisualDrawableNode::addVisualDrawable(std::shared_ptr<const VisualDrawable>
         mPrivate.addDrawDataToScene(s, drawable); // to add draw data after marking local BB as dirty
 }
 
-void VisualDrawableNode::removeVisualDrawable(std::shared_ptr<const VisualDrawable> drawable)
+void VisualDrawableNode::removeVisualDrawable(std::shared_ptr<VisualDrawable> drawable)
 {
     auto &mPrivate = m();
     mPrivate.visualDrawables().erase(drawable);

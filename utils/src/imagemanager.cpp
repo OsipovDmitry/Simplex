@@ -65,6 +65,32 @@ std::shared_ptr<Image> ImageManager::loadOrGet(const std::filesystem::path& file
     return result;
 }
 
+std::shared_ptr<Image> ImageManager::loadOrGetDescription(const std::filesystem::path& filename)
+{
+    const auto absoluteFilename = std::filesystem::absolute(filename);
+
+    if (auto it = m_images.find(absoluteFilename); it != m_images.end())
+        return it->second;
+
+    int w, h, n;
+    const auto filenameUtf8 = filename.string();
+
+    if (!stbi_info(filenameUtf8.c_str(), &w, &h, &n))
+    {
+        LOG_ERROR << "Failed to load image description " << absoluteFilename;
+        return nullptr;
+    }
+
+    auto result = std::shared_ptr<Image>(new Image);
+    result->m_width = static_cast<uint32_t>(w);
+    result->m_height = static_cast<uint32_t>(h);
+    result->m_numComponents = static_cast<uint32_t>(n);
+    result->m_data = nullptr;
+    result->m_componentType = PixelComponentType::Count;
+
+    return result;
+}
+
 ImageManager::ImageManager()
 {}
 

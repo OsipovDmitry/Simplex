@@ -17,10 +17,21 @@ public:
 
     const const std::string& name();
 
+    std::unordered_map<std::string, utils::VertexAttribute> &attributeIDs();
+    std::unordered_map<std::string, core::graphics::FrameBufferAttachment> &outputIDs();
+    std::unordered_map<std::string, core::UniformId> &uniformIDs();
+    std::unordered_map<std::string, core::SSBOId> &SSBOIDs();
+
     static std::weak_ptr<RendererBase> &current();
 
 private:
     std::string m_name;
+
+    std::unordered_map<std::string, utils::VertexAttribute> m_attributeIDs;
+    std::unordered_map<std::string, core::graphics::FrameBufferAttachment> m_outputIDs;
+    std::unordered_map<std::string, core::UniformId> m_uniformIDs;
+    std::unordered_map<std::string, core::SSBOId> m_SSBOIDs;
+
     static std::weak_ptr<RendererBase> s_current;
 };
 

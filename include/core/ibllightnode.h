@@ -16,8 +16,6 @@ public:
     IBLLightNode(const std::string&);
     ~IBLLightNode() override;
 
-    LightType type() const override;
-
     std::shared_ptr<IBLLightNode> asIBLLightNode() override;
     std::shared_ptr<const IBLLightNode> asIBLLightNode() const override;
 

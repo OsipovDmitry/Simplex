@@ -27,7 +27,7 @@ public:
     std::shared_ptr<LightNode> asLightNode() override;
     std::shared_ptr<const LightNode> asLightNode() const override;
 
-    virtual LightType type() const = 0;
+    LightType type() const;
 
     virtual std::shared_ptr<PointLightNode> asPointLightNode();
     virtual std::shared_ptr<const PointLightNode> asPointLightNode() const;

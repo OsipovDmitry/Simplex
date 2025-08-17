@@ -19,8 +19,6 @@ public:
     PointLightNode(const std::string&);
     ~PointLightNode() override;
 
-    LightType type() const override;
-
     std::shared_ptr<PointLightNode> asPointLightNode() override;
     std::shared_ptr<const PointLightNode> asPointLightNode() const override;
 

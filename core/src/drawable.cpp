@@ -13,7 +13,7 @@ namespace simplex
 namespace core
 {
 
-Drawable::Drawable(const std::shared_ptr<graphics::IVertexArray> &vertexArray)
+Drawable::Drawable(const std::shared_ptr<graphics::VAOMesh> &vertexArray)
     : Drawable(std::make_unique<DrawablePrivate>(vertexArray))
 {
 }
@@ -49,17 +49,17 @@ void Drawable::setMaterial(const std::shared_ptr<const Material>& value)
     mPrivate.onChanged();
 }
 
-std::shared_ptr<const graphics::IVertexArray> Drawable::vertexArray() const
+std::shared_ptr<const graphics::VAOMesh> Drawable::vertexArray() const
 {
     return const_cast<Drawable*>(this)->vertexArray();
 }
 
-std::shared_ptr<graphics::IVertexArray> Drawable::vertexArray()
+std::shared_ptr<graphics::VAOMesh> Drawable::vertexArray()
 {
     return m().vertexArray();
 }
 
-void Drawable::setVertexArray(std::shared_ptr<graphics::IVertexArray> value)
+void Drawable::setVertexArray(std::shared_ptr<graphics::VAOMesh> value)
 {
     m().vertexArray() = value;
 }
@@ -68,7 +68,7 @@ utils::VertexAttributeSet Drawable::vertexAttrubiteSet() const
 {
     utils::VertexAttributeSet result;
 
-    auto vao = vertexArray();
+    auto vao = m().vertexArray()->vao();
     for (typename std::underlying_type<utils::VertexAttribute>::type i = 0u; i < utils::numElementsVertexAttribute(); ++i)
         if (auto attrib = utils::castToVertexAttribute(i); vao->vertexAttributeBindingIndex(attrib) != static_cast<uint32_t>(-1))
             result.insert(attrib);

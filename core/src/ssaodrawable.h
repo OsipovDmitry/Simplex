@@ -11,7 +11,7 @@ namespace core
 class SSAODrawable : public Drawable
 {
 public:
-    SSAODrawable(const std::shared_ptr<graphics::IVertexArray>&);
+    SSAODrawable(const std::shared_ptr<graphics::VAOMesh>&);
     ~SSAODrawable() override;
 
     float contribution() const;
@@ -29,8 +29,8 @@ public:
     void update(const std::shared_ptr<graphics::RendererBase>&);
 
 private:
-    graphics::PConstBuffer kernelBuffer() const;
-    void setKernelBuffer(const graphics::PConstBuffer&);
+    graphics::PConstBufferRange kernelBuffer() const;
+    void setKernelBuffer(const graphics::PConstBufferRange&);
 
     graphics::PConstTexture noiseTexture() const;
     void setNoiseTexture(const graphics::PConstTexture&);

@@ -3,6 +3,8 @@
 #include <core/shadow.h>
 
 #include "framebufferhelpers.h"
+#include "geometrybuffer.h"
+#include "shadowbuffer.h"
 
 namespace simplex
 {
@@ -28,18 +30,23 @@ const glm::uvec2 &FrameBufferWrapper::viewportSize() const
     return m_viewportSize;
 }
 
-GFrameBufferTmp::GFrameBufferTmp(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
-    : FrameBufferWrapper(graphicsRenderer->createFrameBuffer())
+GFrameBufferTmp::GFrameBufferTmp(
+    const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
+    const std::shared_ptr<GeometryBuffer>& GBuffer)
+    : m_frameBuffer(frameBuffer)
+    , m_GBuffer(GBuffer)
 {
-    m_frameBuffer->setClearDepthStencil(1.f, 0x00u);
-    m_frameBuffer->setClearColor(0u, glm::vec4(0.f, 0.f, 0.f, 1.f));
     setForGeometryOpaquePass();
 }
 
 void GFrameBufferTmp::setForGeometryOpaquePass()
 {
+    m_frameBuffer->detachAll();
+    m_frameBuffer->attach(graphics::FrameBufferAttachment::Depth, m_GBuffer->depthTexture());
+    m_frameBuffer->attach(graphics::FrameBufferAttachment::Stencil, m_GBuffer->stencilTexture());
+
+    m_frameBuffer->setClearDepthStencil(1.f, 0x00u);
     m_frameBuffer->setClearMask({ core::graphics::FrameBufferAttachment::Depth, core::graphics::FrameBufferAttachment::Stencil });
-    m_frameBuffer->setDrawBuffers({});
 
     m_frameBuffer->setFaceCulling(false);
     m_frameBuffer->setColorMasks(false);
@@ -55,8 +62,11 @@ void GFrameBufferTmp::setForGeometryOpaquePass()
 
 void GFrameBufferTmp::setForGeometryTransparentPass()
 {
+    m_frameBuffer->detachAll();
+    m_frameBuffer->attach(graphics::FrameBufferAttachment::Depth, m_GBuffer->depthTexture());
+    m_frameBuffer->attach(graphics::FrameBufferAttachment::Stencil, m_GBuffer->stencilTexture());
+
     m_frameBuffer->setClearMask({});
-    m_frameBuffer->setDrawBuffers({});
 
     m_frameBuffer->setFaceCulling(false);
     m_frameBuffer->setColorMasks(false);
@@ -68,8 +78,12 @@ void GFrameBufferTmp::setForGeometryTransparentPass()
 
 void GFrameBufferTmp::setForStencilPass()
 {
+    m_frameBuffer->detachAll();
+    m_frameBuffer->attach(graphics::FrameBufferAttachment::Depth, m_GBuffer->depthTexture());
+    m_frameBuffer->attach(graphics::FrameBufferAttachment::Stencil, m_GBuffer->stencilTexture());
+
+    m_frameBuffer->setClearDepthStencil(1.f, 0x00u);
     m_frameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Stencil});
-    m_frameBuffer->setDrawBuffers({});
 
     m_frameBuffer->setFaceCulling(false);
     m_frameBuffer->setColorMasks(false);
@@ -87,8 +101,10 @@ void GFrameBufferTmp::setForStencilPass()
 
 void GFrameBufferTmp::setForLightPass()
 {
+    m_frameBuffer->detachAll();
+    m_frameBuffer->attach(graphics::FrameBufferAttachment::Stencil, m_GBuffer->stencilTexture());
+
     m_frameBuffer->setClearMask({});
-    m_frameBuffer->setDrawBuffers({});
 
     m_frameBuffer->setFaceCulling(true, graphics::FaceType::Front);
     m_frameBuffer->setColorMasks(false);
@@ -102,8 +118,12 @@ void GFrameBufferTmp::setForLightPass()
 
 void GFrameBufferTmp::setForBackgroundPass()
 {
+    m_frameBuffer->detachAll();
+    m_frameBuffer->attach(graphics::FrameBufferAttachment::Color0, m_GBuffer->finalTexture());
+    m_frameBuffer->attach(graphics::FrameBufferAttachment::Stencil, m_GBuffer->stencilTexture());
+
+    m_frameBuffer->setClearColor(0u, glm::vec4(0.f, 0.f, 0.f, 1.f));
     m_frameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Color0});
-    m_frameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
 
     m_frameBuffer->setFaceCulling(false);
     m_frameBuffer->setColorMasks(true);
@@ -117,8 +137,10 @@ void GFrameBufferTmp::setForBackgroundPass()
 
 void GFrameBufferTmp::setForFinalPass()
 {
+    m_frameBuffer->detachAll();
+    m_frameBuffer->attach(graphics::FrameBufferAttachment::Color0, m_GBuffer->finalTexture());
+
     m_frameBuffer->setClearMask({});
-    m_frameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
 
     m_frameBuffer->setFaceCulling(false);
     m_frameBuffer->setColorMasks(true);
@@ -131,87 +153,19 @@ void GFrameBufferTmp::setForFinalPass()
                                   graphics::BlendFactor::One, graphics::BlendFactor::SrcAlpha);
 }
 
-void GFrameBufferTmp::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
-                          const glm::uvec2 &viewportSize)
+std::shared_ptr<graphics::IFrameBuffer> GFrameBufferTmp::frameBuffer() const
 {
-    if (m_viewportSize != viewportSize)
-    {
-        m_viewportSize = viewportSize;
-
-        m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Color0,
-                              graphicsRenderer->createTextureRectEmpty(m_viewportSize.x,
-                                                                       m_viewportSize.y,
-                                                                       core::graphics::PixelInternalFormat::RGBA16F));
-
-        m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Depth,
-                              graphicsRenderer->createTextureRectEmpty(m_viewportSize.x,
-                                                                       m_viewportSize.y,
-                                                                       core::graphics::PixelInternalFormat::Depth32F));
-
-        m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Stencil,
-                              graphicsRenderer->createTextureRectEmpty(m_viewportSize.x,
-                                                                       m_viewportSize.y,
-                                                                       core::graphics::PixelInternalFormat::Stencil8));
-
-        m_oitDepthImage = graphicsRenderer->createImage(graphics::IImage::DataAccess::ReadWrite,
-                                                        graphicsRenderer->createTextureRectEmpty(m_viewportSize.x,
-                                                                                                 m_viewportSize.y,
-                                                                                                 core::graphics::PixelInternalFormat::R32F));
-
-        m_oitIndicesImage = graphicsRenderer->createImage(graphics::IImage::DataAccess::ReadWrite,
-                                                          graphicsRenderer->createTextureRectEmpty(m_viewportSize.x,
-                                                                                                   m_viewportSize.y,
-                                                                                                   core::graphics::PixelInternalFormat::R32UI));
-    }
+    return m_frameBuffer;
 }
 
-graphics::PConstTexture GFrameBufferTmp::colorTexture() const
+PostprocessFrameBuffer::PostprocessFrameBuffer(const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer)
+    : m_frameBuffer(frameBuffer)
 {
-    graphics::PConstTexture result;
-
-    if (graphics::IFrameBuffer::AttachmentInfo info; m_frameBuffer->attachment(core::graphics::FrameBufferAttachment::Color0, info))
-        result = std::dynamic_pointer_cast<const graphics::ITexture>(info.renderSurface);
-
-    return result;
 }
 
-graphics::PConstTexture GFrameBufferTmp::depthTexture() const
+void PostprocessFrameBuffer::setForPass()
 {
-    graphics::PConstTexture result;
-
-    if (graphics::IFrameBuffer::AttachmentInfo info; m_frameBuffer->attachment(core::graphics::FrameBufferAttachment::Depth, info))
-        result = std::dynamic_pointer_cast<const graphics::ITexture>(info.renderSurface);
-
-    return result;
-}
-
-graphics::PConstTexture GFrameBufferTmp::stencilTexture() const
-{
-    graphics::PConstTexture result;
-
-    if (graphics::IFrameBuffer::AttachmentInfo info; m_frameBuffer->attachment(core::graphics::FrameBufferAttachment::Stencil, info))
-        result = std::dynamic_pointer_cast<const graphics::ITexture>(info.renderSurface);
-
-    return result;
-}
-
-graphics::PConstImage GFrameBufferTmp::oitDepthImage() const
-{
-    return m_oitDepthImage;
-}
-
-graphics::PConstImage GFrameBufferTmp::oitIndicesImage() const
-{
-    return m_oitIndicesImage;
-}
-
-PostprocessFrameBuffer::PostprocessFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
-                                               const std::shared_ptr<graphics::IFrameBuffer> &userFrameBuffer)
-    : FrameBufferWrapper(userFrameBuffer ? userFrameBuffer : graphicsRenderer->createFrameBuffer())
-    , m_useUserFrameBuffer(userFrameBuffer != nullptr)
-{
-    m_frameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Color0});
-    m_frameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
+    m_frameBuffer->setClearMask({ core::graphics::FrameBufferAttachment::Color0 });
 
     m_frameBuffer->setFaceCulling(false);
     m_frameBuffer->setColorMasks(true);
@@ -220,35 +174,32 @@ PostprocessFrameBuffer::PostprocessFrameBuffer(const std::shared_ptr<graphics::R
     m_frameBuffer->setBlending(false);
 }
 
-void PostprocessFrameBuffer::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer, const glm::uvec2 &viewportSize)
+std::shared_ptr<graphics::IFrameBuffer> PostprocessFrameBuffer::frameBuffer() const
 {
-    if (m_viewportSize != viewportSize)
-    {
-        m_viewportSize = viewportSize;
-
-        if (!m_useUserFrameBuffer)
-            m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Color0,
-                                  graphicsRenderer->createTextureRectEmpty(m_viewportSize.x,
-                                                                           m_viewportSize.y,
-                                                                           core::graphics::PixelInternalFormat::RGBA8));
-    }
+    return m_frameBuffer;
 }
 
-ShadowFrameBuffer::ShadowFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
-    : FrameBufferWrapper(graphicsRenderer->createFrameBuffer())
-    , m_shadingMode(ShadingMode::Disabled)
-    , m_shadingFilter(ShadingFilter::Point)
+ShadowFrameBuffer::ShadowFrameBuffer(
+    const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
+    const std::shared_ptr<ShadowBuffer>& shadowBuffer)
+    : m_frameBuffer(frameBuffer)
+    , m_shadowBuffer(shadowBuffer)
 {
     setForOpaquePass();
 }
 
 void ShadowFrameBuffer::setForOpaquePass()
 {
+    m_frameBuffer->detachAll();
+    m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Depth, m_shadowBuffer->depthTexture());
+    if (m_shadingFilter == ShadingFilter::VSM)
+        m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Color0, m_shadowBuffer->depthVSMTexture());
+
     m_frameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Color0, core::graphics::FrameBufferAttachment::Depth});
     m_frameBuffer->setClearColor(0u, glm::vec4(1.f));
     m_frameBuffer->setClearDepthStencil(1.f, 0x00u);
-    m_frameBuffer->setDrawBuffers({ (m_shadingFilter == ShadingFilter::VSM) ? core::graphics::FrameBufferAttachment::Color0 : core::graphics::FrameBufferAttachment::Count,
-                                    core::graphics::FrameBufferAttachment::Count });
+    //m_frameBuffer->setDrawBuffers({ (m_shadingFilter == ShadingFilter::VSM) ? core::graphics::FrameBufferAttachment::Color0 : core::graphics::FrameBufferAttachment::Count,
+    //                                core::graphics::FrameBufferAttachment::Count });
 
     m_frameBuffer->setFaceCulling(false/*true, graphics::FaceType::Front*/);
     m_frameBuffer->setColorMasks(true);
@@ -260,10 +211,15 @@ void ShadowFrameBuffer::setForOpaquePass()
 
 void ShadowFrameBuffer::setForTransparentPass()
 {
+    m_frameBuffer->detachAll();
+    m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Depth, m_shadowBuffer->depthTexture());
+    if (m_shadingMode == ShadingMode::Color)
+        m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Color1, m_shadowBuffer->colorTexture());
+
     m_frameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Color1});
     m_frameBuffer->setClearColor(1u, glm::vec4(1.f));
-    m_frameBuffer->setDrawBuffers({ core::graphics::FrameBufferAttachment::Count,
-                                    (m_shadingMode == ShadingMode::Color) ? core::graphics::FrameBufferAttachment::Color1 : core::graphics::FrameBufferAttachment::Count });
+    //m_frameBuffer->setDrawBuffers({ core::graphics::FrameBufferAttachment::Count,
+    //                                (m_shadingMode == ShadingMode::Color) ? core::graphics::FrameBufferAttachment::Color1 : core::graphics::FrameBufferAttachment::Count });
 
     m_frameBuffer->setFaceCulling(false);
     m_frameBuffer->setColorMasks(true);
@@ -278,111 +234,22 @@ void ShadowFrameBuffer::setForTransparentPass()
 
 }
 
-void ShadowFrameBuffer::resize(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
-                               const glm::uvec2 &viewportSize,
-                               ShadingMode shadingMode,
-                               ShadingFilter shadingFilter)
+std::shared_ptr<graphics::IFrameBuffer> ShadowFrameBuffer::frameBuffer() const
 {
-    if ((m_viewportSize != viewportSize) || (m_shadingMode != shadingMode) || (m_shadingFilter != shadingFilter))
-    {
-        m_viewportSize = viewportSize;
-        m_shadingMode = shadingMode;
-        m_shadingFilter = shadingFilter;
-
-        auto depthTexture = doTexture(graphicsRenderer, m_viewportSize, graphics::PixelInternalFormat::Depth32F);
-        depthTexture->setFilterMode(graphics::TextureFilterMode::Point);
-        depthTexture->setWrapMode(graphics::TextureWrapMode::ClampToBorder);
-        depthTexture->setBorderColor(glm::vec4(1.f));
-        m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Depth, depthTexture);
-
-        if (m_shadingFilter == ShadingFilter::VSM)
-        {
-            auto depthVSMTexture = doTexture(graphicsRenderer, m_viewportSize, graphics::PixelInternalFormat::RG32F);
-            depthVSMTexture->setFilterMode(graphics::TextureFilterMode::Linear);
-            depthVSMTexture->setWrapMode(graphics::TextureWrapMode::ClampToBorder);
-            depthVSMTexture->setBorderColor(glm::vec4(1.f));
-            m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Color0, depthVSMTexture);
-        }
-        else
-        {
-            m_frameBuffer->detach(core::graphics::FrameBufferAttachment::Color0);
-        }
-
-        if (m_shadingMode == ShadingMode::Color)
-        {
-            auto colorTexture = doTexture(graphicsRenderer, m_viewportSize, graphics::PixelInternalFormat::R11F_G11F_B10F);
-            colorTexture->setFilterMode(graphics::TextureFilterMode::Linear);
-            colorTexture->setWrapMode(graphics::TextureWrapMode::ClampToBorder);
-            colorTexture->setBorderColor(glm::vec4(1.f));
-            m_frameBuffer->attach(core::graphics::FrameBufferAttachment::Color1, colorTexture);
-        }
-        else
-        {
-            m_frameBuffer->detach(core::graphics::FrameBufferAttachment::Color1);
-        }
-    }
+    return m_frameBuffer;
 }
 
-graphics::PConstTexture ShadowFrameBuffer::colorTexture() const
+std::shared_ptr<ShadowBuffer> ShadowFrameBuffer::shadowBuffer() const
 {
-    graphics::PConstTexture result;
-
-    if (graphics::IFrameBuffer::AttachmentInfo info; m_frameBuffer->attachment(core::graphics::FrameBufferAttachment::Color1, info))
-        result = std::dynamic_pointer_cast<const graphics::ITexture>(info.renderSurface);
-
-    return result;
-}
-
-graphics::PConstTexture ShadowFrameBuffer::depthTexture() const
-{
-    graphics::PConstTexture result;
-
-    if (graphics::IFrameBuffer::AttachmentInfo info; m_frameBuffer->attachment(core::graphics::FrameBufferAttachment::Depth, info))
-        result = std::dynamic_pointer_cast<const graphics::ITexture>(info.renderSurface);
-
-    return result;
-}
-
-graphics::PConstTexture ShadowFrameBuffer::depthVSMTexture() const
-{
-    graphics::PConstTexture result;
-
-    if (graphics::IFrameBuffer::AttachmentInfo info; m_frameBuffer->attachment(core::graphics::FrameBufferAttachment::Color0, info))
-        result = std::dynamic_pointer_cast<const graphics::ITexture>(info.renderSurface);
-
-    return result;
-}
-
-ShadowFrameBuffer2D::ShadowFrameBuffer2D(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
-    : ShadowFrameBuffer(graphicsRenderer)
-{
-}
-
-graphics::PTexture ShadowFrameBuffer2D::doTexture(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
-                                                  const glm::uvec2 &viewportSize,
-                                                  graphics::PixelInternalFormat internalFormat) const
-{
-    return graphicsRenderer->createTexture2DEmpty(viewportSize.x, viewportSize.y, internalFormat);
-}
-
-ShadowFrameBufferCube::ShadowFrameBufferCube(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
-    : ShadowFrameBuffer(graphicsRenderer)
-{
-}
-
-graphics::PTexture ShadowFrameBufferCube::doTexture(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
-                                                    const glm::uvec2 &viewportSize,
-                                                    graphics::PixelInternalFormat internalFormat) const
-{
-    return graphicsRenderer->createTextureCubeEmpty(viewportSize.x, viewportSize.y, internalFormat);
+    return m_shadowBuffer;
 }
 
 SSAOFrameBuffer::SSAOFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
     : FrameBufferWrapper(graphicsRenderer->createFrameBuffer())
-    , m_pixelInternalFormat(graphics::PixelInternalFormat::Undefined)
+    , m_pixelInternalFormat(graphics::PixelInternalFormat::Count)
 {
     m_frameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Color0});
-    m_frameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
+    //m_frameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
 
     m_frameBuffer->setFaceCulling(false);
     m_frameBuffer->setColorMasks(true);
@@ -415,8 +282,8 @@ graphics::PConstTexture SSAOFrameBuffer::colorTexture() const
 {
     graphics::PConstTexture result;
 
-    if (graphics::IFrameBuffer::AttachmentInfo info; m_frameBuffer->attachment(core::graphics::FrameBufferAttachment::Color0, info))
-        result = std::dynamic_pointer_cast<const graphics::ITexture>(info.renderSurface);
+    if (auto surface = m_frameBuffer->attachmentSurface(core::graphics::FrameBufferAttachment::Color0))
+        result = std::dynamic_pointer_cast<const graphics::ITexture>(surface);
 
     return result;
 }
@@ -428,10 +295,10 @@ graphics::PixelInternalFormat SSAOFrameBuffer::pixelInternalFormat() const
 
 BlurFrameBuffer::BlurFrameBuffer(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
     : FrameBufferWrapper(graphicsRenderer->createFrameBuffer())
-    , m_pixelInternalFormat(graphics::PixelInternalFormat::Undefined)
+    , m_pixelInternalFormat(graphics::PixelInternalFormat::Count)
 {
     m_frameBuffer->setClearMask({core::graphics::FrameBufferAttachment::Color0});
-    m_frameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
+    //m_frameBuffer->setDrawBuffers({core::graphics::FrameBufferAttachment::Color0});
 
     m_frameBuffer->setFaceCulling(false);
     m_frameBuffer->setColorMasks(true);
@@ -460,8 +327,8 @@ graphics::PConstTexture BlurFrameBuffer::colorTexture() const
 {
     graphics::PConstTexture result;
 
-    if (graphics::IFrameBuffer::AttachmentInfo info; m_frameBuffer->attachment(core::graphics::FrameBufferAttachment::Color0, info))
-        result = std::dynamic_pointer_cast<const graphics::ITexture>(info.renderSurface);
+    if (auto surface = m_frameBuffer->attachmentSurface(core::graphics::FrameBufferAttachment::Color1))
+        result = std::dynamic_pointer_cast<const graphics::ITexture>(surface);
 
     return result;
 }

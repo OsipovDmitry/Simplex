@@ -3,23 +3,49 @@ layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 #include<descriptions.glsl>
 
 layout (std430) readonly buffer ssbo_meshesBuffer { MeshDescription meshes[]; };
+layout (std430) readonly buffer ssbo_materialsBuffer { MaterialDescription materials[]; };
 layout (std430) readonly buffer ssbo_drawablesBuffer { DrawableDescription drawables[]; };
-layout (std430) readonly buffer ssbo_drawDataBuffer { uint numDrawData; DrawDataDescription drawData[]; };
-layout (std430) writeonly buffer ssbo_commandsBuffer { uint numCommnads; MultiDrawElementsIndirectCommand commands[]; };
+layout (std430) readonly buffer ssbo_drawDataBuffer {
+	DrawDataBufferReservedData drawDataBufferReservedData;
+	DrawDataDescription drawData[];
+};
+layout (std430) writeonly buffer ssbo_opaqueCommandsBuffer {
+	DrawIndirectCommandsBufferReservedData opaqueDrawIndirectCommandsBufferReservedData;
+	DrawElementsIndirectCommand opaqueCommands[];
+};
+layout (std430) writeonly buffer ssbo_transparentCommandsBuffer {
+	DrawIndirectCommandsBufferReservedData transparenDrawIndirectCommandsBufferReservedData;
+	DrawElementsIndirectCommand transparentCommands[];
+};
 
 void main(void)
 {
     uint drawDataID = gl_GlobalInvocationID.x;
-    if (drawDataID < numDrawData)
+    if (drawDataID < drawDataBufferReservedData.count)
     {
-        uint drawableOffset = drawData[drawDataID].drawableOffset;
+        uint drawableOffset = drawDataDrawableOffset(drawData[drawDataID]);
         uint meshOffset = drawables[drawableOffset].meshOffset;
-        
-        commands[atomicAdd(numCommnads, 1)] = MultiDrawElementsIndirectCommand(
-            meshes[meshOffset].numElements,
-            1,
-            meshes[meshOffset].indexOffset,
-            0,
-            0);
+        uint materialOffset = drawables[drawableOffset].materialOffset;
+		
+		if (isMeshTransparent(meshes[meshOffset].flags) || isMaterialTransparent(materialFlags(materials[materialOffset])))
+		{
+			uint transparenCommandsID = atomicAdd(transparenDrawIndirectCommandsBufferReservedData.count, 1);
+			transparentCommands[transparenCommandsID] = DrawElementsIndirectCommand(
+				meshes[meshOffset].numElements,
+				1,
+				meshes[meshOffset].indexOffset,
+				0,
+				0);
+		}
+		else
+		{
+			uint opaqueCommandsID = atomicAdd(opaqueDrawIndirectCommandsBufferReservedData.count, 1);
+			opaqueCommands[opaqueCommandsID] = DrawElementsIndirectCommand(
+				meshes[meshOffset].numElements,
+				1,
+				meshes[meshOffset].indexOffset,
+				0,
+				0);
+		}
     }
 }

@@ -27,14 +27,14 @@ public:
     // internalFormat, numLevels, genMipmaps are ignored for .json decription textures
     // they can be set in the .json file by themselves
     std::shared_ptr<graphics::ITexture> loadOrGetTexture(const std::filesystem::path&,
-                                                         graphics::PixelInternalFormat = graphics::PixelInternalFormat::Undefined,
+                                                         graphics::PixelInternalFormat = graphics::PixelInternalFormat::Count,
                                                          uint32_t numLevels = 0,
                                                          bool genMipmaps = true,
                                                          const std::string& = "autogen");
 
     std::shared_ptr<graphics::ITexture> loadOrGetTexture(
         const std::shared_ptr<const utils::Image>&,
-        graphics::PixelInternalFormat = graphics::PixelInternalFormat::Undefined,
+        graphics::PixelInternalFormat = graphics::PixelInternalFormat::Count,
         uint32_t numLevels = 0,
         bool genMipmaps = true,
         const std::string & = "autogen");

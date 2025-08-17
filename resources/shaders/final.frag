@@ -3,7 +3,7 @@
 layout (std430) buffer ssbo_OITNodesBuffer { uint OITMaxNumNodes; uint OITNumNodes; OITNode OITNodes[]; };
 layout (r32ui) uniform uimage2DRect u_OITIndicesImage;
 
-out vec4 o_fragColor;
+out vec4 o_fragColor0;
 
 vec4 blend(in vec4 src, in vec4 dst)
 {
@@ -21,5 +21,5 @@ void main(void)
         OITIndex = OITNodes[OITIndex].next;
     }
 
-    o_fragColor = color;
+    o_fragColor0 = color;
 }
