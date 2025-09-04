@@ -20,7 +20,20 @@ out vec4 o_fragColor2;
 
 void main(void)
 {
-	o_fragColor0 = vec4(v_normal, 1.0f);
+	MeshDescription meshDescription = meshes[v_meshOffset];
+	MaterialDescription materialDescription = materials[v_materialOffset];
+	
+    vec4 baseColor = materialDescription.baseColor;
+	if (meshColorComponentsCount(meshDescription.flags) > 0u)
+	{
+		baseColor *= v_color;
+	}
+	if ((meshTexCoordsComponentsCount(meshDescription.flags) > 0u) && (materialDescription.baseColorTextureOffset != 0xFFFFFFFFu))
+	{
+		baseColor *= texture(sampler2D(materialMaps[materialDescription.baseColorTextureOffset]), v_texCoords);
+	}
+
+	o_fragColor0 = baseColor;
 	o_fragColor1 = vec4(v_tangent, 1.0f);
 	o_fragColor2 = vec4(v_color);
 }

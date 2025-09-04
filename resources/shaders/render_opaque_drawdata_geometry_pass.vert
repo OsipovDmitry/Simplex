@@ -2,13 +2,8 @@
 
 uniform mat4x4 u_viewProjectionMatrix;
 
-layout (std430) readonly buffer ssbo_positionsBuffer { vec3 positions[]; };
-layout (std430) readonly buffer ssbo_normalsBuffer { vec3 normals[]; };
-layout (std430) readonly buffer ssbo_texCoordsBuffer { vec2 texCoords[]; };
-layout (std430) readonly buffer ssbo_bonesBuffer { BonesDescription bones[]; };
-layout (std430) readonly buffer ssbo_tangentsBuffer { vec4 tangents[]; };
-layout (std430) readonly buffer ssbo_colorsBuffer { vec4 colors[]; };
-layout (std430) readonly buffer ssbo_indicesBuffer { uint indices[]; };
+layout (std430) readonly buffer ssbo_vertexDataBuffer { float vertexData[]; };
+layout (std430) readonly buffer ssbo_elementsBuffer { uint elements[]; };
 layout (std430) readonly buffer ssbo_meshesBuffer { MeshDescription meshes[]; };
 layout (std430) readonly buffer ssbo_drawablesBuffer { DrawableDescription drawables[]; };
 layout (std430) readonly buffer ssbo_drawDataBuffer {
@@ -19,16 +14,93 @@ layout (std430) readonly buffer ssbo_drawDataBuffer {
 flat out uint v_meshOffset;
 flat out uint v_materialOffset;
 out vec3 v_normal;
+out vec2 v_texCoords;
 out vec3 v_tangent;
 out vec3 v_binormal;
-out vec2 v_texCoords;
 out vec4 v_color;
+
+vec3 vertexDataPosition(in uint vertexDataOffset, in uint vertexStride, in uint vertexIndex, in uint vertexRelativeOffset, in uint numComponents)
+{
+	vec3 result = vec3(0.0f);
+	for (uint i = 0u; i < min(3u, numComponents); ++i)
+		result[i] = vertexData[vertexDataOffset + vertexStride * vertexIndex + vertexRelativeOffset + i];
+	return result;
+}
+
+vec3 vertexDataNormal(in uint vertexDataOffset, in uint vertexStride, in uint vertexIndex, in uint vertexRelativeOffset, in uint numComponents)
+{
+	vec3 result = vec3(0.0f);
+	for (uint i = 0u; i < min(3u, numComponents); ++i)
+		result[i] = vertexData[vertexDataOffset + vertexStride * vertexIndex + vertexRelativeOffset + i];
+	return normalize(result);
+}
+
+vec2 vertexDataTexCoords(in uint vertexDataOffset, in uint vertexStride, in uint vertexIndex, in uint vertexRelativeOffset, in uint numComponents)
+{
+	vec2 result = vec2(0.0f);
+	for (uint i = 0u; i < min(2u, numComponents); ++i)
+		result[i] = vertexData[vertexDataOffset + vertexStride * vertexIndex + vertexRelativeOffset + i];
+	return result;
+}
+
+void vertexDataBoneIDAndWeight(
+	in uint vertexDataOffset,
+	in uint vertexStride,
+	in uint vertexIndex,
+	in uint vertexRelativeOffset,
+	in uint boneIndex,
+	out uint boneID,
+	out float boneWeight)
+{
+	boneID = floatBitsToUint(vertexData[vertexDataOffset + vertexStride * vertexIndex + vertexRelativeOffset + 2u * boneIndex + 0u]);
+	boneWeight = vertexData[vertexDataOffset + vertexStride * vertexIndex + vertexRelativeOffset + 2u * boneIndex + 1u];
+}
+
+void vertexDataTangentAndBinormalFlag(in uint vertexDataOffset, in uint vertexStride, in uint vertexIndex, in uint vertexRelativeOffset, out vec3 tangent, out float binormalFlag)
+{
+	for (uint i = 0u; i < 3u; ++i)
+		tangent[i] = vertexData[vertexDataOffset + vertexStride * vertexIndex + vertexRelativeOffset + i];
+	normalize(tangent);
+	binormalFlag = vertexData[vertexDataOffset + vertexStride * vertexIndex + vertexRelativeOffset + 3u];
+}
+
+vec4 vertexDataColor(in uint vertexDataOffset, in uint vertexStride, in uint vertexIndex, in uint vertexRelativeOffset, in uint numComponents)
+{
+	vec4 result = vec4(vec3(0.0f), 1.0f);
+	switch (numComponents)
+	{
+	case 1u:
+	{
+		result.rgb = vec3(vertexData[vertexDataOffset + vertexStride * vertexIndex + vertexRelativeOffset + 0u]);
+		break;
+	}
+	case 2u:
+	{
+		result.rgb = vec3(vertexData[vertexDataOffset + vertexStride * vertexIndex + vertexRelativeOffset + 0u]);
+		result.a = vertexData[vertexDataOffset + vertexStride * vertexIndex + vertexRelativeOffset + 1u];
+		break;
+	}
+	case 3u:
+	case 4u:
+	{
+		for (uint i = 0u; i < numComponents; ++i)
+			result[i] = vertexData[vertexDataOffset + vertexStride * vertexIndex + vertexRelativeOffset + i];
+		break;
+	}
+	default:
+		break;
+	}
+	return result;
+}
 
 void main(void)
 {
 	if (gl_DrawID < drawDataBufferReservedData.count)
 	{
 		DrawDataDescription drawDataDescription = drawData[gl_DrawID];
+		
+		mat4x4 modelMatrix = drawDataModelMatrix(drawDataDescription);
+		mat3x3 normalMatrix = drawDataNormalMatrix(drawDataDescription);
 		
 		DrawableDescription drawableDescription = drawables[drawDataDrawableOffset(drawDataDescription)];
 		
@@ -37,43 +109,72 @@ void main(void)
 		
 		MeshDescription meshDescription = meshes[v_meshOffset];
 		
-		uint indexOffset = meshDescription.indexOffset + gl_VertexID;
-		uint indexID = indices[indexOffset];
+		uint elementID = elements[gl_VertexID];
 		
-		gl_Position = vec4(vec3(0.0f), 1.0f);
-		if (meshDescription.positionOffset != 0xFFFFFFFFu)
+		uint vertexStride = meshVertexStride(meshDescription);
+		uint vertexRelativeOffset = 0u;
+		
+		vec3 position = vec3(0.0f);
+		uint positionComponentsCount = meshPositionComponentsCount(meshDescription.flags);
+		if (positionComponentsCount > 0u)
 		{
-			gl_Position =
-				u_viewProjectionMatrix *
-				drawDataModelMatrix(drawDataDescription) *
-				vec4(positions[meshDescription.positionOffset + indexID], 1.0f);
+			position = vertexDataPosition(meshDescription.vertexDataOffset, vertexStride, elementID, vertexRelativeOffset, positionComponentsCount);
+			vertexRelativeOffset += positionComponentsCount;
 		}
 		
-		if (meshDescription.normalOffset != 0xFFFFFFFFu)
+		vec3 normal = vec3(0.0f);
+		uint normalComponentsCount = meshNormalComponentsCount(meshDescription.flags);
+		if (normalComponentsCount > 0u)
 		{
-			mat3x3 normalMatrix = drawDataNormalMatrix(drawDataDescription);
-			
-			v_normal = normalize(normals[meshDescription.normalOffset + indexID]);
-			v_normal = normalize(normalMatrix * v_normal);
-			
-			if (meshDescription.tangentOffset != 0xFFFFFFFFu)
+			normal = vertexDataNormal(meshDescription.vertexDataOffset, vertexStride, elementID, vertexRelativeOffset, normalComponentsCount);
+			vertexRelativeOffset += normalComponentsCount;
+		}
+		
+		vec2 texCoords = vec2(0.0f);
+		uint texCoordsComponentsCount = meshTexCoordsComponentsCount(meshDescription.flags);
+		if (texCoordsComponentsCount > 0u)
+		{
+			texCoords = vertexDataTexCoords(meshDescription.vertexDataOffset, vertexStride, elementID, vertexRelativeOffset, texCoordsComponentsCount);
+			vertexRelativeOffset += texCoordsComponentsCount;
+		}
+		
+		vec3 tangent = vec3(0.0f);
+		vec3 binormal = vec3(0.0f);
+		if (meshTangentFlag(meshDescription.flags))
+		{
+			float binormalFlag = 0.0f;
+			vertexDataTangentAndBinormalFlag(meshDescription.vertexDataOffset, vertexStride, elementID, vertexRelativeOffset, tangent, binormalFlag);
+			binormal = normalize(cross(normal, tangent) * binormalFlag);
+			vertexRelativeOffset += 4u;
+		}
+		
+		uint numBones = meshBonesCount(meshDescription.flags);
+		if (numBones > 0u)
+		{
+			for (uint i = 0u; i < numBones; ++i)
 			{
-				vec4 tangent = tangents[meshDescription.tangentOffset + indexID];
-				v_tangent = normalize(tangent.xyz);
-				v_tangent = normalize(normalMatrix * v_tangent);
-
-				v_binormal = normalize(cross(v_normal, v_tangent) * tangent.w);
+				uint boneID = 0u;
+				float boneWeight = 0.0f;
+				vertexDataBoneIDAndWeight(meshDescription.vertexDataOffset, vertexStride, elementID, vertexRelativeOffset, i, boneID, boneWeight);
+				
+				// transform "position", "normal", "tangent" and "binormal" by bone
 			}
+			vertexRelativeOffset += 2u * numBones;
 		}
 		
-		if (meshDescription.texCoordsOffset != 0xFFFFFFFFu)
+		vec4 color = vec4(1.0f);
+		uint colorComponentsCount = meshColorComponentsCount(meshDescription.flags);
+		if (colorComponentsCount > 0u)
 		{
-			v_texCoords = texCoords[meshDescription.texCoordsOffset + indexID];
+			color = vertexDataColor(meshDescription.vertexDataOffset, vertexStride, elementID, vertexRelativeOffset, colorComponentsCount);
+			vertexRelativeOffset += colorComponentsCount;
 		}
 		
-		if (meshDescription.colorOffset != 0xFFFFFFFFu)
-		{
-			v_color = colors[meshDescription.colorOffset + indexID];
-		}
-	}
+		gl_Position = u_viewProjectionMatrix * modelMatrix * vec4(position, 1.0f);
+		v_normal = normalMatrix * normal;
+		v_texCoords = texCoords;
+		v_tangent = normalMatrix * tangent;
+		v_binormal = normalMatrix * binormal;
+		v_color = color;
+	}	
 }

@@ -122,9 +122,9 @@ const std::string &GraphicsEnginePrivate::attributeNameById(utils::VertexAttribu
         { utils::VertexAttribute::Position, "a_position" },
         { utils::VertexAttribute::Normal, "a_normal" },
         { utils::VertexAttribute::TexCoords, "a_texCoord" },
+        { utils::VertexAttribute::Tangent, "a_tangent" },
         { utils::VertexAttribute::BonesIDs, "a_bonesIDs" },
         { utils::VertexAttribute::BonesWeights, "a_bonesWeights" },
-        { utils::VertexAttribute::Tangent, "a_tangent" },
         { utils::VertexAttribute::Color, "a_color" },
     };
 
@@ -223,13 +223,8 @@ const std::string &GraphicsEnginePrivate::SSBONameById(SSBOId ID)
 {
     static const std::string s_undefinedId = "";
     static const std::unordered_map<SSBOId, std::string> s_table {
-        { SSBOId::PositionsBuffer, "ssbo_positionsBuffer" },
-        { SSBOId::NormalsBuffer, "ssbo_normalsBuffer" },
-        { SSBOId::TexCoordsBuffer, "ssbo_texCoordsBuffer" },
-        { SSBOId::BonesBuffer, "ssbo_bonesBuffer" },
-        { SSBOId::TangentsBuffer, "ssbo_tangentsBuffer" },
-        { SSBOId::ColorsBuffer, "ssbo_colorsBuffer" },
-        { SSBOId::IndicesBuffer, "ssbo_indicesBuffer" },
+        { SSBOId::VertexDataBuffer, "ssbo_vertexDataBuffer" },
+        { SSBOId::ElementsBuffer, "ssbo_elementsBuffer" },
         { SSBOId::MeshesBuffer, "ssbo_meshesBuffer" },
         { SSBOId::MaterialMapsBuffer, "ssbo_materialMapsBuffer" },
         { SSBOId::MaterialsBuffer, "ssbo_materialsBuffer" },

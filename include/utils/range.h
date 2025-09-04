@@ -29,6 +29,7 @@ public:
     {}
 
     bool isEmpty() const { return this->operator [](0u) > this->operator [](1u); }
+    bool isInside(const T& value) const { return (value >= nearValue()) && (value <= farValue()); }
 
     const T &nearValue() const { return this->operator [](0u); }
     void setNearValue(const T &n) { this->operator [](0u) = n; }

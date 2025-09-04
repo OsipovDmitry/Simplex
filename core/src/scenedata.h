@@ -16,34 +16,23 @@ namespace simplex
 namespace core
 {
 
-using PositionDescription = glm::vec3;
-using NormalDescription = glm::vec3;
-using TexCoordsDescription = glm::vec2;
-struct BonesDescription
-{
-    using IDsDescription = glm::u32vec4;
-    using WeightsDescription = glm::vec4;
-
-    IDsDescription IDs;
-    WeightsDescription weights;
-};
-using TangentDescription = glm::vec4;
-using ColorDescription = glm::vec4;
-using IndexDescription = uint32_t;
+using VertexDataDescription = float;
+using ElementsDescription = uint32_t;
 
 struct MeshDescription
 {
-    uint32_t positionOffset;
-    uint32_t normalOffset;
-    uint32_t texCoordsOffset;
-    uint32_t bonesOffset;
-    uint32_t tangentOffset;
-    uint32_t colorOffset;
-    uint32_t indexOffset;
-    uint32_t numElements; // number of indices
+    uint32_t vertexDataOffset;
+    uint32_t numVertexData;
+    uint32_t elementsOffset; // draw arrays is used if 0xFFFFFFFFu 
+    uint32_t numElements;
     uint32_t flags;
-    //  0.. 0 - is transparent
-    //  1..31 - free (31 bits)
+    //  0.. 1 - position components count [0..3]
+    //  2.. 3 - normal components count [0..3]
+    //  4.. 5 - texture coords component count [0..3]
+    //  6.. 8 - bones count [0..7]
+    //  9.. 9 - tangent space flag [0 - no tangents, 1 - tangents + binormals flags]
+    // 10..12 - color components count [0 - no colors, 1 - grayscale, 2 - grayscale,alpha, 3 - RGB, 4 - RGBA, 5..7 - not used]
+    // 13..31 - free (19 bits)
 };
 
 struct MaterialMapDescription
@@ -114,13 +103,8 @@ struct DrawElementsIndirectCommand
     uint32_t baseInstance;
 };
 
-using PositionsBuffer = std::shared_ptr<graphics::DynamicBufferT<PositionDescription>>;
-using NormalsBuffer = std::shared_ptr<graphics::DynamicBufferT<NormalDescription>>;
-using TexCoordsBuffer = std::shared_ptr<graphics::DynamicBufferT<TexCoordsDescription>>;
-using BonesBuffer = std::shared_ptr<graphics::DynamicBufferT<BonesDescription>>;
-using TangentsBuffer = std::shared_ptr<graphics::DynamicBufferT<TangentDescription>>;
-using ColorsBuffer = std::shared_ptr<graphics::DynamicBufferT<ColorDescription>>;
-using IndicesBuffer = std::shared_ptr<graphics::DynamicBufferT<IndexDescription>>;
+using VertexDataBuffer = std::shared_ptr<graphics::DynamicBufferT<VertexDataDescription>>;
+using ElementsBuffer = std::shared_ptr<graphics::DynamicBufferT<ElementsDescription>>;
 using MeshesBuffer = std::shared_ptr<graphics::DynamicBufferT<MeshDescription>>;
 using MaterialMapsBuffer = std::shared_ptr<graphics::DynamicBufferT<MaterialMapDescription>>;
 using MaterialsBuffer = std::shared_ptr<graphics::DynamicBufferT<MaterialDescription>>;
@@ -159,8 +143,11 @@ public:
 private:
     std::weak_ptr<SceneData> m_sceneData;
     std::weak_ptr<const MaterialMap> m_materialMap;
+    graphics::PTextureHandle m_materialMapHandle;
     utils::IDsGenerator::value_type m_ID;
 };
+
+using MaterialMaps = std::shared_ptr<std::unordered_map<std::shared_ptr<const MaterialMap>, std::weak_ptr<MaterialMapHandler>>>;
 
 class MaterialHandler
 {
@@ -252,46 +239,42 @@ public:
     void removeBackground(size_t);
     void onBackgroundChanged(const std::shared_ptr<const Background>&, size_t);
 
-    PositionsBuffer& positionsBuffer();
-    NormalsBuffer& normalsBuffer();
-    TexCoordsBuffer& texCoordsBuffer();
-    BonesBuffer& bonesBuffer();
-    TangentsBuffer& tangentsBuffer();
-    ColorsBuffer& colorsBuffer();
-    IndicesBuffer& indicesBuffer();
+    VertexDataBuffer& vertexDataBuffer();
+    ElementsBuffer& elementsBuffer();
     MeshesBuffer& meshesBuffer();
     MaterialMapsBuffer& materialMapsBuffer();
     MaterialsBuffer& materialsBuffer();
     DrawablesBuffer& drawablesBuffer();
     DrawDataBuffer& drawDataBuffer();
     BackgroundsBuffer& backgroundsBuffer();
-    DrawIndirectElementsCommandsBuffer& opaqueDrawDataCommandsBuffer();
-    DrawIndirectElementsCommandsBuffer& transparentDrawDataCommandsBuffer();
-    DrawIndirectElementsCommandsBuffer& backgroundsCommandsBuffer();
+    DrawIndirectArraysCommandsBuffer& opaqueDrawDataCommandsBuffer();
+    DrawIndirectArraysCommandsBuffer& transparentDrawDataCommandsBuffer();
+    DrawIndirectArraysCommandsBuffer& backgroundsCommandsBuffer();
+
+    //tmp
+    const std::unordered_map<utils::IDsGenerator::value_type, graphics::PTextureHandle>& materialMapsHandles()
+    {
+        return m_materialMapsHandles;
+    }
 
 private:
-    PositionsBuffer m_positionsBuffer;
-    NormalsBuffer m_normalsBuffer;
-    TexCoordsBuffer m_texCoordsBuffer;
-    BonesBuffer m_bonesBuffer;
-    TangentsBuffer m_tangentsBuffer;
-    ColorsBuffer m_colorsBuffer;
-    IndicesBuffer m_indicesBuffer;
+    VertexDataBuffer m_vertexDataBuffer;
+    ElementsBuffer m_elementsBuffer;
     MeshesBuffer m_meshesBuffer;
     MaterialMapsBuffer m_materialMapsBuffer;
     MaterialsBuffer m_materialsBuffer;
     DrawablesBuffer m_drawablesBuffer;
     DrawDataBuffer m_drawDataBuffer;
     BackgroundsBuffer m_backgroundsBuffer;
-    DrawIndirectElementsCommandsBuffer m_opaqueDrawDataCommandsBuffer;
-    DrawIndirectElementsCommandsBuffer m_transparentDrawDataCommandsBuffer;
-    DrawIndirectElementsCommandsBuffer m_backgroundsCommandsBuffer;
+    DrawIndirectArraysCommandsBuffer m_opaqueDrawDataCommandsBuffer;
+    DrawIndirectArraysCommandsBuffer m_transparentDrawDataCommandsBuffer;
+    DrawIndirectArraysCommandsBuffer m_backgroundsCommandsBuffer;
 
     utils::IDsGenerator m_meshIDsGenerator;
     std::unordered_map<std::shared_ptr<const Mesh>, std::weak_ptr<MeshHandler>> m_meshes;
 
     utils::IDsGenerator m_materialMapIDsGenerator;
-    std::unordered_map<std::shared_ptr<const MaterialMap>, std::weak_ptr<MaterialMapHandler>> m_materialMaps;
+    MaterialMaps m_materialMaps;
     std::unordered_map<utils::IDsGenerator::value_type, graphics::PTextureHandle> m_materialMapsHandles;
 
     utils::IDsGenerator m_materialIDsGenerator;

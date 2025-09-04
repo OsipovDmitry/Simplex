@@ -11,7 +11,7 @@ layout (std430) readonly buffer ssbo_backgroundsBuffer {
 
 layout (std430) writeonly buffer ssbo_commandsBuffer {
 	DrawIndirectCommandsBufferReservedData drawIndirectCommandsBufferReservedData;
-	DrawElementsIndirectCommand commands[];
+	DrawArraysIndirectCommand commands[];
 };
 
 void main(void)
@@ -23,6 +23,6 @@ void main(void)
         MeshDescription mesh = meshes[meshOffset];
         
         commands[atomicAdd(drawIndirectCommandsBufferReservedData.count, 1)] =
-			DrawElementsIndirectCommand(mesh.numElements, 1u, mesh.indexOffset, 0, 0u);
+			DrawArraysIndirectCommand(mesh.numElements, 1u, mesh.elementsOffset, 0u);
     }
 }

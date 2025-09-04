@@ -11,11 +11,11 @@ layout (std430) readonly buffer ssbo_drawDataBuffer {
 };
 layout (std430) writeonly buffer ssbo_opaqueCommandsBuffer {
 	DrawIndirectCommandsBufferReservedData opaqueDrawIndirectCommandsBufferReservedData;
-	DrawElementsIndirectCommand opaqueCommands[];
+	DrawArraysIndirectCommand opaqueCommands[];
 };
 layout (std430) writeonly buffer ssbo_transparentCommandsBuffer {
 	DrawIndirectCommandsBufferReservedData transparenDrawIndirectCommandsBufferReservedData;
-	DrawElementsIndirectCommand transparentCommands[];
+	DrawArraysIndirectCommand transparentCommands[];
 };
 
 void main(void)
@@ -23,29 +23,28 @@ void main(void)
     uint drawDataID = gl_GlobalInvocationID.x;
     if (drawDataID < drawDataBufferReservedData.count)
     {
-        uint drawableOffset = drawDataDrawableOffset(drawData[drawDataID]);
-        uint meshOffset = drawables[drawableOffset].meshOffset;
-        uint materialOffset = drawables[drawableOffset].materialOffset;
+		DrawDataDescription drawDataDescription = drawData[drawDataID];
+		DrawableDescription drawableDescription = drawables[drawDataDrawableOffset(drawDataDescription)];
+		MeshDescription meshDescription = meshes[drawableDescription.meshOffset];
+		MaterialDescription materialDescription = materials[drawableDescription.materialOffset];
 		
-		if (isMeshTransparent(meshes[meshOffset].flags) || isMaterialTransparent(materialFlags(materials[materialOffset])))
+		if (isMeshTransparent(meshDescription) || isMaterialTransparent(materialDescription))
 		{
 			uint transparenCommandsID = atomicAdd(transparenDrawIndirectCommandsBufferReservedData.count, 1);
-			transparentCommands[transparenCommandsID] = DrawElementsIndirectCommand(
-				meshes[meshOffset].numElements,
-				1,
-				meshes[meshOffset].indexOffset,
-				0,
-				0);
+			transparentCommands[transparenCommandsID] = DrawArraysIndirectCommand(
+				meshDescription.numElements,
+				1u,
+				meshDescription.elementsOffset,
+				0u);
 		}
 		else
 		{
 			uint opaqueCommandsID = atomicAdd(opaqueDrawIndirectCommandsBufferReservedData.count, 1);
-			opaqueCommands[opaqueCommandsID] = DrawElementsIndirectCommand(
-				meshes[meshOffset].numElements,
-				1,
-				meshes[meshOffset].indexOffset,
-				0,
-				0);
-		}
+			opaqueCommands[opaqueCommandsID] = DrawArraysIndirectCommand(
+				meshDescription.numElements,
+				1u,
+				meshDescription.elementsOffset,
+				0u);
+		}	
     }
 }

@@ -363,270 +363,270 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
         for (auto& pass : m_->passes())
             pass->run(renderer, m_->frameBuffer(), m_->vertexArray(), cameraRenderInfo);
 
-        // reset fragments counter buffer
-        cameraGeometryBuffer->clearOITNodesBuffer();
+        //// reset fragments counter buffer
+        //cameraGeometryBuffer->clearOITNodesBuffer();
 
-        // clear indices image
-        renderer->compute(programsManager->loadOrGetOITClearPassComputeProgram(),
-            glm::uvec3(cameraGeometryBuffer->size(), 1u),
-            { cameraRenderInfo });
+        //// clear indices image
+        //renderer->compute(programsManager->loadOrGetOITClearPassComputeProgram(),
+        //    glm::uvec3(cameraGeometryBuffer->size(), 1u),
+        //    { cameraRenderInfo });
 
-        // render opaque geometries
-        cameraPrivate.gFrameBuffer()->setForGeometryOpaquePass();
-        renderer->clearRenderData();
-        for (const auto& [visualDrawable, modelMatrix] : cameraVisualDrawablesCollector.visualDrawables())
-            if (!visualDrawable->isTransparent())
-            {
-                renderer->addRenderData(programsManager->loadOrGetGeometryPassRenderProgram(
-                    visualDrawable->vertexAttrubiteSet(),
-                    visualDrawable->uniformCollection(),
-                    false),
-                    visualDrawable,
-                    modelMatrix);
-                ++cameraInfo.numOpaqueDrawablesRendered;
-            }
-        renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-            glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
-            cameraRenderInfo);
+        //// render opaque geometries
+        //cameraPrivate.gFrameBuffer()->setForGeometryOpaquePass();
+        //renderer->clearRenderData();
+        //for (const auto& [visualDrawable, modelMatrix] : cameraVisualDrawablesCollector.visualDrawables())
+        //    if (!visualDrawable->isTransparent())
+        //    {
+        //        renderer->addRenderData(programsManager->loadOrGetGeometryPassRenderProgram(
+        //            visualDrawable->vertexAttrubiteSet(),
+        //            visualDrawable->uniformCollection(),
+        //            false),
+        //            visualDrawable,
+        //            modelMatrix);
+        //        ++cameraInfo.numOpaqueDrawablesRendered;
+        //    }
+        //renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
+        //    glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
+        //    cameraRenderInfo);
 
-        // render transparent geometries
-        cameraPrivate.gFrameBuffer()->setForGeometryTransparentPass();
-        renderer->clearRenderData();
-        for (const auto& [visualDrawable, modelMatrix] : cameraVisualDrawablesCollector.visualDrawables())
-            if (visualDrawable->isTransparent())
-            {
-                renderer->addRenderData(programsManager->loadOrGetGeometryPassRenderProgram(
-                    visualDrawable->vertexAttrubiteSet(),
-                    visualDrawable->uniformCollection(),
-                    true),
-                    visualDrawable,
-                    modelMatrix);
-                ++cameraInfo.numTransparentDrawablesRendered;
-            }
-        renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-            glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
-            cameraRenderInfo);
+        //// render transparent geometries
+        //cameraPrivate.gFrameBuffer()->setForGeometryTransparentPass();
+        //renderer->clearRenderData();
+        //for (const auto& [visualDrawable, modelMatrix] : cameraVisualDrawablesCollector.visualDrawables())
+        //    if (visualDrawable->isTransparent())
+        //    {
+        //        renderer->addRenderData(programsManager->loadOrGetGeometryPassRenderProgram(
+        //            visualDrawable->vertexAttrubiteSet(),
+        //            visualDrawable->uniformCollection(),
+        //            true),
+        //            visualDrawable,
+        //            modelMatrix);
+        //        ++cameraInfo.numTransparentDrawablesRendered;
+        //    }
+        //renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
+        //    glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
+        //    cameraRenderInfo);
 
-        // get number of fragments rendered
-        cameraInfo.numFragmentsRendered = cameraGeometryBuffer->OITNodesBuffer()->reservedData().numOITNodes;
+        //// get number of fragments rendered
+        //cameraInfo.numFragmentsRendered = cameraGeometryBuffer->OITNodesBuffer()->reservedData().numOITNodes;
 
-        // sort fragments
-        renderer->compute(
-            programsManager->loadOrGetOITSortNodesPassComputeProgram(),
-            glm::uvec3(cameraViewportSize, 1u),
-            { cameraRenderInfo });
+        //// sort fragments
+        //renderer->compute(
+        //    programsManager->loadOrGetOITSortNodesPassComputeProgram(),
+        //    glm::uvec3(cameraViewportSize, 1u),
+        //    { cameraRenderInfo });
 
-        // render background layer (it's here because next stencil buffer will be reused for light-areas rendering)
-        cameraPrivate.gFrameBuffer()->setForBackgroundPass();
-        renderer->clearRenderData();
-        auto& backgroundDrawable = scene->background()->m().drawable();
-        renderer->addRenderData(programsManager->loadOrGetBackgroundPassRenderProgram(
-            backgroundDrawable->vertexAttrubiteSet(),
-            backgroundDrawable->uniformCollection()),
-            backgroundDrawable);
-        renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-            glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
-            cameraRenderInfo);
+        //// render background layer (it's here because next stencil buffer will be reused for light-areas rendering)
+        //cameraPrivate.gFrameBuffer()->setForBackgroundPass();
+        //renderer->clearRenderData();
+        //auto& backgroundDrawable = scene->background()->m().drawable();
+        //renderer->addRenderData(programsManager->loadOrGetBackgroundPassRenderProgram(
+        //    backgroundDrawable->vertexAttrubiteSet(),
+        //    backgroundDrawable->uniformCollection()),
+        //    backgroundDrawable);
+        //renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
+        //    glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
+        //    cameraRenderInfo);
 
-        // render SSAO
-        auto& ssao = camera->ssao();
-        //        if (ssao.mode() != SSAOMode::Disabled)
+        //// render SSAO
+        //auto& ssao = camera->ssao();
+        ////        if (ssao.mode() != SSAOMode::Disabled)
+        ////        {
+        ////            auto &ssaoPrivate = ssao.m();
+        ////            auto &ssaoDrawable = ssaoPrivate.drawable();
+        ////            renderer->clearRenderData();
+        ////            renderer->addRenderData(programsManager->loadOrGetSSAORenderProgram(ssaoDrawable->vertexAttrubiteSet(), ssao.mode()),
+        ////                                    ssaoDrawable);
+        ////            renderer->render(cameraPrivate.ssaoFrameBuffer()->frameBuffer(),
+        ////                             glm::uvec4(0u, 0u, cameraPrivate.ssaoFrameBuffer()->viewportSize()),
+        ////                             cameraViewTransform,
+        ////                             cameraProjectionMatrix,
+        ////                             cameraRenderInfo);
+
+        //////            if (true)
+        //////            {
+        //////                auto &blurDrawable = ssaoPrivate.blur();
+        //////                blurDrawable->setSourceDepthMap(cameraPrivate.gFrameBuffer()->depthTexture());
+        //////                //blurDrawable->setMaxDepthDifference(ssao->radius());
+
+        //////                blurDrawable->setHorizontalDirection(true);
+        //////                blurDrawable->setSourceMap(cameraPrivate.ssaoFrameBuffer()->colorTexture());
+        //////                renderer->clearRenderData();
+        //////                renderer->addRenderData(programsManager->loadOrGetBilaterialBlurRenderProgram(blurDrawable->vertexAttrubiteSet()), blurDrawable);
+        //////                renderer->render(cameraPrivate.ssaoBlurFrameBuffer()->frameBuffer(),
+        //////                                 glm::uvec4(0u, 0u, cameraPrivate.ssaoBlurFrameBuffer()->viewportSize()),
+        //////                                 cameraRenderInfo);
+
+        //////                blurDrawable->setHorizontalDirection(false);
+        //////                blurDrawable->setSourceMap(cameraPrivate.ssaoBlurFrameBuffer()->colorTexture());
+        //////                renderer->clearRenderData();
+        //////                renderer->addRenderData(programsManager->loadOrGetBilaterialBlurRenderProgram(blurDrawable->vertexAttrubiteSet()), blurDrawable);
+        //////                renderer->render(cameraPrivate.ssaoFrameBuffer()->frameBuffer(),
+        //////                                 glm::uvec4(0u, 0u, cameraPrivate.ssaoFrameBuffer()->viewportSize()),
+        //////                                 cameraRenderInfo);
+        //////            }
+
+        ////            cameraRenderInfo->setSSAOMap(cameraPrivate.ssaoFrameBuffer()->colorTexture());
+        ////        }
+
+        ////        // clear light color buffer
+        ////        cameraPrivate.lightFrameBuffer()->setForClearPass();
+        ////        renderer->clearRenderData();
+        ////        renderer->render(cameraPrivate.lightFrameBuffer()->frameBuffer(),
+        ////                         glm::uvec4(0u, 0u, cameraPrivate.lightFrameBuffer()->viewportSize()),
+        ////                         cameraViewTransform,
+        ////                         cameraProjectionMatrix,
+        ////                         cameraRenderInfo);
+
+        //// render lights areas
+        //for (const auto& lightNode : lightNodesCollector.lightNodes())
+        //{
+        //    if (!lightNode->isLightingEnabled())
+        //        continue;
+
+        //    auto& lightPrivate = lightNode->m();
+        //    auto& shadow = lightNode->shadow();
+        //    const auto shadingMode = shadow.mode();
+        //    const auto shadingFilter = shadow.filter();
+
+        //    // render shadows
+        //    if (shadingMode != ShadingMode::Disabled)
+        //    {
+        //        auto& shadowPrivate = shadow.m();
+
+        //        const auto& shadowTransform = lightPrivate.shadowTransform(cameraFrustum.points());
+
+        //        ZRangeCalculator shadowZRangeCalculator(shadowTransform.frustumViewTransform,
+        //            shadowTransform.frustumClipSpace,
+        //            shadowTransform.cullPlanesLimits,
+        //            true, false);
+        //        rootNode->acceptDown(shadowZRangeCalculator);
+
+        //        auto shadowZRange = shadowZRangeCalculator.resolveZRange();
+        //        const utils::Frustum shadowFrustum(shadowTransform.frustumViewTransform,
+        //            shadowTransform.frustumClipSpace,
+        //            shadowZRange);
+
+        //        VisualDrawablesCollector shadowVisualDrawablesCollector(shadowFrustum);
+        //        rootNode->acceptDown(shadowVisualDrawablesCollector);
+
+        //        const auto shadowProjectionMatrix = shadowTransform.clipSpase.projectionMatrix(shadowZRange);
+        //        std::vector<glm::mat4x4> layeredShadowMatrices(shadowTransform.layeredViewTransforms.size());
+        //        for (size_t i = 0u; i < shadowTransform.layeredViewTransforms.size(); ++i)
+        //            layeredShadowMatrices[i] = shadowProjectionMatrix * shadowTransform.layeredViewTransforms[i];
+        //        shadowPrivate.update(m_->frameBuffer(), layeredShadowMatrices);
+
+        //        auto shadowRenderInfo = std::make_shared<ShadowRenderInfo>();
+        //        shadowRenderInfo->setViewportSize(shadowPrivate.mapSize());
+        //        shadowRenderInfo->setLayeredShadowMatricesBuffer(shadowPrivate.layeredMatricesBuffer()->buffer());
+
+        //        auto& shadowFrameBuffer = shadowPrivate.frameBuffer();
+        //        const auto shadowViewport = glm::uvec4(0u, 0u, shadowPrivate.mapSize());
+
+        //        // render opaque shadow
+        //        shadowFrameBuffer->setForOpaquePass();
+        //        renderer->clearRenderData();
+        //        for (const auto& [visualDrawable, modelMatrix] : shadowVisualDrawablesCollector.visualDrawables())
         //        {
-        //            auto &ssaoPrivate = ssao.m();
-        //            auto &ssaoDrawable = ssaoPrivate.drawable();
+        //            if (!visualDrawable->isTransparent() || (shadingMode == ShadingMode::OpaqueAndTransparent))
+        //                renderer->addRenderData(programsManager->loadOrGetShadowRenderProgram(
+        //                    visualDrawable->vertexAttrubiteSet(),
+        //                    visualDrawable->uniformCollection(),
+        //                    shadingMode,
+        //                    shadingFilter),
+        //                    visualDrawable,
+        //                    modelMatrix);
+        //        }
+        //        renderer->render(shadowFrameBuffer->frameBuffer(),
+        //            shadowViewport,
+        //            shadowRenderInfo);
+
+        //        // render transparent shadow
+        //        if (shadingMode == ShadingMode::Color)
+        //        {
+        //            shadowFrameBuffer->setForTransparentPass();
         //            renderer->clearRenderData();
-        //            renderer->addRenderData(programsManager->loadOrGetSSAORenderProgram(ssaoDrawable->vertexAttrubiteSet(), ssao.mode()),
-        //                                    ssaoDrawable);
-        //            renderer->render(cameraPrivate.ssaoFrameBuffer()->frameBuffer(),
-        //                             glm::uvec4(0u, 0u, cameraPrivate.ssaoFrameBuffer()->viewportSize()),
-        //                             cameraViewTransform,
-        //                             cameraProjectionMatrix,
-        //                             cameraRenderInfo);
-
-        ////            if (true)
-        ////            {
-        ////                auto &blurDrawable = ssaoPrivate.blur();
-        ////                blurDrawable->setSourceDepthMap(cameraPrivate.gFrameBuffer()->depthTexture());
-        ////                //blurDrawable->setMaxDepthDifference(ssao->radius());
-
-        ////                blurDrawable->setHorizontalDirection(true);
-        ////                blurDrawable->setSourceMap(cameraPrivate.ssaoFrameBuffer()->colorTexture());
-        ////                renderer->clearRenderData();
-        ////                renderer->addRenderData(programsManager->loadOrGetBilaterialBlurRenderProgram(blurDrawable->vertexAttrubiteSet()), blurDrawable);
-        ////                renderer->render(cameraPrivate.ssaoBlurFrameBuffer()->frameBuffer(),
-        ////                                 glm::uvec4(0u, 0u, cameraPrivate.ssaoBlurFrameBuffer()->viewportSize()),
-        ////                                 cameraRenderInfo);
-
-        ////                blurDrawable->setHorizontalDirection(false);
-        ////                blurDrawable->setSourceMap(cameraPrivate.ssaoBlurFrameBuffer()->colorTexture());
-        ////                renderer->clearRenderData();
-        ////                renderer->addRenderData(programsManager->loadOrGetBilaterialBlurRenderProgram(blurDrawable->vertexAttrubiteSet()), blurDrawable);
-        ////                renderer->render(cameraPrivate.ssaoFrameBuffer()->frameBuffer(),
-        ////                                 glm::uvec4(0u, 0u, cameraPrivate.ssaoFrameBuffer()->viewportSize()),
-        ////                                 cameraRenderInfo);
-        ////            }
-
-        //            cameraRenderInfo->setSSAOMap(cameraPrivate.ssaoFrameBuffer()->colorTexture());
+        //            for (const auto& [visualDrawable, modelMatrix] : shadowVisualDrawablesCollector.visualDrawables())
+        //            {
+        //                if (visualDrawable->isTransparent())
+        //                    renderer->addRenderData(programsManager->loadOrGetShadowRenderProgram(
+        //                        visualDrawable->vertexAttrubiteSet(),
+        //                        visualDrawable->uniformCollection(),
+        //                        shadingMode,
+        //                        shadingFilter),
+        //                        visualDrawable,
+        //                        modelMatrix);
+        //            }
+        //            renderer->render(shadowFrameBuffer->frameBuffer(),
+        //                shadowViewport,
+        //                shadowRenderInfo);
         //        }
 
-        //        // clear light color buffer
-        //        cameraPrivate.lightFrameBuffer()->setForClearPass();
-        //        renderer->clearRenderData();
-        //        renderer->render(cameraPrivate.lightFrameBuffer()->frameBuffer(),
-        //                         glm::uvec4(0u, 0u, cameraPrivate.lightFrameBuffer()->viewportSize()),
-        //                         cameraViewTransform,
-        //                         cameraProjectionMatrix,
-        //                         cameraRenderInfo);
+        //        // update light drawable
+        //        auto& shadowBuffer = shadowPrivate.shadowBuffer();
+        //        
+        //        auto shadowDepthMap = shadowBuffer->depthTexture();
+        //        auto shadowColorMap = shadowBuffer->colorTexture();
 
-        // render lights areas
-        for (const auto& lightNode : lightNodesCollector.lightNodes())
-        {
-            if (!lightNode->isLightingEnabled())
-                continue;
+        //        if (shadingFilter == ShadingFilter::VSM)
+        //        {
+        //            auto& blur = shadowPrivate.blur();
+        //            blur->setSourceMap(shadowBuffer->depthVSMTexture(), 0u, true);
+        //            shadowDepthMap = blur->run(renderer, m_->programsManager());
+        //        }
 
-            auto& lightPrivate = lightNode->m();
-            auto& shadow = lightNode->shadow();
-            const auto shadingMode = shadow.mode();
-            const auto shadingFilter = shadow.filter();
+        //        static const auto s_biasTransform = utils::Transform::makeTranslation(glm::vec3(.5f)) * utils::Transform::makeScale(.5f);
+        //        auto& lightDrawable = lightPrivate.areaDrawable();
+        //        lightDrawable->setShadowDepthMap(shadowDepthMap);
+        //        lightDrawable->setShadowColorMap(shadowColorMap);
+        //        lightDrawable->setShadowViewMatrix(shadowTransform.frustumViewTransform);
+        //        lightDrawable->setShadowProjectionMatrix(s_biasTransform * shadowProjectionMatrix);
+        //        lightDrawable->setShadowDepthBias(shadow.depthBias());
+        //    }
 
-            // render shadows
-            if (shadingMode != ShadingMode::Disabled)
-            {
-                auto& shadowPrivate = shadow.m();
+        //    auto lightType = lightNode->type();
+        //    auto modelMatrix = lightNode->globalTransform() * lightPrivate.areaMatrix();
+        //    auto& lightDrawable = lightPrivate.areaDrawable();
+        //    auto attributesSet = lightDrawable->vertexAttrubiteSet();
 
-                const auto& shadowTransform = lightPrivate.shadowTransform(cameraFrustum.points());
+        //    // stencil pass
+        //    cameraPrivate.gFrameBuffer()->setForStencilPass();
+        //    renderer->clearRenderData();
+        //    renderer->addRenderData(programsManager->loadOrGetStencilPassRenderProgram(attributesSet,
+        //        lightType),
+        //        lightDrawable,
+        //        modelMatrix);
+        //    renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
+        //        glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
+        //        cameraRenderInfo);
 
-                ZRangeCalculator shadowZRangeCalculator(shadowTransform.frustumViewTransform,
-                    shadowTransform.frustumClipSpace,
-                    shadowTransform.cullPlanesLimits,
-                    true, false);
-                rootNode->acceptDown(shadowZRangeCalculator);
+        //    // light pass
+        //    cameraPrivate.gFrameBuffer()->setForLightPass();
+        //    renderer->clearRenderData();
+        //    renderer->addRenderData(programsManager->loadOrGetLightPassRenderProgram(attributesSet,
+        //        lightDrawable->uniformCollection(),
+        //        lightType,
+        //        shadingMode,
+        //        shadingFilter,
+        //        ssao.mode()),
+        //        lightDrawable,
+        //        modelMatrix);
+        //    renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
+        //        glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
+        //        cameraRenderInfo);
 
-                auto shadowZRange = shadowZRangeCalculator.resolveZRange();
-                const utils::Frustum shadowFrustum(shadowTransform.frustumViewTransform,
-                    shadowTransform.frustumClipSpace,
-                    shadowZRange);
+        //    ++cameraInfo.numLightsRendered;
+        //}
 
-                VisualDrawablesCollector shadowVisualDrawablesCollector(shadowFrustum);
-                rootNode->acceptDown(shadowVisualDrawablesCollector);
-
-                const auto shadowProjectionMatrix = shadowTransform.clipSpase.projectionMatrix(shadowZRange);
-                std::vector<glm::mat4x4> layeredShadowMatrices(shadowTransform.layeredViewTransforms.size());
-                for (size_t i = 0u; i < shadowTransform.layeredViewTransforms.size(); ++i)
-                    layeredShadowMatrices[i] = shadowProjectionMatrix * shadowTransform.layeredViewTransforms[i];
-                shadowPrivate.update(m_->frameBuffer(), layeredShadowMatrices);
-
-                auto shadowRenderInfo = std::make_shared<ShadowRenderInfo>();
-                shadowRenderInfo->setViewportSize(shadowPrivate.mapSize());
-                shadowRenderInfo->setLayeredShadowMatricesBuffer(shadowPrivate.layeredMatricesBuffer()->buffer());
-
-                auto& shadowFrameBuffer = shadowPrivate.frameBuffer();
-                const auto shadowViewport = glm::uvec4(0u, 0u, shadowPrivate.mapSize());
-
-                // render opaque shadow
-                shadowFrameBuffer->setForOpaquePass();
-                renderer->clearRenderData();
-                for (const auto& [visualDrawable, modelMatrix] : shadowVisualDrawablesCollector.visualDrawables())
-                {
-                    if (!visualDrawable->isTransparent() || (shadingMode == ShadingMode::OpaqueAndTransparent))
-                        renderer->addRenderData(programsManager->loadOrGetShadowRenderProgram(
-                            visualDrawable->vertexAttrubiteSet(),
-                            visualDrawable->uniformCollection(),
-                            shadingMode,
-                            shadingFilter),
-                            visualDrawable,
-                            modelMatrix);
-                }
-                renderer->render(shadowFrameBuffer->frameBuffer(),
-                    shadowViewport,
-                    shadowRenderInfo);
-
-                // render transparent shadow
-                if (shadingMode == ShadingMode::Color)
-                {
-                    shadowFrameBuffer->setForTransparentPass();
-                    renderer->clearRenderData();
-                    for (const auto& [visualDrawable, modelMatrix] : shadowVisualDrawablesCollector.visualDrawables())
-                    {
-                        if (visualDrawable->isTransparent())
-                            renderer->addRenderData(programsManager->loadOrGetShadowRenderProgram(
-                                visualDrawable->vertexAttrubiteSet(),
-                                visualDrawable->uniformCollection(),
-                                shadingMode,
-                                shadingFilter),
-                                visualDrawable,
-                                modelMatrix);
-                    }
-                    renderer->render(shadowFrameBuffer->frameBuffer(),
-                        shadowViewport,
-                        shadowRenderInfo);
-                }
-
-                // update light drawable
-                auto& shadowBuffer = shadowPrivate.shadowBuffer();
-                
-                auto shadowDepthMap = shadowBuffer->depthTexture();
-                auto shadowColorMap = shadowBuffer->colorTexture();
-
-                if (shadingFilter == ShadingFilter::VSM)
-                {
-                    auto& blur = shadowPrivate.blur();
-                    blur->setSourceMap(shadowBuffer->depthVSMTexture(), 0u, true);
-                    shadowDepthMap = blur->run(renderer, m_->programsManager());
-                }
-
-                static const auto s_biasTransform = utils::Transform::makeTranslation(glm::vec3(.5f)) * utils::Transform::makeScale(.5f);
-                auto& lightDrawable = lightPrivate.areaDrawable();
-                lightDrawable->setShadowDepthMap(shadowDepthMap);
-                lightDrawable->setShadowColorMap(shadowColorMap);
-                lightDrawable->setShadowViewMatrix(shadowTransform.frustumViewTransform);
-                lightDrawable->setShadowProjectionMatrix(s_biasTransform * shadowProjectionMatrix);
-                lightDrawable->setShadowDepthBias(shadow.depthBias());
-            }
-
-            auto lightType = lightNode->type();
-            auto modelMatrix = lightNode->globalTransform() * lightPrivate.areaMatrix();
-            auto& lightDrawable = lightPrivate.areaDrawable();
-            auto attributesSet = lightDrawable->vertexAttrubiteSet();
-
-            // stencil pass
-            cameraPrivate.gFrameBuffer()->setForStencilPass();
-            renderer->clearRenderData();
-            renderer->addRenderData(programsManager->loadOrGetStencilPassRenderProgram(attributesSet,
-                lightType),
-                lightDrawable,
-                modelMatrix);
-            renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-                glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
-                cameraRenderInfo);
-
-            // light pass
-            cameraPrivate.gFrameBuffer()->setForLightPass();
-            renderer->clearRenderData();
-            renderer->addRenderData(programsManager->loadOrGetLightPassRenderProgram(attributesSet,
-                lightDrawable->uniformCollection(),
-                lightType,
-                shadingMode,
-                shadingFilter,
-                ssao.mode()),
-                lightDrawable,
-                modelMatrix);
-            renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-                glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
-                cameraRenderInfo);
-
-            ++cameraInfo.numLightsRendered;
-        }
-
-        // render final layer
-        cameraPrivate.gFrameBuffer()->setForFinalPass();
-        renderer->clearRenderData();
-        renderer->addRenderData(programsManager->loadOrGetFinalPassRenderProgram(
-            m_->screenQuadDrawable()->vertexAttrubiteSet()),
-            m_->screenQuadDrawable());
-        renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
-            glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
-            cameraRenderInfo);
+        //// render final layer
+        //cameraPrivate.gFrameBuffer()->setForFinalPass();
+        //renderer->clearRenderData();
+        //renderer->addRenderData(programsManager->loadOrGetFinalPassRenderProgram(
+        //    m_->screenQuadDrawable()->vertexAttrubiteSet()),
+        //    m_->screenQuadDrawable());
+        //renderer->render(cameraPrivate.gFrameBuffer()->frameBuffer(),
+        //    glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
+        //    cameraRenderInfo);
 
         // postprocess
         cameraPrivate.postprocessFrameBuffer()->setForPass();
@@ -639,32 +639,6 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
             cameraRenderInfo);
 
         sceneInfo.camerasInformation.push_back(cameraInfo);
-
-        if (b)
-        {
-            //
-            b = false;
-        }
-
-        if (upShading)
-        {
-            upShading = false;
-            for (auto lightNode : lightNodesCollector.lightNodes())
-            {
-                if (lightNode->asIBLLightNode())
-                    continue;
-
-                lightNode->shadow().setMode(tempMode);
-                lightNode->shadow().setFilter(tempFilter);
-            }
-        }
-
-        //        renderer->blitFrameBuffer(
-        //                    lightNodesCollector.lightNodes().begin()->get()->shadow().m().frameBuffer()->frameBuffer(),
-        //                    cameraPrivate.postprocessFrameBuffer()->frameBuffer(),
-        //                    glm::uvec4(0u, 0u, lightNodesCollector.lightNodes().begin()->get()->shadow().mapSize()),
-        //                    glm::uvec4(0u, 0u, lightNodesCollector.lightNodes().begin()->get()->shadow().mapSize()),
-        //                    true, false, false, false);
     }
 
     renderer->clearRenderData();

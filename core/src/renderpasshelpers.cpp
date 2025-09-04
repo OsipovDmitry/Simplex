@@ -33,7 +33,7 @@ void BuildBackgroundsCommandsBufferPass::run(
     const std::shared_ptr<graphics::IVertexArray>&,
     const std::shared_ptr<GeometryRenderInfo>&)
 {
-    m_commandsBuffer->setReservedData({ 0u, /*{0u, 0u, 0u}*/ });
+    m_commandsBuffer->setReservedData({ 0u, {0u, 0u, 0u} });
     renderer->compute(m_program, glm::uvec3(m_commandsBuffer->size(), 1u, 1u), { shared_from_this() });
 }
 
@@ -55,25 +55,6 @@ BuildDrawDataCommandsBufferPass::BuildDrawDataCommandsBufferPass(
         graphics::BufferRange::create(sceneData->opaqueDrawDataCommandsBuffer()->buffer());
     getOrCreateSSBO(SSBOId::TransparentCommandsBuffer) =
         graphics::BufferRange::create(sceneData->transparentDrawDataCommandsBuffer()->buffer());
-
-    auto reserved0 = m_drawDataBuffer->reservedData();
-    std::vector<utils::IDsGenerator::value_type> data0;
-    for (size_t i = 0u; i < m_drawDataBuffer->size(); ++i)
-        data0.push_back(glm::floatBitsToUint(m_drawDataBuffer->get(i).normalMatrixAndDrawableOffset[0u][3u]));
-
-    std::vector<simplex::core::DrawablesBuffer::element_type::value_type> data1;
-    for (size_t i = 0u; i < data0.size(); ++i)
-        data1.push_back(sceneData->drawablesBuffer()->get(data0[i]));
-
-    std::vector<simplex::core::MeshesBuffer::element_type::value_type> data2;
-    for (size_t i = 0u; i < data1.size(); ++i)
-        data2.push_back(sceneData->meshesBuffer()->get(data1[i].meshOffset));
-
-    std::vector<uint32_t> data3;
-    for (size_t i = 0u; i < 100u; ++i)
-        data3.push_back(sceneData->indicesBuffer()->get(i));
-
-    int i = sizeof(simplex::core::DrawDataBuffer::element_type::value_type);
 }
 
 BuildDrawDataCommandsBufferPass::~BuildDrawDataCommandsBufferPass() = default;
@@ -94,6 +75,8 @@ RenderOpaqueDrawDataGeometryPass::RenderOpaqueDrawDataGeometryPass(
     const std::shared_ptr<ProgramsManager>& programsManager,
     const std::shared_ptr<SceneData>& sceneData)
     : Pass()
+    , m_opaqueDrawDataCommandsBuffer(sceneData->opaqueDrawDataCommandsBuffer())
+    , m_sceneData(sceneData)
 {
     m_program = programsManager->loadOrGetRenderProgram(
         resources::RenderOpaqueDrawDataPassVertexShaderPath,
@@ -101,21 +84,16 @@ RenderOpaqueDrawDataGeometryPass::RenderOpaqueDrawDataGeometryPass(
         {});
 
     m_drawIndirectBufferRange = graphics::BufferRange::create(
-        sceneData->opaqueDrawDataCommandsBuffer()->buffer(),
+        m_opaqueDrawDataCommandsBuffer->buffer(),
         DrawIndirectElementsCommandsBuffer::element_type::sizeofReservedType());
 
     m_parameterBufferRange = graphics::BufferRange::create(
-        sceneData->opaqueDrawDataCommandsBuffer()->buffer(),
+        m_opaqueDrawDataCommandsBuffer->buffer(),
         0u,
         DrawIndirectElementsCommandsBuffer::element_type::sizeofReservedType());
 
-    getOrCreateSSBO(SSBOId::PositionsBuffer) = graphics::BufferRange::create(sceneData->positionsBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::NormalsBuffer) = graphics::BufferRange::create(sceneData->normalsBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::TexCoordsBuffer) = graphics::BufferRange::create(sceneData->texCoordsBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::BonesBuffer) = graphics::BufferRange::create(sceneData->bonesBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::TangentsBuffer) = graphics::BufferRange::create(sceneData->tangentsBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::ColorsBuffer) = graphics::BufferRange::create(sceneData->colorsBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::IndicesBuffer) = graphics::BufferRange::create(sceneData->indicesBuffer()->buffer());
+    getOrCreateSSBO(SSBOId::VertexDataBuffer) = graphics::BufferRange::create(sceneData->vertexDataBuffer()->buffer());
+    getOrCreateSSBO(SSBOId::ElementsBuffer) = graphics::BufferRange::create(sceneData->elementsBuffer()->buffer());
     getOrCreateSSBO(SSBOId::MeshesBuffer) = graphics::BufferRange::create(sceneData->meshesBuffer()->buffer());
     getOrCreateSSBO(SSBOId::MaterialMapsBuffer) = graphics::BufferRange::create(sceneData->materialMapsBuffer()->buffer());
     getOrCreateSSBO(SSBOId::MaterialsBuffer) = graphics::BufferRange::create(sceneData->materialsBuffer()->buffer());
@@ -141,7 +119,7 @@ void RenderOpaqueDrawDataGeometryPass::run(
     framebuffer->attach(graphics::FrameBufferAttachment::Stencil, geometryBuffer->stencilTexture());
 
     framebuffer->setClearDepthStencil(1.f, 0x00u);
-    framebuffer->setClearColor(0u, glm::vec4(1.f, 0.f, 0.f, 1.f));
+    framebuffer->setClearColor(0u, glm::vec4(0.f, 0.f, 0.f, 1.f));
     framebuffer->setClearColor(1u, glm::vec4(0.f));
     framebuffer->setClearColor(2u, glm::vec4(0.f));
     framebuffer->setClearMask({
@@ -162,16 +140,18 @@ void RenderOpaqueDrawDataGeometryPass::run(
                                                                            graphics::StencilOperation::Replace });
     framebuffer->setBlending(false);
 
-    renderer->multiDrawElementsIndirectCount(
+    for (const auto& [id, handle] : m_sceneData->materialMapsHandles())
+        handle->makeResident();
+
+    renderer->multiDrawArraysIndirectCount(
         m_program,
         framebuffer,
         vertexArray,
         { geometryRenderInfo, shared_from_this() },
         utils::PrimitiveType::Triangles,
-        utils::DrawElementsIndexType::Uint32,
         m_drawIndirectBufferRange,
         m_parameterBufferRange,
-        m_drawIndirectBufferRange->size());
+        m_opaqueDrawDataCommandsBuffer->size());
 }
 
 }

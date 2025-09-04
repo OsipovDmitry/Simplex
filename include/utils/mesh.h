@@ -41,9 +41,9 @@ ENUMCLASS(VertexAttribute, uint16_t,
           Position,
           Normal,
           TexCoords,
+          Tangent,
           BonesIDs,
           BonesWeights,
-          Tangent,
           Color)
 
 class UTILS_SHARED_EXPORT Buffer

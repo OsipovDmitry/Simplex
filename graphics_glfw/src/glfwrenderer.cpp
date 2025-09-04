@@ -2009,7 +2009,11 @@ TextureHandle_4_5::TextureHandle_4_5(const core::graphics::PConstTexture& textur
         LOG_CRITICAL << "Texture can't be nullptr";
 }
 
-TextureHandle_4_5::~TextureHandle_4_5() = default;
+TextureHandle_4_5::~TextureHandle_4_5()
+{
+    CHECK_CURRENT_CONTEXT;
+    glMakeTextureHandleNonResidentARB(m_id);
+}
 
 core::graphics::TextureHandle TextureHandle_4_5::handle() const
 {
@@ -4041,7 +4045,7 @@ void GLFWRenderer::multiDrawArraysIndirectCount(
     bindDrawIndirectBuffer(drawIndirectBufferRange->buffer());
     bindParameterBuffer(parameterBufferRange->buffer());
 
-    glMultiDrawArraysIndirectCount(
+    glMultiDrawArraysIndirectCountARB(
         Conversions::PrimitiveType2GL(primitiveType),
         reinterpret_cast<const void*>(drawIndirectBufferRange->offset()),
         static_cast<GLintptr>(parameterBufferRange->offset()),
@@ -4066,8 +4070,6 @@ void GLFWRenderer::multiDrawElementsIndirectCount(
     setupRender(renderProgram, framebuffer, VAO, stateSetList);
     bindDrawIndirectBuffer(drawIndirectBufferRange->buffer());
     bindParameterBuffer(parameterBufferRange->buffer());
-
-    /*tmp*/std::dynamic_pointer_cast<FrameBufferBase_4_5>(framebuffer)->clear();
 
     glMultiDrawElementsIndirectCountARB(
         Conversions::PrimitiveType2GL(primitiveType),
@@ -4218,6 +4220,8 @@ void GLFWRenderer::setupRender(
 
     setupUniforms(renderProgram_4_5, stateSetList);
     setupSSBOs(renderProgram_4_5, stateSetList);
+
+    frameBufferBase_4_5->clear();
 }
 
 void GLFWRenderer::setupFramebuffer(
@@ -4316,9 +4320,6 @@ void GLFWRenderer::setupFramebuffer(
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, framebuffer->id());
-
-    /* Uncomment this when GLFWRenderer::render method is removed */
-    //framebuffer->clear();
 }
 
 void GLFWRenderer::setupVAO(

@@ -82,13 +82,9 @@ ENUMCLASS(UniformId, uint16_t,
           BlurMaxDepthDifference)
 
 ENUMCLASS(SSBOId, uint16_t,
-    PositionsBuffer,
-    NormalsBuffer,
-    TexCoordsBuffer,
+    VertexDataBuffer,
+    ElementsBuffer,
     BonesBuffer,
-    TangentsBuffer,
-    ColorsBuffer,
-    IndicesBuffer,
 
     MeshesBuffer,
     MaterialMapsBuffer,

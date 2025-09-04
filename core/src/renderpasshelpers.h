@@ -25,7 +25,7 @@ public:
 
 private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
-    DrawIndirectElementsCommandsBuffer m_commandsBuffer;
+    DrawIndirectArraysCommandsBuffer m_commandsBuffer;
 };
 
 class BuildDrawDataCommandsBufferPass : public Pass
@@ -45,8 +45,8 @@ public:
 private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
     DrawDataBuffer m_drawDataBuffer;
-    DrawIndirectElementsCommandsBuffer m_opaqueCommandsBuffer;
-    DrawIndirectElementsCommandsBuffer m_transparentCommandsBuffer;
+    DrawIndirectArraysCommandsBuffer m_opaqueCommandsBuffer;
+    DrawIndirectArraysCommandsBuffer m_transparentCommandsBuffer;
 };
 
 class RenderOpaqueDrawDataGeometryPass : public Pass
@@ -65,8 +65,12 @@ public:
 
 private:
     std::shared_ptr<graphics::IRenderProgram> m_program;
+    DrawIndirectArraysCommandsBuffer m_opaqueDrawDataCommandsBuffer;
     graphics::PBufferRange m_drawIndirectBufferRange;
     graphics::PBufferRange m_parameterBufferRange;
+
+    //tmp
+    std::shared_ptr<SceneData> m_sceneData;
 };
 
 }
