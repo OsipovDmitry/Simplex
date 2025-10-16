@@ -1,8 +1,10 @@
 #include <utils/logger.h>
 
+#include <core/scene.h>
 #include <core/visualdrawablenode.h>
 #include <core/visualdrawable.h>
 
+#include "sceneprivate.h"
 #include "visualdrawablenodeprivate.h"
 
 namespace simplex
@@ -15,9 +17,7 @@ VisualDrawableNode::VisualDrawableNode(const std::string &name)
 {
 }
 
-VisualDrawableNode::~VisualDrawableNode()
-{
-}
+VisualDrawableNode::~VisualDrawableNode() = default;
 
 std::shared_ptr<VisualDrawableNode> VisualDrawableNode::asVisualDrawableNode()
 {
@@ -35,7 +35,7 @@ const std::unordered_set<std::shared_ptr<VisualDrawable>> &VisualDrawableNode::v
     return m().visualDrawables();
 }
 
-void VisualDrawableNode::addVisualDrawable(std::shared_ptr<VisualDrawable> drawable)
+void VisualDrawableNode::addVisualDrawable(const std::shared_ptr<VisualDrawable>& drawable)
 {
     if (!drawable)
     {
@@ -48,17 +48,17 @@ void VisualDrawableNode::addVisualDrawable(std::shared_ptr<VisualDrawable> drawa
     mPrivate.dirtyLocalBoundingBox();
 
     if (auto s = scene())
-        mPrivate.addDrawDataToScene(s, drawable); // to add draw data after marking local BB as dirty
+        if (auto& sceneData = s->m().sceneData())
+            mPrivate.addDrawDataToSceneData(sceneData, drawable); // to add draw data after marking local BB as dirty
 }
 
-void VisualDrawableNode::removeVisualDrawable(std::shared_ptr<VisualDrawable> drawable)
+void VisualDrawableNode::removeVisualDrawable(const std::shared_ptr<VisualDrawable>& drawable)
 {
     auto &mPrivate = m();
     mPrivate.visualDrawables().erase(drawable);
     mPrivate.dirtyLocalBoundingBox();
 
-    if(auto s = scene())
-        mPrivate.removeDrawDataFromScene(s, drawable);
+    mPrivate.removeDrawDataFromSceneData(drawable);
 
 }
 

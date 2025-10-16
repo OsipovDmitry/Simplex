@@ -19,26 +19,26 @@ const UniformCollection &StateSet::uniformCollection() const
     return m_->uniformCollection();
 }
 
-PConstAbstractUniform StateSet::uniform(UniformId id) const
+PConstAbstractUniform StateSet::uniform(UniformID ID) const
 {
-    return const_cast<StateSet*>(this)->uniform(id);
+    return const_cast<StateSet*>(this)->uniform(ID);
 }
 
-PAbstractUniform StateSet::uniform(UniformId id)
+PAbstractUniform StateSet::uniform(UniformID ID)
 {
-    auto it = m_->uniformCollection().find(id);
+    auto it = m_->uniformCollection().find(ID);
     return it != m_->uniformCollection().end() ? it->second : nullptr;
 }
 
-PAbstractUniform &StateSet::getOrCreateUniform(UniformId id)
+PAbstractUniform &StateSet::getOrCreateUniform(UniformID ID)
 {
-    auto it = m_->uniformCollection().find(id);
-    return it != m_->uniformCollection().end() ? it->second : (m_->uniformCollection()[id] = PAbstractUniform());
+    auto it = m_->uniformCollection().find(ID);
+    return it != m_->uniformCollection().end() ? it->second : (m_->uniformCollection()[ID] = PAbstractUniform());
 }
 
-void StateSet::removeUniform(UniformId id)
+void StateSet::removeUniform(UniformID ID)
 {
-    m_->uniformCollection().erase(id);
+    m_->uniformCollection().erase(ID);
 }
 
 const UserUniformCollection &StateSet::userUniformCollection() const
@@ -68,26 +68,48 @@ void StateSet::removeUserUniform(const std::string &name)
     m_->userUniformCollection().erase(name);
 }
 
-const SSBOCollection &StateSet::ssboCollection() const
+const UniformBlockCollection& StateSet::uniformBlockCollection() const
 {
-    return m_->ssboCollection();
+    return m_->uniformBlockCollection();
 }
 
-graphics::PConstBufferRange StateSet::SSBO(SSBOId id) const
+graphics::PConstBufferRange StateSet::uniformBlock(UniformBlockID ID) const
 {
-    auto it = m_->ssboCollection().find(id);
-    return it != m_->ssboCollection().end() ? it->second : nullptr;
+    auto it = m_->uniformBlockCollection().find(ID);
+    return it != m_->uniformBlockCollection().end() ? it->second : nullptr;
 }
 
-graphics::PConstBufferRange &StateSet::getOrCreateSSBO(SSBOId id)
+graphics::PConstBufferRange& StateSet::getOrCreateUniformBlock(UniformBlockID ID)
 {
-    auto it = m_->ssboCollection().find(id);
-    return it != m_->ssboCollection().end() ? it->second : (m_->ssboCollection()[id] = graphics::PConstBufferRange());
+    auto it = m_->uniformBlockCollection().find(ID);
+    return it != m_->uniformBlockCollection().end() ? it->second : (m_->uniformBlockCollection()[ID] = graphics::PConstBufferRange());
 }
 
-void StateSet::removeSSBO(SSBOId id)
+void StateSet::removeUniformBlock(UniformBlockID ID)
 {
-    m_->ssboCollection().erase(id);
+    m_->uniformBlockCollection().erase(ID);
+}
+
+const ShaderStorageBlockCollection &StateSet::shaderStorageBlockCollection() const
+{
+    return m_->shaderStorageBlockCollection();
+}
+
+graphics::PConstBufferRange StateSet::shaderStorageBlock(ShaderStorageBlockID ID) const
+{
+    auto it = m_->shaderStorageBlockCollection().find(ID);
+    return it != m_->shaderStorageBlockCollection().end() ? it->second : nullptr;
+}
+
+graphics::PConstBufferRange &StateSet::getOrCreateShaderStorageBlock(ShaderStorageBlockID ID)
+{
+    auto it = m_->shaderStorageBlockCollection().find(ID);
+    return it != m_->shaderStorageBlockCollection().end() ? it->second : (m_->shaderStorageBlockCollection()[ID] = graphics::PConstBufferRange());
+}
+
+void StateSet::removeShaderStorageBlock(ShaderStorageBlockID ID)
+{
+    m_->shaderStorageBlockCollection().erase(ID);
 }
 
 StateSet::StateSet(std::unique_ptr<StateSetPrivate> stateSetPrivate)

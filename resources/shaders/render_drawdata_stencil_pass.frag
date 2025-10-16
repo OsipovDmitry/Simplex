@@ -1,11 +1,11 @@
 uniform sampler2DRect u_GBufferDepthMap;
-layout (r32f) uniform image2DRect u_OITDepthImage;
+layout (r32f) uniform image2DRect u_OITDepthMap;
 
 void main(void)
 {
     ivec2 texelCoord = ivec2(gl_FragCoord.xy);
     float opaqueDepth = texelFetch(u_GBufferDepthMap, texelCoord).r;
-    float transparentDepth = imageLoad(u_OITDepthImage, texelCoord).r;
+    float transparentDepth = imageLoad(u_OITDepthMap, texelCoord).r;
     
     if (transparentDepth == 1.0f)
         discard;

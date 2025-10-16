@@ -141,8 +141,17 @@ bool ApplicationBase::initialize(ApplicationTimeCallback timeCallback, Applicati
         return true;
     }
 
-    if (!timeCallback || !pollEventsCallback)
+    if (!timeCallback)
+    {
+        LOG_ERROR << "Time callback can't be nullptr";
         return false;
+    }
+
+    if (!pollEventsCallback)
+    {
+        LOG_ERROR << "Pull events callback can't be nullptr";
+        return false;
+    }
 
     ApplicationBasePrivate::instance() = std::unique_ptr<ApplicationBase>(
         new ApplicationBase(settings::Settings::instance().application().name(), timeCallback, pollEventsCallback));

@@ -2,7 +2,6 @@
 #include <core/material.h>
 #include <core/settings.h>
 
-#include "backgrounddrawable.h"
 #include "backgroundprivate.h"
 
 #include "resources.h"
@@ -15,12 +14,10 @@ namespace core
 Background::Background()
     : m_(std::make_unique<BackgroundPrivate>())
 {
-    m_->drawable() = std::make_unique<BackgroundDrawable>();
-
     auto& backgroundSettings = settings::Settings::instance().graphics().background();
-    setEnvironmentColor(backgroundSettings.color());
+    setEnvironmentColor(backgroundSettings.environmentColor());
     setEnvironmentMap(std::make_shared<MaterialMap>(resources::DefaultIBLSpecularMapPath));
-    setBlurPower(backgroundSettings.roughness());
+    setBlurPower(backgroundSettings.blurPower());
 }
 
 Background::~Background() = default;
@@ -62,38 +59,6 @@ void Background::setBlurPower(float value)
     m_->blurPower() = value;
     m_->onChanged();
 }
-
-graphics::PConstTexture Background::colorMap() const
-{
-    return m().drawable()->colorMap();
-}
-
-void Background::setColorMap(const graphics::PConstTexture &value)
-{
-    m().drawable()->setColorMap(value);
-}
-
-const glm::vec3 &Background::color() const
-{
-    return m().drawable()->color();
-}
-
-void Background::setColor(const glm::vec3 &value)
-{
-    m().drawable()->setColor(value);
-}
-
-float Background::roughness() const
-{
-    return m().drawable()->roughness();
-}
-
-void Background::setRoughness(float value)
-{
-    m().drawable()->setRoughness(value);
-}
-
-
 
 }
 }

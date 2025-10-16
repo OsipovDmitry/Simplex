@@ -21,13 +21,13 @@ BilaterialBlur::~BilaterialBlur() = default;
 
 graphics::PConstTexture BilaterialBlur::sourceDepthMap() const
 {
-    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformId::BlurSourceDepthMap));
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformID::BlurSourceDepthMap));
     return uni ? uni->data() : nullptr;
 }
 
 void BilaterialBlur::setSourceDepthMap(const graphics::PConstTexture &value)
 {
-    static UniformId s_uniformId = UniformId::BlurSourceDepthMap;
+    static UniformID s_uniformId = UniformID::BlurSourceDepthMap;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -37,7 +37,7 @@ void BilaterialBlur::setSourceDepthMap(const graphics::PConstTexture &value)
 
 float BilaterialBlur::maxDepthDifference() const
 {
-    auto uni = uniform_cast<float>(uniform(UniformId::BlurMaxDepthDifference));
+    auto uni = uniform_cast<float>(uniform(UniformID::BlurMaxDepthDifference));
     return uni ? uni->data() : s_defaultMaxDepthDifference;
 }
 
@@ -46,7 +46,7 @@ void BilaterialBlur::setMaxDepthDifference(float value)
     if (value <= 0.f)
         LOG_CRITICAL << "Blur max depth difference must be greater than 0.0";
 
-    getOrCreateUniform(UniformId::BlurMaxDepthDifference) = makeUniform(value);
+    getOrCreateUniform(UniformID::BlurMaxDepthDifference) = makeUniform(value);
 }
 
 

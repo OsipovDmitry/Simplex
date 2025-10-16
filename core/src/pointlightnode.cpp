@@ -53,17 +53,23 @@ std::shared_ptr<const PointLightNode> PointLightNode::asPointLightNode() const
 
 const glm::vec3 &PointLightNode::color() const
 {
-    return uniform_cast<glm::vec3>(m().areaDrawable()->uniform(UniformId::LightColor))->data();
+    return m().color();
+    //return uniform_cast<glm::vec3>(m().areaDrawable()->uniform(UniformID::LightColor))->data();
 }
 
 void PointLightNode::setColor(const glm::vec3 &value)
 {
-    m().areaDrawable()->getOrCreateUniform(UniformId::LightColor) = makeUniform(value);
+    auto& mPrivate = m();
+
+    mPrivate.color() = value;
+    mPrivate.changeInSceneData();
+    //m().areaDrawable()->getOrCreateUniform(UniformID::LightColor) = makeUniform(value);
 }
 
 const glm::vec2 &PointLightNode::radiuses() const
 {
-    return uniform_cast<glm::vec2>(m().areaDrawable()->uniform(UniformId::LightRadiuses))->data();
+    return m().radiuses();
+    //return uniform_cast<glm::vec2>(m().areaDrawable()->uniform(UniformID::LightRadiuses))->data();
 }
 
 void PointLightNode::setRadiuses(const glm::vec2 &value)
@@ -75,10 +81,13 @@ void PointLightNode::setRadiuses(const glm::vec2 &value)
         LOG_CRITICAL << "maxRadius must be greater than minRadius";
 
     auto &mPrivate = m();
-    mPrivate.areaDrawable()->getOrCreateUniform(UniformId::LightRadiuses) = makeUniform(value);
+    //mPrivate.areaDrawable()->getOrCreateUniform(UniformID::LightRadiuses) = makeUniform(value);
+    mPrivate.radiuses() = value;
+    mPrivate.changeInSceneData();
 
     mPrivate.dirtyAreaMatrix();
     mPrivate.dirtyAreaBoundingBox();
+
 }
 
 }

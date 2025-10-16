@@ -56,17 +56,17 @@ std::shared_ptr<const SpotLightNode> SpotLightNode::asSpotLightNode() const
 
 const glm::vec3 &SpotLightNode::color() const
 {
-    return uniform_cast<glm::vec3>(m().areaDrawable()->uniform(UniformId::LightColor))->data();
+    return uniform_cast<glm::vec3>(m().areaDrawable()->uniform(UniformID::LightColor))->data();
 }
 
 void SpotLightNode::setColor(const glm::vec3 &value)
 {
-    m().areaDrawable()->getOrCreateUniform(UniformId::LightColor) = makeUniform(value);
+    m().areaDrawable()->getOrCreateUniform(UniformID::LightColor) = makeUniform(value);
 }
 
 const glm::vec2 &SpotLightNode::radiuses() const
 {
-    return uniform_cast<glm::vec2>(m().areaDrawable()->uniform(UniformId::LightRadiuses))->data();
+    return uniform_cast<glm::vec2>(m().areaDrawable()->uniform(UniformID::LightRadiuses))->data();
 }
 
 void SpotLightNode::setRadiuses(const glm::vec2 &value)
@@ -78,7 +78,7 @@ void SpotLightNode::setRadiuses(const glm::vec2 &value)
         LOG_CRITICAL << "maxRadius must be greater than minRadius";
 
     auto &mPrivate = m();
-    mPrivate.areaDrawable()->getOrCreateUniform(UniformId::LightRadiuses) = makeUniform(value);
+    mPrivate.areaDrawable()->getOrCreateUniform(UniformID::LightRadiuses) = makeUniform(value);
 
     mPrivate.dirtyAreaMatrix();
     mPrivate.dirtyAreaBoundingBox();
@@ -102,7 +102,7 @@ void SpotLightNode::setHalfAngles(const glm::vec2 &value)
 
     auto &mPrivate = m();
     mPrivate.halfAngles() = value;
-    mPrivate.areaDrawable()->getOrCreateUniform(UniformId::LightCosHalfAngles) = makeUniform(glm::cos(value));
+    mPrivate.areaDrawable()->getOrCreateUniform(UniformID::LightCosHalfAngles) = makeUniform(glm::cos(value));
 
     mPrivate.dirtyAreaMatrix();
     mPrivate.dirtyAreaBoundingBox();

@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
     auto& app = simplex::core::ApplicationBase::instance();
 
     auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Empty window");
-    window->setScene(createScene("Empty scene", window->defaultFrameBuffer(), window->graphicsEngine()->graphicsRenderer()));
+    window->engine()->setScene(createScene("Empty scene", window->defaultFrameBuffer(), window->graphicsEngine()->graphicsRenderer()));
 
     app.registerDevice(window);
     app.run();

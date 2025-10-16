@@ -7,10 +7,14 @@ namespace simplex
 namespace core
 {
 
-Mesh::Mesh(const std::shared_ptr<const utils::Mesh>& mesh)
+Mesh::Mesh()
     : m_(std::make_unique<MeshPrivate>())
+{}
+
+Mesh::Mesh(const std::shared_ptr<utils::Mesh>& m, const utils::BoundingBox& bb)
+    : Mesh()
 {
-    setMesh(mesh);
+    setMesh(m, bb);
 }
 
 Mesh::~Mesh() = default;
@@ -20,9 +24,15 @@ std::shared_ptr<const utils::Mesh> Mesh::mesh() const
     return m_->mesh();
 }
 
-void Mesh::setMesh(const std::shared_ptr<const utils::Mesh>& value)
+const utils::BoundingBox& Mesh::boundingBox() const
 {
-    m_->mesh() = value;
+    return m_->boundingBox();
+}
+
+void Mesh::setMesh(const std::shared_ptr<utils::Mesh>& m, const utils::BoundingBox& bb)
+{
+    m_->mesh() = m;
+    m_->boundingBox() = bb;
     m_->onChanged();
 }
 

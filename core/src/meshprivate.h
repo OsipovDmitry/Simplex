@@ -1,6 +1,7 @@
 ﻿#ifndef CORE_MESHPRIVATE_H
 #define CORE_MESHPRIVATE_H
 
+#include <utils/boundingbox.h>
 #include <utils/forwarddecl.h>
 
 #include <core/forwarddecl.h>
@@ -20,14 +21,16 @@ public:
     MeshPrivate();
     ~MeshPrivate();
 
-    std::shared_ptr<const utils::Mesh> &mesh();
+    std::shared_ptr<utils::Mesh>& mesh();
+    utils::BoundingBox& boundingBox();
 
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MeshHandler>> &handlers();
+    std::set<std::shared_ptr<MeshHandler>>& handlers();
     void onChanged();
 
 private:
-    std::shared_ptr<const utils::Mesh> m_mesh;
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MeshHandler>> m_handlers;
+    std::shared_ptr<utils::Mesh> m_mesh;
+    utils::BoundingBox m_boundingBox;
+    std::set<std::shared_ptr<MeshHandler>> m_handlers;
 };
 
 }

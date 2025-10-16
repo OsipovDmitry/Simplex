@@ -16,6 +16,7 @@ namespace core
 {
 
 class DrawDataHandler;
+class SceneData;
 
 class VisualDrawableNodePrivate : public NodePrivate
 {
@@ -29,11 +30,12 @@ public:
     void doAttachToScene(const std::shared_ptr<Scene>&) override;
     void doDetachFromScene(const std::shared_ptr<Scene>&) override;
 
-    void addDrawDataToScene(const std::shared_ptr<Scene>&, const std::shared_ptr<const VisualDrawable>&);
-    void removeDrawDataFromScene(const std::shared_ptr<Scene>&, const std::shared_ptr<const VisualDrawable>&);
-    void changeDrawDataInScene(const std::shared_ptr<Scene>&);
+    void addDrawDataToSceneData(const std::shared_ptr<SceneData>&, const std::shared_ptr<const VisualDrawable>&);
+    void removeDrawDataFromSceneData(const std::shared_ptr<const VisualDrawable>&);
+    void changeDrawDataInSceneData();
 
     std::unordered_set<std::shared_ptr<VisualDrawable>> &visualDrawables();
+    std::unordered_map<std::shared_ptr<const VisualDrawable>, std::shared_ptr<DrawDataHandler>>& handlers();
 
     const utils::BoundingBox &localBoundingBox();
 

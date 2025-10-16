@@ -34,16 +34,6 @@ public:
     float blurPower() const;
     void setBlurPower(float);
 
-    //tmp
-    graphics::PConstTexture colorMap() const;
-    void setColorMap(const graphics::PConstTexture&);
-
-    const glm::vec3 &color() const;
-    void setColor(const glm::vec3&);
-
-    float roughness() const;
-    void setRoughness(float);
-
 private:
     std::unique_ptr<BackgroundPrivate> m_;
 

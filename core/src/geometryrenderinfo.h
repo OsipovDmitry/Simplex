@@ -12,7 +12,6 @@ namespace core
 {
 
 class GeometryBuffer;
-class OITNodesBuffer;
 
 class GeometryRenderInfo : public StateSet
 {
@@ -26,8 +25,9 @@ public:
     const glm::mat4x4& projectionMatrix() const;
     void setProjectionMatrix(const glm::mat4x4&);
 
+    std::shared_ptr<GeometryBuffer> geometryBuffer();
     std::shared_ptr<const GeometryBuffer> geometryBuffer() const;
-    void setGeometryBuffer(const std::shared_ptr<const GeometryBuffer>&);
+    void setGeometryBuffer(const std::shared_ptr<GeometryBuffer>&);
 
     void setSSAOMap(const graphics::PConstTexture&);
 
@@ -36,7 +36,7 @@ private:
 
     glm::mat4x4 m_viewMatrix;
     glm::mat4x4 m_projectionMatrix;
-    std::shared_ptr<const GeometryBuffer> m_geometryBuffer;
+    std::shared_ptr<GeometryBuffer> m_geometryBuffer;
 };
 
 }

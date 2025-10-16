@@ -3,7 +3,6 @@
 
 #include <memory>
 #include <string>
-#include <unordered_map>
 
 #include <utils/boundingbox.h>
 #include <utils/idgenerator.h>
@@ -23,27 +22,28 @@ class SceneData;
 class DrawablePrivate : public StateSetPrivate
 {
 public:
-    DrawablePrivate(const std::shared_ptr<graphics::VAOMesh>&);
     DrawablePrivate(const std::shared_ptr<const Mesh>&, const std::shared_ptr<const Material>& material);
     ~DrawablePrivate() override;
 
     std::shared_ptr<const Mesh> &mesh();
     std::shared_ptr<const Material> &material();
 
-    std::shared_ptr<graphics::VAOMesh> &vertexArray();
-
-    bool &isDoubleSided();
-
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>>& handlers();
+    std::set<std::shared_ptr<DrawableHandler>>& handlers();
     void onChanged();
+
+    //tmp
+    DrawablePrivate(const std::shared_ptr<graphics::VAOMesh>&);
+    std::shared_ptr<graphics::VAOMesh>& vertexArray();
+    bool& isDoubleSided();
 
 protected:
     std::shared_ptr<const Mesh> m_mesh;
     std::shared_ptr<const Material> m_material;
+    std::set<std::shared_ptr<DrawableHandler>> m_handlers;
+
+    //tmp
     std::shared_ptr<graphics::VAOMesh> m_VAOMesh;
     bool m_isDoubleSided;
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>> m_handlers;
-
 };
 
 }

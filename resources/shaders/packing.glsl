@@ -1,4 +1,5 @@
 #include<constants.glsl>
+#include<normal.glsl>
 
 void packUnorm8(inout uint result, in float v, in int index)
 {
@@ -134,4 +135,50 @@ bvec2 unpackBool2(in uint v)
     result.x = bitfieldExtract(v, 30, 1) != 0u;
     result.y = bitfieldExtract(v, 31, 1) != 0u;
     return result;
+}
+
+uvec4 packPBRData(
+	in vec3 baseColor,
+	in vec3 emission,
+	in float occlusion,
+	in float roughness,
+	in float metalness,
+	in float alpha,
+	in vec3 normal,
+	in bool isLighted,
+	in bool isShadowed)
+{
+	return uvec4(
+		packF2x11_1x10(baseColor),
+		packF2x11_1x10(emission),
+		packUnorm4x8(vec4(occlusion, roughness, metalness, alpha)),
+		packUnorm3x10_Bool2(packNormal(normal), bvec2(isLighted, isShadowed)));
+}
+
+void unpackPBRData(
+	in uvec4 data,
+	out vec3 baseColor,
+	out vec3 emission,
+	out float occlusion,
+	out float roughness,
+	out float metalness,
+	out float alpha,
+	out vec3 normal,
+	out bool isLighted,
+	out bool isShadowed)
+{
+	vec4 unpackedORMAlpha = unpackUnorm4x8(data[2u]);
+    vec3 unpackedNormal;
+	bvec2 flags;
+    unpackUnorm3x10_Bool2(data[3u], unpackedNormal, flags);
+
+    baseColor = unpackF2x11_1x10(data[0u]);
+    emission = unpackF2x11_1x10(data[1u]);
+    occlusion = unpackedORMAlpha[0u];
+    roughness = unpackedORMAlpha[1u];
+    metalness = unpackedORMAlpha[2u];
+    alpha = unpackedORMAlpha[3u];
+    normal = normalize(unpackNormal(unpackedNormal));
+	isLighted = flags[0u];
+	isShadowed = flags[1u];
 }

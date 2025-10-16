@@ -19,18 +19,18 @@ LightDrawable::~LightDrawable() = default;
 
 float LightDrawable::dielectricSpecular() const
 {
-    auto uni = uniform_cast<float>(uniform(UniformId::LightDielecticSpecular));
+    auto uni = uniform_cast<float>(uniform(UniformID::LightDielecticSpecular));
     return uni ? uni->data() : settings::Settings::instance().graphics().pbr().dielectricSpecular();
 }
 
 void LightDrawable::setDielecticSpecular(float value)
 {
-    getOrCreateUniform(UniformId::LightDielecticSpecular) = makeUniform(value);
+    getOrCreateUniform(UniformID::LightDielecticSpecular) = makeUniform(value);
 }
 
 void LightDrawable::setShadowDepthMap(const graphics::PConstTexture &value)
 {
-    static UniformId s_uniformId = UniformId::ShadowDepthMap;
+    static UniformID s_uniformId = UniformID::ShadowDepthMap;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -40,7 +40,7 @@ void LightDrawable::setShadowDepthMap(const graphics::PConstTexture &value)
 
 void LightDrawable::setShadowColorMap(const graphics::PConstTexture &value)
 {
-    static UniformId s_uniformId = UniformId::ShadowColorMap;
+    static UniformID s_uniformId = UniformID::ShadowColorMap;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -50,17 +50,17 @@ void LightDrawable::setShadowColorMap(const graphics::PConstTexture &value)
 
 void LightDrawable::setShadowViewMatrix(const glm::mat4x4 &vm)
 {
-    getOrCreateUniform(UniformId::ShadowViewMatrix) = makeUniform(vm);
+    getOrCreateUniform(UniformID::ShadowViewMatrix) = makeUniform(vm);
 }
 
 void LightDrawable::setShadowProjectionMatrix(const glm::mat4x4 &pm)
 {
-    getOrCreateUniform(UniformId::ShadowProjectionMatrix) = makeUniform(pm);
+    getOrCreateUniform(UniformID::ShadowProjectionMatrix) = makeUniform(pm);
 }
 
 void LightDrawable::setShadowDepthBias(float value)
 {
-    getOrCreateUniform(UniformId::ShadowDepthBias) = makeUniform(value);
+    getOrCreateUniform(UniformID::ShadowDepthBias) = makeUniform(value);
 }
 
 const DrawableComponentSet &LightDrawable::componentSet()

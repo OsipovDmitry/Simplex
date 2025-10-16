@@ -16,12 +16,14 @@ public:
 
     UniformCollection &uniformCollection();
     UserUniformCollection &userUniformCollection();
-    SSBOCollection &ssboCollection();
+    UniformBlockCollection& uniformBlockCollection();
+    ShaderStorageBlockCollection& shaderStorageBlockCollection();
 
 protected:
     UniformCollection m_uniformCollection;
     UserUniformCollection m_userUniformCollection;
-    SSBOCollection m_SSBOCollection;
+    UniformBlockCollection m_uniformBlockCollection;
+    ShaderStorageBlockCollection m_shaderStorageBlockCollection;
 };
 
 }

@@ -18,24 +18,24 @@ FlatDrawable::~FlatDrawable() = default;
 
 const glm::vec4 &FlatDrawable::color() const
 {
-    auto uni = uniform_cast<glm::vec4>(uniform(UniformId::BaseColor));
+    auto uni = uniform_cast<glm::vec4>(uniform(UniformID::BaseColor));
     return uni ? uni->data() : settings::Settings::instance().graphics().flat().color();
 }
 
 void FlatDrawable::setColor(const glm::vec4 &value)
 {
-    getOrCreateUniform(UniformId::BaseColor) = makeUniform(value);
+    getOrCreateUniform(UniformID::BaseColor) = makeUniform(value);
 }
 
 graphics::PConstTexture FlatDrawable::colorMap() const
 {
-    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformId::BaseColorMap));
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformID::BaseColorMap));
     return uni ? uni->data() : nullptr;
 }
 
 void FlatDrawable::setColorMap(const graphics::PConstTexture &value)
 {
-    static UniformId s_uniformId = UniformId::BaseColorMap;
+    static UniformID s_uniformId = UniformID::BaseColorMap;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);

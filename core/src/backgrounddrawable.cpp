@@ -39,20 +39,20 @@ BackgroundDrawable::BackgroundDrawable()
     setColorMap(texturesManager->loadOrGetDefaultIBLSpecularTexture());
 
     auto& backgroundSettings = settings::Settings::instance().graphics().background();
-    setRoughness(backgroundSettings.roughness());
+    setRoughness(backgroundSettings.blurPower());
 }
 
 BackgroundDrawable::~BackgroundDrawable() = default;
 
 graphics::PConstTexture BackgroundDrawable::colorMap() const
 {
-    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformId::BackgroundColorMap));
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformID::BackgroundColorMap));
     return uni ? uni->data() : nullptr;
 }
 
 void BackgroundDrawable::setColorMap(const graphics::PConstTexture &value)
 {
-    static UniformId s_uniformId = UniformId::BackgroundColorMap;
+    static UniformID s_uniformId = UniformID::BackgroundColorMap;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -62,32 +62,32 @@ void BackgroundDrawable::setColorMap(const graphics::PConstTexture &value)
 
 const glm::vec3 &BackgroundDrawable::color() const
 {
-    auto uni = uniform_cast<glm::vec3>(uniform(UniformId::BackgroundColor));
-    return uni ? uni->data() : settings::Settings::instance().graphics().background().color();
+    auto uni = uniform_cast<glm::vec3>(uniform(UniformID::BackgroundColor));
+    return uni ? uni->data() : settings::Settings::instance().graphics().background().environmentColor();
 }
 
 void BackgroundDrawable::setColor(const glm::vec3 &value)
 {
-    getOrCreateUniform(UniformId::BackgroundColor) = makeUniform(value);
+    getOrCreateUniform(UniformID::BackgroundColor) = makeUniform(value);
 }
 
 float BackgroundDrawable::roughness() const
 {
-    auto uni = uniform_cast<float>(uniform(UniformId::BackgroundRoughness));
-    return uni ? uni->data() : settings::Settings::instance().graphics().background().roughness();
+    auto uni = uniform_cast<float>(uniform(UniformID::BackgroundRoughness));
+    return uni ? uni->data() : settings::Settings::instance().graphics().background().blurPower();
 }
 
 void BackgroundDrawable::setRoughness(float value)
 {
-    getOrCreateUniform(UniformId::BackgroundRoughness) = makeUniform(value);
+    getOrCreateUniform(UniformID::BackgroundRoughness) = makeUniform(value);
 }
 
 const DrawableComponentSet &BackgroundDrawable::componentSet()
 {
     static const DrawableComponentSet s_set {
-        UniformId::BackgroundColorMap,
-        UniformId::BackgroundColor,
-        UniformId::BackgroundRoughness
+        UniformID::BackgroundColorMap,
+        UniformID::BackgroundColor,
+        UniformID::BackgroundRoughness
     };
     return s_set;
 }

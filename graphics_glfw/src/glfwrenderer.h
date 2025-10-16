@@ -79,8 +79,8 @@ public:
     public:
         MappedData_4_5(const std::weak_ptr<const BufferBase_4_5>&, uint8_t*);
         ~MappedData_4_5() override;
-        const uint8_t* get() const override;
         uint8_t* get() override;
+        const uint8_t* get() const override;
     private:
         std::weak_ptr<const BufferBase_4_5> m_mappedBuffer;
         uint8_t* m_data;
@@ -90,37 +90,38 @@ public:
 
     GLuint id() const;
 
-    size_t fullSize() const;
-    void setFullSize(size_t size);
+protected:
+    BufferBase_4_5(size_t size, const void* data);
+
+    size_t sizeImpl() const;
+    void resizeImpl(size_t size);
+
+    std::unique_ptr<MappedData_4_5> mapImpl(core::graphics::IBuffer::MapAccess access, size_t offset = 0u, size_t size = 0u);
 
 protected:
-    BufferBase_4_5(uint64_t size, const void* data);
-
-    std::unique_ptr<MappedData_4_5> mapData(core::graphics::IBuffer::MapAccess access, size_t offset = 0u, size_t size = 0u);
-    std::unique_ptr<const MappedData_4_5> mapData(core::graphics::IBuffer::MapAccess access, size_t offset = 0u, size_t size = 0u) const;
-
-private:
     GLuint m_id = 0;
     mutable bool m_isMapped = false;
 
     friend class MappedData_4_5;
 };
 
-class Buffer_4_5 : public core::graphics::IBuffer, public BufferBase_4_5
+class StaticBuffer_4_5 : public core::graphics::IStaticBuffer, public BufferBase_4_5
 {
-    NONCOPYBLE(Buffer_4_5)
+    NONCOPYBLE(StaticBuffer_4_5)
     CURRENT_CONTEXT_INFO
 public:
-    Buffer_4_5(uint64_t size, const void* data);
-    ~Buffer_4_5() override;
+    StaticBuffer_4_5(size_t size, const void* data);
+    ~StaticBuffer_4_5() override;
 
+    bool isEmpty() const override;
     size_t size() const override;
-    void resize(size_t size) override;
 
-    std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const override;
     std::unique_ptr<MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) override;
+    std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const override;
 
-    static std::shared_ptr<Buffer_4_5> create(size_t = 0u, const void* = nullptr);
+    static std::shared_ptr<StaticBuffer_4_5> create(size_t = 0u, const void* = nullptr);
+
+private:
 };
 
 class DynamicBuffer_4_5 : public core::graphics::IDynamicBuffer, public BufferBase_4_5
@@ -131,16 +132,20 @@ public:
     DynamicBuffer_4_5(uint64_t size, const void* data);
     ~DynamicBuffer_4_5() override;
 
+    bool isEmpty() const override;
+    size_t size() const override;
+
     size_t capacity() const override;
     void reserve(size_t) override;
+    void shrinkToFit() override;
 
-    void pushBack(const void* data, size_t size);
+    void clear() override;
+    void insert(size_t offset, const void* data, size_t size) override;
+    void erase(size_t offset, size_t size) override;
+    void resize(size_t) override;
 
-    size_t size() const override;
-    void resize(size_t size) override;
-
-    std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const override;
     std::unique_ptr<MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) override;
+    std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const override;
 
     static std::shared_ptr<DynamicBuffer_4_5> create(size_t = 0u, const void* = nullptr);
 
@@ -190,7 +195,7 @@ private:
 
     struct VertexBufferDeclaration
     {
-        std::shared_ptr<Buffer_4_5> buffer;
+        std::shared_ptr<core::graphics::IBuffer> buffer;
         size_t offset;
         size_t stride;
 
@@ -209,7 +214,7 @@ private:
     };
     std::unordered_map<utils::VertexAttribute, AttributeDeclaration> m_attributes;
 
-    std::shared_ptr<Buffer_4_5> m_indexBuffer;
+    std::shared_ptr<core::graphics::IBuffer> m_indexBuffer;
 };
 
 class TextureBase_4_5 : public core::graphics::ITexture
@@ -711,21 +716,25 @@ public:
     //int32_t uniformLocationByName(const std::string&) const override;
 
     const std::vector<core::graphics::UniformInfo> &uniformsInfo() const override;
-    const std::vector<core::graphics::SSBOInfo> &SSBOsInfo() const override;
+    const std::vector<core::graphics::UniformBlockInfo>& uniformBlocksInfo() const override;
+    const std::vector<core::graphics::ShaderStorageBlockInfo> &shaderStorageBlocksInfo() const override;
 
     std::string uniformNameByIndex(uint16_t) const override;
-    std::string SSBOVariableNameByIndex(uint16_t) const override;
-    std::string SSBONameByIndex(uint16_t) const override;
+    std::string bufferVariableNameByIndex(uint16_t) const override;
+    std::string uniformBlockNameByIndex(uint16_t) const override;
+    std::string shaderStorageBlockNameByIndex(uint16_t) const override;
 
 protected:
     GLuint m_id;
 
     std::vector<core::graphics::UniformInfo> m_uniformsInfo;
-    std::vector<core::graphics::SSBOInfo> m_SSBOsInfo;
+    std::vector<core::graphics::UniformBlockInfo> m_uniformBlocksInfo;
+    std::vector<core::graphics::ShaderStorageBlockInfo> m_shaderStorageBlocksInfo;
 
     GLint m_uniformNameMaxLength;
-    GLint m_SSBONameMaxLength;
+    GLint m_uniformBlockNameMaxLength;
     GLint m_bufferVariableNameMaxLength;
+    GLint m_shaderStorageBlockNameMaxLength;
 };
 
 class RenderProgram_4_5 : public core::graphics::IRenderProgram, public ProgramBase_4_5
@@ -797,16 +806,8 @@ public:
                          bool colorMsk, bool depthMask, bool stencilMask,
                          bool linearFilter = false) override;
 
-    void copyBufferSubData(const std::shared_ptr<core::graphics::IBuffer>& dst,
-        const std::shared_ptr<const core::graphics::IBuffer>& src,
-        size_t dstOffset,
-        size_t srcOffset,
-        size_t size) const override;
-
-    std::shared_ptr<core::graphics::IBuffer> createBuffer(size_t = 0u,
-                                                          const void* = nullptr) const override;
-    std::shared_ptr<core::graphics::IDynamicBuffer> createDynamicBuffer(size_t size = 0u,
-                                                                              const void* data = nullptr) const override;
+    std::shared_ptr<core::graphics::IStaticBuffer> createStaticBuffer(size_t = 0u, const void* = nullptr) const override;
+    std::shared_ptr<core::graphics::IDynamicBuffer> createDynamicBuffer(size_t size = 0u, const void* data = nullptr) const override;
     std::shared_ptr<core::graphics::IVertexArray> createVertexArray() const override;
     std::shared_ptr<core::graphics::ITexture> createTexture1DEmpty(uint32_t width,
                                                                    core::graphics::PixelInternalFormat,
@@ -883,11 +884,13 @@ public:
                                                                         const std::shared_ptr<utils::Shader> &fragmentShader) const override;
     std::shared_ptr<core::graphics::IComputeProgram> createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const override;
 
-    void compute(const std::shared_ptr<core::graphics::IComputeProgram>&,
+    void compute(
         const glm::uvec3&,
+        const std::shared_ptr<core::graphics::IComputeProgram>&,
         const core::StateSetList&) override;
 
     void drawArrays(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
@@ -897,6 +900,7 @@ public:
         size_t count) override;
 
     void drawElements(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
@@ -907,6 +911,7 @@ public:
         size_t offset) override;
 
     void multiDrawArrays(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
@@ -916,6 +921,7 @@ public:
         const std::vector<size_t>& counts) override;
 
     void multiDrawElements(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
@@ -926,6 +932,7 @@ public:
         const std::vector<size_t>& offsets) override;
 
     void drawElementsBaseVertex(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
@@ -937,6 +944,7 @@ public:
         uint32_t baseVertex) override;
 
     void drawArraysInstanced(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
@@ -947,6 +955,7 @@ public:
         size_t numInstances) override;
 
     void drawElementsInstanced(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
@@ -958,6 +967,7 @@ public:
         size_t numInstances) override;
 
     void drawArraysInstancedBaseInstance(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
@@ -969,6 +979,7 @@ public:
         uint32_t baseInstance) override;
 
     void drawElementsInstancedBaseInstance(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
@@ -981,61 +992,61 @@ public:
         uint32_t baseInstance) override;
 
     void drawArraysIndirect(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
         const core::StateSetList&,
         utils::PrimitiveType,
-        const std::shared_ptr<const core::graphics::BufferRange>&) override;
+        const core::graphics::PDrawArraysIndirectCommandsConstBuffer&) override;
 
     void drawElementsIndirect(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
         const core::StateSetList&,
         utils::PrimitiveType,
         utils::DrawElementsIndexType,
-        const std::shared_ptr<const core::graphics::BufferRange>&) override;
+        const core::graphics::PDrawElementsIndirectCommandConstBuffer&) override;
 
     void multiDrawArraysIndirect(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
         const core::StateSetList&,
         utils::PrimitiveType,
-        const std::shared_ptr<const core::graphics::BufferRange>&,
-        size_t count) override;
+        const core::graphics::PDrawArraysIndirectCommandsConstBuffer&) override;
 
     void multiDrawElementsIndirect(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
         const core::StateSetList&,
         utils::PrimitiveType,
         utils::DrawElementsIndexType,
-        const std::shared_ptr<const core::graphics::BufferRange>&,
-        size_t count) override;
+        const core::graphics::PDrawElementsIndirectCommandConstBuffer&) override;
 
     void multiDrawArraysIndirectCount(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
         const core::StateSetList&,
         utils::PrimitiveType,
-        const std::shared_ptr<const core::graphics::BufferRange>& drawIndirectBufferRange,
-        const std::shared_ptr<const core::graphics::BufferRange>& parameterBufferRange,
-        size_t maxDrawCount) override;
+        const core::graphics::PDrawArraysIndirectCommandsConstBuffer&) override;
 
     void multiDrawElementsIndirectCount(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
         const core::StateSetList&,
         utils::PrimitiveType,
         utils::DrawElementsIndexType,
-        const std::shared_ptr<const core::graphics::BufferRange>& drawIndirectBufferRange,
-        const std::shared_ptr<const core::graphics::BufferRange>& parameterBufferRange,
-        size_t maxDrawCount) override;
+        const core::graphics::PDrawElementsIndirectCommandConstBuffer&) override;
 
     void clearRenderData() override;
     void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
@@ -1055,6 +1066,7 @@ private:
         const core::StateSetList&);
 
     void setupRender(
+        const glm::uvec4&,
         const std::shared_ptr<core::graphics::IRenderProgram>&,
         const std::shared_ptr<core::graphics::IFrameBuffer>&,
         const std::shared_ptr<core::graphics::IVertexArray>&,
@@ -1064,17 +1076,17 @@ private:
     void setupVAO(const std::shared_ptr<const RenderProgram_4_5>&, const std::shared_ptr<VertexArray_4_5>&);
 
     bool setupUniform(GLuint rpId, core::graphics::UniformType type, GLint loc, int32_t&, int32_t&, const core::PConstAbstractUniform&);
-    void setupUniforms(const std::shared_ptr<ProgramBase_4_5>&,
-                       const core::StateSetList&);
-    void setupSSBOs(const std::shared_ptr<ProgramBase_4_5>&,
-                    const core::StateSetList&);
+    void setupUniforms(const std::shared_ptr<ProgramBase_4_5>&, const core::StateSetList&);
+    void setupUniformBlocks(const std::shared_ptr<ProgramBase_4_5>&, const core::StateSetList&);
+    void setupShaderStorageBlocks(const std::shared_ptr<ProgramBase_4_5>&, const core::StateSetList&);
 
     void bindTexture(int32_t, const core::graphics::PConstTexture&);
     void bindImage(int32_t, const core::graphics::PConstImage&);
     void bindImage(int32_t, const core::graphics::PConstTexture&, uint32_t, core::graphics::Image::DataAccess);
     void bindBuffer(GLenum target, const core::graphics::PConstBuffer&);
     void bindBufferRange(GLenum target, GLuint bindingPoint, const core::graphics::PConstBufferRange&);
-    void bindSSBO(uint32_t, const core::graphics::PConstBufferRange&);
+    void bindUniformBlock(uint32_t, const core::graphics::PConstBufferRange&);
+    void bindShaderStorageBlock(uint32_t, const core::graphics::PConstBufferRange&);
     void bindAtomicCounterBuffer(GLuint bindingPoint, const core::graphics::PConstBufferRange&);
     void bindDrawIndirectBuffer(const core::graphics::PConstBuffer&);
     void bindParameterBuffer(const core::graphics::PConstBuffer&);

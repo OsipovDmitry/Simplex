@@ -21,9 +21,14 @@ UserUniformCollection &StateSetPrivate::userUniformCollection()
     return m_userUniformCollection;
 }
 
-SSBOCollection &StateSetPrivate::ssboCollection()
+UniformBlockCollection& StateSetPrivate::uniformBlockCollection()
 {
-    return m_SSBOCollection;
+    return m_uniformBlockCollection;
+}
+
+ShaderStorageBlockCollection &StateSetPrivate::shaderStorageBlockCollection()
+{
+    return m_shaderStorageBlockCollection;
 }
 
 }

@@ -8,12 +8,6 @@ namespace simplex
 namespace core
 {
 
-DrawablePrivate::DrawablePrivate(const std::shared_ptr<graphics::VAOMesh> &vao)
-    : StateSetPrivate()
-    , m_VAOMesh(vao)
-    , m_isDoubleSided(true)
-{}
-
 DrawablePrivate::DrawablePrivate(const std::shared_ptr<const Mesh>& mesh, const std::shared_ptr<const Material>& material)
     : StateSetPrivate()
     , m_mesh(mesh)
@@ -33,25 +27,32 @@ std::shared_ptr<const Material>& DrawablePrivate::material()
     return m_material;
 }
 
-std::shared_ptr<graphics::VAOMesh> &DrawablePrivate::vertexArray()
-{
-    return m_VAOMesh;
-}
-
-bool &DrawablePrivate::isDoubleSided()
-{
-    return m_isDoubleSided;
-}
-
-std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<DrawableHandler>>& DrawablePrivate::handlers()
+std::set<std::shared_ptr<DrawableHandler>>& DrawablePrivate::handlers()
 {
     return m_handlers;
 }
 
 void DrawablePrivate::onChanged()
 {
-    for (auto& handle : m_handlers)
-        handle.first->onDrawableChanged(handle.second->drawable().lock(), handle.second->ID());
+    for (auto& handler : m_handlers)
+        if (auto sceneData = handler->sceneData().lock())
+            sceneData->onDrawableChanged(handler->ID(), m_mesh, m_material);
+}
+
+DrawablePrivate::DrawablePrivate(const std::shared_ptr<graphics::VAOMesh>& vao)
+    : StateSetPrivate()
+    , m_VAOMesh(vao)
+    , m_isDoubleSided(true)
+{}
+
+std::shared_ptr<graphics::VAOMesh>& DrawablePrivate::vertexArray()
+{
+    return m_VAOMesh;
+}
+
+bool& DrawablePrivate::isDoubleSided()
+{
+    return m_isDoubleSided;
 }
 
 }

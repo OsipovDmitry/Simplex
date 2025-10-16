@@ -21,20 +21,21 @@ std::filesystem::path& MaterialMapPrivate::path()
     return m_path;
 }
 
-std::shared_ptr<const utils::Image>& MaterialMapPrivate::image()
+std::shared_ptr<utils::Image>& MaterialMapPrivate::image()
 {
     return m_image;
 }
 
-std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialMapHandler>>& MaterialMapPrivate::handlers()
+std::set<std::shared_ptr<MaterialMapHandler>>& MaterialMapPrivate::handlers()
 {
     return m_handlers;
 }
 
 void MaterialMapPrivate::onChanged()
 {
-    for (auto& handle : m_handlers)
-        handle.first->onMaterialMapChanged(handle.second->materialMap().lock(), handle.second->ID());
+    for (auto& handler : m_handlers)
+        if (auto sceneData = handler->sceneData().lock())
+            sceneData->onMaterialMapChanged(handler->ID(), m_path, m_image);
 }
 
 MaterialPrivate::MaterialPrivate()
@@ -49,6 +50,7 @@ MaterialPrivate::MaterialPrivate()
     , m_roughness(settings::Settings::instance().graphics().pbr().roughness())
     , m_metalness(settings::Settings::instance().graphics().pbr().metalness())
     , m_normalMapScale(settings::Settings::instance().graphics().pbr().normalMapScale())
+    , m_alphaCutoff(0.f)
 {
 }
 
@@ -109,20 +111,44 @@ float& MaterialPrivate::normalMapScale()
     return m_normalMapScale;
 }
 
-std::array<std::shared_ptr<const MaterialMap>, numElementsMaterialMapTarget()>& MaterialPrivate::maps()
+float& MaterialPrivate::alphaCutoff()
+{
+    return m_alphaCutoff;
+}
+
+std::array<std::shared_ptr<MaterialMap>, numElementsMaterialMapTarget()>& MaterialPrivate::maps()
 {
     return m_maps;
 }
 
-std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialHandler>>& MaterialPrivate::handlers()
+std::set<std::shared_ptr<MaterialHandler>>& MaterialPrivate::handlers()
 {
     return m_handlers;
 }
 
 void MaterialPrivate::onChanged()
 {
-    for (auto& handle : m_handlers)
-        handle.first->onMaterialChanged(handle.second->material().lock(), handle.second->ID());
+    for (auto& handler : m_handlers)
+        if (auto sceneData = handler->sceneData().lock())
+            sceneData->onMaterialChanged(
+                handler->ID(),
+                m_baseColor,
+                m_emission,
+                m_roughness,
+                m_metalness,
+                m_alphaCutoff,
+                m_maps[castFromMaterialMapTarget(MaterialMapTarget::BaseColor)],
+                m_maps[castFromMaterialMapTarget(MaterialMapTarget::Emission)],
+                m_maps[castFromMaterialMapTarget(MaterialMapTarget::Occlusion)],
+                m_maps[castFromMaterialMapTarget(MaterialMapTarget::Roughness)],
+                m_maps[castFromMaterialMapTarget(MaterialMapTarget::Metalness)],
+                m_maps[castFromMaterialMapTarget(MaterialMapTarget::Normal)],
+                m_occlusionMapStrength,
+                m_normalMapScale,
+                m_ORMSwizzleMask,
+                m_isLighted,
+                m_isShadowed,
+                m_isDoubleSided);
 }
 
 }

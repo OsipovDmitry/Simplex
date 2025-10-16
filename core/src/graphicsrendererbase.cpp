@@ -199,7 +199,7 @@ FrameBufferAttachment RendererBase::outputByName(const std::string& name) const
     return it != outputIDs.end() ? it->second : graphics::FrameBufferAttachment::Count;
 }
 
-bool RendererBase::registerUniform(const std::string& name, UniformId ID)
+bool RendererBase::registerUniform(const std::string& name, UniformID ID)
 {
     auto& uniformIDs = m_->uniformIDs();
 
@@ -227,48 +227,84 @@ bool RendererBase::unregisterUniform(const std::string& name)
     return false;
 }
 
-UniformId RendererBase::uniformByName(const std::string& name) const
+UniformID RendererBase::uniformByName(const std::string& name) const
 {
     auto& uniformIDs = m_->uniformIDs();
 
     auto it = uniformIDs.find(name);
-    return it != uniformIDs.end() ? it->second : UniformId::Count;
+    return it != uniformIDs.end() ? it->second : UniformID::Count;
 }
 
-bool RendererBase::registerSSBO(const std::string& name, core::SSBOId ID)
+bool RendererBase::registerUniformBlock(const std::string& name, UniformBlockID ID)
 {
-    auto& SSBOIDs = m_->SSBOIDs();
+    auto& uniformBlockIDs = m_->uniformBlockIDs();
 
-    if (auto it = SSBOIDs.find(name); it != SSBOIDs.end())
+    if (auto it = uniformBlockIDs.find(name); it != uniformBlockIDs.end())
     {
-        LOG_ERROR << "SSBO " << name << " is already registered";
+        LOG_ERROR << "Uniform block " << name << " is already registered";
         return false;
     }
 
-    SSBOIDs.insert({ name, ID });
+    uniformBlockIDs.insert({ name, ID });
     return true;
 }
 
-bool RendererBase::unregisterSSBO(const std::string& name)
+bool RendererBase::unregisterUniformBlock(const std::string& name)
 {
-    auto& SSBOIDs = m_->SSBOIDs();
+    auto& uniformBlockIDs = m_->uniformBlockIDs();
 
-    if (auto it = SSBOIDs.find(name); it != SSBOIDs.end())
+    if (auto it = uniformBlockIDs.find(name); it != uniformBlockIDs.end())
     {
-        SSBOIDs.erase(it);
+        uniformBlockIDs.erase(it);
         return true;
     }
 
-    LOG_ERROR << "SSBO " << name << " has not been registered";
+    LOG_ERROR << "Uniform block " << name << " has not been registered";
     return false;
 }
 
-SSBOId RendererBase::SSBOByName(const std::string& name) const
+UniformBlockID RendererBase::uniformBlockByName(const std::string& name) const
 {
-    auto& SSBOIDs = m_->SSBOIDs();
+    auto& uniformBlockIDs = m_->uniformBlockIDs();
 
-    auto it = SSBOIDs.find(name);
-    return it != SSBOIDs.end() ? it->second : core::SSBOId::Count;
+    auto it = uniformBlockIDs.find(name);
+    return it != uniformBlockIDs.end() ? it->second : core::UniformBlockID::Count;
+}
+
+bool RendererBase::registerShaderStorageBlock(const std::string& name, core::ShaderStorageBlockID ID)
+{
+    auto& shaderStorageBlockIDs = m_->shaderStorageBlockIDs();
+
+    if (auto it = shaderStorageBlockIDs.find(name); it != shaderStorageBlockIDs.end())
+    {
+        LOG_ERROR << "Shader storage block " << name << " is already registered";
+        return false;
+    }
+
+    shaderStorageBlockIDs.insert({ name, ID });
+    return true;
+}
+
+bool RendererBase::unregisterShaderStorageBlock(const std::string& name)
+{
+    auto& shaderStorageBlockIDs = m_->shaderStorageBlockIDs();
+
+    if (auto it = shaderStorageBlockIDs.find(name); it != shaderStorageBlockIDs.end())
+    {
+        shaderStorageBlockIDs.erase(it);
+        return true;
+    }
+
+    LOG_ERROR << "Shader storage block " << name << " has not been registered";
+    return false;
+}
+
+ShaderStorageBlockID RendererBase::shaderStorageBlockByName(const std::string& name) const
+{
+    auto& shaderStorageBlockIDs = m_->shaderStorageBlockIDs();
+
+    auto it = shaderStorageBlockIDs.find(name);
+    return it != shaderStorageBlockIDs.end() ? it->second : core::ShaderStorageBlockID::Count;
 }
 
 BufferRange::~BufferRange() = default;
@@ -485,7 +521,7 @@ std::shared_ptr<VAOMesh> VAOMesh::create(const std::shared_ptr<const utils::Mesh
                 stride += buffer->numComponents() * utils::sizeOfVertexComponentType(buffer->componentType());
             }
 
-            auto buffer = currentContext->createBuffer(totalSize);
+            auto buffer = currentContext->createStaticBuffer(totalSize);
             auto bindingIndex = vertexArray->attachVertexBuffer(buffer, 0u, stride);
 
             size_t relativeOffset = 0u;
@@ -506,7 +542,7 @@ std::shared_ptr<VAOMesh> VAOMesh::create(const std::shared_ptr<const utils::Mesh
                 if (numVertices != buffer->numVertices())
                     LOG_CRITICAL << "Buffers have different size";
 
-                auto bindingIndex = vertexArray->attachVertexBuffer(currentContext->createBuffer(buffer->sizeInBytes(), buffer->data()),
+                auto bindingIndex = vertexArray->attachVertexBuffer(currentContext->createStaticBuffer(buffer->sizeInBytes(), buffer->data()),
                     0u,
                     buffer->numComponents() * utils::sizeOfVertexComponentType(buffer->componentType()));
                 vertexArray->declareVertexAttribute(attrib, bindingIndex, buffer->numComponents(), buffer->componentType(), 0u);
@@ -537,7 +573,7 @@ std::shared_ptr<VAOMesh> VAOMesh::create(const std::shared_ptr<const utils::Mesh
 
         if (indexBufferTotalSize)
         {
-            auto buffer = currentContext->createBuffer(indexBufferTotalSize);
+            auto buffer = currentContext->createStaticBuffer(indexBufferTotalSize);
             vertexArray->attachIndexBuffer(buffer);
 
             auto bufferData = buffer->map(core::graphics::IBuffer::MapAccess::WriteOnly);

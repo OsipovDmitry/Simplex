@@ -58,7 +58,7 @@ GraphicsEngine::GraphicsEngine(const std::string &name, const std::shared_ptr<gr
     m_->renderer()->makeCurrent();
 
     for (typename std::underlying_type<utils::VertexAttribute>::type i = 0u; i < utils::numElementsVertexAttribute(); ++i)
-        if (const auto &name = GraphicsEnginePrivate::attributeNameById(utils::castToVertexAttribute(i)); !name.empty())
+        if (const auto &name = GraphicsEnginePrivate::attributeNameByID(utils::castToVertexAttribute(i)); !name.empty())
             renderer->registerAttribute(name, utils::castToVertexAttribute(i));
         else
             LOG_ERROR << "Attribute name has not been set for ID = " << i;
@@ -66,22 +66,28 @@ GraphicsEngine::GraphicsEngine(const std::string &name, const std::shared_ptr<gr
     for (typename std::underlying_type<graphics::FrameBufferAttachment>::type i = 0u;
         i < graphics::FrameBufferColorAttachmentsCount();
         ++i)
-        if (const auto& name = GraphicsEnginePrivate::outputNameById(graphics::FrameBufferColorAttachment(i)); !name.empty())
+        if (const auto& name = GraphicsEnginePrivate::outputNameByID(graphics::FrameBufferColorAttachment(i)); !name.empty())
             renderer->registerOutput(name, graphics::castToFrameBufferAttachment(i));
         else
             LOG_ERROR << "Output name has not been set for ID = " << i;
 
-    for (typename std::underlying_type<UniformId>::type i = 0u; i < numElementsUniformId(); ++i)
-        if (const auto &name = GraphicsEnginePrivate::uniformNameById(castToUniformId(i)); !name.empty())
-            renderer->registerUniform(name, core::castToUniformId(i));
+    for (typename std::underlying_type<UniformID>::type i = 0u; i < numElementsUniformID(); ++i)
+        if (const auto &name = GraphicsEnginePrivate::uniformNameByID(castToUniformID(i)); !name.empty())
+            renderer->registerUniform(name, core::castToUniformID(i));
         else
             LOG_ERROR << "Uniform name has not been set for ID = " << i;
 
-    for (typename std::underlying_type<SSBOId>::type i = 0u; i < numElementsSSBOId(); ++i)
-        if (const auto &name = GraphicsEnginePrivate::SSBONameById(castToSSBOId(i)); !name.empty())
-            renderer->registerSSBO(name, core::castToSSBOId(i));
+    for (typename std::underlying_type<UniformBlockID>::type i = 0u; i < numElementsUniformBlockID(); ++i)
+        if (const auto& name = GraphicsEnginePrivate::uniformBlockNameByID(castToUniformBlockID(i)); !name.empty())
+            renderer->registerUniformBlock(name, core::castToUniformBlockID(i));
         else
-            LOG_ERROR << "SSBO name has not been set for ID = " << i;
+            LOG_ERROR << "Uniform block name has not been set for ID = " << i;
+
+    for (typename std::underlying_type<ShaderStorageBlockID>::type i = 0u; i < numElementsShaderStorageBlockID(); ++i)
+        if (const auto &name = GraphicsEnginePrivate::shaderStorageBlockNameByID(castToShaderStorageBlockID(i)); !name.empty())
+            renderer->registerShaderStorageBlock(name, core::castToShaderStorageBlockID(i));
+        else
+            LOG_ERROR << "Shader storage block name has not been set for ID = " << i;
 
     m_->programsManager() = std::make_shared<ProgramsManager>(renderer);
 
@@ -190,30 +196,32 @@ void GraphicsEngine::setScene(const std::shared_ptr<core::Scene>& value)
 {
     m_->scene() = value;
 
-    auto& sceneData = m_->scene()->m().sceneData();
-
     auto& passes = m_->passes();
+    auto& programsManager = m_->programsManager();
     passes.clear();
-    passes.push_back(std::make_shared<BuildBackgroundsCommandsBufferPass>(m_->programsManager(), sceneData));
-    passes.push_back(std::make_shared<BuildDrawDataCommandsBufferPass>(m_->programsManager(), sceneData));
-    passes.push_back(std::make_shared<RenderOpaqueDrawDataGeometryPass>(m_->programsManager(), sceneData));
 
+    auto buildDrawDataCommandsBufferPass = std::make_shared<BuildDrawDataCommandsBufferPass>(programsManager);
+    passes.push_back(buildDrawDataCommandsBufferPass);
 
-    std::vector<DrawDataDescription> drawData;
-    for (size_t i = 0u; i < sceneData->drawDataBuffer()->size(); ++i)
-        drawData.push_back(sceneData->drawDataBuffer()->get(i));
+    auto renderDrawDataGeometryPass = std::make_shared<RenderDrawDataGeometryPass>(
+        programsManager,
+        buildDrawDataCommandsBufferPass->opaqueCommandsBuffer(),
+        buildDrawDataCommandsBufferPass->transparentCommandsBuffer());
+    passes.push_back(renderDrawDataGeometryPass);
 
-    std::vector<DrawableDescription> drawables;
-    for (size_t i = 0u; i < sceneData->drawablesBuffer()->size(); ++i)
-        drawables.push_back(sceneData->drawablesBuffer()->get(i));
+    auto renderBackgroundPass = std::make_shared<RenderBackgroundPass>(programsManager);
+    passes.push_back(renderBackgroundPass);
 
-    std::vector<MeshDescription> meshes;
-    for (size_t i = 0u; i < sceneData->meshesBuffer()->size(); ++i)
-        meshes.push_back(sceneData->meshesBuffer()->get(i));
+    auto buildLightsCommandsBufferPass = std::make_shared<BuildLightsCommandsBufferPass>(programsManager);
+    passes.push_back(buildLightsCommandsBufferPass);
 
-    std::vector<MaterialDescription> materials;
-    for (size_t i = 0u; i < sceneData->materialsBuffer()->size(); ++i)
-        materials.push_back(sceneData->materialsBuffer()->get(i));
+    auto renderDrawDataStencilPass = std::make_shared<RenderDrawDataStencilPass>(
+        programsManager,
+        buildLightsCommandsBufferPass->lightsCommandsBuffer());
+    passes.push_back(renderDrawDataStencilPass);
+
+    auto blendPass = std::make_shared<BlendPass>(programsManager);
+    passes.push_back(blendPass);
 }
 
 std::shared_ptr<graphics::RendererBase> GraphicsEngine::graphicsRenderer()
@@ -360,8 +368,10 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
         cameraRenderInfo->setProjectionMatrix(cameraProjectionMatrix);
         cameraRenderInfo->setGeometryBuffer(cameraGeometryBuffer);
 
+        auto& sceneData = scene->m().sceneData();
+
         for (auto& pass : m_->passes())
-            pass->run(renderer, m_->frameBuffer(), m_->vertexArray(), cameraRenderInfo);
+            pass->run(renderer, m_->frameBuffer(), m_->vertexArray(), cameraRenderInfo, sceneData);
 
         //// reset fragments counter buffer
         //cameraGeometryBuffer->clearOITNodesBuffer();

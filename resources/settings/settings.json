@@ -17,8 +17,8 @@
             }
         },
         "Background": {
-            "Color": [0.5, 0.5, 1.0],
-            "Roughness": 0.7
+            "EnvironmentColor": [1.0, 1.0, 1.0],
+            "BlurPower": 0.07
         },
         "Flat": {
             "Color": [1.0, 1.0, 1.0, 1.0]
@@ -54,7 +54,7 @@
             "Sigma": 2.0
         },
 		"OIT": {
-			"NodesPerPixel": 4,
+			"NodesPerPixel": 8,
 			"MaxNodes": 12441600
 		},
         "DebugRendering": {

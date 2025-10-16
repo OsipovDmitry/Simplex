@@ -21,7 +21,7 @@ MaterialMap::MaterialMap(const std::filesystem::path& value)
     setFilesystemPath(value);
 }
 
-MaterialMap::MaterialMap(const std::shared_ptr<const utils::Image>& value)
+MaterialMap::MaterialMap(const std::shared_ptr<utils::Image>& value)
     : MaterialMap()
 {
     setImage(value);
@@ -31,15 +31,15 @@ MaterialMap::~MaterialMap() = default;
 
 bool MaterialMap::isEmpty() const
 {
-    return asFilesystemPath().empty() && !asImage();
+    return filesystemPath().empty() && (!image());
 }
 
-const std::filesystem::path& MaterialMap::asFilesystemPath() const
+const std::filesystem::path& MaterialMap::filesystemPath() const
 {
     return m_->path();
 }
 
-std::shared_ptr<const utils::Image> MaterialMap::asImage() const
+std::shared_ptr<const utils::Image> MaterialMap::image() const
 {
     return m_->image();
 }
@@ -51,7 +51,7 @@ void MaterialMap::setFilesystemPath(const std::filesystem::path& value)
     m_->onChanged();
 }
 
-void MaterialMap::setImage(const std::shared_ptr<const utils::Image>& value)
+void MaterialMap::setImage(const std::shared_ptr<utils::Image>& value)
 {
     m_->image() = value;
     m_->path().clear();
@@ -185,12 +185,23 @@ void Material::setNormalMapScale(float value)
     m_->onChanged();
 }
 
+float Material::alphaCutoff() const
+{
+    return m_->alphaCutoff();
+}
+
+void Material::setAlphaCutoff(float value)
+{
+    m_->alphaCutoff() = value;
+    m_->onChanged();
+}
+
 std::shared_ptr<const MaterialMap> Material::materialMap(MaterialMapTarget value) const
 {
     return m_->maps()[castFromMaterialMapTarget(value)];
 }
 
-void Material::setMaterialMap(MaterialMapTarget target, const std::shared_ptr<const MaterialMap>& map)
+void Material::setMaterialMap(MaterialMapTarget target, const std::shared_ptr<MaterialMap>& map)
 {
     m_->maps()[castFromMaterialMapTarget(target)] = map;
     m_->onChanged();

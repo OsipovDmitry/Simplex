@@ -34,38 +34,30 @@ void GeometryBuffer::resize(const glm::uvec2& size)
         return;
     }
 
-    m_colorTexture0 = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R11F_G11F_B10F);
-    m_colorTexture1 = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R11F_G11F_B10F);
-    m_colorTexture2 = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA8);
+    m_colorTexture0 = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA32UI);
     m_depthTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Depth32F);
     m_stencilTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Stencil8);
     m_OITDepthTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R32F);
     m_OITIndicesTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R32UI);
     m_finalTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA16F);
 
-    m_OITNodesBuffer = POITNodesBuffer::element_type::create();
+    m_OITBuffer = POITBuffer::element_type::create();
     static const auto& OITSetings = settings::Settings::instance().graphics().oit();
-    m_OITNodesBuffer->resize(glm::min(OITSetings.maxNodes(), m_size.x * m_size.y * OITSetings.nodesPerPixel()));
+    auto maxNumNodes = glm::min(OITSetings.maxNodes(), m_size.x * m_size.y * OITSetings.nodesPerPixel());
+    m_OITBuffer->resize(maxNumNodes);
+    m_OITBuffer->setReservedData({ maxNumNodes, 0u });
 }
 
-void GeometryBuffer::clearOITNodesBuffer()
+void GeometryBuffer::clearOITBuffer()
 {
-    m_OITNodesBuffer->setReservedData({ settings::Settings::instance().graphics().oit().maxNodes(), 0u });
+    auto reserverdData = m_OITBuffer->reservedData();
+    reserverdData.nodesCount = 0u;
+    m_OITBuffer->setReservedData(reserverdData);
 }
 
 graphics::PConstTexture GeometryBuffer::colorTexture0() const
 {
     return m_colorTexture0;
-}
-
-graphics::PConstTexture GeometryBuffer::colorTexture1() const
-{
-    return m_colorTexture1;
-}
-
-graphics::PConstTexture GeometryBuffer::colorTexture2() const
-{
-    return m_colorTexture2;
 }
 
 graphics::PConstTexture GeometryBuffer::depthTexture() const
@@ -93,9 +85,9 @@ graphics::PConstTexture GeometryBuffer::finalTexture() const
     return m_finalTexture;
 }
 
-PConstOITNodesBuffer GeometryBuffer::OITNodesBuffer() const
+PConstOITBuffer GeometryBuffer::OITBuffer() const
 {
-    return m_OITNodesBuffer;
+    return m_OITBuffer;
 }
 
 }

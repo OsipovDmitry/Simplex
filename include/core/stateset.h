@@ -13,7 +13,7 @@ namespace simplex
 namespace core
 {
 
-ENUMCLASS(UniformId, uint16_t,
+ENUMCLASS(UniformID, uint16_t,
           ViewportSize,
           ModelMatrix,
           NormalMatrix,
@@ -39,8 +39,8 @@ ENUMCLASS(UniformId, uint16_t,
           GBufferColorMap1,
           GBufferColorMap2,
           GBufferDepthMap,
-          OITDepthImage,
-          OITIndicesImage,
+          OITDepthMap,
+          OITIndicesMap,
           GBufferFinalMap,
           SSAOMap,
           SSAOContribution,
@@ -81,7 +81,10 @@ ENUMCLASS(UniformId, uint16_t,
           BlurSourceDepthMap,
           BlurMaxDepthDifference)
 
-ENUMCLASS(SSBOId, uint16_t,
+ENUMCLASS(UniformBlockID, uint16_t,
+    None)
+
+ENUMCLASS(ShaderStorageBlockID, uint16_t,
     VertexDataBuffer,
     ElementsBuffer,
     BonesBuffer,
@@ -91,14 +94,19 @@ ENUMCLASS(SSBOId, uint16_t,
     MaterialsBuffer,
     DrawablesBuffer,
     DrawDataBuffer,
-    BackgroundsBuffer,
+    BackgroundBuffer,
+    LightsInfoBuffer,
+    PointLightsBuffer,
+    SpotLightsBuffer,
+    DirectionalLightsBuffer,
+    ImageBasedLightsBuffer,
 
     CommandsBuffer,
     OpaqueCommandsBuffer,
     TransparentCommandsBuffer,
 
     LayeredShadowMatrices,
-    OITNodesBuffer,
+    OITBuffer,
     SSAOKernel,
     BlurKernel)
 
@@ -112,10 +120,10 @@ public:
     virtual ~StateSet();
 
     const UniformCollection &uniformCollection() const;
-    PConstAbstractUniform uniform(UniformId) const;
-    PAbstractUniform uniform(UniformId);
-    PAbstractUniform &getOrCreateUniform(UniformId);
-    void removeUniform(UniformId);
+    PConstAbstractUniform uniform(UniformID) const;
+    PAbstractUniform uniform(UniformID);
+    PAbstractUniform &getOrCreateUniform(UniformID);
+    void removeUniform(UniformID);
 
     const UserUniformCollection &userUniformCollection() const;
     PConstAbstractUniform userUniform(const std::string&) const;
@@ -123,10 +131,15 @@ public:
     PAbstractUniform &getOrCreateUserUniform(const std::string&);
     void removeUserUniform(const std::string&);
 
-    const SSBOCollection &ssboCollection() const;
-    graphics::PConstBufferRange SSBO(SSBOId) const;
-    graphics::PConstBufferRange &getOrCreateSSBO(SSBOId);
-    void removeSSBO(SSBOId);
+    const UniformBlockCollection& uniformBlockCollection() const;
+    graphics::PConstBufferRange uniformBlock(UniformBlockID) const;
+    graphics::PConstBufferRange& getOrCreateUniformBlock(UniformBlockID);
+    void removeUniformBlock(UniformBlockID);
+
+    const ShaderStorageBlockCollection &shaderStorageBlockCollection() const;
+    graphics::PConstBufferRange shaderStorageBlock(ShaderStorageBlockID) const;
+    graphics::PConstBufferRange &getOrCreateShaderStorageBlock(ShaderStorageBlockID);
+    void removeShaderStorageBlock(ShaderStorageBlockID);
 
 protected:
     StateSet(std::unique_ptr<StateSetPrivate>);

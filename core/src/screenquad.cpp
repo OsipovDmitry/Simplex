@@ -5,9 +5,6 @@
 
 #include "screenquad.h"
 
-// tmp
-#include <core/graphicsrendererbase.h>
-
 namespace simplex
 {
 namespace core
@@ -16,13 +13,13 @@ namespace core
 ScreenQuad::~ScreenQuad() = default;
 
 ScreenQuad::ScreenQuad()
-    : Mesh(nullptr)
+    : Mesh()
 {
     auto mesh = utils::Mesh::createEmptyMesh({
-        {utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}}
+        {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}
     });
 
-    setMesh(utils::MeshPainter(mesh).drawScreenQuad().mesh());
+    setMesh(utils::MeshPainter(mesh).drawScreenQuad().mesh(), utils::BoundingBox());
 }
 
 }

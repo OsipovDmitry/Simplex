@@ -28,16 +28,16 @@ class CORE_SHARED_EXPORT MaterialMap
 public:
     MaterialMap();
     MaterialMap(const std::filesystem::path&);
-    MaterialMap(const std::shared_ptr<const utils::Image>&);
+    MaterialMap(const std::shared_ptr<utils::Image>&);
     ~MaterialMap();
 
     bool isEmpty() const;
 
-    const std::filesystem::path& asFilesystemPath() const;
-    std::shared_ptr<const utils::Image> asImage() const;
+    const std::filesystem::path& filesystemPath() const;
+    std::shared_ptr<const utils::Image> image() const;
 
     void setFilesystemPath(const std::filesystem::path&);
-    void setImage(const std::shared_ptr<const utils::Image>&);
+    void setImage(const std::shared_ptr<utils::Image>&);
 
 private:
     std::unique_ptr<MaterialMapPrivate> m_;
@@ -95,8 +95,11 @@ public:
     float normalMapScale() const;
     void setNormalMapScale(float);
 
+    float alphaCutoff() const;
+    void setAlphaCutoff(float);
+
     std::shared_ptr<const MaterialMap> materialMap(MaterialMapTarget) const;
-    void setMaterialMap(MaterialMapTarget, const std::shared_ptr<const MaterialMap>&);
+    void setMaterialMap(MaterialMapTarget, const std::shared_ptr<MaterialMap>&);
 
 private:
     std::unique_ptr<MaterialPrivate> m_;

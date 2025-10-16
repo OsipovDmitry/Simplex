@@ -15,10 +15,19 @@ static const std::filesystem::path DefaultIBLBRDFLutMapPath = "./resources/textu
 static const std::filesystem::path DefaultIBLDiffuseMapPath = "./resources/textures/ibl/irradiance.json";
 static const std::filesystem::path DefaultIBLSpecularMapPath = "./resources/textures/ibl/radiance.json";
 
-static const std::filesystem::path BuildBackgroundsCommandsBufferPassComputeShaderPath = "./resources/shaders/build_backgrounds_commands_buffer_pass.comp";
 static const std::filesystem::path BuildDrawDataCommandsBufferPassComputeShaderPath = "./resources/shaders/build_drawdata_commands_buffer_pass.comp";
-static const std::filesystem::path RenderOpaqueDrawDataPassVertexShaderPath = "./resources/shaders/render_opaque_drawdata_geometry_pass.vert";
-static const std::filesystem::path RenderOpaqueDrawDataPassFragmentShaderPath = "./resources/shaders/render_opaque_drawdata_geometry_pass.frag";
+static const std::filesystem::path ClearOITIndicesImagePassComputeShaderPath = "./resources/shaders/clear_oit_indices_image_pass.comp";
+static const std::filesystem::path RenderDrawDataGeometryPassVertexShaderPath = "./resources/shaders/render_drawdata_geometry_pass.vert";
+static const std::filesystem::path RenderOpaqueDrawDataGeometryPassFragmentShaderPath = "./resources/shaders/render_opaque_drawdata_geometry_pass.frag";
+static const std::filesystem::path RenderTransparentDrawDataGeometryPassFragmentShaderPath = "./resources/shaders/render_transparent_drawdata_geometry_pass.frag";
+static const std::filesystem::path SortOITNodesPassComputeShaderPath = "./resources/shaders/sort_oit_nodes_pass.comp";
+static const std::filesystem::path RenderBackgroundPassVertexShaderPath = "./resources/shaders/render_background_pass.vert";
+static const std::filesystem::path RenderBackgroundPassFragmentShaderPath = "./resources/shaders/render_background_pass.frag";
+static const std::filesystem::path BuildLightsCommandsBufferPassComputeShaderPath = "./resources/shaders/build_lights_commands_buffer_pass.comp";
+static const std::filesystem::path RenderDrawDataStencilPassVertexShaderPath = "./resources/shaders/render_drawdata_stencil_pass.vert";
+static const std::filesystem::path RenderDrawDataStencilPassFragmentShaderPath = "./resources/shaders/render_drawdata_stencil_pass.frag";
+static const std::filesystem::path BlendPassVertexShaderPath = "./resources/shaders/blend_pass.vert";
+static const std::filesystem::path BlendPassFragmentShaderPath = "./resources/shaders/blend_pass.frag";
 
 }
 }

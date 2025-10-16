@@ -53,12 +53,12 @@ std::shared_ptr<const DirectionalLightNode> DirectionalLightNode::asDirectionalL
 
 const glm::vec3 &DirectionalLightNode::color() const
 {
-    return uniform_cast<glm::vec3>(m().areaDrawable()->uniform(UniformId::LightColor))->data();
+    return uniform_cast<glm::vec3>(m().areaDrawable()->uniform(UniformID::LightColor))->data();
 }
 
 void DirectionalLightNode::setColor(const glm::vec3 &value)
 {
-    m().areaDrawable()->getOrCreateUniform(UniformId::LightColor) = makeUniform(value);
+    m().areaDrawable()->getOrCreateUniform(UniformID::LightColor) = makeUniform(value);
 }
 
 }

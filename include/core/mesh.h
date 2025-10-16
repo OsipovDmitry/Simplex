@@ -20,11 +20,14 @@ class CORE_SHARED_EXPORT Mesh
     NONCOPYBLE(Mesh)
     PRIVATE_IMPL(Mesh)
 public:
-    Mesh(const std::shared_ptr<const utils::Mesh>& = nullptr);
-    virtual ~Mesh();
+    Mesh();
+    Mesh(const std::shared_ptr<utils::Mesh>&, const utils::BoundingBox&);
+    ~Mesh();
 
     std::shared_ptr<const utils::Mesh> mesh() const;
-    void setMesh(const std::shared_ptr<const utils::Mesh>&);
+    const utils::BoundingBox& boundingBox() const;
+
+    void setMesh(const std::shared_ptr<utils::Mesh>&, const utils::BoundingBox&);
 
 private:
     std::unique_ptr<MeshPrivate> m_;

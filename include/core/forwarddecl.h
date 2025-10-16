@@ -63,8 +63,9 @@ enum class UniformType : uint16_t;
 struct AttributeInfo;
 struct OutputInfo;
 struct UniformInfo;
-struct SSBOVariableInfo;
-struct SSBOInfo;
+struct BufferVariableInfo;
+struct UniformBlockInfo;
+struct ShaderStorageBlockInfo;
 enum class FaceType : uint16_t;
 enum class ComparingFunc : uint16_t;
 enum class StencilOperation : uint16_t;
@@ -72,6 +73,8 @@ enum class BlendEquation : uint16_t;
 enum class BlendFactor : uint16_t;
 using StencilOperations = std::array<StencilOperation, 3u>; // sfail, dpfail, dppass
 class IBuffer;
+class IStaticBuffer;
+class IDynamicBuffer;
 class IVertexArray;
 class ISurface;
 class ITexture;
@@ -82,11 +85,38 @@ class IFrameBuffer;
 class IProgram;
 class IRenderProgram;
 class IComputeProgram;
+struct DrawArraysIndirectCommand;
+struct DrawElementsIndirectCommand;
+struct DrawIndirectCommandsBufferReservedData;
 class RendererBase;
-class DynamicBufferBase;
-template <typename T, typename ReservedType = void> class DynamicBufferT;
 class BufferRange;
+class Image;
 class VAOMesh;
+template <typename T> class StructBuffer;
+template <typename T, typename ReservedType = void> class VectorBuffer;
+
+using PConstBuffer = std::shared_ptr<const IBuffer>;
+using PBuffer = std::shared_ptr<IBuffer>;
+
+using PConstBufferRange = std::shared_ptr<const BufferRange>;
+using PBufferRange = std::shared_ptr<BufferRange>;
+
+using PConstTexture = std::shared_ptr<const ITexture>;
+using PTexture = std::shared_ptr<ITexture>;
+
+using PConstTextureHandle = std::shared_ptr<const ITextureHandle>;
+using PTextureHandle = std::shared_ptr<ITextureHandle>;
+
+using PConstImage = std::shared_ptr<const Image>;
+using PImage = std::shared_ptr<Image>;
+
+using DrawArraysIndirectCommandsBuffer = VectorBuffer<DrawArraysIndirectCommand, DrawIndirectCommandsBufferReservedData>;
+using PDrawArraysIndirectCommandsBuffer = std::shared_ptr<DrawArraysIndirectCommandsBuffer>;
+using PDrawArraysIndirectCommandsConstBuffer = std::shared_ptr<const DrawArraysIndirectCommandsBuffer>;
+
+using DrawElementsIndirectCommandBuffer = VectorBuffer<DrawElementsIndirectCommand, DrawIndirectCommandsBufferReservedData>;
+using PDrawElementsIndirectCommandBuffer = std::shared_ptr<DrawElementsIndirectCommandBuffer>;
+using PDrawElementsIndirectCommandConstBuffer = std::shared_ptr<const DrawElementsIndirectCommandBuffer>;
 
 class IGraphicsWidget;
 enum class KeyState : uint16_t;
@@ -105,22 +135,6 @@ using MouseCursorEnterCallback = std::function<void(bool)>;
 using MouseButtonCallback = std::function<void(MouseButtonState, MouseButton, const KeyModifiers&)>;
 using MouseScrollCallback = std::function<void(const glm::ivec2&)>;
 
-using PConstBuffer = std::shared_ptr<const IBuffer>;
-using PBuffer = std::shared_ptr<IBuffer>;
-
-using PConstBufferRange = std::shared_ptr<const BufferRange>;
-using PBufferRange = std::shared_ptr<BufferRange>;
-
-class Image;
-
-using PConstTexture = std::shared_ptr<const ITexture>;
-using PTexture = std::shared_ptr<ITexture>;
-
-using PConstTextureHandle = std::shared_ptr<const ITextureHandle>;
-using PTextureHandle = std::shared_ptr<ITextureHandle>;
-
-using PConstImage = std::shared_ptr<const Image>;
-using PImage = std::shared_ptr<Image>;
 }
 
 namespace audio
@@ -158,11 +172,13 @@ template <typename T> class Uniform;
 template<typename T>
 using PUniform = std::shared_ptr<Uniform<T>>;
 
-enum class UniformId : uint16_t;
-using UniformCollection = std::unordered_map<UniformId, PAbstractUniform>;
+enum class UniformID : uint16_t;
+using UniformCollection = std::unordered_map<UniformID, PAbstractUniform>;
 using UserUniformCollection = std::unordered_map<std::string, PAbstractUniform>;
-enum class SSBOId : uint16_t;
-using SSBOCollection = std::unordered_map<SSBOId, graphics::PConstBufferRange>;
+enum class UniformBlockID : uint16_t;
+using UniformBlockCollection = std::unordered_map<UniformBlockID, graphics::PConstBufferRange>;
+enum class ShaderStorageBlockID : uint16_t;
+using ShaderStorageBlockCollection = std::unordered_map<ShaderStorageBlockID, graphics::PConstBufferRange>;
 class StateSet;
 using StateSetList = std::list<std::shared_ptr<const StateSet>>;
 
@@ -173,7 +189,7 @@ enum class MaterialMapTarget: uint16_t;
 class Material;
 
 class Drawable;
-using DrawableComponentSet = std::set<UniformId>;
+using DrawableComponentSet = std::set<UniformID>;
 class VisualDrawable;
 class FlatDrawable;
 class PBRDrawable;

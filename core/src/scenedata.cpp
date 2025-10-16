@@ -1,4 +1,5 @@
 #include <utils/glm/gtc/matrix_inverse.hpp>
+#include <utils/meshpainter.h>
 #include <utils/imagemanager.h>
 
 #include <core/scene.h>
@@ -16,7 +17,6 @@
 #include "drawableprivate.h"
 #include "materialprivate.h"
 #include "meshprivate.h"
-#include "screenquad.h"
 #include "backgroundprivate.h"
 
 namespace simplex
@@ -36,35 +36,7 @@ static const VertexAttributeFormat BonesWeightsFormat{ BonesCountRange, utils::t
 static const VertexAttributeFormat TangentFormat{ {4u, 4u}, utils::toVertexComponentType<VertexDataDescription>() };
 static const VertexAttributeFormat ColorFormat{ {1u, 4u}, utils::toVertexComponentType<VertexDataDescription>() };
 
-static inline float materialOcclusionMapStrength(uint32_t flags) { return static_cast<float>((flags >> 0u) & 0xFF) / 255.f; }
-static inline float materialNormalMapScale(uint32_t flags) { return static_cast<float>((flags >> 8u) & 0xFF) / 255.f; }
-static inline uint32_t materialOcclusionSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 16u) & 0x3); }
-static inline uint32_t materialRoughnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 18u) & 0x3); }
-static inline uint32_t materialMetalnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 20u) & 0x3); }
-static inline bool isMaterialLighted(uint32_t flags) { return (flags >> 22u) & 0x1; }
-static inline bool isMaterialShadowed(uint32_t flags) { return (flags >> 23u) & 0x1; }
-static inline bool isMaterialTransparent(uint32_t flags) { return (flags >> 24u) & 0x1; }
-static inline uint32_t makeMaterialFlags(
-    float occlusionMapStrength,
-    float normalMapScale,
-    const glm::u32vec3& ORMSwizzleMask,
-    bool isLighted,
-    bool isShadowed,
-    bool isTransparent)
-{
-    uint32_t result = 0u;
-    result |= (static_cast<uint32_t>(glm::clamp(occlusionMapStrength, 0.f, 1.f) * 255.f) & 0xFF) << 0u;
-    result |= (static_cast<uint32_t>(glm::clamp(normalMapScale, 0.f, 1.f) * 255.f) & 0xFF) << 8u;
-    result |= (ORMSwizzleMask.r & 0x3u) << 16u;
-    result |= (ORMSwizzleMask.g & 0x3u) << 18u;
-    result |= (ORMSwizzleMask.b & 0x3u) << 20u;
-    result |= ((isLighted ? 1u : 0u) & 0x1u) << 22u;
-    result |= ((isShadowed ? 1u : 0u) & 0x1u) << 23u;
-    result |= ((isTransparent ? 1u : 0u) & 0x1u) << 24u;
-    return result;
-}
-
-static inline uint32_t makeMeshFlags(
+uint32_t MeshDescription::makeFlags(
     uint32_t numPositionComponents,
     uint32_t numNormalComponents,
     uint32_t numTexCoordsComponents,
@@ -82,18 +54,85 @@ static inline uint32_t makeMeshFlags(
     return result;
 }
 
-static inline bool isMaterialTransparent(const std::shared_ptr<const Material>& material)
+uint32_t MeshDescription::numVertexData(const MeshDescription& desc)
 {
-    if (material->baseColor().a < 1.f - utils::epsilon<float>()) return true;
+    return glm::floatBitsToUint(desc.boundingBoxMinPointAndNumVertexData.w);
+}
 
-    if (auto baseColorMap = material->materialMap(MaterialMapTarget::BaseColor))
+uint32_t MeshDescription::numElements(const MeshDescription& desc)
+{
+    return glm::floatBitsToUint(desc.boundingBoxMaxPointAndNumElements.w);
+}
+
+//static inline bool isMeshTransparent(const std::shared_ptr<const Mesh>& mesh)
+//{
+//    if (auto utilsMesh = mesh->mesh())
+//    {
+//        const auto& vertexBuffers = utilsMesh->vertexBuffers();
+//        if (auto it = vertexBuffers.find(utils::VertexAttribute::Color); it != vertexBuffers.end())
+//            if (it->second->numComponents() == 4u)
+//                return true;
+//    }
+//
+//    return false;
+//}
+
+//static inline float materialOcclusionMapStrength(uint32_t flags) { return static_cast<float>((flags >> 0u) & 0xFFu) / 255.f; }
+//static inline float materialNormalMapScale(uint32_t flags) { return static_cast<float>((flags >> 8u) & 0xFFu) / 255.f; }
+//static inline uint32_t materialOcclusionSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 16u) & 0x3); }
+//static inline uint32_t materialRoughnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 18u) & 0x3); }
+//static inline uint32_t materialMetalnessSwizzle(uint32_t flags) { return static_cast<uint32_t>((flags >> 20u) & 0x3); }
+//static inline bool isMaterialLighted(uint32_t flags) { return (flags >> 22u) & 0x1; }
+//static inline bool isMaterialShadowed(uint32_t flags) { return (flags >> 23u) & 0x1; }
+//static inline bool isMaterialTransparent(uint32_t flags) { return (flags >> 24u) & 0x1; }
+
+uint32_t MaterialDescription::makeFlags0(
+    float roughness,
+    float metalness,
+    float occlusionMapStrength,
+    float normalMapScale)
+{
+    uint32_t result = 0u;
+    result |= (static_cast<uint32_t>(glm::clamp(roughness, 0.f, 1.f) * 255.f) & 0xFF) << 0u;
+    result |= (static_cast<uint32_t>(glm::clamp(metalness, 0.f, 1.f) * 255.f) & 0xFF) << 8u;
+    result |= (static_cast<uint32_t>(glm::clamp(occlusionMapStrength, 0.f, 1.f) * 255.f) & 0xFF) << 16u;
+    result |= (static_cast<uint32_t>(glm::clamp(normalMapScale, 0.f, 1.f) * 255.f) & 0xFF) << 24u;
+    return result;
+
+}
+
+uint32_t MaterialDescription::makeFlags1(
+    const glm::u32vec3& ORMSwizzleMask,
+    bool isLighted,
+    bool isShadowed,
+    bool isTransparent,
+    bool isDoubleSided,
+    float alphaCutoff)
+{
+    uint32_t result = 0u;
+    result |= (ORMSwizzleMask.r & 0x3u) << 0u;
+    result |= (ORMSwizzleMask.g & 0x3u) << 2u;
+    result |= (ORMSwizzleMask.b & 0x3u) << 4u;
+    result |= ((isLighted ? 1u : 0u) & 0x1u) << 6u;
+    result |= ((isShadowed ? 1u : 0u) & 0x1u) << 7u;
+    result |= ((isTransparent ? 1u : 0u) & 0x1u) << 8u;
+    result |= ((isDoubleSided ? 1u : 0u) & 0x1u) << 9u;
+    result |= (static_cast<uint32_t>(glm::clamp(alphaCutoff, 0.f, 1.f) * 255.f) & 0xFF) << 10u;
+    return result;
+}
+
+bool MaterialDescription::isTransparent(const glm::vec4& baseColor, const std::shared_ptr<const MaterialMap>& baseColorMap)
+{
+    if (baseColor.a < 1.f - utils::epsilon<float>()) return true;
+
+    if (baseColorMap)
     {
         std::shared_ptr<const utils::Image> baseColorImage;
-        if (auto path = baseColorMap->asFilesystemPath(); !path.empty())
+        if (auto path = baseColorMap->filesystemPath(); !path.empty())
         {
             baseColorImage = utils::ImageManager::instance().loadOrGetDescription(path);
         }
-        else if (auto image = baseColorMap->asImage(); image)
+        else if (auto image = baseColorMap->image(); image)
         {
             baseColorImage = image;
         }
@@ -107,42 +146,64 @@ static inline bool isMaterialTransparent(const std::shared_ptr<const Material>& 
     return false;
 }
 
-static inline bool isMeshTransparent(const std::shared_ptr<const Mesh>& mesh)
-{
-    if (auto utilsMesh = mesh->mesh())
-    {
-        const auto& vertexBuffers = utilsMesh->vertexBuffers();
-        if (auto it = vertexBuffers.find(utils::VertexAttribute::Color); it != vertexBuffers.end())
-            if (it->second->numComponents() == 4u)
-                return true;
-    }
-
-    return false;
-}
-
-static glm::mat3x4 makeDrawDataNormalMatrixAndDrawableOffset(const glm::mat4x4& modelMatrix, utils::IDsGenerator::value_type ID)
+glm::mat3x4 DrawDataDescription::makeNormalMatrixAndDrawableID(
+    const glm::mat4x4& modelMatrix,
+    utils::IDsGenerator::value_type ID)
 {
     glm::mat3x4 result = glm::mat3x4(glm::inverseTranspose(modelMatrix));
     result[0u][3u] = glm::uintBitsToFloat(ID);
     return result;
 }
 
-static glm::vec4 makeBackgroundEnvironmentColorAndBlurPower(const glm::vec3& environmentColor, float blurPower)
+glm::vec4 BackgroundDescription::makeEnvironmentColorAndBlurPower(const glm::vec3& environmentColor, float blurPower)
 {
     return glm::vec4(environmentColor, blurPower);
 }
 
-MeshHandler::MeshHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Mesh>& mesh, utils::IDsGenerator::value_type id)
-    : m_sceneData(sceneData)
+glm::vec4 PointLightDescription::makeAreaScaleAndInnerRadius(const glm::vec3& areaScale, float innerRadius)
+{
+    return glm::vec4(areaScale, innerRadius);
+}
+
+glm::vec4 PointLightDescription::makeColorAndOuterRadius(const glm::vec3& color, float outerRadius)
+{
+    return glm::vec4(color, outerRadius);
+}
+
+glm::vec4 SpotLightDescription::makeAreaScaleAndInnerRadius(const glm::vec3& areaScale, float innerRadius)
+{
+    return glm::vec4(areaScale, innerRadius);
+}
+
+glm::vec4 SpotLightDescription::makeColorAndOuterRadius(const glm::vec3& color, float outerRadius)
+{
+    return glm::vec4(color, outerRadius);
+}
+
+glm::vec4 DirectionalLightDescription::makeDirection(const glm::mat4x4& modelMatrix)
+{
+    return glm::vec4(glm::normalize(glm::vec3(modelMatrix * glm::vec4(0.f, 0.f, 1.f, 0.f))), 0.f);
+}
+
+glm::vec4 DirectionalLightDescription::makeColor(const glm::vec3& color)
+{
+    return glm::vec4(color, 0.f);
+}
+
+MeshHandler::MeshHandler(
+    const std::weak_ptr<SceneData>& sceneData,
+    const std::weak_ptr<const Mesh>& mesh,
+    utils::IDsGenerator::value_type ID)
+    : ResourceHandler(sceneData)
     , m_mesh(mesh)
-    , m_ID(id)
+    , m_ID(ID)
 {}
 
 MeshHandler::~MeshHandler()
 {
     if (auto sceneData = m_sceneData.lock())
         if (auto mesh = m_mesh.lock())
-            sceneData->removeMesh(mesh, m_ID);
+            sceneData->removeMesh(mesh);
 }
 
 std::weak_ptr<const Mesh>& MeshHandler::mesh()
@@ -155,17 +216,20 @@ utils::IDsGenerator::value_type MeshHandler::ID() const
     return m_ID;
 }
 
-MaterialMapHandler::MaterialMapHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const MaterialMap>& materialMap, utils::IDsGenerator::value_type id)
-    : m_sceneData(sceneData)
+MaterialMapHandler::MaterialMapHandler(
+    const std::weak_ptr<SceneData>& sceneData,
+    const std::weak_ptr<const MaterialMap>& materialMap,
+    utils::IDsGenerator::value_type ID)
+    : ResourceHandler(sceneData)
     , m_materialMap(materialMap)
-    , m_ID(id)
+    , m_ID(ID)
 {}
 
 MaterialMapHandler::~MaterialMapHandler()
 {
     if (auto sceneData = m_sceneData.lock())
         if (auto materialMap = m_materialMap.lock())
-            sceneData->removeMaterialMap(materialMap, m_ID);
+            sceneData->removeMaterialMap(materialMap);
 }
 
 std::weak_ptr<const MaterialMap>& MaterialMapHandler::materialMap()
@@ -178,17 +242,20 @@ utils::IDsGenerator::value_type& MaterialMapHandler::ID()
     return m_ID;
 }
 
-MaterialHandler::MaterialHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Material>& material, utils::IDsGenerator::value_type id)
-    : m_sceneData(sceneData)
+MaterialHandler::MaterialHandler(
+    const std::weak_ptr<SceneData>& sceneData,
+    const std::weak_ptr<const Material>& material,
+    utils::IDsGenerator::value_type ID)
+    : ResourceHandler(sceneData)
     , m_material(material)
-    , m_ID(id)
+    , m_ID(ID)
 {}
 
 MaterialHandler::~MaterialHandler()
 {
     if (auto sceneData = m_sceneData.lock())
         if (auto material = m_material.lock())
-            sceneData->removeMaterial(material, m_ID);
+            sceneData->removeMaterial(material);
 }
 
 std::weak_ptr<const Material>& MaterialHandler::material()
@@ -201,10 +268,13 @@ utils::IDsGenerator::value_type MaterialHandler::ID() const
     return m_ID;
 }
 
-DrawableHandler::DrawableHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Drawable>& drawable, utils::IDsGenerator::value_type id)
-    : m_sceneData(sceneData)
+DrawableHandler::DrawableHandler(
+    const std::weak_ptr<SceneData>& sceneData,
+    const std::weak_ptr<const Drawable>& drawable,
+    utils::IDsGenerator::value_type ID)
+    : ResourceHandler(sceneData)
     , m_drawable(drawable)
-    , m_ID(id)
+    , m_ID(ID)
 {
 }
 
@@ -212,7 +282,7 @@ DrawableHandler::~DrawableHandler()
 {
     if (auto sceneData = m_sceneData.lock())
         if (auto drawable = m_drawable.lock())
-        sceneData->removeDrawable(drawable, m_ID);
+            sceneData->removeDrawable(drawable);
 }
 
 std::weak_ptr<const Drawable>& DrawableHandler::drawable()
@@ -226,7 +296,7 @@ utils::IDsGenerator::value_type DrawableHandler::ID() const
 }
 
 DrawDataHandler::DrawDataHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID)
-    : m_sceneData(sceneData)
+    : ResourceHandler(sceneData)
     , m_ID(ID)
 {
 }
@@ -242,17 +312,18 @@ size_t DrawDataHandler::ID() const
     return m_ID;
 }
 
-BackgroundHandler::BackgroundHandler(const std::weak_ptr<SceneData>& sceneData, const std::weak_ptr<const Background>& background, size_t ID)
-    : m_sceneData(sceneData)
+BackgroundHandler::BackgroundHandler(
+    const std::weak_ptr<SceneData>& sceneData,
+    const std::weak_ptr<const Background>& background)
+    : ResourceHandler(sceneData)
     , m_background(background)
-    , m_ID(ID)
 {
 }
 
 BackgroundHandler::~BackgroundHandler()
 {
     if (auto sceneData = m_sceneData.lock())
-        sceneData->removeBackground(m_ID);
+        sceneData->removeBackground();
 }
 
 std::weak_ptr<const Background>& BackgroundHandler::background()
@@ -260,102 +331,92 @@ std::weak_ptr<const Background>& BackgroundHandler::background()
     return m_background;
 }
 
-size_t BackgroundHandler::ID() const
+PointLightHandler::PointLightHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID)
+    : ResourceHandler(sceneData)
+    , m_ID(ID)
+{
+}
+
+PointLightHandler::~PointLightHandler()
+{
+    if (auto sceneData = m_sceneData.lock())
+        sceneData->removePointLight(m_ID);
+}
+
+size_t PointLightHandler::ID() const
 {
     return m_ID;
 }
 
-SceneData::SceneData()
-{
-    m_vertexDataBuffer = VertexDataBuffer::element_type::create();
-    m_elementsBuffer = ElementsBuffer::element_type::create();
-    m_meshesBuffer = MeshesBuffer::element_type::create();
-    m_materialMapsBuffer = MaterialMapsBuffer::element_type::create();
-    m_materialsBuffer = MaterialsBuffer::element_type::create();
-    m_drawablesBuffer = DrawablesBuffer::element_type::create();
-    m_drawDataBuffer = DrawDataBuffer::element_type::create();
-    m_backgroundsBuffer = BackgroundsBuffer::element_type::create();
-    m_opaqueDrawDataCommandsBuffer = DrawIndirectArraysCommandsBuffer::element_type::create();
-    m_transparentDrawDataCommandsBuffer = DrawIndirectArraysCommandsBuffer::element_type::create();
-    m_backgroundsCommandsBuffer = DrawIndirectArraysCommandsBuffer::element_type::create();
-
-    m_materialMaps = std::make_shared<MaterialMaps::element_type>();
-}
-
 SceneData::~SceneData() = default;
 
-utils::IDsGenerator::value_type SceneData::addMesh(const std::shared_ptr<const Mesh>& mesh)
+std::shared_ptr<MeshHandler> SceneData::addMesh(const std::shared_ptr<const Mesh>& mesh)
 {
-    auto result = utils::IDsGenerator::last();
+    std::shared_ptr<MeshHandler> result;
 
     if (!mesh)
     {
         // do nothing
     }
-    else if (auto it = m_meshes.find(mesh); it != m_meshes.end())
-    {
-        if (it->second.expired())
-            LOG_CRITICAL << "Scene has expired mesh";
-
-        result = it->second.lock()->ID();
-    }
     else
     {
-        result = m_meshIDsGenerator.generate();
+        auto& meshPrivate = mesh->m();
 
-        auto handler = std::make_shared<MeshHandler>(weak_from_this(), mesh, result);
-        mesh->m().handlers().insert({ shared_from_this(), handler });
-        m_meshes.insert({ mesh, handler });
+        for (const auto& meshHandler : meshPrivate.handlers())
+        {
+            if (meshHandler->sceneData().lock() == shared_from_this())
+            {
+                result = meshHandler;
+                break;
+            }
+        }
 
-        addMeshData(mesh, result);
+        if (!result)
+        {
+            bool isEmpty = mesh->mesh() == nullptr;
+
+            auto meshID = isEmpty ? utils::IDsGenerator::last() : m_meshIDsGenerator.generate();
+            result = std::make_shared<MeshHandler>(weak_from_this(), mesh, meshID);
+            meshPrivate.handlers().insert(result);
+
+            onMeshChanged(meshID, mesh->mesh(), mesh->boundingBox());
+        }
     }
 
     return result;
 }
 
-void SceneData::removeMesh(const std::shared_ptr<const Mesh>& mesh, utils::IDsGenerator::value_type ID)
+void SceneData::removeMesh(const std::shared_ptr<const Mesh>& mesh)
 {
-    if (auto it = m_meshes.find(mesh); it == m_meshes.end())
-    {
-        LOG_CRITICAL << "No found mesh in scene to remove";
-        return;
-    }
-    else
-    {
-        removeMeshData(mesh, ID);
-        m_meshes.erase(mesh);
-        m_meshIDsGenerator.clear(ID);
-    }
+    auto& meshHandlers = mesh->m().handlers();
+
+    for (auto it = meshHandlers.begin(); it != meshHandlers.end(); ++it)
+        if ((*it)->sceneData().lock() == shared_from_this())
+        {
+            removeMeshData((*it)->ID());
+            m_meshIDsGenerator.clear((*it)->ID());
+            break;
+        }
 }
 
-void SceneData::onMeshChanged(const std::shared_ptr<const Mesh>& mesh, utils::IDsGenerator::value_type ID)
+void SceneData::onMeshChanged(
+    utils::IDsGenerator::value_type ID,
+    const std::shared_ptr<const utils::Mesh>& mesh,
+    const utils::BoundingBox& bb)
+{
+    removeMeshData(ID);
+    addMeshData(ID, mesh, bb);
+}
+
+void SceneData::addMeshData(
+    utils::IDsGenerator::value_type ID,
+    const std::shared_ptr<const utils::Mesh>& mesh,
+    const utils::BoundingBox& bb)
 {
     if (!mesh)
-    {
-        LOG_CRITICAL << "Mesh can't be nullptr";
         return;
-    }
 
-    if (auto it = m_meshes.find(mesh); it == m_meshes.end())
-    {
-        LOG_CRITICAL << "No found mesh in scene to change";
-        return;
-    }
-
-    removeMeshData(mesh, ID);
-    addMeshData(mesh, ID);
-}
-
-void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsGenerator::value_type ID)
-{
-    auto utilsMesh = mesh->mesh();
-    if (!utilsMesh)
-    {
-        LOG_CRITICAL << "Mesh can't be nullptr";
-        return;
-    }
-
-    const auto& vertexBuffers = utilsMesh->vertexBuffers();
+    const auto& vertexBuffers = mesh->vertexBuffers();
 
     const size_t numVertices = vertexBuffers.empty() ? 0u : vertexBuffers.begin()->second->numVertices();
     size_t vertexStride = 0u; // in floats
@@ -528,7 +589,7 @@ void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsG
     }
 
     uint32_t vertexDataOffset = m_vertexDataBuffer->size();
-    m_vertexDataBuffer->insert(vertexDataOffset, vertexData.size(), vertexData.data());
+    m_vertexDataBuffer->insert(vertexDataOffset, vertexData.data(), vertexData.size());
 
     static constexpr auto s_indexType = utils::toDrawElementsIndexType<ElementsDescription>();
     static_assert(s_indexType != utils::DrawElementsIndexType::Count);
@@ -538,7 +599,7 @@ void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsG
     uint32_t elementsOffset = m_elementsBuffer->size();
     uint32_t numElements = 0u;
 
-    for (const auto& primitiveSet : utilsMesh->primitiveSets())
+    for (const auto& primitiveSet : mesh->primitiveSets())
     {
         std::shared_ptr<utils::DrawElementsBuffer> buffer;
         if (auto drawArrays = primitiveSet->asDrawArrays())
@@ -566,7 +627,7 @@ void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsG
             buffer = buffer->appliedBaseVertex();
 
         m_elementsBuffer->insert(
-            m_elementsBuffer->size(), buffer->numIndices(), reinterpret_cast<ElementsDescription*>(buffer->data()));
+            m_elementsBuffer->size(), reinterpret_cast<ElementsDescription*>(buffer->data()), buffer->numIndices());
 
         numElements += buffer->numIndices();
     }
@@ -575,11 +636,11 @@ void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsG
         m_meshesBuffer->resize(ID + 1u);
 
     m_meshesBuffer->set(ID, {
+        glm::vec4(bb.minPoint(), glm::uintBitsToFloat(numVertexData)),
+        glm::vec4(bb.maxPoint(), glm::uintBitsToFloat(numElements)),
         vertexDataOffset,
-        numVertexData,
         elementsOffset,
-        numElements,
-        makeMeshFlags(
+        MeshDescription::makeFlags(
             numPositionComponents,
             numNormalComponents,
             numTexCoordsComponents,
@@ -589,32 +650,39 @@ void SceneData::addMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsG
         });
 }
 
-void SceneData::removeMeshData(const std::shared_ptr<const Mesh>& mesh, utils::IDsGenerator::value_type ID)
+void SceneData::removeMeshData(utils::IDsGenerator::value_type ID)
 {
+    if (m_meshesBuffer->size() <= ID)
+        return;
+
     auto description = m_meshesBuffer->get(ID);
+    const auto& vertexDataOffset = description.vertexDataOffset;
+    auto numVertexData = MeshDescription::numVertexData(description);
+    const auto& elementsOffset = description.elementsOffset;
+    auto numElements = MeshDescription::numElements(description);
 
     for (size_t i = 0u; i < m_meshesBuffer->size(); ++i)
     {
         auto meshDescription = m_meshesBuffer->get(i);
 
-        if (meshDescription.vertexDataOffset >= description.vertexDataOffset)
-            meshDescription.vertexDataOffset -= description.numVertexData;
+        if (meshDescription.vertexDataOffset >= vertexDataOffset)
+            meshDescription.vertexDataOffset -= numVertexData;
 
-        if (meshDescription.elementsOffset >= description.elementsOffset)
-            meshDescription.elementsOffset -= description.numElements;
+        if (meshDescription.elementsOffset >= elementsOffset)
+            meshDescription.elementsOffset -= numElements;
 
         m_meshesBuffer->set(i, meshDescription);
     }
 
-    m_vertexDataBuffer->erase(description.vertexDataOffset, description.numVertexData);
-    m_elementsBuffer->erase(description.elementsOffset, description.numElements);
+    m_vertexDataBuffer->erase(vertexDataOffset, numVertexData);
+    m_elementsBuffer->erase(elementsOffset, numElements);
 
     m_meshesBuffer->erase(ID, 1u);
 }
 
-utils::IDsGenerator::value_type SceneData::addMaterialMap(const std::shared_ptr<const MaterialMap>& materialMap)
+std::shared_ptr<MaterialMapHandler> SceneData::addMaterialMap(const std::shared_ptr<const MaterialMap>& materialMap)
 {
-    auto result = utils::IDsGenerator::last();
+    std::shared_ptr<MaterialMapHandler> result;
 
     if (!materialMap)
     {
@@ -624,57 +692,55 @@ utils::IDsGenerator::value_type SceneData::addMaterialMap(const std::shared_ptr<
     {
         // do nothing
     }
-    else if (auto it = m_materialMaps->find(materialMap); it != m_materialMaps->end())
-    {
-        if (it->second.expired())
-            LOG_CRITICAL << "Scene has expired material map";
-
-        result = it->second.lock()->ID();
-    }
     else
     {
         auto& materialMapPrivate = materialMap->m();
 
-        result = m_materialMapIDsGenerator.generate();
+        for (const auto& materialMapHandler : materialMapPrivate.handlers())
+        {
+            if (materialMapHandler->sceneData().lock() == shared_from_this())
+            {
+                result = materialMapHandler;
+                break;
+            }
+        }
 
-        auto handler = std::make_shared<MaterialMapHandler>(weak_from_this(), materialMap, result);
-        materialMapPrivate.handlers().insert({ shared_from_this(), handler });
-        m_materialMaps->insert({ materialMap, handler });
+        if (!result)
+        {
+            bool isEmpty = materialMap->isEmpty();
+            auto materialMapID = isEmpty ? utils::IDsGenerator::last() : m_materialMapIDsGenerator.generate();
 
-        onMaterialMapChanged(materialMap, result);
+            result = std::make_shared<MaterialMapHandler>(weak_from_this(), materialMap, materialMapID);
+            materialMapPrivate.handlers().insert(result);
+
+            onMaterialMapChanged(materialMapID, materialMap->filesystemPath(), materialMap->image());
+        }
     }
 
     return result;
 }
 
-void SceneData::removeMaterialMap(const std::shared_ptr<const MaterialMap>& materialMap, utils::IDsGenerator::value_type ID)
+void SceneData::removeMaterialMap(const std::shared_ptr<const MaterialMap>& materialMap)
 {
-    if (auto it = m_materialMaps->find(materialMap); it == m_materialMaps->end())
-    {
-        LOG_CRITICAL << "No found material map in scene to remove";
-        return;
-    }
-    else
-    {
-        m_materialMapsHandles.erase(ID);
-        m_materialMaps->erase(materialMap);
-        m_materialMapIDsGenerator.clear(ID);
-    }
+    auto& materialMapHandlers = materialMap->m().handlers();
+
+    for (auto it = materialMapHandlers.begin(); it != materialMapHandlers.end(); ++it)
+        if ((*it)->sceneData().lock() == shared_from_this())
+        {
+            m_materialMapIDsGenerator.clear((*it)->ID());
+            m_textureHandles[(*it)->ID()].reset();
+            materialMapHandlers.erase(it);
+            break;
+        }
 }
 
-void SceneData::onMaterialMapChanged(const std::shared_ptr<const MaterialMap>& materialMap, utils::IDsGenerator::value_type ID)
+void SceneData::onMaterialMapChanged(
+    utils::IDsGenerator::value_type ID,
+    const std::filesystem::path& path,
+    const std::shared_ptr<const utils::Image>& image)
 {
-    if (!materialMap)
-    {
-        LOG_CRITICAL << "Material map can't be nullptr";
+    if (ID == utils::IDsGenerator::last())
         return;
-    }
-
-    if (auto it = m_materialMaps->find(materialMap); it == m_materialMaps->end())
-    {
-        LOG_CRITICAL << "No found material map in scene to change";
-        return;
-    }
 
     auto graphicsRenderer = graphics::RendererBase::current();
     if (!graphicsRenderer)
@@ -705,14 +771,10 @@ void SceneData::onMaterialMapChanged(const std::shared_ptr<const MaterialMap>& m
     }
 
     graphics::PTexture texture;
-    if (auto path = materialMap->asFilesystemPath(); !path.empty())
-    {
+    if (!path.empty())
         texture = texturesManager->loadOrGetTexture(path);
-    }
-    else if (auto image = materialMap->asImage(); image)
-    {
+    else if (image)
         texture = texturesManager->loadOrGetTexture(image);
-    }
 
     if (!texture)
     {
@@ -720,170 +782,185 @@ void SceneData::onMaterialMapChanged(const std::shared_ptr<const MaterialMap>& m
         return;
     }
 
-    auto textureHandle = graphicsRenderer->createTextureHandle(texture);
-    m_materialMapsHandles.insert({ ID, textureHandle });
+    graphics::PTextureHandle textureHandle = graphicsRenderer->createTextureHandle(texture);
+    textureHandle->makeResident();
 
-    if (m_materialMapsBuffer->size() <= ID)
-        m_materialMapsBuffer->resize(ID + 1u);
-
+    if (m_materialMapsBuffer->size() <= ID) m_materialMapsBuffer->resize(ID + 1u);
     m_materialMapsBuffer->set(ID, { textureHandle->handle() });
+
+    if (m_textureHandles.size() <= ID) m_textureHandles.resize(ID + 1u);
+    m_textureHandles[ID] = textureHandle;
 }
 
-utils::IDsGenerator::value_type SceneData::addMaterial(const std::shared_ptr<const Material>& material)
+std::shared_ptr<MaterialHandler> SceneData::addMaterial(const std::shared_ptr<const Material>& material)
 {
-    auto result = utils::IDsGenerator::last();
+    std::shared_ptr<MaterialHandler> result;
 
     if (!material)
     {
         // do nothing
-    }
-    else if (auto it = m_materials.find(material); it != m_materials.end())
-    {
-        if (it->second.expired())
-            LOG_CRITICAL << "Scene has expired material";
-
-        result = it->second.lock()->ID();
     }
     else
     {
         auto& materialPrivate = material->m();
 
-        result = m_materialIDsGenerator.generate();
+        for (const auto& materialHandler : materialPrivate.handlers())
+        {
+            if (materialHandler->sceneData().lock() == shared_from_this())
+            {
+                result = materialHandler;
+                break;
+            }
+        }
 
-        auto handler = std::make_shared<MaterialHandler>(weak_from_this(), material, result);
-        materialPrivate.handlers().insert({ shared_from_this(), handler });
-        m_materials.insert({ material, handler });
+        if (!result)
+        {
+            result = std::make_shared<MaterialHandler>(weak_from_this(), material, m_materialIDsGenerator.generate());
+            materialPrivate.handlers().insert(result);
 
-        onMaterialChanged(material, result);
+            onMaterialChanged(
+                result->ID(),
+                material->baseColor(),
+                material->emission(),
+                material->roughness(),
+                material->metalness(),
+                material->alphaCutoff(),
+                material->materialMap(MaterialMapTarget::BaseColor),
+                material->materialMap(MaterialMapTarget::Emission),
+                material->materialMap(MaterialMapTarget::Occlusion),
+                material->materialMap(MaterialMapTarget::Roughness),
+                material->materialMap(MaterialMapTarget::Metalness),
+                material->materialMap(MaterialMapTarget::Normal),
+                material->occlusionMapStrength(),
+                material->normalMapScale(),
+                material->ORMSwizzleMask(),
+                material->isLighted(),
+                material->isShadowed(),
+                material->isDoubleSided());
+        }
     }
 
     return result;
 }
 
-void SceneData::removeMaterial(const std::shared_ptr<const Material>& material, utils::IDsGenerator::value_type ID)
+void SceneData::removeMaterial(const std::shared_ptr<const Material>& material)
 {
-    if (auto it = m_materials.find(material); it == m_materials.end())
-    {
-        LOG_CRITICAL << "No found material in scene to remove";
-        return;
-    }
-    else
-    {
-        m_materials.erase(material);
-        m_materialIDsGenerator.clear(ID);
-    }
+    auto& materialHandlers = material->m().handlers();
+
+    for (auto it = materialHandlers.begin(); it != materialHandlers.end(); ++it)
+        if ((*it)->sceneData().lock() == shared_from_this())
+        {
+            m_materialIDsGenerator.clear((*it)->ID());
+            materialHandlers.erase(it);
+            break;
+        }
 }
 
-void SceneData::onMaterialChanged(const std::shared_ptr<const Material>& material, utils::IDsGenerator::value_type ID)
+void SceneData::onMaterialChanged(
+    utils::IDsGenerator::value_type ID,
+    const glm::vec4& baseColor,
+    const glm::vec3& emission,
+    float roughness,
+    float metalness,
+    float alphaCutoff,
+    const std::shared_ptr<const MaterialMap>& baseColorMap,
+    const std::shared_ptr<const MaterialMap>& emissionMap,
+    const std::shared_ptr<const MaterialMap>& occlusionMap,
+    const std::shared_ptr<const MaterialMap>& roughnessMap,
+    const std::shared_ptr<const MaterialMap>& metalnessMap,
+    const std::shared_ptr<const MaterialMap>& normalMap,
+    float occlusionMapStrength,
+    float normalMapScale,
+    const glm::u32vec3& ORMSwizzleMask,
+    bool isLighted,
+    bool isShadowed,
+    bool isDoubleSided)
 {
-    if (!material)
-    {
-        LOG_CRITICAL << "Material can't be nullptr";
-        return;
-    }
-
-    if (auto it = m_materials.find(material); it == m_materials.end())
-    {
-        LOG_CRITICAL << "No found material in scene to change";
-        return;
-    }
-
     if (m_materialsBuffer->size() <= ID)
         m_materialsBuffer->resize(ID + 1u);
 
-    auto& materialPrivate = material->m();
     m_materialsBuffer->set(ID, {
-        addMaterialMap(materialPrivate.maps()[castFromMaterialMapTarget(MaterialMapTarget::BaseColor)]),
-        addMaterialMap(materialPrivate.maps()[castFromMaterialMapTarget(MaterialMapTarget::Emission)]),
-        addMaterialMap(materialPrivate.maps()[castFromMaterialMapTarget(MaterialMapTarget::Occlusion)]),
-        addMaterialMap(materialPrivate.maps()[castFromMaterialMapTarget(MaterialMapTarget::Roughness)]),
-        addMaterialMap(materialPrivate.maps()[castFromMaterialMapTarget(MaterialMapTarget::Metalness)]),
-        addMaterialMap(materialPrivate.maps()[castFromMaterialMapTarget(MaterialMapTarget::Normal)]),
-        materialPrivate.roughness(),
-        materialPrivate.metalness(),
-        materialPrivate.baseColor(),
-        glm::vec4(
-            materialPrivate.emission(),
-            glm::uintBitsToFloat(makeMaterialFlags(
-                materialPrivate.occlusionMapStrength(),
-                materialPrivate.normalMapScale(),
-                materialPrivate.ORMSwizzleMask(),
-                materialPrivate.isLighted(),
-                materialPrivate.isShadowed(),
-                isMaterialTransparent(material))))
+        baseColor,
+        glm::vec4(emission, 1.f),
+        baseColorMap ? addMaterialMap(baseColorMap)->ID() : utils::IDsGenerator::last(),
+        emissionMap ? addMaterialMap(emissionMap)->ID() : utils::IDsGenerator::last(),
+        occlusionMap ? addMaterialMap(occlusionMap)->ID() : utils::IDsGenerator::last(),
+        roughnessMap ? addMaterialMap(roughnessMap)->ID() : utils::IDsGenerator::last(),
+        metalnessMap ? addMaterialMap(metalnessMap)->ID() : utils::IDsGenerator::last(),
+        normalMap ? addMaterialMap(normalMap)->ID() : utils::IDsGenerator::last(),
+        MaterialDescription::makeFlags0(roughness, metalness, occlusionMapStrength, normalMapScale),
+        MaterialDescription::makeFlags1(
+            ORMSwizzleMask,
+            isLighted,
+            isShadowed,
+            MaterialDescription::isTransparent(baseColor, baseColorMap),
+            isDoubleSided,
+            alphaCutoff)
         });
 }
 
-utils::IDsGenerator::value_type SceneData::addDrawable(const std::shared_ptr<const Drawable>& drawable)
+std::shared_ptr<DrawableHandler> SceneData::addDrawable(const std::shared_ptr<const Drawable>& drawable)
 {
-    auto result = utils::IDsGenerator::last();
+    std::shared_ptr<DrawableHandler> result;
 
     if (!drawable)
     {
         // do nothing
     }
-    else if (auto it = m_drawables.find(drawable); it != m_drawables.end())
-    {
-        if (it->second.expired())
-            LOG_CRITICAL << "Scene has expired drawable";
-
-        result = it->second.lock()->ID();
-    }
     else
     {
         auto& drawablePrivate = drawable->m();
 
-        result = m_drawableIDsGenerator.generate();
+        for (const auto& drawableHandler : drawablePrivate.handlers())
+        {
+            if (drawableHandler->sceneData().lock() == shared_from_this())
+            {
+                result = drawableHandler;
+                break;
+            }
+        }
 
-        auto handler = std::make_shared<DrawableHandler>(weak_from_this(), drawable, result);
-        drawablePrivate.handlers().insert({ shared_from_this(), handler });
-        m_drawables.insert({ drawable, handler });
+        if (!result)
+        {
+            result = std::make_shared<DrawableHandler>(weak_from_this(), drawable, m_drawableIDsGenerator.generate());
+            drawablePrivate.handlers().insert(result);
 
-        onDrawableChanged(drawable, result);
+            onDrawableChanged(result->ID(), drawable->mesh(), drawable->material());
+        }
     }
 
     return result;
 }
 
-void SceneData::removeDrawable(const std::shared_ptr<const Drawable>& drawable, utils::IDsGenerator::value_type ID)
+void SceneData::removeDrawable(const std::shared_ptr<const Drawable>& drawable)
 {
-    if (auto it = m_drawables.find(drawable); it == m_drawables.end())
-    {
-        LOG_CRITICAL << "No found drawable in scene to remove";
-        return;
-    }
-    else
-    {
-        m_drawables.erase(drawable);
-        m_drawableIDsGenerator.clear(ID);
-    }
+    auto& drawableHandlers = drawable->m().handlers();
+
+    for (auto it = drawableHandlers.begin(); it != drawableHandlers.end(); ++it)
+        if ((*it)->sceneData().lock() == shared_from_this())
+        {
+            m_drawableIDsGenerator.clear((*it)->ID());
+            drawableHandlers.erase(it);
+            break;
+        }
 }
 
-void SceneData::onDrawableChanged(const std::shared_ptr<const Drawable>& drawable, utils::IDsGenerator::value_type ID)
+void SceneData::onDrawableChanged(
+    utils::IDsGenerator::value_type ID,
+    const std::shared_ptr<const Mesh>& mesh,
+    const std::shared_ptr<const Material>& material)
 {
-    if (!drawable)
-    {
-        LOG_CRITICAL << "Drawable can't be nullptr";
-        return;
-    }
-
-    if (auto it = m_drawables.find(drawable); it == m_drawables.end())
-    {
-        LOG_CRITICAL << "No found drawable in scene to change";
-        return;
-    }
-
     if (m_drawablesBuffer->size() <= ID)
         m_drawablesBuffer->resize(ID + 1u);
 
-    auto& drawablePrivate = drawable->m();
     m_drawablesBuffer->set(ID, {
-        addMesh(drawablePrivate.mesh()),
-        addMaterial(drawablePrivate.material())
-        });
+        addMesh(mesh)->ID(),
+        addMaterial(material)->ID() });
 }
 
-std::shared_ptr<DrawDataHandler> SceneData::addDrawData(const std::shared_ptr<const Drawable>& drawable, const glm::mat4x4& modelMatrix)
+std::shared_ptr<DrawDataHandler> SceneData::addDrawData(
+    const std::shared_ptr<const Drawable>& drawable,
+    const glm::mat4x4& modelMatrix)
 {
     if (!drawable)
     {
@@ -892,46 +969,29 @@ std::shared_ptr<DrawDataHandler> SceneData::addDrawData(const std::shared_ptr<co
     }
 
     const auto ID = m_drawDataIDsGenerator.generate();
-
     auto result = std::make_shared<DrawDataHandler>(weak_from_this(), ID);
 
-    if (m_drawDataHandlers.size() <= ID)
-        m_drawDataHandlers.resize(ID + 1u);
-
-    m_drawDataHandlers[ID] = result;
-
-    onDrawDataChanged(drawable, modelMatrix, ID);
+    onDrawDataChanged(ID, drawable, modelMatrix);
 
     return result;
 }
 
 void SceneData::removeDrawData(utils::IDsGenerator::value_type ID)
 {
-    if (ID >= m_drawDataHandlers.size())
-    {
-        LOG_CRITICAL << "No found draw data in scene to remove";
-        return;
-    }
-
-    m_drawDataHandlers[ID].reset();
     m_drawDataBuffer->set(ID, {
         glm::mat4x4(1.f),
-        makeDrawDataNormalMatrixAndDrawableOffset(glm::mat4x4(1.f), utils::IDsGenerator::last())
-        });
+        DrawDataDescription::makeNormalMatrixAndDrawableID(glm::mat4x4(1.f), utils::IDsGenerator::last()) });
     m_drawDataIDsGenerator.clear(ID);
 }
 
-void SceneData::onDrawDataChanged(const std::shared_ptr<const Drawable>& drawable, const glm::mat4x4& modelMatrix, utils::IDsGenerator::value_type ID)
+void SceneData::onDrawDataChanged(
+    utils::IDsGenerator::value_type ID,
+    const std::shared_ptr<const Drawable>& drawable,
+    const glm::mat4x4& modelMatrix)
 {
     if (!drawable)
     {
         LOG_CRITICAL << "Drawable can't be nullptr";
-        return;
-    }
-
-    if (ID >= m_drawDataHandlers.size())
-    {
-        LOG_CRITICAL << "No found draw data in scene to change";
         return;
     }
 
@@ -941,93 +1001,102 @@ void SceneData::onDrawDataChanged(const std::shared_ptr<const Drawable>& drawabl
         m_drawDataBuffer->setReservedData({ static_cast<uint32_t>(m_drawDataBuffer->size()), {0u, 0u, 0u} });
     }
 
-    if (m_opaqueDrawDataCommandsBuffer->size() <= ID)
-    {
-        m_opaqueDrawDataCommandsBuffer->resize(ID + 1u);
-        m_opaqueDrawDataCommandsBuffer->setReservedData({ static_cast<uint32_t>(m_opaqueDrawDataCommandsBuffer->size()), {0u, 0u, 0u} });
-    }
-
-    if (m_transparentDrawDataCommandsBuffer->size() <= ID)
-    {
-        m_transparentDrawDataCommandsBuffer->resize(ID + 1u);
-        m_transparentDrawDataCommandsBuffer->setReservedData({ static_cast<uint32_t>(m_transparentDrawDataCommandsBuffer->size()), {0u, 0u, 0u} });
-    }
-
     m_drawDataBuffer->set(ID, {
         modelMatrix,
-        makeDrawDataNormalMatrixAndDrawableOffset(modelMatrix, addDrawable(drawable))
-        });
+        DrawDataDescription::makeNormalMatrixAndDrawableID(modelMatrix, addDrawable(drawable)->ID()) });
 }
 
-void SceneData::addBackground(const std::shared_ptr<const Background>& background)
+void SceneData::setBackground(const std::shared_ptr<const Background>& background)
 {
+    removeBackground();
+
     if (!background)
     {
         LOG_CRITICAL << "Failed to add background";
         return;
     }
 
-    const auto ID = m_backgroundIDsGenerator.generate();
+    auto handler = std::make_shared<BackgroundHandler>(weak_from_this(), background);
+    background->m().handler() = handler;
 
-    auto handler = std::make_shared<BackgroundHandler>(weak_from_this(), background, ID);
-    background->m().handler() = { shared_from_this(), handler };
+    m_backgroundHandler = handler;
 
-    if (m_backgroundsHandlers.size() <= ID)
-        m_backgroundsHandlers.resize(ID + 1u);
-
-    m_backgroundsHandlers [ID] = handler;
-
-    onBackgroundChanged(background, ID);
+    onBackgroundChanged(background->environmentMap(), background->environmentColor(), background->blurPower());
 }
 
-void SceneData::removeBackground(size_t ID)
+void SceneData::removeBackground()
 {
-    if (ID >= m_backgroundsHandlers.size())
-    {
-        LOG_CRITICAL << "No found background in scene to remove";
-        return;
-    }
+    if (auto handler = m_backgroundHandler.lock())
+        if (auto background = handler->background().lock())
+            background->m().handler().reset();
 
-    m_backgroundsHandlers[ID].reset();
-    m_backgroundsBuffer->set(ID, {
-        utils::IDsGenerator::last(),
-        utils::IDsGenerator::last(),
-        makeBackgroundEnvironmentColorAndBlurPower(glm::vec3(0.f), 0.f)
-        });
-    m_backgroundIDsGenerator.clear(ID);
+    m_backgroundHandler.reset();
+    m_backgroundBuffer->set({
+        BackgroundDescription::makeEnvironmentColorAndBlurPower(glm::vec3(1.f), 0.f),
+        utils::IDsGenerator::last() });
 }
 
-void SceneData::onBackgroundChanged(const std::shared_ptr<const Background>& background, size_t ID)
+void SceneData::onBackgroundChanged(
+    const std::shared_ptr<const MaterialMap>& environmentMap,
+    const glm::vec3& environmentColor,
+    float blurPower)
 {
-    if (!background)
+    auto mipmapLevel = 0.f;
+    auto materialMapHandler = addMaterialMap(environmentMap);
+
+    if (auto environmentMapID = materialMapHandler->ID(); environmentMapID != utils::IDsGenerator::last())
+        if (auto& textureHandle = m_textureHandles[environmentMapID])
+            if (auto texture = textureHandle->texture())
+                mipmapLevel = glm::clamp(blurPower, 0.f, 1.f) * glm::max(0u, (texture->numMipmapLevels() - 1u));
+
+    m_backgroundBuffer->set({
+        BackgroundDescription::makeEnvironmentColorAndBlurPower(environmentColor, mipmapLevel),
+        materialMapHandler->ID() });
+}
+
+std::shared_ptr<PointLightHandler> SceneData::addPointLight(
+    const glm::mat4x4& modelMatrix,
+    const glm::vec3& areaScale,
+    const glm::vec3& color,
+    const glm::vec2& radiuses)
+{
+    const auto ID = m_pointLightIDsGenerator.generate();
+    auto result = std::make_shared<PointLightHandler>(weak_from_this(), ID);
+
+    onPointLightChanged(ID, modelMatrix, areaScale, color, radiuses);
+
+    return result;
+}
+
+void SceneData::removePointLight(utils::IDsGenerator::value_type ID)
+{
+    m_pointLightsBuffer->set(ID, {
+           glm::mat4x4(1.f),
+           PointLightDescription::makeAreaScaleAndInnerRadius(glm::vec3(0.f), 0.f),
+           PointLightDescription::makeColorAndOuterRadius(glm::vec3(0.f), 0.f) });
+    m_pointLightIDsGenerator.clear(ID);
+}
+
+void SceneData::onPointLightChanged(
+    utils::IDsGenerator::value_type ID,
+    const glm::mat4x4& modelMatrix,
+    const glm::vec3& areaScale,
+    const glm::vec3& color,
+    const glm::vec2& radiuses)
+{
+    if (m_pointLightsBuffer->size() <= ID)
     {
-        LOG_CRITICAL << "Background can't be nullptr";
-        return;
+        m_pointLightsBuffer->resize(ID + 1u);
+
+        auto reservedData = m_pointLightsBuffer->reservedData();
+        reservedData.count = static_cast<uint32_t>(m_pointLightsBuffer->size());
+        m_pointLightsBuffer->setReservedData(reservedData);
     }
 
-    if (ID >= m_backgroundsHandlers.size())
-    {
-        LOG_CRITICAL << "No found background in scene to change";
-        return;
-    }
-
-    if (m_backgroundsBuffer->size() <= ID)
-    {
-        m_backgroundsBuffer->resize(ID + 1u);
-        m_backgroundsBuffer->setReservedData({ static_cast<uint32_t>(m_backgroundsBuffer->size()), {0u, 0u, 0u} });
-    }
-
-    if (m_backgroundsCommandsBuffer->size() <= ID)
-    {
-        m_backgroundsCommandsBuffer->resize(ID + 1u);
-        m_backgroundsCommandsBuffer->setReservedData({ static_cast<uint32_t>(m_backgroundsCommandsBuffer->size()), {0u, 0u, 0u} });
-    }
-
-    m_backgroundsBuffer->set(ID, {
-        addMesh(ScreenQuad::instance()),
-        addMaterialMap(background->environmentMap()),
-        makeBackgroundEnvironmentColorAndBlurPower( background->environmentColor(), background->blurPower())
-        });
+    m_pointLightsBuffer->set(ID, {
+        modelMatrix,
+        PointLightDescription::makeAreaScaleAndInnerRadius(areaScale, radiuses[0u]),
+        PointLightDescription::makeColorAndOuterRadius(color, radiuses[1u]) });
 }
 
 VertexDataBuffer& SceneData::vertexDataBuffer()
@@ -1035,9 +1104,19 @@ VertexDataBuffer& SceneData::vertexDataBuffer()
     return m_vertexDataBuffer;
 }
 
+const VertexDataBuffer& SceneData::vertexDataBuffer() const
+{
+    return const_cast<SceneData*>(this)->vertexDataBuffer();
+}
+
 ElementsBuffer& SceneData::elementsBuffer()
 {
     return m_elementsBuffer;
+}
+
+const ElementsBuffer& SceneData::elementsBuffer() const
+{
+    return const_cast<SceneData*>(this)->elementsBuffer();
 }
 
 MeshesBuffer& SceneData::meshesBuffer()
@@ -1045,9 +1124,19 @@ MeshesBuffer& SceneData::meshesBuffer()
     return m_meshesBuffer;
 }
 
+const MeshesBuffer& SceneData::meshesBuffer() const
+{
+    return const_cast<SceneData*>(this)->meshesBuffer();
+}
+
 MaterialMapsBuffer& SceneData::materialMapsBuffer()
 {
     return m_materialMapsBuffer;
+}
+
+const MaterialMapsBuffer& SceneData::materialMapsBuffer() const
+{
+    return const_cast<SceneData*>(this)->materialMapsBuffer();
 }
 
 MaterialsBuffer& SceneData::materialsBuffer()
@@ -1055,9 +1144,19 @@ MaterialsBuffer& SceneData::materialsBuffer()
     return m_materialsBuffer;
 }
 
+const MaterialsBuffer& SceneData::materialsBuffer() const
+{
+    return const_cast<SceneData*>(this)->materialsBuffer();
+}
+
 DrawablesBuffer& SceneData::drawablesBuffer()
 {
     return m_drawablesBuffer;
+}
+
+const DrawablesBuffer& SceneData::drawablesBuffer() const
+{
+    return const_cast<SceneData*>(this)->drawablesBuffer();
 }
 
 DrawDataBuffer& SceneData::drawDataBuffer()
@@ -1065,24 +1164,159 @@ DrawDataBuffer& SceneData::drawDataBuffer()
     return m_drawDataBuffer;
 }
 
-BackgroundsBuffer& SceneData::backgroundsBuffer()
+const DrawDataBuffer& SceneData::drawDataBuffer() const
 {
-    return m_backgroundsBuffer;
+    return const_cast<SceneData*>(this)->drawDataBuffer();
 }
 
-DrawIndirectArraysCommandsBuffer& SceneData::opaqueDrawDataCommandsBuffer()
+BackgroundBuffer& SceneData::backgroundBuffer()
 {
-    return m_opaqueDrawDataCommandsBuffer;
+    return m_backgroundBuffer;
 }
 
-DrawIndirectArraysCommandsBuffer& SceneData::transparentDrawDataCommandsBuffer()
+const BackgroundBuffer& SceneData::backgroundBuffer() const
 {
-    return m_transparentDrawDataCommandsBuffer;;
+    return const_cast<SceneData*>(this)->backgroundBuffer();
 }
 
-DrawIndirectArraysCommandsBuffer& SceneData::backgroundsCommandsBuffer()
+PointLightsBuffer& SceneData::pointLightsBuffer()
 {
-    return m_backgroundsCommandsBuffer;
+    return m_pointLightsBuffer;
+}
+
+const PointLightsBuffer& SceneData::pointLightsBuffer() const
+{
+    return const_cast<SceneData*>(this)->pointLightsBuffer();
+}
+
+SpotLightsBuffer& SceneData::spotLightsBuffer()
+{
+    return m_spotLightsBuffer;
+}
+
+const SpotLightsBuffer& SceneData::spotLightsBuffer() const
+{
+    return const_cast<SceneData*>(this)->spotLightsBuffer();
+}
+
+DirectionalLightsBuffer& SceneData::directionalLightsBuffer()
+{
+    return m_directionalLightsBuffer;
+}
+
+const DirectionalLightsBuffer& SceneData::directionalLightsBuffer() const
+{
+    return const_cast<SceneData*>(this)->directionalLightsBuffer();
+}
+
+ImageBasedLightsBuffer& SceneData::imageBasedLightsBuffer()
+{
+    return m_imageBasedLightsBuffer;
+}
+
+const ImageBasedLightsBuffer& SceneData::imageBasedLightsBuffer() const
+{
+    return const_cast<SceneData*>(this)->imageBasedLightsBuffer();
+}
+
+graphics::PDrawArraysIndirectCommandsConstBuffer SceneData::screenQuadCommandsBuffer() const
+{
+    return m_screenQuadCommandsBuffer;
+}
+
+std::shared_ptr<SceneData> SceneData::create()
+{
+    auto result = std::shared_ptr<SceneData>(new SceneData);
+
+    // create screen quad mesh
+    result->m_screenQuadMesh = std::make_shared<Mesh>(utils::MeshPainter(utils::Mesh::createEmptyMesh({
+        {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}
+        })).drawScreenQuad().mesh(), utils::BoundingBox());
+    auto screenQuadMeshHandler = result->addMesh(result->m_screenQuadMesh);
+
+    // create screen quad commands buffer
+    auto screenQuadMeshDescription = result->meshesBuffer()->get(screenQuadMeshHandler->ID());
+    result->m_screenQuadCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create(
+        { 1u, 1u, {0u, 0u} }, { {
+                MeshDescription::numElements(screenQuadMeshDescription),
+                1u,
+                screenQuadMeshDescription.elementsOffset,
+                screenQuadMeshHandler->ID() }
+        });
+
+    // create light areas meshes
+    const std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, utils::VertexComponentType>> lightAreaVertexDeclaration{
+        {utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}} };
+
+    utils::MeshPainter pointLightAreaPainter(utils::Mesh::createEmptyMesh(lightAreaVertexDeclaration));
+    pointLightAreaPainter.drawSphere(8u);
+    result->m_pointLightAreaMesh = std::make_shared<Mesh>(
+        pointLightAreaPainter.mesh(),
+        pointLightAreaPainter.calculateBoundingBox());
+    auto pointLightAreaMeshDescription = result->addMesh(result->m_pointLightAreaMesh);
+
+    utils::MeshPainter spotLightAreaPainter(utils::Mesh::createEmptyMesh(lightAreaVertexDeclaration));
+    spotLightAreaPainter.drawCone(8u);
+    result->m_spotLightAreaMesh = std::make_shared<Mesh>(
+        spotLightAreaPainter.mesh(),
+        spotLightAreaPainter.calculateBoundingBox());
+    auto spotLightAreaMeshDescription = result->addMesh(result->m_spotLightAreaMesh);
+
+    utils::MeshPainter directionalLightAreaPainter(utils::Mesh::createEmptyMesh(lightAreaVertexDeclaration));
+    directionalLightAreaPainter.drawCube(glm::vec3(2.f));
+    result->m_directionalLightAreaMesh = std::make_shared<Mesh>(
+        directionalLightAreaPainter.mesh(),
+        utils::BoundingBox::empty());
+    auto directionalLightAreaMeshDescription = result->addMesh(result->m_directionalLightAreaMesh);
+
+    result->m_pointLightsBuffer->setReservedData({ 0u, pointLightAreaMeshDescription->ID(), {0u, 0u} });
+    result->m_spotLightsBuffer->setReservedData({ 0u, spotLightAreaMeshDescription->ID(), {0u, 0u} });
+    result->m_directionalLightsBuffer->setReservedData({ 0u, directionalLightAreaMeshDescription->ID(), {0u, 0u} });
+    result->m_imageBasedLightsBuffer->setReservedData({ 0u, directionalLightAreaMeshDescription->ID(), {0u, 0u} });
+
+    return result;
+}
+
+SceneData::SceneData()
+{
+    m_vertexDataBuffer = VertexDataBuffer::element_type::create();
+    m_elementsBuffer = ElementsBuffer::element_type::create();
+    m_meshesBuffer = MeshesBuffer::element_type::create();
+    m_materialMapsBuffer = MaterialMapsBuffer::element_type::create();
+    m_materialsBuffer = MaterialsBuffer::element_type::create();
+    m_drawablesBuffer = DrawablesBuffer::element_type::create();
+    m_drawDataBuffer = DrawDataBuffer::element_type::create();
+    m_backgroundBuffer = BackgroundBuffer::element_type::create({
+        BackgroundDescription::makeEnvironmentColorAndBlurPower(glm::vec3(1.f), 0.f), utils::IDsGenerator::last() });
+    m_pointLightsBuffer = PointLightsBuffer::element_type::create();
+    m_spotLightsBuffer = SpotLightsBuffer::element_type::create();
+    m_directionalLightsBuffer = DirectionalLightsBuffer::element_type::create();
+    m_imageBasedLightsBuffer = ImageBasedLightsBuffer::element_type::create();
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::VertexDataBuffer) = graphics::BufferRange::create(m_vertexDataBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ElementsBuffer) = graphics::BufferRange::create(m_elementsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::MeshesBuffer) = graphics::BufferRange::create(m_meshesBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::MaterialMapsBuffer) = graphics::BufferRange::create(m_materialMapsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::MaterialsBuffer) = graphics::BufferRange::create(m_materialsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::DrawablesBuffer) = graphics::BufferRange::create(m_drawablesBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::DrawDataBuffer) = graphics::BufferRange::create(m_drawDataBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::BackgroundBuffer) = graphics::BufferRange::create(m_backgroundBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::PointLightsBuffer) = graphics::BufferRange::create(m_pointLightsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SpotLightsBuffer) = graphics::BufferRange::create(m_spotLightsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::DirectionalLightsBuffer) = graphics::BufferRange::create(m_directionalLightsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ImageBasedLightsBuffer) = graphics::BufferRange::create(m_imageBasedLightsBuffer->buffer());
+}
+
+ResourceHandler::ResourceHandler(const std::weak_ptr<SceneData>& sceneData)
+    : m_sceneData(sceneData)
+{
+}
+
+ResourceHandler::~ResourceHandler() = default;
+
+std::weak_ptr<SceneData>& ResourceHandler::sceneData()
+{
+    return m_sceneData;
 }
 
 }

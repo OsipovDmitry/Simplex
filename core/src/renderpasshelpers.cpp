@@ -6,55 +6,25 @@
 #include "geometryrenderinfo.h"
 #include "resources.h"
 #include "renderpasshelpers.h"
+#include "scenedata.h"
 
 namespace simplex
 {
 namespace core
 {
 
-BuildBackgroundsCommandsBufferPass::BuildBackgroundsCommandsBufferPass(
-    const std::shared_ptr<ProgramsManager>& programsManager,
-    const std::shared_ptr<SceneData>& sceneData)
+BuildDrawDataCommandsBufferPass::BuildDrawDataCommandsBufferPass(const std::shared_ptr<ProgramsManager>& programsManager)
     : Pass()
-    , m_commandsBuffer(sceneData->backgroundsCommandsBuffer())
-{
-    m_program = programsManager->loadOrGetComputeProgram(resources::BuildBackgroundsCommandsBufferPassComputeShaderPath, {});
-
-    getOrCreateSSBO(SSBOId::MeshesBuffer) = graphics::BufferRange::create(sceneData->meshesBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::BackgroundsBuffer) = graphics::BufferRange::create(sceneData->backgroundsBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::CommandsBuffer) = graphics::BufferRange::create(sceneData->backgroundsCommandsBuffer()->buffer());
-}
-
-BuildBackgroundsCommandsBufferPass::~BuildBackgroundsCommandsBufferPass() = default;
-
-void BuildBackgroundsCommandsBufferPass::run(
-    const std::shared_ptr<graphics::RendererBase>& renderer,
-    const std::shared_ptr<graphics::IFrameBuffer>&,
-    const std::shared_ptr<graphics::IVertexArray>&,
-    const std::shared_ptr<GeometryRenderInfo>&)
-{
-    m_commandsBuffer->setReservedData({ 0u, {0u, 0u, 0u} });
-    renderer->compute(m_program, glm::uvec3(m_commandsBuffer->size(), 1u, 1u), { shared_from_this() });
-}
-
-BuildDrawDataCommandsBufferPass::BuildDrawDataCommandsBufferPass(
-    const std::shared_ptr<ProgramsManager>& programsManager,
-    const std::shared_ptr<SceneData>& sceneData)
-    : Pass()
-    , m_drawDataBuffer(sceneData->drawDataBuffer())
-    , m_opaqueCommandsBuffer(sceneData->opaqueDrawDataCommandsBuffer())
-    , m_transparentCommandsBuffer(sceneData->transparentDrawDataCommandsBuffer())
 {
     m_program = programsManager->loadOrGetComputeProgram(resources::BuildDrawDataCommandsBufferPassComputeShaderPath, {});
 
-    getOrCreateSSBO(SSBOId::MeshesBuffer) = graphics::BufferRange::create(sceneData->meshesBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::MaterialsBuffer) = graphics::BufferRange::create(sceneData->materialsBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::DrawablesBuffer) = graphics::BufferRange::create(sceneData->drawablesBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::DrawDataBuffer) = graphics::BufferRange::create(sceneData->drawDataBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::OpaqueCommandsBuffer) =
-        graphics::BufferRange::create(sceneData->opaqueDrawDataCommandsBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::TransparentCommandsBuffer) =
-        graphics::BufferRange::create(sceneData->transparentDrawDataCommandsBuffer()->buffer());
+    m_opaqueCommandsBuffer = graphics::DrawArraysIndirectCommandsBuffer::create();
+    m_transparentCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::OpaqueCommandsBuffer) =
+        graphics::BufferRange::create(m_opaqueCommandsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::TransparentCommandsBuffer) =
+        graphics::BufferRange::create(m_transparentCommandsBuffer->buffer());
 }
 
 BuildDrawDataCommandsBufferPass::~BuildDrawDataCommandsBufferPass() = default;
@@ -63,69 +33,77 @@ void BuildDrawDataCommandsBufferPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>&,
     const std::shared_ptr<graphics::IVertexArray>&,
-    const std::shared_ptr<GeometryRenderInfo>&)
+    const std::shared_ptr<GeometryRenderInfo>&,
+    const std::shared_ptr<const SceneData>& sceneData)
 {
-    m_opaqueCommandsBuffer->setReservedData({ 0u, {0u, 0u, 0u} });
-    m_transparentCommandsBuffer->setReservedData({ 0u, {0u, 0u, 0u} });
+    const auto bufferSize = sceneData->drawDataBuffer()->size();
 
-    renderer->compute(m_program, glm::uvec3(m_drawDataBuffer->size(), 1u, 1u), { shared_from_this() });
+    m_opaqueCommandsBuffer->resize(bufferSize);
+    m_opaqueCommandsBuffer->setReservedData({ 0u, static_cast<uint32_t>(bufferSize), {0u, 0u}});
+
+    m_transparentCommandsBuffer->resize(bufferSize);
+    m_transparentCommandsBuffer->setReservedData({ 0u, static_cast<uint32_t>(bufferSize), {0u, 0u} });
+
+    renderer->compute(glm::uvec3(static_cast<uint32_t>(bufferSize), 1u, 1u), m_program, { sceneData, shared_from_this()});
 }
 
-RenderOpaqueDrawDataGeometryPass::RenderOpaqueDrawDataGeometryPass(
-    const std::shared_ptr<ProgramsManager>& programsManager,
-    const std::shared_ptr<SceneData>& sceneData)
-    : Pass()
-    , m_opaqueDrawDataCommandsBuffer(sceneData->opaqueDrawDataCommandsBuffer())
-    , m_sceneData(sceneData)
+graphics::PDrawArraysIndirectCommandsConstBuffer BuildDrawDataCommandsBufferPass::opaqueCommandsBuffer() const
 {
-    m_program = programsManager->loadOrGetRenderProgram(
-        resources::RenderOpaqueDrawDataPassVertexShaderPath,
-        resources::RenderOpaqueDrawDataPassFragmentShaderPath,
+    return m_opaqueCommandsBuffer;
+}
+
+graphics::PDrawArraysIndirectCommandsConstBuffer BuildDrawDataCommandsBufferPass::transparentCommandsBuffer() const
+{
+    return m_transparentCommandsBuffer;
+}
+
+RenderDrawDataGeometryPass::RenderDrawDataGeometryPass(
+    const std::shared_ptr<ProgramsManager>& programsManager,
+    const graphics::PDrawArraysIndirectCommandsConstBuffer& opaqueDrawDataCommandsBuffer,
+    const graphics::PDrawArraysIndirectCommandsConstBuffer& transparentDrawDataCommandsBuffer)
+    : Pass()
+    , m_opaqueDrawDataCommandsBuffer(opaqueDrawDataCommandsBuffer)
+    , m_transparentDrawDataCommandsBuffer(transparentDrawDataCommandsBuffer)
+{
+    m_opaqueProgram = programsManager->loadOrGetRenderProgram(
+        resources::RenderDrawDataGeometryPassVertexShaderPath,
+        resources::RenderOpaqueDrawDataGeometryPassFragmentShaderPath,
         {});
 
-    m_drawIndirectBufferRange = graphics::BufferRange::create(
-        m_opaqueDrawDataCommandsBuffer->buffer(),
-        DrawIndirectElementsCommandsBuffer::element_type::sizeofReservedType());
+    m_transparentProgram = programsManager->loadOrGetRenderProgram(
+        resources::RenderDrawDataGeometryPassVertexShaderPath,
+        resources::RenderTransparentDrawDataGeometryPassFragmentShaderPath,
+        {});
 
-    m_parameterBufferRange = graphics::BufferRange::create(
-        m_opaqueDrawDataCommandsBuffer->buffer(),
-        0u,
-        DrawIndirectElementsCommandsBuffer::element_type::sizeofReservedType());
+    m_clearOITIndicesImageProgram = programsManager->loadOrGetComputeProgram(
+        resources::ClearOITIndicesImagePassComputeShaderPath,
+        {});
 
-    getOrCreateSSBO(SSBOId::VertexDataBuffer) = graphics::BufferRange::create(sceneData->vertexDataBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::ElementsBuffer) = graphics::BufferRange::create(sceneData->elementsBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::MeshesBuffer) = graphics::BufferRange::create(sceneData->meshesBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::MaterialMapsBuffer) = graphics::BufferRange::create(sceneData->materialMapsBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::MaterialsBuffer) = graphics::BufferRange::create(sceneData->materialsBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::DrawablesBuffer) = graphics::BufferRange::create(sceneData->drawablesBuffer()->buffer());
-    getOrCreateSSBO(SSBOId::DrawDataBuffer) = graphics::BufferRange::create(sceneData->drawDataBuffer()->buffer());
+    m_sortOITNodesProgram = programsManager->loadOrGetComputeProgram(
+        resources::SortOITNodesPassComputeShaderPath,
+        {});
 }
 
-RenderOpaqueDrawDataGeometryPass::~RenderOpaqueDrawDataGeometryPass() = default;
+RenderDrawDataGeometryPass::~RenderDrawDataGeometryPass() = default;
 
-void RenderOpaqueDrawDataGeometryPass::run(
+void RenderDrawDataGeometryPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<graphics::IVertexArray>& vertexArray,
-    const std::shared_ptr<GeometryRenderInfo>& geometryRenderInfo)
+    const std::shared_ptr<GeometryRenderInfo>& geometryRenderInfo,
+    const std::shared_ptr<const SceneData>& sceneData)
 {
     auto geometryBuffer = geometryRenderInfo->geometryBuffer();
 
     framebuffer->detachAll();
     framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->colorTexture0());
-    framebuffer->attach(graphics::FrameBufferAttachment::Color1, geometryBuffer->colorTexture1());
-    framebuffer->attach(graphics::FrameBufferAttachment::Color2, geometryBuffer->colorTexture2());
     framebuffer->attach(graphics::FrameBufferAttachment::Depth, geometryBuffer->depthTexture());
     framebuffer->attach(graphics::FrameBufferAttachment::Stencil, geometryBuffer->stencilTexture());
 
     framebuffer->setClearDepthStencil(1.f, 0x00u);
-    framebuffer->setClearColor(0u, glm::vec4(0.f, 0.f, 0.f, 1.f));
-    framebuffer->setClearColor(1u, glm::vec4(0.f));
-    framebuffer->setClearColor(2u, glm::vec4(0.f));
+    framebuffer->setClearColor(0u, glm::uvec4(0u));
     framebuffer->setClearMask({
         graphics::FrameBufferAttachment::Color0,
-        graphics::FrameBufferAttachment::Color1,
-        graphics::FrameBufferAttachment::Color2,
         core::graphics::FrameBufferAttachment::Depth,
         core::graphics::FrameBufferAttachment::Stencil });
 
@@ -140,18 +118,196 @@ void RenderOpaqueDrawDataGeometryPass::run(
                                                                            graphics::StencilOperation::Replace });
     framebuffer->setBlending(false);
 
-    for (const auto& [id, handle] : m_sceneData->materialMapsHandles())
-        handle->makeResident();
+    renderer->multiDrawArraysIndirectCount(
+        glm::uvec4(0u, 0u, geometryBuffer->size()),
+        m_opaqueProgram,
+        framebuffer,
+        vertexArray,
+        { geometryRenderInfo, sceneData },
+        utils::PrimitiveType::Triangles,
+        m_opaqueDrawDataCommandsBuffer);
+
+    geometryBuffer->clearOITBuffer();
+    renderer->compute(
+        glm::uvec3(geometryBuffer->size(), 1u),
+        m_clearOITIndicesImageProgram,
+        { geometryRenderInfo });
+
+    framebuffer->detachAll();
+    framebuffer->attach(graphics::FrameBufferAttachment::Depth, geometryBuffer->depthTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Stencil, geometryBuffer->stencilTexture());
+
+    framebuffer->setClearMask({});
+
+    framebuffer->setFaceCulling(false);
+    framebuffer->setColorMasks(false);
+    framebuffer->setDepthTest(true);
+    framebuffer->setDepthMask(false);
+    framebuffer->setStencilTest(false);
+    framebuffer->setBlending(false);
 
     renderer->multiDrawArraysIndirectCount(
+        glm::uvec4(0u, 0u, geometryBuffer->size()),
+        m_transparentProgram,
+        framebuffer,
+        vertexArray,
+        { geometryRenderInfo, sceneData },
+        utils::PrimitiveType::Triangles,
+        m_transparentDrawDataCommandsBuffer);
+
+    renderer->compute(
+        glm::uvec3(geometryBuffer->size(), 1u),
+        m_sortOITNodesProgram,
+        { geometryRenderInfo });
+}
+
+RenderBackgroundPass::RenderBackgroundPass(const std::shared_ptr<ProgramsManager>& programsManager)
+    : Pass()
+{
+    m_program = programsManager->loadOrGetRenderProgram(
+        resources::RenderBackgroundPassVertexShaderPath, resources::RenderBackgroundPassFragmentShaderPath, {});
+}
+
+RenderBackgroundPass::~RenderBackgroundPass() = default;
+
+void RenderBackgroundPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<graphics::IVertexArray>& vertexArray,
+    const std::shared_ptr<GeometryRenderInfo>& geometryRenderInfo,
+    const std::shared_ptr<const SceneData>& sceneData)
+{
+    auto geometryBuffer = geometryRenderInfo->geometryBuffer();
+
+    framebuffer->detachAll();
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->finalTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Stencil, geometryBuffer->stencilTexture());
+
+    framebuffer->setClearColor(0u, glm::vec4(glm::vec3(0.f), 1.f));
+    framebuffer->setClearMask({ core::graphics::FrameBufferAttachment::Color0 });
+
+    framebuffer->setFaceCulling(false);
+    framebuffer->setColorMasks(true);
+    framebuffer->setDepthTest(false);
+    framebuffer->setStencilTest(true);
+    framebuffer->setStencilFunc(graphics::FaceType::FrontAndBack, graphics::ComparingFunc::Equal, 0x00, 0xFF);
+    framebuffer->setStencilOperations(graphics::FaceType::FrontAndBack,
+        { graphics::StencilOperation::Keep, graphics::StencilOperation::Keep, graphics::StencilOperation::Keep });
+    framebuffer->setBlending(false);
+
+    renderer->multiDrawArraysIndirectCount(
+        glm::uvec4(0u, 0u, geometryBuffer->size()),
         m_program,
         framebuffer,
         vertexArray,
-        { geometryRenderInfo, shared_from_this() },
+        { geometryRenderInfo, sceneData },
         utils::PrimitiveType::Triangles,
-        m_drawIndirectBufferRange,
-        m_parameterBufferRange,
-        m_opaqueDrawDataCommandsBuffer->size());
+        sceneData->screenQuadCommandsBuffer());
+}
+
+BuildLightsCommandsBufferPass::BuildLightsCommandsBufferPass(const std::shared_ptr<ProgramsManager>& programsManager)
+    : Pass()
+{
+    m_program = programsManager->loadOrGetComputeProgram(resources::BuildLightsCommandsBufferPassComputeShaderPath, {});
+
+    m_lightsCommandsBuffer = graphics::DrawArraysIndirectCommandsBuffer::create();
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CommandsBuffer) =
+        graphics::BufferRange::create(m_lightsCommandsBuffer->buffer());
+}
+
+BuildLightsCommandsBufferPass::~BuildLightsCommandsBufferPass() = default;
+
+void BuildLightsCommandsBufferPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<graphics::IVertexArray>& vertexArray,
+    const std::shared_ptr<GeometryRenderInfo>& geometryRenderInfo,
+    const std::shared_ptr<const SceneData>& sceneData)
+{
+    const auto totalLightsCount =
+        sceneData->pointLightsBuffer()->size() +
+        sceneData->spotLightsBuffer()->size() +
+        sceneData->directionalLightsBuffer()->size() +
+        sceneData->imageBasedLightsBuffer()->size();
+
+    m_lightsCommandsBuffer->resize(totalLightsCount);
+    m_lightsCommandsBuffer->setReservedData({ 0u, static_cast<uint32_t>(totalLightsCount), {0u, 0u} });
+
+    renderer->compute(glm::uvec3(static_cast<uint32_t>(totalLightsCount), 1u, 1u), m_program, { sceneData, shared_from_this() });
+}
+
+graphics::PDrawArraysIndirectCommandsConstBuffer BuildLightsCommandsBufferPass::lightsCommandsBuffer()
+{
+    return m_lightsCommandsBuffer;
+}
+
+RenderDrawDataStencilPass::RenderDrawDataStencilPass(
+    const std::shared_ptr<ProgramsManager>& programsManager,
+    const graphics::PDrawArraysIndirectCommandsConstBuffer& lightsCommandsBuffer)
+    : Pass()
+    , m_lightsCommandsBuffer(lightsCommandsBuffer)
+{
+    m_program = programsManager->loadOrGetRenderProgram(
+        resources::RenderDrawDataStencilPassVertexShaderPath,
+        resources::RenderDrawDataStencilPassFragmentShaderPath,
+        {});
+}
+
+RenderDrawDataStencilPass::~RenderDrawDataStencilPass() = default;
+
+void RenderDrawDataStencilPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<graphics::IVertexArray>& vertexArray,
+    const std::shared_ptr<GeometryRenderInfo>& geometryRenderInfo,
+    const std::shared_ptr<const SceneData>& sceneData)
+{
+}
+
+BlendPass::BlendPass(const std::shared_ptr<ProgramsManager>& programsManager)
+    : Pass()
+{
+    m_program = programsManager->loadOrGetRenderProgram(
+        resources::BlendPassVertexShaderPath,
+        resources::BlendPassFragmentShaderPath,
+        {});
+}
+
+BlendPass::~BlendPass() = default;
+
+void BlendPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<graphics::IVertexArray>& vertexArray,
+    const std::shared_ptr<GeometryRenderInfo>& geometryRenderInfo,
+    const std::shared_ptr<const SceneData>& sceneData)
+{
+    auto geometryBuffer = geometryRenderInfo->geometryBuffer();
+
+    framebuffer->detachAll();
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->finalTexture());
+
+    framebuffer->setClearMask({ });
+
+    framebuffer->setFaceCulling(false);
+    framebuffer->setColorMasks(true);
+    framebuffer->setDepthTest(false);
+    framebuffer->setStencilTest(false);
+    framebuffer->setBlending(true);
+    framebuffer->setBlendEquation(0u, graphics::BlendEquation::Add, graphics::BlendEquation::Add);
+    framebuffer->setBlendFactor(0u,
+        graphics::BlendFactor::SrcAlpha, graphics::BlendFactor::OneMinusSrcAlpha,
+        graphics::BlendFactor::One, graphics::BlendFactor::SrcAlpha);
+
+    renderer->multiDrawArraysIndirectCount(
+        glm::uvec4(0u, 0u, geometryBuffer->size()),
+        m_program,
+        framebuffer,
+        vertexArray,
+        { geometryRenderInfo, sceneData },
+        utils::PrimitiveType::Triangles,
+        sceneData->screenQuadCommandsBuffer());
 }
 
 }

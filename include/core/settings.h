@@ -60,8 +60,8 @@ public:
     Background(const rapidjson::Document::ValueType*);
     ~Background() override;
 
-    const glm::vec3 &color() const;
-    float roughness() const;
+    const glm::vec3 &environmentColor() const;
+    float blurPower() const;
 };
 
 class CORE_SHARED_EXPORT Flat : public utils::SettingsComponent

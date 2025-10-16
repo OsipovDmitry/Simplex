@@ -61,13 +61,13 @@ std::shared_ptr<const IBLLightNode> IBLLightNode::asIBLLightNode() const
 
 graphics::PConstTexture IBLLightNode::BRDFLutMap() const
 {
-    auto uni = uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(UniformId::IBLBRDFLutMap));
+    auto uni = uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(UniformID::IBLBRDFLutMap));
     return uni ? uni->data() : nullptr;
 }
 
 void IBLLightNode::setBRDFLutMap(const graphics::PConstTexture &value)
 {
-    static UniformId s_uniformId = UniformId::IBLBRDFLutMap;
+    static UniformID s_uniformId = UniformID::IBLBRDFLutMap;
 
     if (value)
         m().areaDrawable()->getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -77,13 +77,13 @@ void IBLLightNode::setBRDFLutMap(const graphics::PConstTexture &value)
 
 graphics::PConstTexture IBLLightNode::duffuseMap() const
 {
-    auto uni = uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(UniformId::IBLDiffuseMap));
+    auto uni = uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(UniformID::IBLDiffuseMap));
     return uni ? uni->data() : nullptr;
 }
 
 void IBLLightNode::setDuffuseMap(const graphics::PConstTexture &value)
 {
-    static UniformId s_uniformId = UniformId::IBLDiffuseMap;
+    static UniformID s_uniformId = UniformID::IBLDiffuseMap;
 
     if (value)
         m().areaDrawable()->getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -93,14 +93,14 @@ void IBLLightNode::setDuffuseMap(const graphics::PConstTexture &value)
 
 graphics::PConstTexture IBLLightNode::specularMap() const
 {
-    auto uni = uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(UniformId::IBLSpecularMap));
+    auto uni = uniform_cast<graphics::PConstTexture>(m().areaDrawable()->uniform(UniformID::IBLSpecularMap));
     return uni ? uni->data() : nullptr;
 }
 
 void IBLLightNode::setSpecularMap(const graphics::PConstTexture &value)
 {
 
-    static UniformId s_uniformId = UniformId::IBLSpecularMap;
+    static UniformID s_uniformId = UniformID::IBLSpecularMap;
 
     if (value)
         m().areaDrawable()->getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -110,7 +110,7 @@ void IBLLightNode::setSpecularMap(const graphics::PConstTexture &value)
 
 float IBLLightNode::contribution() const
 {
-    auto uni = uniform_cast<float>(m().areaDrawable()->uniform(UniformId::IBLContribution));
+    auto uni = uniform_cast<float>(m().areaDrawable()->uniform(UniformID::IBLContribution));
     return uni ? uni->data() : settings::Settings::instance().graphics().ibl().contribution();
 }
 
@@ -119,7 +119,7 @@ void IBLLightNode::setContribution(float value)
     if (value < 0.f)
         LOG_CRITICAL << "IBL contribution value can't be negative";
 
-    m().areaDrawable()->getOrCreateUniform(UniformId::IBLContribution) = makeUniform(value);
+    m().areaDrawable()->getOrCreateUniform(UniformID::IBLContribution) = makeUniform(value);
 }
 
 }

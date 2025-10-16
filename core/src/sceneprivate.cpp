@@ -12,7 +12,7 @@ namespace core
 ScenePrivate::ScenePrivate(Scene& scene, const std::string &name)
     : d_(scene)
     , m_name(name)
-    , m_sceneData(std::make_shared<SceneData>())
+    , m_sceneData(SceneData::create())
 {
 }
 

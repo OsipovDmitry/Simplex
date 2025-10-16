@@ -4,9 +4,12 @@
 #include <core/graphicsengine.h>
 #include <core/graphicsrendererbase.h>
 #include <core/pointlightnode.h>
+#include <core/scene.h>
 
 #include "graphicsengineprivate.h"
 #include "pointlightnodeprivate.h"
+#include "scenedata.h"
+#include "sceneprivate.h"
 
 namespace simplex
 {
@@ -24,6 +27,60 @@ PointLightNodePrivate::PointLightNodePrivate(PointLightNode &pointLightNode, con
 }
 
 PointLightNodePrivate::~PointLightNodePrivate() = default;
+
+void PointLightNodePrivate::doAfterTransformChanged()
+{
+    changeInSceneData();
+}
+
+void PointLightNodePrivate::doAttachToScene(const std::shared_ptr<Scene>& scene)
+{
+    if (auto sceneData = scene->m().sceneData())
+        addToSceneData(sceneData);
+}
+
+void PointLightNodePrivate::doDetachFromScene(const std::shared_ptr<Scene>&)
+{
+    removeFromSceneData();
+}
+
+glm::vec3& PointLightNodePrivate::color()
+{
+    return m_color;
+}
+
+glm::vec2& PointLightNodePrivate::radiuses()
+{
+    return m_radiuses;
+}
+
+std::shared_ptr<PointLightHandler>& PointLightNodePrivate::handler()
+{
+    return m_handler;
+}
+
+void PointLightNodePrivate::addToSceneData(const std::shared_ptr<SceneData>& sceneData)
+{
+    if (!sceneData)
+    {
+        LOG_ERROR << "Scene data can't be nullptr";
+        return;
+    }
+
+    m_handler = sceneData->addPointLight(d().globalTransform(), doAreaScale(), m_color, m_radiuses);
+}
+
+void PointLightNodePrivate::removeFromSceneData()
+{
+    m_handler.reset();
+}
+
+void PointLightNodePrivate::changeInSceneData()
+{
+    if (m_handler)
+        if (auto sceneData = m_handler->sceneData().lock())
+            sceneData->onPointLightChanged(m_handler->ID(), d().globalTransform(), doAreaScale(), m_color, m_radiuses);
+}
 
 LightNodePrivate::ShadowTransform PointLightNodePrivate::doShadowTransform(const utils::Frustum::Points&)
 {
@@ -75,6 +132,11 @@ utils::BoundingBox PointLightNodePrivate::doAreaBoundingBox()
         LOG_CRITICAL << "Graphics engine can't be nullptr";
 
     return areaMatrix() * graphicsEngine->m().pointLightAreaBoundingBox();
+}
+
+glm::vec3 PointLightNodePrivate::doAreaScale() const
+{
+    return glm::vec3(extendedRadius(d().radiuses()[1u]));
 }
 
 }

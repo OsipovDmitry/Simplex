@@ -3,25 +3,28 @@
 layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 uniform sampler2DRect u_GBufferDepthMap;
+layout (r32f) uniform image2DRect u_OITDepthMap;
+layout (r32ui) uniform uimage2DRect u_OITIndicesMap;
 
-layout (std430) buffer ssbo_OITNodesBuffer { uint OITMaxNumNodes; uint OITNumNodes; OITNode OITNodes[]; };
-layout (r32ui) uniform uimage2DRect u_OITIndicesImage;
-layout (r32f) uniform image2DRect u_OITDepthImage;
+layout (std430) buffer ssbo_OITBuffer {
+	OITBufferReservedData OITReservedData;
+	OITBufferNode OITNodes[];
+};
 
 uint sortOITNodes(in uint startIndex)
 {
-    uint sortedIndex = 0xFFFFFFFF;
+    uint sortedIndex = 0xFFFFFFFFu;
 
     uint currentIndex = startIndex;
     float currentDepth = 0.0f;
     
-    while (currentIndex != 0xFFFFFFFF)
+    while (currentIndex != 0xFFFFFFFFu)
     {
         currentDepth = OITNodes[currentIndex].depth;
     
         uint nextIndex = OITNodes[currentIndex].next;
         
-        if ((sortedIndex == 0xFFFFFFFF) || (OITNodes[sortedIndex].depth < currentDepth))
+        if ((sortedIndex == 0xFFFFFFFFu) || (OITNodes[sortedIndex].depth < currentDepth))
         {
             OITNodes[currentIndex].next = sortedIndex;
             sortedIndex = currentIndex;
@@ -29,7 +32,7 @@ uint sortOITNodes(in uint startIndex)
         else
         {
             uint newIndex = sortedIndex;
-            while ((OITNodes[newIndex].next != 0xFFFFFFFF) && (OITNodes[OITNodes[newIndex].next].depth > currentDepth))
+            while ((OITNodes[newIndex].next != 0xFFFFFFFFu) && (OITNodes[OITNodes[newIndex].next].depth > currentDepth))
                 newIndex = OITNodes[newIndex].next;
 
             OITNodes[currentIndex].next = OITNodes[newIndex].next;
@@ -46,22 +49,22 @@ void main(void)
 {
     ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
     
-    if (all(lessThan(texelCoord, imageSize(u_OITIndicesImage))))
+    if (all(lessThan(texelCoord, imageSize(u_OITIndicesMap))))
     {
-        uint OITIndex = imageLoad(u_OITIndicesImage, texelCoord).r;
+        uint OITIndex = imageLoad(u_OITIndicesMap, texelCoord).r;
         OITIndex = sortOITNodes(OITIndex);
-        imageStore(u_OITIndicesImage, texelCoord, uvec4(OITIndex));
+        imageStore(u_OITIndicesMap, texelCoord, uvec4(OITIndex));
     }
     
-    if (all(lessThan(texelCoord, imageSize(u_OITDepthImage))))
+    if (all(lessThan(texelCoord, imageSize(u_OITDepthMap))))
     {
         float depth = texelFetch(u_GBufferDepthMap, texelCoord).r;
-        uint OITIndex = imageLoad(u_OITIndicesImage, texelCoord).r;
-        while (OITIndex != 0xFFFFFFFF)
+        uint OITIndex = imageLoad(u_OITIndicesMap, texelCoord).r;
+        while (OITIndex != 0xFFFFFFFFu)
         {
             depth = OITNodes[OITIndex].depth;
             OITIndex = OITNodes[OITIndex].next;
         }
-        imageStore(u_OITDepthImage, texelCoord, vec4(depth));
+        imageStore(u_OITDepthMap, texelCoord, vec4(depth));
     }
 }

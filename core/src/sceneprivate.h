@@ -11,9 +11,6 @@ namespace simplex
 namespace core
 {
 
-struct MaterialMapHandler;
-struct MaterialHandler;
-struct MeshHandler;
 class SceneData;
 
 class ScenePrivate

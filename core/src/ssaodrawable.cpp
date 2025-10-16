@@ -29,7 +29,7 @@ SSAODrawable::~SSAODrawable() = default;
 
 float SSAODrawable::contribution() const
 {
-    auto uni = uniform_cast<float>(uniform(UniformId::SSAOContribution));
+    auto uni = uniform_cast<float>(uniform(UniformID::SSAOContribution));
     return uni ? uni->data() : settings::Settings::instance().graphics().ssao().contribution();
 }
 
@@ -38,7 +38,7 @@ void SSAODrawable::setContribution(float value)
     if (value < 0.f)
         LOG_CRITICAL << "SSAO contribution can't be less than 0.0";
 
-    getOrCreateUniform(UniformId::SSAOContribution) = makeUniform(value);
+    getOrCreateUniform(UniformID::SSAOContribution) = makeUniform(value);
 }
 
 uint32_t SSAODrawable::kernelBufferSize() const
@@ -65,7 +65,7 @@ void SSAODrawable::setNoiseTextureSize(uint32_t value)
 
 float SSAODrawable::radius() const
 {
-    auto uni = uniform_cast<float>(uniform(UniformId::SSAORadius));
+    auto uni = uniform_cast<float>(uniform(UniformID::SSAORadius));
     return uni ? uni->data() : settings::Settings::instance().graphics().ssao().radius();
 }
 
@@ -74,7 +74,7 @@ void SSAODrawable::setRadius(float value)
     if (value <= 0.f)
         LOG_CRITICAL << "SSAO radius must be greater than 0.0";
 
-    getOrCreateUniform(UniformId::SSAORadius) = makeUniform(value);
+    getOrCreateUniform(UniformID::SSAORadius) = makeUniform(value);
 }
 
 void SSAODrawable::update(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer)
@@ -86,7 +86,7 @@ void SSAODrawable::update(const std::shared_ptr<graphics::RendererBase> &graphic
 
         const auto numSamples = kernelBufferSize();
         const size_t bufferSize = 4u * sizeof(uint32_t) + numSamples * sizeof(glm::vec4);
-        auto kernelBuffer = graphicsRenderer->createBuffer(bufferSize);
+        auto kernelBuffer = graphicsRenderer->createStaticBuffer(bufferSize);
         auto data = kernelBuffer->map(graphics::IBuffer::MapAccess::WriteOnly);
         auto p = data->get();
         *reinterpret_cast<uint32_t*>(p) = numSamples;
@@ -128,28 +128,28 @@ void SSAODrawable::update(const std::shared_ptr<graphics::RendererBase> &graphic
 
 graphics::PConstBufferRange SSAODrawable::kernelBuffer() const
 {
-    return SSBO(SSBOId::SSAOKernel);
+    return shaderStorageBlock(ShaderStorageBlockID::SSAOKernel);
 }
 
 void SSAODrawable::setKernelBuffer(const graphics::PConstBufferRange &value)
 {
-    static SSBOId s_SSBOId = SSBOId::SSAOKernel;
+    static ShaderStorageBlockID s_SSBOId = ShaderStorageBlockID::SSAOKernel;
 
     if (value)
-        getOrCreateSSBO(s_SSBOId) = value;
+        getOrCreateShaderStorageBlock(s_SSBOId) = value;
     else
-        removeSSBO(s_SSBOId);
+        removeShaderStorageBlock(s_SSBOId);
 }
 
 graphics::PConstTexture SSAODrawable::noiseTexture() const
 {
-    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformId::SSAONoiseMap));
+    auto uni = uniform_cast<graphics::PConstTexture>(uniform(UniformID::SSAONoiseMap));
     return uni ? uni->data() : nullptr;
 }
 
 void SSAODrawable::setNoiseTexture(const graphics::PConstTexture &value)
 {
-    static UniformId s_uniformId = UniformId::SSAONoiseMap;
+    static UniformID s_uniformId = UniformID::SSAONoiseMap;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);

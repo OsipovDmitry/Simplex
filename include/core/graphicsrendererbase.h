@@ -164,27 +164,36 @@ struct OutputInfo
 
 struct UniformInfo
 {
-    UniformId id;
+    UniformID ID;
     uint16_t index;
     int32_t location;
     UniformType type;
 };
 
-struct SSBOVariableInfo
+struct BufferVariableInfo
 {
-    std::string name;
     uint16_t index;
-    //SSBOVariableType type;
+    //VariableType type;
+    uint16_t arraySize;
     uint16_t offset;
     uint16_t arrayStride;
+    uint16_t matrixStride;
+    uint16_t topLevelArraySize;
     uint16_t topLevelArrayStride;
 };
 
-struct SSBOInfo
+struct UniformBlockInfo
 {
-    SSBOId id;
+    UniformBlockID ID;
     uint16_t index;
-    std::vector<SSBOVariableInfo> variables;
+    std::vector<BufferVariableInfo> variables;
+};
+
+struct ShaderStorageBlockInfo
+{
+    ShaderStorageBlockID ID;
+    uint16_t index;
+    std::vector<BufferVariableInfo> variables;
 };
 
 ENUMCLASS(FaceType, uint16_t,
@@ -224,32 +233,39 @@ static constexpr bool IsFrameBufferColorAttachment(FrameBufferAttachment a) {
 class IBuffer
 {
 public:
-    class MappedData {
-    public:
-        virtual ~MappedData() = default; // mapped data should be unmapped in destructor's implementation
-        virtual const uint8_t *get() const = 0;
-        virtual uint8_t *get() = 0;
-    };
-
     virtual ~IBuffer() = default;
 
+    virtual bool isEmpty() const = 0;
     virtual size_t size() const = 0;
-    virtual void resize(size_t size) = 0;
+
+    class MappedData {
+    public:
+        virtual ~MappedData() = default; // mapped data has to be unmapped in destructor's implementation
+        virtual uint8_t* get() = 0;
+        virtual const uint8_t* get() const = 0;
+    };
 
     ENUMCLASS(MapAccess, uint8_t, ReadOnly, WriteOnly, ReadWrite)
-    virtual std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const = 0;
     virtual std::unique_ptr<MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) = 0;
+    virtual std::unique_ptr<const MappedData> map(MapAccess access, size_t offset = 0u, size_t size = 0u) const = 0;
+};
+
+class IStaticBuffer : public IBuffer
+{
+public:
 };
 
 class IDynamicBuffer : public IBuffer
 {
 public:
-    //~IDynamicBuffer() override = default;
-
     virtual size_t capacity() const = 0;
     virtual void reserve(size_t) = 0;
+    virtual void shrinkToFit() = 0;
 
-    virtual void pushBack(const void* data, size_t size) = 0;
+    virtual void clear() = 0;
+    virtual void insert(size_t offset, const void* data, size_t size) = 0;
+    virtual void erase(size_t offset, size_t size) = 0;
+    virtual void resize(size_t) = 0;
 };
 
 class IVertexArray
@@ -417,11 +433,13 @@ public:
     //virtual int32_t uniformLocationByName(const std::string&) const = 0;
 
     virtual const std::vector<UniformInfo> &uniformsInfo() const = 0;
-    virtual const std::vector<SSBOInfo> &SSBOsInfo() const = 0;
+    virtual const std::vector<UniformBlockInfo>& uniformBlocksInfo() const = 0;
+    virtual const std::vector<ShaderStorageBlockInfo> &shaderStorageBlocksInfo() const = 0;
 
     virtual std::string uniformNameByIndex(uint16_t) const = 0;
-    virtual std::string SSBOVariableNameByIndex(uint16_t) const = 0;
-    virtual std::string SSBONameByIndex(uint16_t) const = 0;
+    virtual std::string bufferVariableNameByIndex(uint16_t) const = 0;
+    virtual std::string uniformBlockNameByIndex(uint16_t) const = 0;
+    virtual std::string shaderStorageBlockNameByIndex(uint16_t) const = 0;
 
     static UniformType uniformTypeByTextureType(TextureType);
     static UniformType uniformTypeByImageTextureType(TextureType);
@@ -442,6 +460,30 @@ class IComputeProgram : public virtual IProgram
 {
 public:
     virtual glm::uvec3 workGroupSize() const = 0;
+};
+
+struct DrawArraysIndirectCommand
+{
+    uint32_t count;
+    uint32_t instanceCount;
+    uint32_t first;
+    uint32_t baseInstance;
+};
+
+struct DrawElementsIndirectCommand
+{
+    uint32_t count;
+    uint32_t instanceCount;
+    uint32_t firstIndex;
+    int32_t  baseVertex;
+    uint32_t baseInstance;
+};
+
+struct DrawIndirectCommandsBufferReservedData
+{
+    uint32_t count;
+    uint32_t maxSize;
+    uint32_t padding[2u];
 };
 
 class RendererBasePrivate;
@@ -466,13 +508,17 @@ public:
     bool unregisterOutput(const std::string&);
     FrameBufferAttachment outputByName(const std::string&) const;
 
-    bool registerUniform(const std::string&, UniformId);
+    bool registerUniform(const std::string&, UniformID);
     bool unregisterUniform(const std::string&);
-    UniformId uniformByName(const std::string&) const;
+    UniformID uniformByName(const std::string&) const;
 
-    bool registerSSBO(const std::string&, SSBOId);
-    bool unregisterSSBO(const std::string&);
-    SSBOId SSBOByName(const std::string&) const;
+    bool registerUniformBlock(const std::string&, UniformBlockID);
+    bool unregisterUniformBlock(const std::string&);
+    UniformBlockID uniformBlockByName(const std::string&) const;
+
+    bool registerShaderStorageBlock(const std::string&, ShaderStorageBlockID);
+    bool unregisterShaderStorageBlock(const std::string&);
+    ShaderStorageBlockID shaderStorageBlockByName(const std::string&) const;
 
     virtual std::shared_ptr<IGraphicsWidget> widget() = 0;
     virtual std::shared_ptr<const IGraphicsWidget> widget() const = 0;
@@ -484,13 +530,7 @@ public:
                                  bool colorMsk, bool depthMask, bool stencilMask,
                                  bool linearFilter = false) = 0;
 
-    virtual void copyBufferSubData(const std::shared_ptr<IBuffer>& dst,
-        const std::shared_ptr<const IBuffer>& src,
-        size_t dstOffset, 
-        size_t srcOffset,
-        size_t size) const = 0;
-
-    virtual std::shared_ptr<IBuffer> createBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
+    virtual std::shared_ptr<IStaticBuffer> createStaticBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
     virtual std::shared_ptr<IDynamicBuffer> createDynamicBuffer(size_t size = 0u, const void* data = nullptr) const = 0;
     virtual std::shared_ptr<IVertexArray> createVertexArray() const = 0;
     virtual std::shared_ptr<ITexture> createTexture1DEmpty(uint32_t width,
@@ -569,11 +609,12 @@ public:
     virtual std::shared_ptr<IComputeProgram> createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const = 0;
 
     virtual void compute(
-        const std::shared_ptr<IComputeProgram>&,
         const glm::uvec3&,
+        const std::shared_ptr<IComputeProgram>&,
         const StateSetList&) = 0;
 
     virtual void drawArrays(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
@@ -583,6 +624,7 @@ public:
         size_t count) = 0;
 
     virtual void drawElements(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
@@ -593,6 +635,7 @@ public:
         size_t offset) = 0;
 
     virtual void multiDrawArrays(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
@@ -602,6 +645,7 @@ public:
         const std::vector<size_t>& counts) = 0;
 
     virtual void multiDrawElements(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
@@ -612,6 +656,7 @@ public:
         const std::vector<size_t>& offsets) = 0;
 
     virtual void drawElementsBaseVertex(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
@@ -623,6 +668,7 @@ public:
         uint32_t baseVertex) = 0;
 
     virtual void drawArraysInstanced(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
@@ -633,6 +679,7 @@ public:
         size_t numInstances) = 0;
 
     virtual void drawElementsInstanced(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
@@ -644,6 +691,7 @@ public:
         size_t numInstances) = 0;
 
     virtual void drawArraysInstancedBaseInstance(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
@@ -655,6 +703,7 @@ public:
         uint32_t baseInstance) = 0;
 
     virtual void drawElementsInstancedBaseInstance(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
@@ -667,61 +716,61 @@ public:
         uint32_t baseInstance) = 0;
 
     virtual void drawArraysIndirect(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
         const StateSetList&,
         utils::PrimitiveType,
-        const std::shared_ptr<const graphics::BufferRange>&) = 0;
+        const PDrawArraysIndirectCommandsConstBuffer&) = 0;
 
     virtual void drawElementsIndirect(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
         const StateSetList&,
         utils::PrimitiveType,
         utils::DrawElementsIndexType,
-        const std::shared_ptr<const graphics::BufferRange>&) = 0;
+        const PDrawElementsIndirectCommandConstBuffer&) = 0;
 
     virtual void multiDrawArraysIndirect(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
         const StateSetList&,
         utils::PrimitiveType,
-        const std::shared_ptr<const graphics::BufferRange>&,
-        size_t count) = 0;
+        const PDrawArraysIndirectCommandsConstBuffer&) = 0;
 
     virtual void multiDrawElementsIndirect(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
         const StateSetList&,
         utils::PrimitiveType,
         utils::DrawElementsIndexType,
-        const std::shared_ptr<const graphics::BufferRange>&,
-        size_t count) = 0;
+        const PDrawElementsIndirectCommandConstBuffer&) = 0;
 
     virtual void multiDrawArraysIndirectCount(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
         const StateSetList&,
         utils::PrimitiveType,
-        const std::shared_ptr<const graphics::BufferRange>& drawIndirectBufferRange,
-        const std::shared_ptr<const graphics::BufferRange>& parameterBufferRange,
-        size_t maxDrawCount) = 0;
+        const PDrawArraysIndirectCommandsConstBuffer&) = 0;
 
     virtual void multiDrawElementsIndirectCount(
+        const glm::uvec4&,
         const std::shared_ptr<graphics::IRenderProgram>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
         const StateSetList&,
         utils::PrimitiveType,
         utils::DrawElementsIndexType,
-        const std::shared_ptr<const graphics::BufferRange>& drawIndirectBufferRange,
-        const std::shared_ptr<const graphics::BufferRange>& parameterBufferRange,
-        size_t maxDrawCount) = 0;
+        const PDrawElementsIndirectCommandConstBuffer&) = 0;
 
     virtual void clearRenderData() = 0;
     virtual void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
@@ -736,163 +785,6 @@ protected:
     virtual bool doDoneCurrent() = 0;
 
     std::unique_ptr<RendererBasePrivate> m_;
-};
-
-template <typename T, typename ReservedType = void>
-class DynamicBufferT final
-{
-    NONCOPYBLE(DynamicBufferT)
-public:
-    using value_type = T;
-    static constexpr size_t sizeofT() { return sizeof(value_type); }
-
-    using reserved_type = ReservedType;
-    static constexpr size_t sizeofReservedType() {
-        if constexpr (std::is_same_v<reserved_type, void>) return 0u;
-        else return sizeof(reserved_type);
-    }
-
-    ~DynamicBufferT() = default;
-
-    std::shared_ptr<const IDynamicBuffer> buffer() const { return m_buffer; }
-
-    template <typename U = reserved_type, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
-    reserved_type reservedData() const {
-        return *reinterpret_cast<reserved_type*>(m_buffer->map(IBuffer::MapAccess::ReadOnly, 0u, sizeofReservedType())->get());
-    }
-
-    template <typename U = reserved_type, typename std::enable_if<!std::is_same<U, void>::value>::type* = nullptr>
-    void setReservedData(const U& value) {
-        *reinterpret_cast<reserved_type*>(m_buffer->map(IBuffer::MapAccess::WriteOnly, 0u, sizeofReservedType())->get()) = value;
-    }
-
-    size_t capacity() const { return (m_buffer->capacity() - sizeofReservedType()) / sizeofT(); }
-    void reserve(size_t value) { m_buffer->reserve(value * sizeofT() + sizeofReservedType()); }
-
-    size_t size() const { return (m_buffer->size() - sizeofReservedType()) / sizeofT(); }
-    void resize(size_t value) { m_buffer->resize(value * sizeofT() + sizeofReservedType()); }
-
-    void clear() { resize(0u); }
-
-    void pushBack(const value_type& value) { m_buffer->pushBack(&value, sizeofT()); }
-    void set(size_t index, const value_type& value)
-    {
-        if (index >= size())
-            LOG_CRITICAL << "Index is out of range";
-
-        *reinterpret_cast<value_type*>(m_buffer->map(
-            IBuffer::MapAccess::WriteOnly,
-            index * sizeofT() + sizeofReservedType(),
-            sizeofT())->get()) = value;
-    }
-    value_type get(size_t index) const
-    {
-        if (index >= size())
-            LOG_CRITICAL << "Index is out of range";
-
-        return *reinterpret_cast<value_type*>(m_buffer->map(
-           IBuffer::MapAccess::ReadOnly,
-           index * sizeofT() + sizeofReservedType(),
-            sizeofT())->get());
-    }
-    void erase(size_t index, size_t count)
-    {
-        if (!count)
-            return;
-
-        if (index + count > size())
-            LOG_CRITICAL << "Index is out of range";
-
-        auto currentContext = RendererBase::current();
-        if (!currentContext)
-        {
-            LOG_CRITICAL << "No current context";
-            return;
-        }
-
-        // copying blocks by count elements to avoid overlapping
-        const auto newSize = size() - count;
-        auto dstOffset = index;
-        while (dstOffset < newSize)
-        {
-            const auto srcOffset = dstOffset + count;
-            const auto copySize = std::min(count, size() - srcOffset);
-
-            currentContext->copyBufferSubData(
-                m_buffer,
-                m_buffer,
-                dstOffset * sizeofT() + sizeofReservedType(),
-                srcOffset * sizeofT() + sizeofReservedType(),
-                copySize * sizeofT());
-
-            dstOffset = srcOffset;
-        }
-
-        resize(newSize);
-    }
-    void insert(size_t index, size_t count, const value_type* data)
-    {
-        if (!count)
-            return;
-
-        if (index > size())
-            LOG_CRITICAL << "Index is out of range";
-
-        auto currentContext = RendererBase::current();
-        if (!currentContext)
-        {
-            LOG_CRITICAL << "No current context";
-            return;
-        }
-
-        // copying blocks by count elements to avoid overlapping
-        auto oldSize = size();
-        resize(oldSize + count);
-        auto srcOffset = oldSize;
-        while (auto copySize = (srcOffset > index + count) ? count : srcOffset - index)
-        {
-            srcOffset = (srcOffset > index + count) ? srcOffset - count : index;
-            const auto dstOffset = srcOffset + count;
-
-            currentContext->copyBufferSubData(
-                m_buffer,
-                m_buffer,
-                dstOffset * sizeofT() + sizeofReservedType(),
-                srcOffset * sizeofT() + sizeofReservedType(),
-                copySize * sizeofT());
-        }
-
-        std::memcpy(
-            m_buffer->map(
-                IBuffer::MapAccess::WriteOnly,
-                index * sizeofT() + sizeofReservedType(),
-                count * sizeofT())->get(),
-            data,
-            count * sizeofT());
-    }
-
-    static std::shared_ptr<DynamicBufferT<value_type, reserved_type>> create(std::initializer_list<value_type> l = {})
-    {
-        auto currentContext = RendererBase::current();
-        if (!currentContext)
-        {
-            LOG_CRITICAL << "No current context";
-            return nullptr;
-        }
-
-        return std::shared_ptr<DynamicBufferT<value_type, reserved_type>>(new DynamicBufferT<value_type, reserved_type>(
-            currentContext->createDynamicBuffer(), l.size(), l.begin()));
-    }
-
-private:
-    DynamicBufferT(const std::shared_ptr<IDynamicBuffer>& buffer, size_t count, const value_type* data)
-        : m_buffer(buffer)
-    {
-        clear();
-        insert(0u, count, data);
-    }
-
-    std::shared_ptr<IDynamicBuffer> m_buffer;
 };
 
 class CORE_SHARED_EXPORT BufferRange final
@@ -961,6 +853,146 @@ private:
 
     std::shared_ptr<IVertexArray> m_vao;
     std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> m_primitiveSets;
+};
+
+template <typename T>
+class StructBuffer
+{
+    NONCOPYBLE(StructBuffer)
+public:
+    using value_type = T;
+    static constexpr size_t sizeofT() { return sizeof(value_type); }
+
+    ~StructBuffer() = default;
+
+    std::shared_ptr<const IStaticBuffer> buffer() const { return m_buffer; }
+
+    value_type get() const
+    {
+        return *reinterpret_cast<value_type*>(m_buffer->map(IBuffer::MapAccess::ReadOnly)->get());
+    }
+
+    void set(const value_type& value)
+    {
+        *reinterpret_cast<value_type*>(m_buffer->map(IBuffer::MapAccess::WriteOnly)->get()) = value;
+    }
+
+    static std::shared_ptr<StructBuffer<value_type>> create(const value_type& value = value_type())
+    {
+        auto currentContext = RendererBase::current();
+        if (!currentContext)
+        {
+            LOG_CRITICAL << "No current context";
+            return nullptr;
+        }
+
+        return std::shared_ptr<StructBuffer<value_type>>(
+            new StructBuffer<value_type>(currentContext->createStaticBuffer(sizeofT(), &value)));
+    }
+
+private:
+    StructBuffer(const std::shared_ptr<IStaticBuffer>& buffer)
+        : m_buffer(buffer)
+    {
+    }
+
+    std::shared_ptr<IStaticBuffer> m_buffer;
+};
+
+template <typename T, typename ReservedType = void>
+class VectorBuffer final
+{
+    NONCOPYBLE(VectorBuffer)
+public:
+    using value_type = T;
+    static constexpr size_t sizeofT() { return sizeof(value_type); }
+
+    using reserved_type = ReservedType;
+    static constexpr size_t sizeofReservedType() {
+        if constexpr (std::is_same_v<reserved_type, void>) return 0u;
+        else return sizeof(reserved_type);
+    }
+
+    ~VectorBuffer() = default;
+
+    std::shared_ptr<const IDynamicBuffer> buffer() const { return m_buffer; }
+
+    template <typename U = reserved_type, typename std::enable_if<!std::is_void<U>::value>::type* = nullptr>
+    reserved_type reservedData() const {
+        return *reinterpret_cast<reserved_type*>(m_buffer->map(IBuffer::MapAccess::ReadOnly, 0u, sizeofReservedType())->get());
+    }
+
+    template <typename U = reserved_type, typename std::enable_if<!std::is_void<U>::value>::type* = nullptr>
+    void setReservedData(const U& value) {
+        *reinterpret_cast<reserved_type*>(m_buffer->map(IBuffer::MapAccess::WriteOnly, 0u, sizeofReservedType())->get()) = value;
+    }
+
+    bool isEmpty() const { return size() == 0u; }
+    size_t size() const { return (m_buffer->size() - sizeofReservedType()) / sizeofT(); }
+
+    size_t capacity() const { return (m_buffer->capacity() - sizeofReservedType()) / sizeofT(); }
+    void reserve(size_t value) { m_buffer->reserve(value * sizeofT() + sizeofReservedType()); }
+    void shrinkToFit() { m_buffer->shrinkToFit(); }
+
+    void clear() { resize(0u); }
+    void insert(size_t index, const value_type* data, size_t count) {
+        m_buffer->insert(index * sizeofT() + sizeofReservedType(), data, count * sizeofT()); }
+    void insert(size_t index, std::initializer_list<value_type> l) { insert(index, l.begin(), l.size()); }
+    void erase(size_t index, size_t count) { m_buffer->erase(index * sizeofT() + sizeofReservedType(), count * sizeofT()); }
+    void resize(size_t count) { m_buffer->resize(count * sizeofT() + sizeofReservedType()); }
+
+    void pushBack(const value_type& value) { insert(size(), &value, 1u); }
+    void set(size_t index, const value_type& value)
+    {
+        if (index >= size())
+            LOG_CRITICAL << "Index is out of range";
+
+        *reinterpret_cast<value_type*>(m_buffer->map(
+            IBuffer::MapAccess::WriteOnly,
+            index * sizeofT() + sizeofReservedType(),
+            sizeofT())->get()) = value;
+    }
+    value_type get(size_t index) const
+    {
+        if (index >= size())
+            LOG_CRITICAL << "Index is out of range";
+
+        return *reinterpret_cast<value_type*>(m_buffer->map(
+            IBuffer::MapAccess::ReadOnly,
+            index * sizeofT() + sizeofReservedType(),
+            sizeofT())->get());
+    }
+
+    static std::shared_ptr<VectorBuffer<value_type, reserved_type>> create(std::initializer_list<value_type> l = {})
+    {
+        auto currentContext = RendererBase::current();
+        if (!currentContext)
+        {
+            LOG_CRITICAL << "No current context";
+            return nullptr;
+        }
+
+        return std::shared_ptr<VectorBuffer<value_type, reserved_type>>(new VectorBuffer<value_type, reserved_type>(
+            currentContext->createDynamicBuffer(), l.begin(), l.size()));
+    }
+
+    template <typename U = reserved_type, typename std::enable_if<!std::is_void<U>::value>::type* = nullptr>
+    static std::shared_ptr<VectorBuffer<value_type, U>> create(const U& r = U(), std::initializer_list<value_type> l = {})
+    {
+        auto result = create(l);
+        result->setReservedData(r);
+        return result;
+    }
+
+private:
+    VectorBuffer(const std::shared_ptr<IDynamicBuffer>& buffer, const value_type* data, size_t count)
+        : m_buffer(buffer)
+    {
+        clear();
+        insert(0u, data, count);
+    }
+
+    std::shared_ptr<IDynamicBuffer> m_buffer;
 };
 
 inline UniformType IProgram::uniformTypeByTextureType(TextureType textureType)

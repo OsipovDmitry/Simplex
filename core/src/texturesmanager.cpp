@@ -471,6 +471,7 @@ inline std::shared_ptr<graphics::ITexture> loadTextureFromJSON(const std::shared
                                              textureInternalFormat,
                                              levelsCount,
                                              textureAutogenMipmaps);
+
         if (!result)
         {
             LOG_ERROR << "Failed to create rect texture";

@@ -559,16 +559,16 @@ BufferBase_4_5::MappedData_4_5::~MappedData_4_5()
     }
 }
 
-const uint8_t *Buffer_4_5::MappedData_4_5::get() const
-{
-    CHECK_CURRENT_CONTEXT;
-    return const_cast<MappedData_4_5*>(this)->get();
-}
-
-uint8_t *Buffer_4_5::MappedData_4_5::get()
+uint8_t* BufferBase_4_5::MappedData_4_5::get()
 {
     CHECK_CURRENT_CONTEXT;
     return m_mappedBuffer.expired() ? nullptr : m_data;
+}
+
+const uint8_t *BufferBase_4_5::MappedData_4_5::get() const
+{
+    CHECK_CURRENT_CONTEXT;
+    return const_cast<MappedData_4_5*>(this)->get();
 }
 
 // BufferBase_4_5
@@ -585,7 +585,14 @@ GLuint BufferBase_4_5::id() const
     return m_id;
 }
 
-size_t BufferBase_4_5::fullSize() const
+BufferBase_4_5::BufferBase_4_5(uint64_t size, const void* data)
+{
+    SAVE_CURRENT_CONTEXT;
+        glCreateBuffers(1, &m_id);
+    glNamedBufferStorage(m_id, size, data, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+}
+
+size_t BufferBase_4_5::sizeImpl() const
 {
     CHECK_CURRENT_CONTEXT;
     GLint result = 0;
@@ -593,11 +600,11 @@ size_t BufferBase_4_5::fullSize() const
     return static_cast<size_t>(result);
 }
 
-void BufferBase_4_5::setFullSize(size_t newSize)
+void BufferBase_4_5::resizeImpl(size_t newSize)
 {
     CHECK_CURRENT_CONTEXT;
 
-    size_t oldSize = fullSize();
+    auto oldSize = sizeImpl();
     if (oldSize == newSize)
         return;
 
@@ -609,28 +616,12 @@ void BufferBase_4_5::setFullSize(size_t newSize)
     m_id = newID;
 }
 
-BufferBase_4_5::BufferBase_4_5(uint64_t size, const void* data)
-{
-    SAVE_CURRENT_CONTEXT;
-        glCreateBuffers(1, &m_id);
-    glNamedBufferStorage(m_id, size, data, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
-}
-
-std::unique_ptr<BufferBase_4_5::MappedData_4_5> BufferBase_4_5::mapData(core::graphics::IBuffer::MapAccess access, size_t offset, size_t size)
+std::unique_ptr<BufferBase_4_5::MappedData_4_5> BufferBase_4_5::mapImpl(core::graphics::IBuffer::MapAccess access, size_t offset, size_t size)
 {
     CHECK_CURRENT_CONTEXT;
     if (m_isMapped)
     {
         LOG_ERROR << "Buffer is already mapped";
-        return nullptr;
-    }
-
-    if (size == 0)
-        size = fullSize() - offset;
-
-    if (offset + size > fullSize())
-    {
-        LOG_ERROR << "The size of mapped data is out of range";
         return nullptr;
     }
 
@@ -644,49 +635,61 @@ std::unique_ptr<BufferBase_4_5::MappedData_4_5> BufferBase_4_5::mapData(core::gr
                     Conversions::BufferMapAccess2GL(access))));
 }
 
-std::unique_ptr<const BufferBase_4_5::MappedData_4_5> BufferBase_4_5::mapData(core::graphics::IBuffer::MapAccess access, size_t offset, size_t size) const
-{
-    CHECK_CURRENT_CONTEXT;
-    return const_cast<BufferBase_4_5*>(this)->mapData(access, offset, size);
-}
+// StaticBuffer_4_5
 
-// Buffer_4_5
-
-Buffer_4_5::Buffer_4_5(uint64_t size, const void* data)
+StaticBuffer_4_5::StaticBuffer_4_5(uint64_t size, const void* data)
     : BufferBase_4_5(size, data)
 {
     SAVE_CURRENT_CONTEXT;
 }
 
-Buffer_4_5::~Buffer_4_5() = default;
+StaticBuffer_4_5::~StaticBuffer_4_5() = default;
 
-size_t Buffer_4_5::size() const
+bool StaticBuffer_4_5::isEmpty() const
 {
     CHECK_CURRENT_CONTEXT;
-    return fullSize();
+    return sizeImpl() == 0u;
 }
 
-void Buffer_4_5::resize(size_t size)
+size_t StaticBuffer_4_5::size() const
 {
     CHECK_CURRENT_CONTEXT;
-    setFullSize(size);
+    return sizeImpl();
 }
 
-std::unique_ptr<const core::graphics::IBuffer::MappedData> Buffer_4_5::map(MapAccess access, size_t offset, size_t size) const
+std::unique_ptr<core::graphics::IBuffer::MappedData> StaticBuffer_4_5::map(MapAccess access, size_t offset, size_t size)
 {
     CHECK_CURRENT_CONTEXT;
-    return mapData(access, offset, size);
+
+    auto bufferSize = StaticBuffer_4_5::size();
+
+    if (size == 0)
+        size = bufferSize - offset;
+
+    if (offset > bufferSize)
+    {
+        LOG_ERROR << "The offset of mapped data is out of range";
+        return nullptr;
+    }
+
+    if (offset + size > bufferSize)
+    {
+        LOG_ERROR << "The size of mapped data is out of range";
+        return nullptr;
+    }
+
+    return mapImpl(access, offset, size);
 }
 
-std::unique_ptr<core::graphics::IBuffer::MappedData> Buffer_4_5::map(MapAccess access, size_t offset, size_t size)
+std::unique_ptr<const core::graphics::IBuffer::MappedData> StaticBuffer_4_5::map(MapAccess access, size_t offset, size_t size) const
 {
     CHECK_CURRENT_CONTEXT;
-    return mapData(access, offset, size);
+    return const_cast<StaticBuffer_4_5*>(this)->map(access, offset, size);
 }
 
-std::shared_ptr<Buffer_4_5> Buffer_4_5::create(size_t size, const void *data)
+std::shared_ptr<StaticBuffer_4_5> StaticBuffer_4_5::create(size_t size, const void *data)
 {
-    return std::make_shared<Buffer_4_5>(size, data);
+    return std::make_shared<StaticBuffer_4_5>(size, data);
 }
 
 // DynamicBuffer_4_5
@@ -701,31 +704,128 @@ DynamicBuffer_4_5::DynamicBuffer_4_5(uint64_t size, const void* data)
 
 DynamicBuffer_4_5::~DynamicBuffer_4_5() = default;
 
-size_t DynamicBuffer_4_5::capacity() const
-{
-    CHECK_CURRENT_CONTEXT;
-    return fullSize();
-}
 
-void DynamicBuffer_4_5::reserve(size_t size)
+bool DynamicBuffer_4_5::isEmpty() const
 {
     CHECK_CURRENT_CONTEXT;
-    if (size > capacity())
-        setFullSize(size);
-}
-
-void DynamicBuffer_4_5::pushBack(const void* data, size_t size)
-{
-    CHECK_CURRENT_CONTEXT;
-    expand(m_size + size);
-    std::memcpy(map(IBuffer::MapAccess::WriteOnly, m_size, size)->get(), data, size);
-    m_size += size;
+    return m_size == 0u;
 }
 
 size_t DynamicBuffer_4_5::size() const
 {
     CHECK_CURRENT_CONTEXT;
     return m_size;
+}
+
+size_t DynamicBuffer_4_5::capacity() const
+{
+    CHECK_CURRENT_CONTEXT;
+    return sizeImpl();
+}
+
+void DynamicBuffer_4_5::reserve(size_t size)
+{
+    CHECK_CURRENT_CONTEXT;
+    if (size > capacity())
+        resizeImpl(size);
+}
+
+void DynamicBuffer_4_5::shrinkToFit()
+{
+    CHECK_CURRENT_CONTEXT;
+    resizeImpl(m_size);
+}
+void DynamicBuffer_4_5::clear()
+{
+    CHECK_CURRENT_CONTEXT;
+    m_size = 0u;
+}
+ 
+void DynamicBuffer_4_5::insert(size_t offset, const void* data, size_t insertedSize)
+{
+    CHECK_CURRENT_CONTEXT;
+
+    if (!insertedSize)
+        return;
+
+    auto oldSize = size();
+
+    if (offset > oldSize)
+    {
+        LOG_ERROR << "The offset of inserted data is out of range";
+        return;
+    }
+
+    auto newSize = oldSize + insertedSize;
+
+    GLuint newID;
+    glCreateBuffers(1, &newID);
+    glNamedBufferStorage(newID, newSize, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+    glCopyNamedBufferSubData(
+        m_id,
+        newID,
+        0u,
+        0u,
+        static_cast<GLsizeiptr>(offset));
+    glNamedBufferSubData(
+        newID,
+        offset,
+        insertedSize,
+        data);
+    glCopyNamedBufferSubData(
+        m_id,
+        newID,
+        static_cast<GLintptr>(offset),
+        static_cast<GLintptr>(offset + insertedSize),
+        static_cast<GLsizeiptr>(oldSize - offset));
+    glDeleteBuffers(1, &m_id);
+    m_id = newID;
+    m_size = newSize;
+}
+
+void DynamicBuffer_4_5::erase(size_t offset, size_t erasedSize)
+{
+    CHECK_CURRENT_CONTEXT;
+    
+    CHECK_CURRENT_CONTEXT;
+
+    if (!erasedSize)
+        return;
+
+    auto oldSize = size();
+
+    if (offset > oldSize)
+    {
+        LOG_ERROR << "The offset of erased data is out of range";
+        return;
+    }
+
+    if (offset + erasedSize > oldSize)
+    {
+        LOG_ERROR << "The sizee of erased data is out of range";
+        return;
+    }
+
+    auto newSize = oldSize - erasedSize;
+
+    GLuint newID;
+    glCreateBuffers(1, &newID);
+    glNamedBufferStorage(newID, newSize, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
+    glCopyNamedBufferSubData(
+        m_id,
+        newID,
+        0u,
+        0u,
+        static_cast<GLsizeiptr>(offset));
+    glCopyNamedBufferSubData(
+        m_id,
+        newID,
+        static_cast<GLintptr>(offset + erasedSize),
+        static_cast<GLintptr>(offset),
+        static_cast<GLsizeiptr>(oldSize - offset - erasedSize));
+    glDeleteBuffers(1, &m_id);
+    m_id = newID;
+    m_size = newSize;
 }
 
 void DynamicBuffer_4_5::resize(size_t size)
@@ -735,23 +835,40 @@ void DynamicBuffer_4_5::resize(size_t size)
     m_size = size;
 }
 
-std::unique_ptr<const core::graphics::IBuffer::MappedData> DynamicBuffer_4_5::map(MapAccess access, size_t offset, size_t size) const
-{
-    CHECK_CURRENT_CONTEXT;
-    return mapData(access, offset, size);
-}
-
 std::unique_ptr<core::graphics::IBuffer::MappedData> DynamicBuffer_4_5::map(MapAccess access, size_t offset, size_t size)
 {
     CHECK_CURRENT_CONTEXT;
-    return mapData(access, offset, size);
+
+    auto bufferSize = DynamicBuffer_4_5::size();
+
+    if (size == 0)
+        size = bufferSize - offset;
+
+    if (offset > bufferSize)
+    {
+        LOG_ERROR << "The offset of mapped data is out of range";
+        return nullptr;
+    }
+
+    if (offset + size > bufferSize)
+    {
+        LOG_ERROR << "The size of mapped data is out of range";
+        return nullptr;
+    }
+
+    return mapImpl(access, offset, size);
+}
+
+std::unique_ptr<const core::graphics::IBuffer::MappedData> DynamicBuffer_4_5::map(MapAccess access, size_t offset, size_t size) const
+{
+    CHECK_CURRENT_CONTEXT;
+    return const_cast<DynamicBuffer_4_5*>(this)->map(access, offset, size);
 }
 
 std::shared_ptr<DynamicBuffer_4_5> DynamicBuffer_4_5::create(size_t size, const void* data)
 {
     return std::make_shared<DynamicBuffer_4_5>(size, data);
 }
-
 
 void DynamicBuffer_4_5::expand(size_t requiredSize)
 {
@@ -783,13 +900,13 @@ GLuint VertexArray_4_5::id() const
 uint32_t VertexArray_4_5::attachVertexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer, size_t offset, size_t stride)
 {
     CHECK_CURRENT_CONTEXT;
-    auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
-    if (!buffer_4_5)
+    auto bufferBase_4_5 = std::dynamic_pointer_cast<BufferBase_4_5>(buffer);
+    if (!bufferBase_4_5)
         LOG_CRITICAL << "Buffer can't be nullptr";
 
     auto bindingIndex = static_cast<uint32_t>(-1);
 
-    auto declaration = VertexBufferDeclaration{ buffer_4_5, offset, stride };
+    auto declaration = VertexBufferDeclaration{ buffer, offset, stride };
 
     if (auto it = std::find(m_vertexBuffers.begin(), m_vertexBuffers.end(), declaration); it != m_vertexBuffers.end())
         return static_cast<uint32_t>(it - m_vertexBuffers.begin());
@@ -800,7 +917,7 @@ uint32_t VertexArray_4_5::attachVertexBuffer(std::shared_ptr<core::graphics::IBu
         m_vertexBuffers.resize(m_vertexBuffers.size() + 1);
     m_vertexBuffers[bindingIndex] = declaration;
 
-    glVertexArrayVertexBuffer(m_id, static_cast<GLuint>(bindingIndex), buffer_4_5->id(), static_cast<GLintptr>(offset), static_cast<GLsizei>(stride));
+    glVertexArrayVertexBuffer(m_id, static_cast<GLuint>(bindingIndex), bufferBase_4_5->id(), static_cast<GLintptr>(offset), static_cast<GLsizei>(stride));
 
     return bindingIndex;
 }
@@ -892,13 +1009,13 @@ uint32_t VertexArray_4_5::vertexAttributeRelativeOffset(utils::VertexAttribute a
 void VertexArray_4_5::attachIndexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer)
 {
     CHECK_CURRENT_CONTEXT;
-    auto buffer_4_5 = std::dynamic_pointer_cast<Buffer_4_5>(buffer);
-    if (!buffer_4_5)
+    auto bufferBase_4_5 = std::dynamic_pointer_cast<BufferBase_4_5>(buffer);
+    if (!bufferBase_4_5)
         LOG_CRITICAL << "Buffer can't be nullptr";
 
-    m_indexBuffer = buffer_4_5;
+    m_indexBuffer = buffer;
 
-    glVertexArrayElementBuffer(m_id, buffer_4_5->id());
+    glVertexArrayElementBuffer(m_id, bufferBase_4_5->id());
 }
 
 void VertexArray_4_5::detachIndexBuffer()
@@ -1569,6 +1686,11 @@ std::shared_ptr<TextureCube_4_5> TextureCube_4_5::create(const std::vector<std::
         internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
 
     auto result = createEmpty(width, height, internalFormat, numLevels);
+
+
+    //tmp
+    auto n = result->numMipmapLevels();
+
     for (uint32_t face = 0; face < static_cast<uint32_t>(images.size()); ++face)
         result->setSubImage(0u, glm::uvec3(0u, 0u, face), glm::uvec3(width, height, 1u), numComponents, type, images[face]->data());
 
@@ -2826,9 +2948,10 @@ std::shared_ptr<DefaultFrameBuffer_4_5> DefaultFrameBuffer_4_5::create(GLuint id
 // ProgramBase_4_5
 
 ProgramBase_4_5::ProgramBase_4_5()
-    : m_SSBONameMaxLength(0)
+    : m_uniformNameMaxLength(0)
+    , m_uniformBlockNameMaxLength(0)
     , m_bufferVariableNameMaxLength(0)
-    , m_uniformNameMaxLength(0)
+    , m_shaderStorageBlockNameMaxLength(0)
 {
     SAVE_CURRENT_CONTEXT;
     m_id = glCreateProgram();
@@ -2982,42 +3105,46 @@ bool ProgramBase_4_5::postBuild(std::string &)
 
     for (GLuint uniformIndex = 0; uniformIndex < static_cast<GLuint>(numUniforms); ++uniformIndex)
     {
-        static const std::array<GLenum, 3> uniformProperties {GL_BLOCK_INDEX, GL_TYPE, GL_LOCATION};
-        std::array<GLint, 3> uniformValues {};
+        static const std::vector<GLenum> uniformProperties {GL_BLOCK_INDEX, GL_TYPE, GL_LOCATION};
+        std::vector<GLint> uniformValues(uniformProperties.size());
 
-        glGetProgramResourceiv(m_id,
-                                         GL_UNIFORM,
-                                         uniformIndex,
-                                         uniformProperties.size(),
-                                         uniformProperties.data(),
-                                         uniformValues.size(),
-                                         nullptr,
-                                         uniformValues.data());
+        glGetProgramResourceiv(
+            m_id,
+            GL_UNIFORM,
+            uniformIndex,
+            uniformProperties.size(),
+            uniformProperties.data(),
+            uniformValues.size(),
+            nullptr,
+            uniformValues.data());
 
-        if (uniformValues[0] != -1) // Skip any uniforms that are in a block
+        if (uniformValues[0u] != -1) // Skip any uniforms that are in a block
             continue;
 
-        if (uniformValues[1] == GL_UNSIGNED_INT_ATOMIC_COUNTER) // get atomic counter binding point instead of location
+        if (uniformValues[1u] == GL_UNSIGNED_INT_ATOMIC_COUNTER) // get atomic counter binding point instead of location
         {
             GLint atomicCounterBufferIndex;
-            glGetActiveUniformsiv(m_id,
-                                            1u,
-                                            &uniformIndex,
-                                            GL_UNIFORM_ATOMIC_COUNTER_BUFFER_INDEX,
-                                            &atomicCounterBufferIndex);
+            glGetActiveUniformsiv(
+                m_id,
+                1u,
+                &uniformIndex,
+                GL_UNIFORM_ATOMIC_COUNTER_BUFFER_INDEX,
+                &atomicCounterBufferIndex);
 
-            glGetActiveAtomicCounterBufferiv(m_id,
-                                                       static_cast<GLuint>(atomicCounterBufferIndex),
-                                                       GL_ATOMIC_COUNTER_BUFFER_BINDING,
-                                                       uniformValues.data() + 2u);
+            glGetActiveAtomicCounterBufferiv(
+                m_id,
+                static_cast<GLuint>(atomicCounterBufferIndex),
+                GL_ATOMIC_COUNTER_BUFFER_BINDING,
+                uniformValues.data() + 2u);
         }
 
-        glGetProgramResourceName(m_id,
-                                           GL_UNIFORM,
-                                           uniformIndex,
-                                           m_uniformNameMaxLength,
-                                           nullptr,
-                                           uniformName.data());
+        glGetProgramResourceName(
+            m_id,
+            GL_UNIFORM,
+            uniformIndex,
+            m_uniformNameMaxLength,
+            nullptr,
+            uniformName.data());
 
         m_uniformsInfo.push_back({ currentRenderer->uniformByName(uniformName.data()),
                                    static_cast<uint16_t>(uniformIndex),
@@ -3025,85 +3152,193 @@ bool ProgramBase_4_5::postBuild(std::string &)
                                    Conversions::GL2UniformType(static_cast<GLenum>(uniformValues[1u])) });
     }
 
-    GLint numSSBOs;
-    glGetProgramInterfaceiv(m_id, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &numSSBOs);
-    m_SSBOsInfo.reserve(static_cast<size_t>(numSSBOs));
+    GLint numUniformBlocks;
+    glGetProgramInterfaceiv(m_id, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &numUniformBlocks);
+    m_uniformBlocksInfo.reserve(static_cast<size_t>(numUniformBlocks));
 
-    glGetProgramInterfaceiv(m_id, GL_SHADER_STORAGE_BLOCK, GL_MAX_NAME_LENGTH, &m_SSBONameMaxLength);
-    std::vector<GLchar> SSBOName(static_cast<size_t>(m_SSBONameMaxLength));
+    glGetProgramInterfaceiv(m_id, GL_UNIFORM_BLOCK, GL_MAX_NAME_LENGTH, &m_uniformBlockNameMaxLength);
+    std::vector<GLchar> uniformBlockName(static_cast<size_t>(m_uniformBlockNameMaxLength));
+
+    for (GLuint uniformBlockIndex = 0u; uniformBlockIndex < static_cast<GLuint>(numUniformBlocks); ++uniformBlockIndex)
+    {
+        static const std::vector<GLenum> uniformBlockProperties{ GL_NUM_ACTIVE_VARIABLES };
+        std::vector<GLint> uniformBlockValues(uniformBlockProperties.size());
+
+        glGetProgramResourceiv(
+            m_id,
+            GL_UNIFORM_BLOCK,
+            uniformBlockIndex,
+            uniformBlockProperties.size(),
+            uniformBlockProperties.data(),
+            uniformBlockValues.size(),
+            nullptr,
+            uniformBlockValues.data());
+
+        static const std::array<GLenum, 1> variablesIndicesProperty{ GL_ACTIVE_VARIABLES };
+        std::vector<GLint> variablesIndices(static_cast<GLuint>(uniformBlockValues[0u]));
+
+        glGetProgramResourceiv(
+            m_id,
+            GL_UNIFORM_BLOCK,
+            uniformBlockIndex,
+            variablesIndicesProperty.size(),
+            variablesIndicesProperty.data(),
+            static_cast<GLsizei>(variablesIndices.size()),
+            nullptr,
+            variablesIndices.data());
+
+        std::vector<core::graphics::BufferVariableInfo> variables;
+        variables.reserve(static_cast<size_t>(uniformBlockValues[0u]));
+
+        for (auto variableIndex : variablesIndices)
+        {
+            static const std::vector<GLenum> variableProperties{
+                GL_TYPE,
+                GL_ARRAY_SIZE,
+                GL_OFFSET,
+                GL_ARRAY_STRIDE,
+                GL_MATRIX_STRIDE,
+                GL_TOP_LEVEL_ARRAY_SIZE,
+                GL_TOP_LEVEL_ARRAY_STRIDE };
+            std::vector<GLint> variableValues(variableProperties.size());
+
+            glGetProgramResourceiv(
+                m_id,
+                GL_UNIFORM,
+                static_cast<GLuint>(variableIndex),
+                variableProperties.size(),
+                variableProperties.data(),
+                static_cast<GLsizei>(variableValues.size()),
+                nullptr,
+                variableValues.data());
+
+            // name of buffer variable is not stored
+            //glGetProgramResourceName(
+            //    m_id,
+            //    GL_UNIFORM,
+            //    static_cast<GLuint>(variableIndex),
+            //    m_unirormNameMaxLength,
+            //    nullptr,
+            //    uniformName.data());
+
+            variables.push_back({
+                static_cast<uint16_t>(variableIndex),
+                // Conversions::GL2SSBOVariableType(static_cast<GLenum>(uniformValues[0u])),
+                static_cast<uint16_t>(variableValues[1u]),
+                static_cast<uint16_t>(variableValues[2u]),
+                static_cast<uint16_t>(variableValues[3u]),
+                static_cast<uint16_t>(variableValues[4u]),
+                static_cast<uint16_t>(variableValues[5u]),
+                static_cast<uint16_t>(variableValues[6u]) });
+        }
+
+        glGetProgramResourceName(
+            m_id,
+            GL_UNIFORM_BLOCK,
+            uniformBlockIndex,
+            m_uniformBlockNameMaxLength,
+            nullptr,
+            uniformBlockName.data());
+
+        m_uniformBlocksInfo.push_back({
+            currentRenderer->uniformBlockByName(uniformBlockName.data()),
+            static_cast<uint16_t>(uniformBlockIndex),
+            std::move(variables) });
+    }
+
+    GLint numShaderStorageBlocks;
+    glGetProgramInterfaceiv(m_id, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &numShaderStorageBlocks);
+    m_shaderStorageBlocksInfo.reserve(static_cast<size_t>(numShaderStorageBlocks));
+
+    glGetProgramInterfaceiv(m_id, GL_SHADER_STORAGE_BLOCK, GL_MAX_NAME_LENGTH, &m_shaderStorageBlockNameMaxLength);
+    std::vector<GLchar> shaderStorageBlockName(static_cast<size_t>(m_shaderStorageBlockNameMaxLength));
 
     glGetProgramInterfaceiv(m_id, GL_BUFFER_VARIABLE, GL_MAX_NAME_LENGTH, &m_bufferVariableNameMaxLength);
     std::vector<GLchar> bufferVariableName(static_cast<size_t>(m_bufferVariableNameMaxLength));
 
-    for (GLuint SSBOIndex = 0; SSBOIndex < static_cast<GLuint>(numSSBOs); ++SSBOIndex)
+    for (GLuint shaderStorageBlockIndex = 0u; shaderStorageBlockIndex < static_cast<GLuint>(numShaderStorageBlocks); ++shaderStorageBlockIndex)
     {
-        static const std::array<GLenum, 1> numVariablesProperty {GL_NUM_ACTIVE_VARIABLES};
-        GLint numVariables;
+        static const std::vector<GLenum> shaderStorageBlockProperties { GL_NUM_ACTIVE_VARIABLES};
+        std::vector<GLint> shaderStorageBlockValues(shaderStorageBlockProperties.size());
 
-        glGetProgramResourceiv(m_id,
-                                         GL_SHADER_STORAGE_BLOCK,
-                                         SSBOIndex,
-                                         numVariablesProperty.size(),
-                                         numVariablesProperty.data(),
-                                         1u,
-                                         nullptr,
-                                         &numVariables);
+        glGetProgramResourceiv(
+            m_id,
+            GL_SHADER_STORAGE_BLOCK,
+            shaderStorageBlockIndex,
+            shaderStorageBlockProperties.size(),
+            shaderStorageBlockProperties.data(),
+            shaderStorageBlockValues.size(),
+            nullptr,
+            shaderStorageBlockValues.data());
 
         static const std::array<GLenum, 1> variablesIndicesProperty {GL_ACTIVE_VARIABLES};
-        std::vector<GLint> variablesIndices(static_cast<GLuint>(numVariables));
+        std::vector<GLint> variablesIndices(static_cast<GLuint>(shaderStorageBlockValues[0u]));
 
-        glGetProgramResourceiv(m_id,
-                                         GL_SHADER_STORAGE_BLOCK,
-                                         SSBOIndex,
-                                         variablesIndicesProperty.size(),
-                                         variablesIndicesProperty.data(),
-                                         static_cast<GLsizei>(variablesIndices.size()),
-                                         nullptr,
-                                         variablesIndices.data());
+        glGetProgramResourceiv(
+            m_id,
+            GL_SHADER_STORAGE_BLOCK,
+            shaderStorageBlockIndex,
+            variablesIndicesProperty.size(),
+            variablesIndicesProperty.data(),
+            static_cast<GLsizei>(variablesIndices.size()),
+            nullptr,
+            variablesIndices.data());
 
-        std::vector<core::graphics::SSBOVariableInfo> variables;
-        variables.reserve(static_cast<size_t>(numVariables));
+        std::vector<core::graphics::BufferVariableInfo> variables;
+        variables.reserve(static_cast<size_t>(shaderStorageBlockValues[0u]));
 
-        for (auto varIndex : variablesIndices)
+        for (auto variableIndex : variablesIndices)
         {
-            static const std::array<GLenum, 4u> variableProperties {GL_TYPE, GL_OFFSET, GL_ARRAY_STRIDE, GL_TOP_LEVEL_ARRAY_STRIDE};
-            std::array<GLint, 4u> variableValues {};
+            static const std::vector<GLenum> variableProperties {
+                GL_TYPE,
+                GL_ARRAY_SIZE,
+                GL_OFFSET,
+                GL_ARRAY_STRIDE,
+                GL_MATRIX_STRIDE,
+                GL_TOP_LEVEL_ARRAY_SIZE,
+                GL_TOP_LEVEL_ARRAY_STRIDE};
+            std::vector<GLint> variableValues(variableProperties.size());
 
-            glGetProgramResourceiv(m_id,
-                                             GL_BUFFER_VARIABLE,
-                                             static_cast<GLuint>(varIndex),
-                                             variableProperties.size(),
-                                             variableProperties.data(),
-                                             static_cast<GLsizei>(variableValues.size()),
-                                             nullptr,
-                                             variableValues.data());
-
-            glGetProgramResourceName(m_id,
+            glGetProgramResourceiv(
+                m_id,
                 GL_BUFFER_VARIABLE,
-                static_cast<GLuint>(varIndex),
-                m_bufferVariableNameMaxLength,
+                static_cast<GLuint>(variableIndex),
+                variableProperties.size(),
+                variableProperties.data(),
+                static_cast<GLsizei>(variableValues.size()),
                 nullptr,
-                bufferVariableName.data());
+                variableValues.data());
+
+            // name of buffer variable is not stored
+            //glGetProgramResourceName(
+            //    m_id,
+            //    GL_BUFFER_VARIABLE,
+            //    static_cast<GLuint>(variableIndex),
+            //    m_bufferVariableNameMaxLength,
+            //    nullptr,
+            //    bufferVariableName.data());
 
             variables.push_back({
-                std::string(bufferVariableName.data()),
-                static_cast<uint16_t>(varIndex),
+                static_cast<uint16_t>(variableIndex),
                 // Conversions::GL2SSBOVariableType(static_cast<GLenum>(uniformValues[0u])),
                 static_cast<uint16_t>(variableValues[1u]),
                 static_cast<uint16_t>(variableValues[2u]),
-                static_cast<uint16_t>(variableValues[3u]) });
+                static_cast<uint16_t>(variableValues[3u]),
+                static_cast<uint16_t>(variableValues[4u]),
+                static_cast<uint16_t>(variableValues[5u]),
+                static_cast<uint16_t>(variableValues[6u]) });
         }
 
+        glGetProgramResourceName(
+            m_id,
+            GL_SHADER_STORAGE_BLOCK,
+            shaderStorageBlockIndex,
+            m_shaderStorageBlockNameMaxLength,
+            nullptr,
+            shaderStorageBlockName.data());
 
-        glGetProgramResourceName(m_id,
-                                           GL_SHADER_STORAGE_BLOCK,
-                                           SSBOIndex,
-                                           m_SSBONameMaxLength,
-                                           nullptr,
-                                           SSBOName.data());
-
-        m_SSBOsInfo.push_back({ currentRenderer->SSBOByName(SSBOName.data()),
-                                static_cast<uint16_t>(SSBOIndex),
+        m_shaderStorageBlocksInfo.push_back({ currentRenderer->shaderStorageBlockByName(shaderStorageBlockName.data()),
+                                static_cast<uint16_t>(shaderStorageBlockIndex),
                                 std::move(variables) });
     }
 
@@ -3122,10 +3357,16 @@ const std::vector<core::graphics::UniformInfo> &ProgramBase_4_5::uniformsInfo() 
     return m_uniformsInfo;
 }
 
-const std::vector<core::graphics::SSBOInfo> &ProgramBase_4_5::SSBOsInfo() const
+const std::vector<core::graphics::UniformBlockInfo>& ProgramBase_4_5::uniformBlocksInfo() const
 {
     CHECK_CURRENT_CONTEXT;
-    return m_SSBOsInfo;
+    return m_uniformBlocksInfo;
+}
+
+const std::vector<core::graphics::ShaderStorageBlockInfo> &ProgramBase_4_5::shaderStorageBlocksInfo() const
+{
+    CHECK_CURRENT_CONTEXT;
+    return m_shaderStorageBlocksInfo;
 }
 
 std::string ProgramBase_4_5::uniformNameByIndex(uint16_t index) const
@@ -3142,30 +3383,47 @@ std::string ProgramBase_4_5::uniformNameByIndex(uint16_t index) const
     return name.data();
 }
 
-std::string ProgramBase_4_5::SSBOVariableNameByIndex(uint16_t index) const
+std::string ProgramBase_4_5::bufferVariableNameByIndex(uint16_t index) const
 {
     CHECK_CURRENT_CONTEXT;
-    std::vector<GLchar> name(static_cast<size_t>(m_uniformNameMaxLength));
-    glGetProgramResourceName(m_id,
-                                       GL_BUFFER_VARIABLE,
-                                       static_cast<GLuint>(index),
-                                       m_SSBONameMaxLength,
-                                       nullptr,
-                                       name.data());
+    std::vector<GLchar> name(static_cast<size_t>(m_bufferVariableNameMaxLength));
+    glGetProgramResourceName(
+        m_id,
+        GL_BUFFER_VARIABLE,
+        static_cast<GLuint>(index),
+        m_bufferVariableNameMaxLength,
+        nullptr,
+        name.data());
 
     return name.data();
 }
 
-std::string ProgramBase_4_5::SSBONameByIndex(uint16_t index) const
+std::string ProgramBase_4_5::uniformBlockNameByIndex(uint16_t index) const
 {
     CHECK_CURRENT_CONTEXT;
-    std::vector<GLchar> name(static_cast<size_t>(m_SSBONameMaxLength));
-    glGetProgramResourceName(m_id,
-                                       GL_SHADER_STORAGE_BLOCK,
-                                       static_cast<GLuint>(index),
-                                       m_bufferVariableNameMaxLength,
-                                       nullptr,
-                                       name.data());
+    std::vector<GLchar> name(static_cast<size_t>(m_uniformBlockNameMaxLength));
+    glGetProgramResourceName(
+        m_id,
+        GL_UNIFORM_BLOCK,
+        static_cast<GLuint>(index),
+        m_uniformBlockNameMaxLength,
+        nullptr,
+        name.data());
+
+    return name.data();
+}
+
+std::string ProgramBase_4_5::shaderStorageBlockNameByIndex(uint16_t index) const
+{
+    CHECK_CURRENT_CONTEXT;
+    std::vector<GLchar> name(static_cast<size_t>(m_shaderStorageBlockNameMaxLength));
+    glGetProgramResourceName(
+        m_id,
+        GL_SHADER_STORAGE_BLOCK,
+        static_cast<GLuint>(index),
+        m_shaderStorageBlockNameMaxLength,
+        nullptr,
+        name.data());
 
     return name.data();
 }
@@ -3219,7 +3477,8 @@ bool RenderProgram_4_5::postBuild(std::string &log)
 
         static const std::unordered_set<std::string> s_excludedAttributes{
             "gl_DrawID",
-            "gl_VertexID" };
+            "gl_VertexID",
+            "gl_BaseInstance"};
 
         if (const std::string attributeNameString = attributeName.data(); !s_excludedAttributes.count(attributeNameString))
         {
@@ -3467,30 +3726,10 @@ void GLFWRenderer::blitFrameBuffer(std::shared_ptr<const core::graphics::IFrameB
                            mask, filter);
 }
 
-void GLFWRenderer::copyBufferSubData(const std::shared_ptr<core::graphics::IBuffer>& dst, const std::shared_ptr<const core::graphics::IBuffer>& src, size_t dstOffset, size_t srcOffset, size_t size) const
+std::shared_ptr<core::graphics::IStaticBuffer> GLFWRenderer::createStaticBuffer(size_t size, const void *data) const
 {
     CHECK_THIS_CONTEXT;
-
-    auto dst_4_5 = std::dynamic_pointer_cast<BufferBase_4_5>(dst);
-    if (!dst_4_5)
-        LOG_CRITICAL << "Destination buffer can't be nullptr";
-    CHECK_RESOURCE_CONTEXT(dst_4_5);
-
-    auto src_4_5 = std::dynamic_pointer_cast<const BufferBase_4_5>(src);
-    if (!src_4_5)
-        LOG_CRITICAL << "Source buffer can't be nullptr";
-    CHECK_RESOURCE_CONTEXT(src_4_5);
-
-    size = glm::min(size, dst_4_5->fullSize() - dstOffset);
-    size = glm::min(size, src_4_5->fullSize() - srcOffset);
-
-    glCopyNamedBufferSubData(src_4_5->id(), dst_4_5->id(), srcOffset, dstOffset, size);
-}
-
-std::shared_ptr<core::graphics::IBuffer> GLFWRenderer::createBuffer(size_t size, const void *data) const
-{
-    CHECK_THIS_CONTEXT;
-    return Buffer_4_5::create(size, data);
+    return StaticBuffer_4_5::create(size, data);
 }
 
 std::shared_ptr<core::graphics::IDynamicBuffer> GLFWRenderer::createDynamicBuffer(size_t size, const void* data) const
@@ -3691,8 +3930,8 @@ std::shared_ptr<core::graphics::IComputeProgram> GLFWRenderer::createComputeProg
 }
 
 void GLFWRenderer::compute(
-    const std::shared_ptr<core::graphics::IComputeProgram>& computeProgram,
     const glm::uvec3& numInvocations,
+    const std::shared_ptr<core::graphics::IComputeProgram>& computeProgram,
     const core::StateSetList& stateSetList)
 {
     CHECK_THIS_CONTEXT;
@@ -3707,6 +3946,7 @@ void GLFWRenderer::compute(
 }
 
 void GLFWRenderer::drawArrays(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
@@ -3718,7 +3958,7 @@ void GLFWRenderer::drawArrays(
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
 
     glDrawArrays(
         Conversions::PrimitiveType2GL(primitiveType),
@@ -3727,6 +3967,7 @@ void GLFWRenderer::drawArrays(
 }
 
 void GLFWRenderer::drawElements(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
@@ -3739,7 +3980,7 @@ void GLFWRenderer::drawElements(
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
 
     glDrawElements(
         Conversions::PrimitiveType2GL(primitiveType),
@@ -3749,6 +3990,7 @@ void GLFWRenderer::drawElements(
 }
 
 void GLFWRenderer::multiDrawArrays(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
@@ -3775,7 +4017,7 @@ void GLFWRenderer::multiDrawArrays(
         GLCounts[i] = static_cast<GLsizei>(counts[i]);
     }
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
 
     glMultiDrawArrays(
         Conversions::PrimitiveType2GL(primitiveType),
@@ -3785,6 +4027,7 @@ void GLFWRenderer::multiDrawArrays(
 }
 
 void GLFWRenderer::multiDrawElements(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
@@ -3812,7 +4055,7 @@ void GLFWRenderer::multiDrawElements(
         GLIndices[i] = reinterpret_cast<void*>(offsets[i]);
     }
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
 
     glMultiDrawElements(
         Conversions::PrimitiveType2GL(primitiveType),
@@ -3823,6 +4066,7 @@ void GLFWRenderer::multiDrawElements(
 }
 
 void GLFWRenderer::drawElementsBaseVertex(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
@@ -3836,7 +4080,7 @@ void GLFWRenderer::drawElementsBaseVertex(
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
 
     glDrawElementsBaseVertex(
         Conversions::PrimitiveType2GL(primitiveType),
@@ -3847,6 +4091,7 @@ void GLFWRenderer::drawElementsBaseVertex(
 }
 
 void GLFWRenderer::drawArraysInstanced(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
@@ -3859,7 +4104,7 @@ void GLFWRenderer::drawArraysInstanced(
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
 
     glDrawArraysInstanced(
         Conversions::PrimitiveType2GL(primitiveType),
@@ -3869,6 +4114,7 @@ void GLFWRenderer::drawArraysInstanced(
 }
 
 void GLFWRenderer::drawElementsInstanced(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
@@ -3882,7 +4128,7 @@ void GLFWRenderer::drawElementsInstanced(
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
 
     glDrawElementsInstanced(
         Conversions::PrimitiveType2GL(primitiveType),
@@ -3893,6 +4139,7 @@ void GLFWRenderer::drawElementsInstanced(
 }
 
 void GLFWRenderer::drawArraysInstancedBaseInstance(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
@@ -3906,7 +4153,7 @@ void GLFWRenderer::drawArraysInstancedBaseInstance(
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
 
     glDrawArraysInstancedBaseInstance(
         Conversions::PrimitiveType2GL(primitiveType),
@@ -3917,6 +4164,7 @@ void GLFWRenderer::drawArraysInstancedBaseInstance(
 }
 
 void GLFWRenderer::drawElementsInstancedBaseInstance(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
@@ -3931,7 +4179,7 @@ void GLFWRenderer::drawElementsInstancedBaseInstance(
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
 
     glDrawElementsInstancedBaseInstance(
         Conversions::PrimitiveType2GL(primitiveType),
@@ -3943,140 +4191,140 @@ void GLFWRenderer::drawElementsInstancedBaseInstance(
 }
 
 void GLFWRenderer::drawArraysIndirect(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
     const core::StateSetList& stateSetList,
     utils::PrimitiveType primitiveType,
-    const std::shared_ptr<const core::graphics::BufferRange>& commandsBufferRange)
+    const core::graphics::PDrawArraysIndirectCommandsConstBuffer& commandsBuffer)
 {
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
-    bindDrawIndirectBuffer(commandsBufferRange->buffer());
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(commandsBuffer->buffer());
 
     glDrawArraysIndirect(
         Conversions::PrimitiveType2GL(primitiveType),
-        reinterpret_cast<const void*>(commandsBufferRange->offset()));
+        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()));
 }
 
 void GLFWRenderer::drawElementsIndirect(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
     const core::StateSetList& stateSetList,
     utils::PrimitiveType primitiveType,
     utils::DrawElementsIndexType indexType,
-    const std::shared_ptr<const core::graphics::BufferRange>& commandsBufferRange)
+    const core::graphics::PDrawElementsIndirectCommandConstBuffer& commandsBuffer)
 {
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
-    bindDrawIndirectBuffer(commandsBufferRange->buffer());
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(commandsBuffer->buffer());
 
     glDrawElementsIndirect(
         Conversions::PrimitiveType2GL(primitiveType),
         Conversions::DrawElementsIndexType2GL(indexType),
-        reinterpret_cast<const void*>(commandsBufferRange->offset()));
+        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()));
 }
 
 void GLFWRenderer::multiDrawArraysIndirect(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
     const core::StateSetList& stateSetList,
     utils::PrimitiveType primitiveType,
-    const std::shared_ptr<const core::graphics::BufferRange>& drawIndirectBufferRange,
-    size_t count)
+    const core::graphics::PDrawArraysIndirectCommandsConstBuffer& commandsBuffer)
 {
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
-    bindDrawIndirectBuffer(drawIndirectBufferRange->buffer());
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(commandsBuffer->buffer());
 
     glMultiDrawArraysIndirect(
         Conversions::PrimitiveType2GL(primitiveType),
-        reinterpret_cast<const void*>(drawIndirectBufferRange->offset()),
-        static_cast<GLsizei>(count),
+        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()),
+        static_cast<GLsizei>(commandsBuffer->size()),
         static_cast<GLsizei>(0u));
 }
 
 void GLFWRenderer::multiDrawElementsIndirect(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
     const core::StateSetList& stateSetList,
     utils::PrimitiveType primitiveType,
     utils::DrawElementsIndexType indexType,
-    const std::shared_ptr<const core::graphics::BufferRange>& drawIndirectBufferRange,
-    size_t count)
+    const core::graphics::PDrawElementsIndirectCommandConstBuffer& commandsBuffer)
 {
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
-    bindDrawIndirectBuffer(drawIndirectBufferRange->buffer());
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(commandsBuffer->buffer());
 
     glMultiDrawElementsIndirect(
         Conversions::PrimitiveType2GL(primitiveType),
         Conversions::DrawElementsIndexType2GL(indexType),
-        reinterpret_cast<const void*>(drawIndirectBufferRange->offset()),
-        static_cast<GLsizei>(count),
+        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()),
+        static_cast<GLsizei>(commandsBuffer->size()),
         static_cast<GLsizei>(0u));
 }
 
 void GLFWRenderer::multiDrawArraysIndirectCount(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
     const core::StateSetList& stateSetList,
     utils::PrimitiveType primitiveType,
-    const std::shared_ptr<const core::graphics::BufferRange>& drawIndirectBufferRange,
-    const std::shared_ptr<const core::graphics::BufferRange>& parameterBufferRange,
-    size_t maxDrawCount)
+    const core::graphics::PDrawArraysIndirectCommandsConstBuffer& commandsBuffer)
 {
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
-    bindDrawIndirectBuffer(drawIndirectBufferRange->buffer());
-    bindParameterBuffer(parameterBufferRange->buffer());
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(commandsBuffer->buffer());
+    bindParameterBuffer(commandsBuffer->buffer());
 
     glMultiDrawArraysIndirectCountARB(
         Conversions::PrimitiveType2GL(primitiveType),
-        reinterpret_cast<const void*>(drawIndirectBufferRange->offset()),
-        static_cast<GLintptr>(parameterBufferRange->offset()),
-        static_cast<GLsizei>(maxDrawCount),
+        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()),
+        static_cast<GLintptr>(0u),
+        static_cast<GLsizei>(commandsBuffer->size()),
         static_cast<GLsizei>(0u));
 }
 
 void GLFWRenderer::multiDrawElementsIndirectCount(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
     const core::StateSetList& stateSetList,
     utils::PrimitiveType primitiveType,
     utils::DrawElementsIndexType indexType,
-    const std::shared_ptr<const core::graphics::BufferRange>& drawIndirectBufferRange,
-    const std::shared_ptr<const core::graphics::BufferRange>& parameterBufferRange,
-    size_t maxDrawCount)
+    const core::graphics::PDrawElementsIndirectCommandConstBuffer& commandsBuffer)
 {
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
-    setupRender(renderProgram, framebuffer, VAO, stateSetList);
-    bindDrawIndirectBuffer(drawIndirectBufferRange->buffer());
-    bindParameterBuffer(parameterBufferRange->buffer());
+    setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
+    bindDrawIndirectBuffer(commandsBuffer->buffer());
+    bindParameterBuffer(commandsBuffer->buffer());
 
     glMultiDrawElementsIndirectCountARB(
         Conversions::PrimitiveType2GL(primitiveType),
         Conversions::DrawElementsIndexType2GL(indexType),
-        reinterpret_cast<const void*>(drawIndirectBufferRange->offset()),
-        static_cast<GLintptr>(parameterBufferRange->offset()),
-        static_cast<GLsizei>(maxDrawCount),
+        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()),
+        static_cast<GLintptr>(0u),
+        static_cast<GLsizei>(commandsBuffer->size()),
         static_cast<GLsizei>(0u));
 }
 
@@ -4132,7 +4380,7 @@ void GLFWRenderer::render(const std::shared_ptr<core::graphics::IFrameBuffer> &f
         mvpStateSet->setModelMatrix(std::get<0>(renderData));
         core::StateSetList stateSetList {globalStateSet, mvpStateSet, drawable};
 
-        setupRender(std::get<1>(renderData), frameBuffer, VAOMesh->vao(), stateSetList);
+        setupRender(viewport, std::get<1>(renderData), frameBuffer, VAOMesh->vao(), stateSetList);
 
         for (auto &primitiveSet : VAOMesh->primitiveSets())
         {
@@ -4188,10 +4436,11 @@ void GLFWRenderer::setupCompute(
     glUseProgram(computeProgram_4_5->id());
 
     setupUniforms(computeProgram_4_5, stateSetList);
-    setupSSBOs(computeProgram_4_5, stateSetList);
+    setupShaderStorageBlocks(computeProgram_4_5, stateSetList);
 }
 
 void GLFWRenderer::setupRender(
+    const glm::uvec4& viewport,
     const std::shared_ptr<core::graphics::IRenderProgram>& renderProgram,
     const std::shared_ptr<core::graphics::IFrameBuffer>& framebufferBase,
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
@@ -4219,9 +4468,16 @@ void GLFWRenderer::setupRender(
     setupVAO(renderProgram_4_5, vao_4_5);
 
     setupUniforms(renderProgram_4_5, stateSetList);
-    setupSSBOs(renderProgram_4_5, stateSetList);
+    setupShaderStorageBlocks(renderProgram_4_5, stateSetList);
+    setupUniformBlocks(renderProgram_4_5, stateSetList);
 
     frameBufferBase_4_5->clear();
+
+    glViewport(
+        static_cast<GLint>(viewport.x),
+        static_cast<GLint>(viewport.y),
+        static_cast<GLsizei>(viewport.z),
+        static_cast<GLsizei>(viewport.w));
 }
 
 void GLFWRenderer::setupFramebuffer(
@@ -4644,7 +4900,7 @@ void GLFWRenderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5> &program
     for (const auto &uniformInfo : program->uniformsInfo())
     {
         core::PConstAbstractUniform abstractUniform;
-        const auto uniformId = uniformInfo.id;
+        const auto uniformId = uniformInfo.ID;
 
         for (const auto &stateSet: stateSetList)
             if (abstractUniform = stateSet->uniform(uniformId); abstractUniform)
@@ -4666,36 +4922,67 @@ void GLFWRenderer::setupUniforms(const std::shared_ptr<ProgramBase_4_5> &program
     }
 }
 
-void GLFWRenderer::setupSSBOs(const std::shared_ptr<ProgramBase_4_5> &program,
-                                       const core::StateSetList &stateSetList)
+void GLFWRenderer::setupUniformBlocks(const std::shared_ptr<ProgramBase_4_5>& program, const core::StateSetList& stateSetList)
 {
     CHECK_THIS_CONTEXT;
     CHECK_RESOURCE_CONTEXT(program);
-    uint32_t bufferUnit = 0u;
+    uint32_t bindingPoint = 0u;
 
-    for (const auto &ssboInfo : program->SSBOsInfo())
+    for (const auto& uniformBlockInfo : program->uniformBlocksInfo())
     {
-        core::graphics::PConstBufferRange SSBOBuffer;
-        const auto ssboId = ssboInfo.id;
+        core::graphics::PConstBufferRange buffer;
 
-        for (const auto &stateSet: stateSetList)
-            if (SSBOBuffer = stateSet->SSBO(ssboId); SSBOBuffer)
+        for (const auto& stateSet : stateSetList)
+            if (buffer = stateSet->uniformBlock(uniformBlockInfo.ID); buffer)
                 break;
 
-        if (!SSBOBuffer)
+        if (!buffer)
         {
-            const auto SSBOName = program->SSBONameByIndex(ssboInfo.index);
+            const auto name = program->uniformNameByIndex(uniformBlockInfo.index);
+            //            for (const auto &stateSet: stateSetList)
+            //                if (bufferRange = stateSet->userShaderStorageBlock(name); bufferRange)
+            //                    break;
+        }
+
+        if (!buffer)
+            LOG_CRITICAL << "Uniform block \"" << program->uniformNameByIndex(uniformBlockInfo.index) << "\" has not set";
+
+
+        bindUniformBlock(bindingPoint, buffer);
+        glUniformBlockBinding(program->id(), uniformBlockInfo.index, bindingPoint++);
+    }
+}
+
+void GLFWRenderer::setupShaderStorageBlocks(
+    const std::shared_ptr<ProgramBase_4_5> &program,
+    const core::StateSetList &stateSetList)
+{
+    CHECK_THIS_CONTEXT;
+    CHECK_RESOURCE_CONTEXT(program);
+    uint32_t bindingPoint = 0u;
+
+    for (const auto &shaderStorageBlockInfo : program->shaderStorageBlocksInfo())
+    {
+        core::graphics::PConstBufferRange buffer;
+
+        for (const auto &stateSet: stateSetList)
+            if (buffer = stateSet->shaderStorageBlock(shaderStorageBlockInfo.ID); buffer)
+                break;
+
+        if (!buffer)
+        {
+            const auto name = program->shaderStorageBlockNameByIndex(shaderStorageBlockInfo.index);
 //            for (const auto &stateSet: stateSetList)
-//                if (bufferRange = stateSet->userSSBO(SSBOName); bufferRange)
+//                if (bufferRange = stateSet->userShaderStorageBlock(name); bufferRange)
 //                    break;
         }
 
-        if (!SSBOBuffer)
-            LOG_CRITICAL << "SSBO \"" << program->SSBONameByIndex(ssboInfo.index) << "\" has not set";
+        if (!buffer)
+            LOG_CRITICAL << "Shader storage block \"" << program->shaderStorageBlockNameByIndex(shaderStorageBlockInfo.index) << "\" has not set";
 
 
-        bindSSBO(bufferUnit, SSBOBuffer);
-        glShaderStorageBlockBinding(program->id(), ssboInfo.index, bufferUnit++);
+        bindShaderStorageBlock(bindingPoint, buffer);
+        glShaderStorageBlockBinding(program->id(), shaderStorageBlockInfo.index, bindingPoint++);
     }
 }
 
@@ -4768,12 +5055,18 @@ void GLFWRenderer::bindBufferRange(
                       static_cast<GLsizeiptr>(bufferRange->size()));
 }
 
-void GLFWRenderer::bindSSBO(
-    uint32_t unit,
+void GLFWRenderer::bindUniformBlock(uint32_t bindingPoint, const core::graphics::PConstBufferRange& bufferRange)
+{
+    CHECK_THIS_CONTEXT;
+    bindBufferRange(GL_UNIFORM_BUFFER, bindingPoint, bufferRange);
+}
+
+void GLFWRenderer::bindShaderStorageBlock(
+    uint32_t bindingPoint,
     const core::graphics::PConstBufferRange &bufferRange)
 {
     CHECK_THIS_CONTEXT;
-    bindBufferRange(GL_SHADER_STORAGE_BUFFER, unit, bufferRange);
+    bindBufferRange(GL_SHADER_STORAGE_BUFFER, bindingPoint, bufferRange);
 }
 
 void GLFWRenderer::bindAtomicCounterBuffer(

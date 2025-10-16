@@ -78,6 +78,7 @@ template<typename T> class WeakPtrList;
 template <typename T> struct IDsGeneratorT;
 using IDsGenerator = IDsGeneratorT<uint32_t>;
 
+
 }
 }
 

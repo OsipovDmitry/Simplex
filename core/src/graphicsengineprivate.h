@@ -51,10 +51,11 @@ public:
     std::shared_ptr<FlatDrawable> &visualDrawableBoundingBoxDrawable();
     std::shared_ptr<FlatDrawable> &lightNodeAreaBoundingBoxDrawable();
 
-    static const std::string &attributeNameById(utils::VertexAttribute);
-    static const std::string& outputNameById(graphics::FrameBufferAttachment);
-    static const std::string &uniformNameById(UniformId);
-    static const std::string &SSBONameById(SSBOId);
+    static const std::string &attributeNameByID(utils::VertexAttribute);
+    static const std::string& outputNameByID(graphics::FrameBufferAttachment);
+    static const std::string &uniformNameByID(UniformID);
+    static const std::string& uniformBlockNameByID(UniformBlockID);
+    static const std::string &shaderStorageBlockNameByID(ShaderStorageBlockID);
 
 private:
     std::string m_name;

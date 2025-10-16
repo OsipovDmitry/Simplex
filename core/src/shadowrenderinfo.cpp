@@ -16,12 +16,12 @@ ShadowRenderInfo::~ShadowRenderInfo() = default;
 
 void ShadowRenderInfo::setViewportSize(const glm::uvec2& value)
 {
-    getOrCreateUniform(core::UniformId::ViewportSize) = makeUniform(value);
+    getOrCreateUniform(core::UniformID::ViewportSize) = makeUniform(value);
 }
 
 void ShadowRenderInfo::setLayeredShadowMatricesBuffer(const graphics::PConstBuffer &value)
 {
-    getOrCreateSSBO(SSBOId::LayeredShadowMatrices) = graphics::BufferRange::create(value);
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::LayeredShadowMatrices) = graphics::BufferRange::create(value);
 }
 
 }

@@ -14,7 +14,7 @@ class ScreenQuad : public Mesh
 {
     SINGLETON_POINTER(ScreenQuad)
 public:
-    ~ScreenQuad() override;
+    ~ScreenQuad();
 
 private:
     ScreenQuad();

@@ -29,14 +29,19 @@ std::unordered_map<std::string, core::graphics::FrameBufferAttachment>& Renderer
     return m_outputIDs;
 }
 
-std::unordered_map<std::string, core::UniformId>& RendererBasePrivate::uniformIDs()
+std::unordered_map<std::string, core::UniformID>& RendererBasePrivate::uniformIDs()
 {
     return m_uniformIDs;
 }
 
-std::unordered_map<std::string, core::SSBOId>& RendererBasePrivate::SSBOIDs()
+std::unordered_map<std::string, core::UniformBlockID>& RendererBasePrivate::uniformBlockIDs()
 {
-    return m_SSBOIDs;
+    return m_uniformBlockIDs;
+}
+
+std::unordered_map<std::string, core::ShaderStorageBlockID>& RendererBasePrivate::shaderStorageBlockIDs()
+{
+    return m_shaderStorageBlockIDs;
 }
 
 std::weak_ptr<RendererBase>& RendererBasePrivate::current()

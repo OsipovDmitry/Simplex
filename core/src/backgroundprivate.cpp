@@ -13,11 +13,6 @@ BackgroundPrivate::BackgroundPrivate()
 
 BackgroundPrivate::~BackgroundPrivate() = default;
 
-std::shared_ptr<BackgroundDrawable> &BackgroundPrivate::drawable()
-{
-    return m_drawable;
-}
-
 std::shared_ptr<MaterialMap>& BackgroundPrivate::environmentMap()
 {
     return m_environmentMap;
@@ -33,15 +28,16 @@ float& BackgroundPrivate::blurPower()
     return m_blurPower;
 }
 
-std::pair<std::shared_ptr<SceneData>, std::shared_ptr<BackgroundHandler>>& BackgroundPrivate::handler()
+std::shared_ptr<BackgroundHandler>& BackgroundPrivate::handler()
 {
     return m_handler;
 }
 
 void BackgroundPrivate::onChanged()
 {
-    if (m_handler.first)
-        m_handler.first->onBackgroundChanged(m_handler.second->background().lock(), m_handler.second->ID());
+    if (m_handler)
+        if (auto sceneData = m_handler->sceneData().lock())
+            sceneData->onBackgroundChanged(m_environmentMap, m_environmentColor, m_blurPower);
 }
 
 }

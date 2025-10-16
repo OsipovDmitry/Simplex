@@ -11,8 +11,8 @@ layout (std430) readonly buffer ssbo_drawDataBuffer {
 	DrawDataDescription drawData[];
 };
 
-flat out uint v_meshOffset;
-flat out uint v_materialOffset;
+flat out uint v_meshID;
+flat out uint v_materialID;
 out vec3 v_normal;
 out vec2 v_texCoords;
 out vec3 v_tangent;
@@ -95,19 +95,20 @@ vec4 vertexDataColor(in uint vertexDataOffset, in uint vertexStride, in uint ver
 
 void main(void)
 {
-	if (gl_DrawID < drawDataBufferReservedData.count)
+	uint drawDataID = gl_BaseInstance;
+	if (drawDataID < drawDataBufferReservedData.count)
 	{
-		DrawDataDescription drawDataDescription = drawData[gl_DrawID];
+		DrawDataDescription drawDataDescription = drawData[drawDataID];
 		
 		mat4x4 modelMatrix = drawDataModelMatrix(drawDataDescription);
 		mat3x3 normalMatrix = drawDataNormalMatrix(drawDataDescription);
 		
-		DrawableDescription drawableDescription = drawables[drawDataDrawableOffset(drawDataDescription)];
+		DrawableDescription drawableDescription = drawables[drawDataDrawableID(drawDataDescription)];
 		
-		v_meshOffset = drawableDescription.meshOffset;
-		v_materialOffset = drawableDescription.materialOffset;
+		v_meshID = drawableDescription.meshID;
+		v_materialID = drawableDescription.materialID;
 		
-		MeshDescription meshDescription = meshes[v_meshOffset];
+		MeshDescription meshDescription = meshes[v_meshID];
 		
 		uint elementID = elements[gl_VertexID];
 		
@@ -115,7 +116,7 @@ void main(void)
 		uint vertexRelativeOffset = 0u;
 		
 		vec3 position = vec3(0.0f);
-		uint positionComponentsCount = meshPositionComponentsCount(meshDescription.flags);
+		uint positionComponentsCount = meshPositionComponentsCount(meshDescription);
 		if (positionComponentsCount > 0u)
 		{
 			position = vertexDataPosition(meshDescription.vertexDataOffset, vertexStride, elementID, vertexRelativeOffset, positionComponentsCount);
@@ -123,7 +124,7 @@ void main(void)
 		}
 		
 		vec3 normal = vec3(0.0f);
-		uint normalComponentsCount = meshNormalComponentsCount(meshDescription.flags);
+		uint normalComponentsCount = meshNormalComponentsCount(meshDescription);
 		if (normalComponentsCount > 0u)
 		{
 			normal = vertexDataNormal(meshDescription.vertexDataOffset, vertexStride, elementID, vertexRelativeOffset, normalComponentsCount);
@@ -131,7 +132,7 @@ void main(void)
 		}
 		
 		vec2 texCoords = vec2(0.0f);
-		uint texCoordsComponentsCount = meshTexCoordsComponentsCount(meshDescription.flags);
+		uint texCoordsComponentsCount = meshTexCoordsComponentsCount(meshDescription);
 		if (texCoordsComponentsCount > 0u)
 		{
 			texCoords = vertexDataTexCoords(meshDescription.vertexDataOffset, vertexStride, elementID, vertexRelativeOffset, texCoordsComponentsCount);
@@ -140,7 +141,7 @@ void main(void)
 		
 		vec3 tangent = vec3(0.0f);
 		vec3 binormal = vec3(0.0f);
-		if (meshTangentFlag(meshDescription.flags))
+		if (meshTangentFlag(meshDescription))
 		{
 			float binormalFlag = 0.0f;
 			vertexDataTangentAndBinormalFlag(meshDescription.vertexDataOffset, vertexStride, elementID, vertexRelativeOffset, tangent, binormalFlag);
@@ -148,7 +149,7 @@ void main(void)
 			vertexRelativeOffset += 4u;
 		}
 		
-		uint numBones = meshBonesCount(meshDescription.flags);
+		uint numBones = meshBonesCount(meshDescription);
 		if (numBones > 0u)
 		{
 			for (uint i = 0u; i < numBones; ++i)
@@ -163,7 +164,7 @@ void main(void)
 		}
 		
 		vec4 color = vec4(1.0f);
-		uint colorComponentsCount = meshColorComponentsCount(meshDescription.flags);
+		uint colorComponentsCount = meshColorComponentsCount(meshDescription);
 		if (colorComponentsCount > 0u)
 		{
 			color = vertexDataColor(meshDescription.vertexDataOffset, vertexStride, elementID, vertexRelativeOffset, colorComponentsCount);

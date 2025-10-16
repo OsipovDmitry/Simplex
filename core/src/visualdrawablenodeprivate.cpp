@@ -26,32 +26,44 @@ utils::BoundingBox VisualDrawableNodePrivate::doBoundingBox()
 
 void VisualDrawableNodePrivate::doAfterTransformChanged()
 {
-    if (auto scene = d().scene())
-        changeDrawDataInScene(scene);
+    changeDrawDataInSceneData();
 }
 
 void VisualDrawableNodePrivate::doAttachToScene(const std::shared_ptr<Scene>& scene)
 {
-    for (const auto& visualDrawable : m_visualDrawables)
-        addDrawDataToScene(scene, visualDrawable);
+    if (auto sceneData = scene->m().sceneData())
+        for (const auto& visualDrawable : m_visualDrawables)
+            addDrawDataToSceneData(sceneData, visualDrawable);
 }
 
 void VisualDrawableNodePrivate::doDetachFromScene(const std::shared_ptr<Scene>& scene)
 {
     for (const auto& visualDrawable : m_visualDrawables)
-        removeDrawDataFromScene(scene, visualDrawable);
+        removeDrawDataFromSceneData(visualDrawable);
 }
 
-void VisualDrawableNodePrivate::addDrawDataToScene(
-    const std::shared_ptr<Scene>& scene,
+void VisualDrawableNodePrivate::addDrawDataToSceneData(
+    const std::shared_ptr<SceneData>& sceneData,
     const std::shared_ptr<const VisualDrawable>& drawable)
 {
-    if (!scene)
+    if (!sceneData)
     {
-        LOG_ERROR << "Scene can't be nullptr";
+        LOG_ERROR << "Scene data can't be nullptr";
         return;
     }
 
+    if (!drawable)
+    {
+        LOG_ERROR << "Drawable can't be nullptr";
+        return;
+    }
+    
+    auto handler = sceneData->addDrawData(drawable, d().globalTransform());
+    m_handlers.insert({ drawable, handler });
+}
+
+void VisualDrawableNodePrivate::removeDrawDataFromSceneData(const std::shared_ptr<const VisualDrawable>& drawable)
+{
     if (!drawable)
     {
         LOG_ERROR << "Drawable can't be nullptr";
@@ -60,57 +72,34 @@ void VisualDrawableNodePrivate::addDrawDataToScene(
 
     if (auto it = m_handlers.find(drawable); it == m_handlers.end())
     {
-        auto handler = scene->m().sceneData()->addDrawData(drawable, d().globalTransform());
-        m_handlers.insert({ drawable, handler });
-    }
-}
-
-void VisualDrawableNodePrivate::removeDrawDataFromScene(
-    const std::shared_ptr<Scene>& scene,
-    const std::shared_ptr<const VisualDrawable>& drawable)
-{
-    if (!scene)
-    {
-        LOG_ERROR << "Scene can't be nullptr";
-        return;
-    }
-
-    if (!drawable)
-    {
-        LOG_ERROR << "Drawable can't be nullptr";
-        return;
-    }
-
-    if (auto it = m_handlers.find(drawable); it != m_handlers.end())
-    {
-        auto& handler = it->second;
-        scene->m().sceneData()->removeDrawData(handler->ID());
-        m_handlers.erase(drawable);
-    }
-    else
-    {
         LOG_ERROR << "No found draw data handler to remove";
         return;
     }
+    else
+    {
+        m_handlers.erase(it);
+    }
 }
 
-void VisualDrawableNodePrivate::changeDrawDataInScene(const std::shared_ptr<Scene>& scene)
+void VisualDrawableNodePrivate::changeDrawDataInSceneData()
 {
-    if (!scene)
-    {
-        LOG_ERROR << "Scene can't be nullptr";
-        return;
-    }
-
-    auto& sceneData = scene->m().sceneData();
     const auto& globalTranform = d().globalTransform();
+
     for (const auto& handler : m_handlers)
-        sceneData->onDrawDataChanged(handler.first, globalTranform, handler.second->ID());
+    {
+        if (auto sceneData = handler.second->sceneData().lock())
+            sceneData->onDrawDataChanged(handler.second->ID(), handler.first, globalTranform);
+    }
 }
 
 std::unordered_set<std::shared_ptr<VisualDrawable>> &VisualDrawableNodePrivate::visualDrawables()
 {
     return m_visualDrawables;
+}
+
+std::unordered_map<std::shared_ptr<const VisualDrawable>, std::shared_ptr<DrawDataHandler>>& VisualDrawableNodePrivate::handlers()
+{
+    return m_handlers;
 }
 
 const utils::BoundingBox &VisualDrawableNodePrivate::localBoundingBox()

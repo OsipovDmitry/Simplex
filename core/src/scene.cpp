@@ -103,7 +103,7 @@ std::shared_ptr<Scene> Scene::createFromGLTF(const std::filesystem::path& filena
         size_t rawBufferIndex) -> std::shared_ptr<graphics::IBuffer>
         {
             const auto& rawBuffer = rawModel.buffers[rawBufferIndex];
-            return renderer->createBuffer(rawBuffer.data.size(), rawBuffer.data.data());
+            return renderer->createStaticBuffer(rawBuffer.data.size(), rawBuffer.data.data());
         };
 
     static const auto createTexture = [](const std::shared_ptr<TexturesManager>& texturesManager,
@@ -581,7 +581,7 @@ Scene::Scene(const std::string &name)
     : m_(std::make_unique<ScenePrivate>(*this, name))
 {
     m_->background() = std::make_shared<Background>();
-    m_->sceneData()->addBackground(m_->background());
+    m_->sceneData()->setBackground(m_->background());
 
     m_->listenerNode() = std::shared_ptr<ListenerNode>(new ListenerNode(settings::Settings::instance().application().scene().listenerNodeName()));
 

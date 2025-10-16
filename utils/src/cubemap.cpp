@@ -173,7 +173,7 @@ std::vector<std::shared_ptr<Image>> CubemapConverter::convertSphericalCubemapToF
     if (!checkImage(src))
         return std::vector<std::shared_ptr<Image>>();
 
-    std::vector<std::shared_ptr<Image>> result(6u);
+    std::vector<std::shared_ptr<Image>> result(euclideanAxes.size());
 
     const uint32_t faceSize = glm::max(src->height() / 2u, 1u);
 

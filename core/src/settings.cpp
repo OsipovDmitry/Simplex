@@ -151,15 +151,15 @@ Background::Background(const rapidjson::Document::ValueType *value)
 
 Background::~Background() = default;
 
-const glm::vec3 &Background::color() const
+const glm::vec3 &Background::environmentColor() const
 {
-    static const auto s_color = readVec3("Color", glm::vec3(.5f, .5f, 1.f));
+    static const auto s_color = readVec3("EnvironmentColor", glm::vec3(1.f));
     return s_color;
 }
 
-float Background::roughness() const
+float Background::blurPower() const
 {
-    return readSingle("Roughness", 1.f);
+    return readSingle("BlurPower", 1.f);
 }
 
 Flat::Flat(const rapidjson::Document::ValueType *value)

@@ -26,16 +26,16 @@ public:
     ~MaterialMapPrivate();
 
     std::filesystem::path& path();
-    std::shared_ptr<const utils::Image>& image();
+    std::shared_ptr<utils::Image>& image();
 
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialMapHandler>> &handlers();
+    std::set<std::shared_ptr<MaterialMapHandler>> &handlers();
     void onChanged();
 
 private:
     std::filesystem::path m_path;
-    std::shared_ptr<const utils::Image> m_image;
+    std::shared_ptr<utils::Image> m_image;
 
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialMapHandler>> m_handlers;
+    std::set<std::shared_ptr<MaterialMapHandler>> m_handlers;
 };
 
 class MaterialPrivate
@@ -56,10 +56,11 @@ public:
     float &roughness();
     float &metalness();
     float &normalMapScale();
+    float &alphaCutoff();
 
-    std::array<std::shared_ptr<const MaterialMap>, numElementsMaterialMapTarget()>& maps();
+    std::array<std::shared_ptr<MaterialMap>, numElementsMaterialMapTarget()>& maps();
 
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialHandler>> &handlers();
+    std::set<std::shared_ptr<MaterialHandler>> &handlers();
     void onChanged();
 
 private:
@@ -75,10 +76,11 @@ private:
     float m_roughness;
     float m_metalness;
     float m_normalMapScale;
+    float m_alphaCutoff;
 
-    std::array<std::shared_ptr<const MaterialMap>, numElementsMaterialMapTarget()> m_maps;
+    std::array<std::shared_ptr<MaterialMap>, numElementsMaterialMapTarget()> m_maps;
 
-    std::unordered_map<std::shared_ptr<SceneData>, std::shared_ptr<MaterialHandler>> m_handlers;
+    std::set<std::shared_ptr<MaterialHandler>> m_handlers;
 };
 
 }

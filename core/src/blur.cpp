@@ -94,7 +94,7 @@ graphics::PConstTexture Blur::run(const std::shared_ptr<graphics::RendererBase> 
             samples /= summ;
 
         const size_t bufferSize = 4u * sizeof(uint32_t) + kernel.size() * sizeof(glm::vec4);
-        auto kernelBuffer = graphicsRenderer->createBuffer(bufferSize);
+        auto kernelBuffer = graphicsRenderer->createStaticBuffer(bufferSize);
         auto data = kernelBuffer->map(graphics::IBuffer::MapAccess::WriteOnly);
         auto p = data->get();
         *reinterpret_cast<uint32_t*>(p) = radius;
@@ -139,7 +139,7 @@ graphics::PConstTexture Blur::run(const std::shared_ptr<graphics::RendererBase> 
                                                           m_pingpongSourceMap[destinationIdx].second));
         setPassIndex(pass);
 
-        graphicsRenderer->compute(program, size, { shared_from_this() });
+        graphicsRenderer->compute(size, program, { shared_from_this() });
     }
 
     return m_pingpongSourceMap[numPasses % 2u].first;
@@ -147,28 +147,28 @@ graphics::PConstTexture Blur::run(const std::shared_ptr<graphics::RendererBase> 
 
 graphics::PConstBufferRange Blur::kernelBuffer()
 {
-    return SSBO(SSBOId::BlurKernel);
+    return shaderStorageBlock(ShaderStorageBlockID::BlurKernel);
 }
 
 void Blur::setKernelBuffer(const graphics::PConstBufferRange &value)
 {
-    static SSBOId s_SSBOId = SSBOId::BlurKernel;
+    static ShaderStorageBlockID s_SSBOId = ShaderStorageBlockID::BlurKernel;
 
     if (value)
-        getOrCreateSSBO(s_SSBOId) = value;
+        getOrCreateShaderStorageBlock(s_SSBOId) = value;
     else
-        removeSSBO(s_SSBOId);
+        removeShaderStorageBlock(s_SSBOId);
 }
 
 graphics::PConstImage Blur::sourceImage() const
 {
-    auto uni = uniform_cast<graphics::PConstImage>(uniform(UniformId::SourceImage));
+    auto uni = uniform_cast<graphics::PConstImage>(uniform(UniformID::SourceImage));
     return uni ? uni->data() : nullptr;
 }
 
 void Blur::setSourceImage(const graphics::PConstImage &value)
 {
-    static UniformId s_uniformId = UniformId::SourceImage;
+    static UniformID s_uniformId = UniformID::SourceImage;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -178,13 +178,13 @@ void Blur::setSourceImage(const graphics::PConstImage &value)
 
 graphics::PConstImage Blur::destinationImage() const
 {
-    auto uni = uniform_cast<graphics::PConstImage>(uniform(UniformId::DestinationImage));
+    auto uni = uniform_cast<graphics::PConstImage>(uniform(UniformID::DestinationImage));
     return uni ? uni->data() : nullptr;
 }
 
 void Blur::setDestinationImage(const graphics::PConstImage &value)
 {
-    static UniformId s_uniformId = UniformId::DestinationImage;
+    static UniformID s_uniformId = UniformID::DestinationImage;
 
     if (value)
         getOrCreateUniform(s_uniformId) = makeUniform(value);
@@ -194,7 +194,7 @@ void Blur::setDestinationImage(const graphics::PConstImage &value)
 
 void Blur::setPassIndex(uint32_t value)
 {
-    getOrCreateUniform(UniformId::BlurPassIndex) = makeUniform(value);
+    getOrCreateUniform(UniformID::BlurPassIndex) = makeUniform(value);
 }
 
 void Blur::checkMapsInvariants() const

@@ -12,8 +12,6 @@ namespace simplex
 namespace core
 {
 
-/*tmp*/class BackgroundDrawable;
-
 class SceneData;
 class BackgroundHandler;
 
@@ -27,22 +25,15 @@ public:
     glm::vec3 &environmentColor();
     float &blurPower();
 
-    std::pair<std::shared_ptr<SceneData>, std::shared_ptr<BackgroundHandler>>& handler();
+    std::shared_ptr<BackgroundHandler>& handler();
     void onChanged();
-
-    //tmp
-    std::shared_ptr<BackgroundDrawable>& drawable();
 
 private:
     std::shared_ptr<MaterialMap> m_environmentMap;
     glm::vec3 m_environmentColor;
     float m_blurPower;
 
-    std::pair<std::shared_ptr<SceneData>, std::shared_ptr<BackgroundHandler>> m_handler;
-
-    //tmp
-    std::shared_ptr<BackgroundDrawable> m_drawable;
-
+    std::shared_ptr<BackgroundHandler> m_handler;
 };
 
 }

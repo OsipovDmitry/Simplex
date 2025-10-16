@@ -1,12 +1,20 @@
 #extension GL_ARB_bindless_texture : enable
 
+layout (early_fragment_tests) in;
+
 #include<descriptions.glsl>
 #include<gammacorrection.glsl>
-#include<packing.glsl>
+#include<oit_node.glsl>
 
 layout (std430) readonly buffer ssbo_meshesBuffer { MeshDescription meshes[]; };
 layout (std430) readonly buffer ssbo_materialMapsBuffer { uvec2 materialMaps[]; };
 layout (std430) readonly buffer ssbo_materialsBuffer { MaterialDescription materials[]; };
+
+layout (r32ui) uniform uimage2DRect u_OITIndicesMap;
+layout (std430) buffer ssbo_OITBuffer {
+	OITBufferReservedData OITReservedData;
+	OITBufferNode OITNodes[];
+};
 
 flat in uint v_meshID;
 flat in uint v_materialID;
@@ -15,8 +23,6 @@ in vec3 v_tangent;
 in vec3 v_binormal;
 in vec2 v_texCoords;
 in vec4 v_color;
-
-out uvec4 o_fragColor0;
 
 void main(void)
 {
@@ -82,17 +88,21 @@ void main(void)
 		normal = normalize(normal);
 	}
 	
-	if (!gl_FrontFacing)
-		normal = -normal;
-
-	o_fragColor0 = packPBRData(
-		baseColor.rgb,
-		emission,
-		occlusion,
-		roughness,
-		metalness,
-		1.0f,
-		normal,
-		isLighted,
-		isShadowed);
+    uint OITIndex = atomicAdd(OITReservedData.nodesCount, 1u);
+	if (OITIndex < OITReservedData.maxNodesCount)
+    {
+		uint prevOITIndex = imageAtomicExchange(u_OITIndicesMap, ivec2(gl_FragCoord.xy), OITIndex);
+        OITNodes[OITIndex] = packOITBufferNode(
+			baseColor.rgb,
+			emission,
+			occlusion,
+			roughness,
+			metalness,
+			alpha,
+			normal,
+			isLighted,
+			isShadowed,
+			gl_FragCoord.z,
+			prevOITIndex);
+    }
 }

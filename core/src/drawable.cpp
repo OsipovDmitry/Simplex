@@ -13,11 +13,6 @@ namespace simplex
 namespace core
 {
 
-Drawable::Drawable(const std::shared_ptr<graphics::VAOMesh> &vertexArray)
-    : Drawable(std::make_unique<DrawablePrivate>(vertexArray))
-{
-}
-
 Drawable::Drawable(const std::shared_ptr<Mesh>& mesh, const std::shared_ptr<Material>& material)
     : Drawable(std::make_unique<DrawablePrivate>(mesh, material))
 {
@@ -39,7 +34,7 @@ void Drawable::setMesh(const std::shared_ptr<const Mesh>& value)
 
 std::shared_ptr<const Material> Drawable::material() const
 {
-    return const_cast<Drawable*>(this)->material();
+    return m().material();
 }
 
 void Drawable::setMaterial(const std::shared_ptr<const Material>& value)
@@ -47,6 +42,11 @@ void Drawable::setMaterial(const std::shared_ptr<const Material>& value)
     auto mPrivate = m();
     m().material() = value;
     mPrivate.onChanged();
+}
+
+Drawable::Drawable(const std::shared_ptr<graphics::VAOMesh>& vertexArray)
+    : Drawable(std::make_unique<DrawablePrivate>(vertexArray))
+{
 }
 
 std::shared_ptr<const graphics::VAOMesh> Drawable::vertexArray() const

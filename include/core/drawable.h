@@ -21,7 +21,6 @@ class CORE_SHARED_EXPORT Drawable : public StateSet
     PRIVATE_IMPL(Drawable)
 
 public:
-    Drawable(const std::shared_ptr<graphics::VAOMesh>&);
     Drawable(const std::shared_ptr<Mesh>&, const std::shared_ptr<Material>&);
     ~Drawable() override;
 
@@ -32,6 +31,8 @@ public:
     void setMaterial(const std::shared_ptr<const Material>&);
 
     // tmp
+    Drawable(const std::shared_ptr<graphics::VAOMesh>&);
+
     std::shared_ptr<const graphics::VAOMesh> vertexArray() const;
     std::shared_ptr<graphics::VAOMesh> vertexArray();
     void setVertexArray(std::shared_ptr<graphics::VAOMesh>);

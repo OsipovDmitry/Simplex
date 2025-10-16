@@ -181,20 +181,20 @@ uint16_t ProgramsManagerPrivate::prepareImageFormatKey(const graphics::Supported
 void ProgramsManagerPrivate::prepareVisualDrawableComponentsDefines(const UniformCollection &uniformCollection,
                                                                     utils::ShaderDefines &defines)
 {
-    static const std::unordered_map<UniformId, std::string> s_table {
-        { UniformId::AlphaCutoff, "HAS_ALPHA_CUTOFF" },
-        { UniformId::BaseColor, "HAS_BASE_COLOR" },
-        { UniformId::BaseColorMap, "HAS_BASE_COLOR_MAP" },
-        { UniformId::Emission, "HAS_EMISSION" },
-        { UniformId::EmissionMap, "HAS_EMISSION_MAP" },
-        { UniformId::OcclusionMap, "HAS_OCCLUSION_MAP" },
-        { UniformId::OcclusionMapStrength, "HAS_OCCLUSION_MAP_STRENGTH" },
-        { UniformId::Roughness, "HAS_ROUGHNESS" },
-        { UniformId::RoughnessMap, "HAS_ROUGHNESS_MAP" },
-        { UniformId::Metalness, "HAS_METALNESS" },
-        { UniformId::MetalnessMap, "HAS_METALNESS_MAP" },
-        { UniformId::NormalMap, "HAS_NORMAL_MAP" },
-        { UniformId::NormalMapScale, "HAS_NORMAL_MAP_SCALE" },
+    static const std::unordered_map<UniformID, std::string> s_table {
+        { UniformID::AlphaCutoff, "HAS_ALPHA_CUTOFF" },
+        { UniformID::BaseColor, "HAS_BASE_COLOR" },
+        { UniformID::BaseColorMap, "HAS_BASE_COLOR_MAP" },
+        { UniformID::Emission, "HAS_EMISSION" },
+        { UniformID::EmissionMap, "HAS_EMISSION_MAP" },
+        { UniformID::OcclusionMap, "HAS_OCCLUSION_MAP" },
+        { UniformID::OcclusionMapStrength, "HAS_OCCLUSION_MAP_STRENGTH" },
+        { UniformID::Roughness, "HAS_ROUGHNESS" },
+        { UniformID::RoughnessMap, "HAS_ROUGHNESS_MAP" },
+        { UniformID::Metalness, "HAS_METALNESS" },
+        { UniformID::MetalnessMap, "HAS_METALNESS_MAP" },
+        { UniformID::NormalMap, "HAS_NORMAL_MAP" },
+        { UniformID::NormalMapScale, "HAS_NORMAL_MAP_SCALE" },
     };
 
     for (auto component : VisualDrawable::componentSet())
@@ -325,10 +325,10 @@ uint16_t ProgramsManagerPrivate::prepareLightTypeKey(LightType lightType,
 void ProgramsManagerPrivate::prepareBackgroundComponentsDefines(const UniformCollection &uniformCollection,
                                                                 utils::ShaderDefines &defines)
 {
-    static const std::unordered_map<UniformId, std::string> s_table {
-        { UniformId::BackgroundColor, "HAS_BACKGROUND_COLOR" },
-        { UniformId::BackgroundColorMap, "HAS_BACKGROUND_COLOR_MAP" },
-        { UniformId::BackgroundRoughness, "HAS_BACKGROUND_ROUGHNESS" }
+    static const std::unordered_map<UniformID, std::string> s_table {
+        { UniformID::BackgroundColor, "HAS_BACKGROUND_COLOR" },
+        { UniformID::BackgroundColorMap, "HAS_BACKGROUND_COLOR_MAP" },
+        { UniformID::BackgroundRoughness, "HAS_BACKGROUND_ROUGHNESS" }
     };
 
     for (auto component : BackgroundDrawable::componentSet())
@@ -353,7 +353,7 @@ uint16_t ProgramsManagerPrivate::prepareBackgroundComponentsKey(const UniformCol
 void ProgramsManagerPrivate::prepareLightComponentsDefines(const UniformCollection &uniformCollection,
                                                            utils::ShaderDefines &defines)
 {
-    static const std::unordered_map<UniformId, std::string> s_table {
+    static const std::unordered_map<UniformID, std::string> s_table {
     };
 
     for (auto component : LightDrawable::componentSet())
