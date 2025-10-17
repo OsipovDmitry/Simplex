@@ -1,16 +1,10 @@
 ﻿#include <utils/logger.h>
-#include <utils/clipspace.h>
 
-#include <core/igraphicswidget.h>
-#include <core/graphicsengine.h>
-#include <core/uniform.h>
 #include <core/scene.h>
-#include <core/scenerootnode.h>
 #include <core/directionallightnode.h>
 
 #include "graphicsengineprivate.h"
 #include "directionallightnodeprivate.h"
-#include "lightdrawable.h"
 
 namespace simplex
 {
@@ -20,21 +14,6 @@ namespace core
 DirectionalLightNode::DirectionalLightNode(const std::string &name)
     : LightNode(std::make_unique<DirectionalLightNodePrivate>(*this, name))
 {
-    auto graphicsRenderer = graphics::RendererBase::current();
-    if (!graphicsRenderer)
-        LOG_CRITICAL << "Graphics renderer can't be nullptr";
-
-    auto graphicsWidget = graphicsRenderer->widget();
-    if (!graphicsWidget)
-        LOG_CRITICAL << "Graphics widget can't be nullptr";
-
-    auto graphicsEngine = graphicsWidget->graphicsEngine();
-    if (!graphicsEngine)
-        LOG_CRITICAL << "Graphics engine can't be nullptr";
-
-    auto &mPrivate = m();
-    mPrivate.areaDrawable() = std::make_shared<LightDrawable>(graphicsEngine->m().directionalLightAreaVertexArray());
-
     setColor(glm::vec3(1.f));
 }
 
@@ -53,12 +32,15 @@ std::shared_ptr<const DirectionalLightNode> DirectionalLightNode::asDirectionalL
 
 const glm::vec3 &DirectionalLightNode::color() const
 {
-    return uniform_cast<glm::vec3>(m().areaDrawable()->uniform(UniformID::LightColor))->data();
+    return m().color();
 }
 
 void DirectionalLightNode::setColor(const glm::vec3 &value)
 {
-    m().areaDrawable()->getOrCreateUniform(UniformID::LightColor) = makeUniform(value);
+    auto& mPrivate = m();
+
+    mPrivate.color() = value;
+    mPrivate.changeInSceneData();
 }
 
 }

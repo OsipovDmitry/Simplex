@@ -34,23 +34,6 @@ public:
     std::shared_ptr<graphics::IVertexArray>& vertexArray();
     std::shared_ptr<GeometryBuffer>& geometryBuffer();
 
-    std::shared_ptr<graphics::VAOMesh> &screenQuadVertexArray();
-
-    std::shared_ptr<graphics::VAOMesh> &pointLightAreaVertexArray();
-    utils::BoundingBox &pointLightAreaBoundingBox();
-
-    std::shared_ptr<graphics::VAOMesh> &spotLightAreaVertexArray();
-    utils::BoundingBox &spotLightAreaBoundingBox();
-
-    std::shared_ptr<graphics::VAOMesh> &directionalLightAreaVertexArray();
-
-    std::shared_ptr<Drawable> &screenQuadDrawable();
-
-    std::shared_ptr<FlatDrawable> &nodeBoundingBoxDrawable();
-    std::shared_ptr<FlatDrawable> &visualDrawableNodeLocalBoundingBoxDrawable();
-    std::shared_ptr<FlatDrawable> &visualDrawableBoundingBoxDrawable();
-    std::shared_ptr<FlatDrawable> &lightNodeAreaBoundingBoxDrawable();
-
     static const std::string &attributeNameByID(utils::VertexAttribute);
     static const std::string& outputNameByID(graphics::FrameBufferAttachment);
     static const std::string &uniformNameByID(UniformID);
@@ -71,27 +54,6 @@ private:
     std::shared_ptr<graphics::IFrameBuffer> m_frameBuffer;
     std::shared_ptr<graphics::IVertexArray> m_vertexArray;
     std::shared_ptr<GeometryBuffer> m_geometryBuffer;
-
-    std::shared_ptr<graphics::VAOMesh> m_screenQuadVertexArray;
-
-    std::shared_ptr<graphics::VAOMesh> m_pointLightAreaVertexArray;
-    utils::BoundingBox m_pointLightAreaBoundingBox;
-
-    std::shared_ptr<graphics::VAOMesh> m_spotLightAreaVertexArray;
-    utils::BoundingBox m_spotLightAreaBoundingBox;
-
-    std::shared_ptr<graphics::VAOMesh> m_directionalLightAreaVertexArray;
-
-    std::shared_ptr<Drawable> m_screenQuadDrawable;
-
-    std::shared_ptr<FlatDrawable> m_nodeBoundingBoxDrawable;
-    std::shared_ptr<FlatDrawable> m_visualDrawableNodeLocalBoundingBoxDrawable;
-    std::shared_ptr<FlatDrawable> m_visualDrawableBoundingBoxDrawable;
-    std::shared_ptr<FlatDrawable> m_lightNodeAreaBoundingBoxDrawable;
-
-    graphics::PTexture m_defaultSSAOTexture;
-
-    std::shared_ptr<Drawable> m_finalScreenQuadDrawable;
 };
 
 }

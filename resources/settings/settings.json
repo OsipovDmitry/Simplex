@@ -62,11 +62,11 @@
                 "IsEnabled": false,
                 "Color": [1.0, 0.0, 0.0, 1.0]
             },
-            "VisualDrawableNodeLocalBoundingBox": {
+            "DrawableNodeLocalBoundingBox": {
                 "IsEnabled": false,
                 "Color": [0.0, 1.0, 0.0, 1.0]
             },
-            "VisualDrawableBoundingBox": {
+            "DrawableBoundingBox": {
                 "IsEnabled": false,
                 "Color": [0.0, 0.0, 1.0, 1.0]
             },

@@ -31,7 +31,7 @@ SSAO::SSAO()
     if (!graphicsEngine)
         LOG_CRITICAL << "Graphics engine can't be nullptr";
 
-    m_->drawable() = std::make_unique<SSAODrawable>(graphicsEngine->m().screenQuadVertexArray());
+    m_->drawable();// = std::make_unique<SSAODrawable>(graphicsEngine->m().screenQuadVertexArray());
     m_->blur() = std::make_shared<BilaterialBlur>();
 
     const auto &SSAOSettings = settings::Settings::instance().graphics().ssao();

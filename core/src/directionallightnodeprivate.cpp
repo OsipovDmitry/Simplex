@@ -1,6 +1,9 @@
 #include <core/directionallightnode.h>
+#include <core/scene.h>
 
 #include "directionallightnodeprivate.h"
+#include "sceneprivate.h"
+#include "scenedata.h"
 
 namespace simplex
 {
@@ -12,13 +15,59 @@ DirectionalLightNodePrivate::DirectionalLightNodePrivate(DirectionalLightNode &d
 {
 }
 
+DirectionalLightNodePrivate::~DirectionalLightNodePrivate() = default;
+
 void DirectionalLightNodePrivate::doAfterTransformChanged()
 {
     dirtyAreaMatrix();
     dirtyAreaBoundingBox();
+
+    changeInSceneData();
 }
 
-DirectionalLightNodePrivate::~DirectionalLightNodePrivate() = default;
+void DirectionalLightNodePrivate::doAttachToScene(const std::shared_ptr<Scene>& scene)
+{
+    if (auto& sceneData = scene->m().sceneData())
+        addToSceneData(sceneData);
+}
+
+void DirectionalLightNodePrivate::doDetachFromScene(const std::shared_ptr<Scene>& scene)
+{
+    removeFromSceneData();
+}
+
+glm::vec3& DirectionalLightNodePrivate::color()
+{
+    return m_color;
+}
+
+void DirectionalLightNodePrivate::addToSceneData(const std::shared_ptr<SceneData>&sceneData)
+{
+    if (!sceneData)
+    {
+        LOG_ERROR << "Scene data can't be nullptr";
+        return;
+    }
+
+    m_handler = sceneData->addDirectionalLight(d().globalTransform(), m_color);
+}
+
+void DirectionalLightNodePrivate::removeFromSceneData()
+{
+    m_handler.reset();
+}
+
+void DirectionalLightNodePrivate::changeInSceneData()
+{
+    if (m_handler)
+        if (auto sceneData = m_handler->sceneData().lock())
+            sceneData->onDirectionalLightChanged(m_handler->ID(), d().globalTransform(), m_color);
+}
+
+std::shared_ptr<DirectionalLightHandler>& DirectionalLightNodePrivate::handler()
+{
+    return m_handler;
+}
 
 LightNodePrivate::ShadowTransform DirectionalLightNodePrivate::doShadowTransform(const utils::Frustum::Points &cameraFrustumPoints)
 {

@@ -107,7 +107,8 @@ graphics::PConstTexture Blur::run(const std::shared_ptr<graphics::RendererBase> 
 
     const auto textureType = m_pingpongSourceMap[0u].first->type();
     const auto textureInternalFormat = m_pingpongSourceMap[0u].first->internalFormat();
-    auto program = programsManager->loadOrGetBlurComputeProgram(textureType, textureInternalFormat);
+    //auto program = programsManager->loadOrGetBlurComputeProgram(textureType, textureInternalFormat);
+    std::shared_ptr<graphics::IComputeProgram> program;
 
     uint32_t numPasses = 0u;
     switch (textureType)

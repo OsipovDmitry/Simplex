@@ -15,7 +15,6 @@ namespace core
 {
 
 class ShadowPrivate;
-class LightDrawable;
 
 class LightNodePrivate : public NodePrivate
 {
@@ -45,7 +44,6 @@ public:
     Shadow &shadow();
 
     ShadowTransform &shadowTransform(const utils::Frustum::Points&);
-    std::shared_ptr<LightDrawable> &areaDrawable();
     const glm::mat4x4 &areaMatrix();
     const utils::BoundingBox &areaBoundingBox();
 
@@ -60,7 +58,6 @@ private:
     std::shared_ptr<Shadow> m_shadow;
 
     ShadowTransform m_shadowTransform;
-    std::shared_ptr<LightDrawable> m_areaDrawable;
     glm::mat4x4 m_areaMatrix;
     utils::BoundingBox m_areaBoundingBox;
 

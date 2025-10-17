@@ -153,21 +153,21 @@ public:
     const glm::vec4 &color() const;
 };
 
-class CORE_SHARED_EXPORT VisualDrawableNodeLocalBoundingBox : public utils::SettingsComponent
+class CORE_SHARED_EXPORT DrawableNodeLocalBoundingBox : public utils::SettingsComponent
 {
 public:
-    VisualDrawableNodeLocalBoundingBox(const rapidjson::Document::ValueType*);
-    ~VisualDrawableNodeLocalBoundingBox() override;
+    DrawableNodeLocalBoundingBox(const rapidjson::Document::ValueType*);
+    ~DrawableNodeLocalBoundingBox() override;
 
     bool isEnabled() const;
     const glm::vec4 &color() const;
 };
 
-class CORE_SHARED_EXPORT VisualDrawableBoundingBox : public utils::SettingsComponent
+class CORE_SHARED_EXPORT DrawableBoundingBox : public utils::SettingsComponent
 {
 public:
-    VisualDrawableBoundingBox(const rapidjson::Document::ValueType*);
-    ~VisualDrawableBoundingBox() override;
+    DrawableBoundingBox(const rapidjson::Document::ValueType*);
+    ~DrawableBoundingBox() override;
 
     bool isEnabled() const;
     const glm::vec4 &color() const;
@@ -190,8 +190,8 @@ public:
     ~DebugRendering() override;
 
     const NodeBoundingBox &nodeBoundingBox() const;
-    const VisualDrawableNodeLocalBoundingBox &visualDrawableNodeLocalBoundingBox() const;
-    const VisualDrawableBoundingBox &visualDrawableBoundingBox() const;
+    const DrawableNodeLocalBoundingBox &drawableNodeLocalBoundingBox() const;
+    const DrawableBoundingBox &drawableBoundingBox() const;
     const LightNodeAreaBoundingBox &lightNodeAreaBoundingBox() const;
 };
 

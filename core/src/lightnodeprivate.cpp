@@ -12,7 +12,6 @@ LightNodePrivate::LightNodePrivate(LightNode &lightNode, const std::string &name
     , m_isLightingEnabled(true)
     , m_shadow(std::make_shared<Shadow>(type))
     , m_shadowTransform()
-    , m_areaDrawable()
     , m_isAreaMatrixDirty(true)
     , m_isAreaBoundingBoxDirty(true)
 {
@@ -73,11 +72,6 @@ LightNodePrivate::ShadowTransform &LightNodePrivate::shadowTransform(const utils
 {
     m_shadowTransform = doShadowTransform(cameraFrustumPoints);
     return m_shadowTransform;
-}
-
-std::shared_ptr<LightDrawable> &LightNodePrivate::areaDrawable()
-{
-    return m_areaDrawable;
 }
 
 const glm::mat4x4 &LightNodePrivate::areaMatrix()

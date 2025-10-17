@@ -198,19 +198,19 @@ void TestApplication::prepareStandardScene()
     spotLight->setTransform(utils::Transform(1.f, glm::quat(glm::vec3(-glm::quarter_pi<float>(), glm::quarter_pi<float>(), 0.f)), glm::vec3(4.f, 3.f, 4.f)));
     //scene0->sceneRootNode()->attach(spotLight);
 
-    auto iblLight = std::make_shared<core::IBLLightNode>("IBL light");
+    auto iblLight = std::make_shared<core::ImageBasedLightNode>("IBL light");
     iblLight->setContribution(.1f);
     scene0->sceneRootNode()->attach(iblLight);
 
-    auto planeDrawableNode = std::make_shared<core::VisualDrawableNode>("Plane");
-    planeDrawableNode->addVisualDrawable(planeDrawable);
+    auto planeDrawableNode = std::make_shared<core::DrawableNode>("Plane");
+    planeDrawableNode->addDrawable(planeDrawable);
     scene0->sceneRootNode()->attach(planeDrawableNode);
 
     for (uint32_t z = 0u; z < teapotDrawables.size(); ++z)
         for (uint32_t x = 0u; x < teapotDrawables[z].size(); ++x)
         {
-            auto teapotDrawableNode = std::make_shared<core::VisualDrawableNode>("Teapot");
-            teapotDrawableNode->addVisualDrawable(teapotDrawables[z][x]);
+            auto teapotDrawableNode = std::make_shared<core::DrawableNode>("Teapot");
+            teapotDrawableNode->addDrawable(teapotDrawables[z][x]);
             teapotDrawableNode->setTransform(utils::Transform::makeTranslation(glm::vec3(
                 1.75f * (.5f + static_cast<float>(x) - static_cast<float>(teapotDrawables[z].size()) * .5f),
                 0.f,
@@ -218,32 +218,32 @@ void TestApplication::prepareStandardScene()
             scene0->sceneRootNode()->attach(teapotDrawableNode);
         }
 
-    auto boxDrawableNode = std::make_shared<core::VisualDrawableNode>("Box");
+    auto boxDrawableNode = std::make_shared<core::DrawableNode>("Box");
     boxDrawableNode->setTransform(utils::Transform::makeTranslation(glm::vec3(0.2f, 0.5f, 0.42f)) *
                                   utils::Transform::makeRotation(glm::quat(glm::vec3(-0.4f, 0.3f, 0.0f))));
-    boxDrawableNode->addVisualDrawable(boxDrawable);
+    boxDrawableNode->addDrawable(boxDrawable);
     scene0->sceneRootNode()->attach(boxDrawableNode);
 
-    auto tetraDrawableNode = std::make_shared<core::VisualDrawableNode>("Tetra");
+    auto tetraDrawableNode = std::make_shared<core::DrawableNode>("Tetra");
     tetraDrawableNode->setTransform(utils::Transform::makeTranslation(glm::vec3(-0.6f, 0.21f, -1.0f)));
-    tetraDrawableNode->addVisualDrawable(tetraDrawable);
+    tetraDrawableNode->addDrawable(tetraDrawable);
     scene0->sceneRootNode()->attach(tetraDrawableNode);
 
-    auto sphereDrawableNode = std::make_shared<core::VisualDrawableNode>("Sphere");
+    auto sphereDrawableNode = std::make_shared<core::DrawableNode>("Sphere");
     sphereDrawableNode->setTransform(utils::Transform::makeTranslation(glm::vec3(1.4f, 0.4f, -1.f)));
-    sphereDrawableNode->addVisualDrawable(sphereDrawable);
+    sphereDrawableNode->addDrawable(sphereDrawable);
     scene0->sceneRootNode()->attach(sphereDrawableNode);
 
-    auto bunnyDrawableNode = std::make_shared<core::VisualDrawableNode>("Bunny");
+    auto bunnyDrawableNode = std::make_shared<core::DrawableNode>("Bunny");
     bunnyDrawableNode->setTransform(utils::Transform::makeTranslation(glm::vec3(1.3f, 0.01f, 1.0f)) *
                                       utils::Transform::makeRotation(glm::quat(glm::vec3(0.0f, -0.5f, 0.0f))));
-    bunnyDrawableNode->addVisualDrawable(bunnyDrawable);
+    bunnyDrawableNode->addDrawable(bunnyDrawable);
     scene0->sceneRootNode()->attach(bunnyDrawableNode);
 
-    auto suzanneDrawableNode = std::make_shared<core::VisualDrawableNode>("Suzanne");
+    auto suzanneDrawableNode = std::make_shared<core::DrawableNode>("Suzanne");
     suzanneDrawableNode->setTransform(utils::Transform::makeTranslation(glm::vec3(0.3f, 0.25f, -1.8f)) *
                                       utils::Transform::makeRotation(glm::quat(glm::vec3(-0.7f, 0.5f, 0.0f))));
-    suzanneDrawableNode->addVisualDrawable(suzanneDrawable);
+    suzanneDrawableNode->addDrawable(suzanneDrawable);
     scene0->sceneRootNode()->attach(suzanneDrawableNode);
 
     auto soundNode = std::make_shared<core::SoundNode>("");
@@ -262,7 +262,7 @@ void TestApplication::prepareSponzaScene()
 
     scene0->sceneRootNode()->attach(std::make_shared<core::CameraNode>("", m_renderWidget->defaultFrameBuffer()));
 
-    auto light1 = std::make_shared<core::IBLLightNode>("");
+    auto light1 = std::make_shared<core::ImageBasedLightNode>("");
     light1->setContribution(0.1f);
     scene0->sceneRootNode()->attach(light1);
 
@@ -292,7 +292,7 @@ void TestApplication::prepareChessScene()
 
     //scene0->sceneRootNode()->attach(std::make_shared<core::CameraNode>("", m_renderWidget->defaultFrameBuffer()));
 
-    auto light1 = std::make_shared<core::IBLLightNode>("");
+    auto light1 = std::make_shared<core::ImageBasedLightNode>("");
     scene0->sceneRootNode()->attach(light1);
 }
 
@@ -333,12 +333,12 @@ void TestApplication::prepareEmptyRoomScene()
     dirLight->setTransform(utils::Transform::makeRotation(glm::quat(glm::vec3(-glm::quarter_pi<float>(), glm::quarter_pi<float>(), 0.f))));
     scene0->sceneRootNode()->attach(dirLight);
 
-    auto iblLight = std::make_shared<core::IBLLightNode>("IBL light");
+    auto iblLight = std::make_shared<core::ImageBasedLightNode>("IBL light");
     iblLight->setContribution(.2f);
     scene0->sceneRootNode()->attach(iblLight);
 
-    auto boxDrawableNode = std::make_shared<core::VisualDrawableNode>("Box");
-    boxDrawableNode->addVisualDrawable(boxDrawable);
+    auto boxDrawableNode = std::make_shared<core::DrawableNode>("Box");
+    boxDrawableNode->addDrawable(boxDrawable);
     scene0->sceneRootNode()->attach(boxDrawableNode);
 }
 
@@ -348,7 +348,7 @@ void TestApplication::prepareRiggedFigureScene()
 
     scene0->sceneRootNode()->attach(std::make_shared<core::CameraNode>("", m_renderWidget->defaultFrameBuffer()));
 
-    auto light1 = std::make_shared<core::IBLLightNode>("");
+    auto light1 = std::make_shared<core::ImageBasedLightNode>("");
     light1->setContribution(0.1f);
     scene0->sceneRootNode()->attach(light1);
 

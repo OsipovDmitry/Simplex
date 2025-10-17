@@ -55,12 +55,12 @@ std::shared_ptr<const DirectionalLightNode> LightNode::asDirectionalLightNode() 
     return nullptr;
 }
 
-std::shared_ptr<IBLLightNode> LightNode::asIBLLightNode()
+std::shared_ptr<ImageBasedLightNode> LightNode::asIBLLightNode()
 {
     return nullptr;
 }
 
-std::shared_ptr<const IBLLightNode> LightNode::asIBLLightNode() const
+std::shared_ptr<const ImageBasedLightNode> LightNode::asIBLLightNode() const
 {
     return nullptr;
 }

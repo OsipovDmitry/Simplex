@@ -348,6 +348,57 @@ size_t PointLightHandler::ID() const
     return m_ID;
 }
 
+SpotLightHandler::SpotLightHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID)
+    : ResourceHandler(sceneData)
+    , m_ID(ID)
+{
+}
+
+SpotLightHandler::~SpotLightHandler()
+{
+    if (auto sceneData = m_sceneData.lock())
+        sceneData->removeSpotLight(m_ID);
+}
+
+size_t SpotLightHandler::ID() const
+{
+    return m_ID;
+}
+
+DirectionalLightHandler::DirectionalLightHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID)
+    : ResourceHandler(sceneData)
+    , m_ID(ID)
+{
+}
+
+DirectionalLightHandler::~DirectionalLightHandler()
+{
+    if (auto sceneData = m_sceneData.lock())
+        sceneData->removeDirectionalLight(m_ID);
+}
+
+size_t DirectionalLightHandler::ID() const
+{
+    return m_ID;
+}
+
+ImageBasedLightHandler::ImageBasedLightHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID)
+    : ResourceHandler(sceneData)
+    , m_ID(ID)
+{
+}
+
+ImageBasedLightHandler::~ImageBasedLightHandler()
+{
+    if (auto sceneData = m_sceneData.lock())
+        sceneData->removeImageBasedLight(m_ID);
+}
+
+size_t ImageBasedLightHandler::ID() const
+{
+    return m_ID;
+}
+
 SceneData::~SceneData() = default;
 
 std::shared_ptr<MeshHandler> SceneData::addMesh(const std::shared_ptr<const Mesh>& mesh)
@@ -1097,6 +1148,138 @@ void SceneData::onPointLightChanged(
         modelMatrix,
         PointLightDescription::makeAreaScaleAndInnerRadius(areaScale, radiuses[0u]),
         PointLightDescription::makeColorAndOuterRadius(color, radiuses[1u]) });
+}
+
+std::shared_ptr<SpotLightHandler> SceneData::addSpotLight(
+    const glm::mat4x4& modelMatrix,
+    const glm::vec3& areaScale,
+    const glm::vec3& color,
+    const glm::vec2& radiuses,
+    const glm::vec2& halfAngles)
+{
+    const auto ID = m_spotLightIDsGenerator.generate();
+    auto result = std::make_shared<SpotLightHandler>(weak_from_this(), ID);
+
+    onSpotLightChanged(ID, modelMatrix, areaScale, color, radiuses, halfAngles);
+
+    return result;
+}
+
+void SceneData::removeSpotLight(utils::IDsGenerator::value_type ID)
+{
+    m_spotLightsBuffer->set(ID, {
+        glm::mat4x4(1.f),
+        SpotLightDescription::makeAreaScaleAndInnerRadius(glm::vec3(0.f), 0.f),
+        SpotLightDescription::makeColorAndOuterRadius(glm::vec3(0.f), 0.f),
+        glm::vec2(0.f) });
+    m_spotLightIDsGenerator.clear(ID);
+}
+
+void SceneData::onSpotLightChanged(
+    utils::IDsGenerator::value_type ID,
+    const glm::mat4x4& modelMatrix,
+    const glm::vec3& areaScale,
+    const glm::vec3& color,
+    const glm::vec2& radiuses,
+    const glm::vec2& halfAngles)
+{
+    if (m_spotLightsBuffer->size() <= ID)
+    {
+        m_spotLightsBuffer->resize(ID + 1u);
+
+        auto reservedData = m_spotLightsBuffer->reservedData();
+        reservedData.count = static_cast<uint32_t>(m_spotLightsBuffer->size());
+        m_spotLightsBuffer->setReservedData(reservedData);
+    }
+
+    m_spotLightsBuffer->set(ID, {
+        modelMatrix,
+        SpotLightDescription::makeAreaScaleAndInnerRadius(areaScale, radiuses[0u]),
+        SpotLightDescription::makeColorAndOuterRadius(color, radiuses[1u]),
+        glm::cos(halfAngles) });
+}
+
+std::shared_ptr<DirectionalLightHandler> SceneData::addDirectionalLight(const glm::mat4x4& modelMatrix, const glm::vec3& color)
+{
+    const auto ID = m_directionalLightIDsGenerator.generate();
+    auto result = std::make_shared<DirectionalLightHandler>(weak_from_this(), ID);
+
+    onDirectionalLightChanged(ID, modelMatrix, color);
+
+    return result;
+}
+
+void SceneData::removeDirectionalLight(utils::IDsGenerator::value_type ID)
+{
+    m_directionalLightsBuffer->set(ID, {
+        DirectionalLightDescription::makeDirection(glm::mat4x4(1.f)),
+        DirectionalLightDescription::makeColor(glm::vec3(0.f)) });
+    m_directionalLightIDsGenerator.clear(ID);
+}
+
+void SceneData::onDirectionalLightChanged(
+    utils::IDsGenerator::value_type ID,
+    const glm::mat4x4& modelMatrix,
+    const glm::vec3& color)
+{
+    if (m_directionalLightsBuffer->size() <= ID)
+    {
+        m_directionalLightsBuffer->resize(ID + 1u);
+
+        auto reservedData = m_directionalLightsBuffer->reservedData();
+        reservedData.count = static_cast<uint32_t>(m_directionalLightsBuffer->size());
+        m_directionalLightsBuffer->setReservedData(reservedData);
+    }
+
+    m_directionalLightsBuffer->set(ID, {
+        DirectionalLightDescription::makeDirection(glm::mat4x4(modelMatrix)),
+        DirectionalLightDescription::makeColor(glm::vec3(color)) });
+}
+
+std::shared_ptr<ImageBasedLightHandler> SceneData::addImageBasedLight(
+    const std::shared_ptr<const MaterialMap>& BRDFLutMap,
+    const std::shared_ptr<const MaterialMap>& diffuseMap,
+    const std::shared_ptr<const MaterialMap>& specularMap,
+    float contribution)
+{
+    const auto ID = m_imageBasedLightIDsGenerator.generate();
+    auto result = std::make_shared<ImageBasedLightHandler>(weak_from_this(), ID);
+
+    onImageBasedLightChanged(ID, BRDFLutMap, diffuseMap, specularMap, contribution);
+
+    return result;
+}
+
+void SceneData::removeImageBasedLight(utils::IDsGenerator::value_type ID)
+{
+    m_imageBasedLightsBuffer->set(ID, {
+        utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(),
+        0.f });
+    m_imageBasedLightIDsGenerator.clear(ID);
+}
+
+void SceneData::onImageBasedLightChanged(utils::IDsGenerator::value_type ID,
+    const std::shared_ptr<const MaterialMap>& BRDFLutMap,
+    const std::shared_ptr<const MaterialMap>& diffuseMap,
+    const std::shared_ptr<const MaterialMap>& specularMap,
+    float contribution)
+{
+    if (m_imageBasedLightsBuffer->size() <= ID)
+    {
+        m_imageBasedLightsBuffer->resize(ID + 1u);
+
+        auto reservedData = m_imageBasedLightsBuffer->reservedData();
+        reservedData.count = static_cast<uint32_t>(m_imageBasedLightsBuffer->size());
+        m_imageBasedLightsBuffer->setReservedData(reservedData);
+    }
+
+    m_imageBasedLightsBuffer->set(ID, {
+        addMaterialMap(BRDFLutMap)->ID(),
+        addMaterialMap(diffuseMap)->ID(),
+        addMaterialMap(specularMap)->ID(),
+        contribution });
 }
 
 VertexDataBuffer& SceneData::vertexDataBuffer()

@@ -10,9 +10,9 @@
 #include <core/scene.h>
 #include <core/scenerootnode.h>
 #include <core/cameranode.h>
-#include <core/visualdrawablenode.h>
-#include <core/pbrdrawable.h>
-#include <core/ibllightnode.h>
+#include <core/drawablenode.h>
+#include <core/drawable.h>
+#include <core/imagebasedllightnode.h>
 #include <core/directionallightnode.h>
 #include <core/pointlightnode.h>
 #include <core/mesh.h>
@@ -25,7 +25,6 @@
 
 static std::shared_ptr<simplex::core::Scene> createScene(
     const std::string& name,
-    const std::shared_ptr<simplex::core::graphics::IFrameBuffer> &defaultFramebuffer,
     const std::shared_ptr<simplex::core::graphics::RendererBase> &renderer)
 {
     renderer->makeCurrent();
@@ -54,9 +53,9 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     planeMaterial->setMetalness(0.f);
     planeMaterial->setRoughness(.7f);
 
-    auto planeDrawableNode = std::make_shared<simplex::core::VisualDrawableNode>("");
-    planeDrawableNode->addVisualDrawable(
-        std::make_shared<simplex::core::PBRDrawable>(planeMesh, planeMaterial, planeBoundingBox));
+    auto planeDrawableNode = std::make_shared<simplex::core::DrawableNode>("");
+    planeDrawableNode->addDrawable(
+        std::make_shared<simplex::core::Drawable>(planeMesh, planeMaterial));
     scene->sceneRootNode()->attach(planeDrawableNode);
     planeDrawableNode->setTransform(simplex::utils::Transform::makeRotation(glm::quat(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f))));
 
@@ -94,15 +93,15 @@ static std::shared_ptr<simplex::core::Scene> createScene(
         material->setMetalness(0.f);
         material->setRoughness(.2f);
 
-        auto drawable = std::make_shared<simplex::core::PBRDrawable>(mesh, material, boundingBox);
+        auto drawable = std::make_shared<simplex::core::Drawable>(mesh, material);
 
-        auto drawableNode = std::make_shared<simplex::core::VisualDrawableNode>("");
-        drawableNode->addVisualDrawable(drawable);
+        auto drawableNode = std::make_shared<simplex::core::DrawableNode>("");
+        drawableNode->addDrawable(drawable);
         drawableNode->setTransform(simplex::utils::Transform::makeTranslation(nodePositions[i]));
         scene->sceneRootNode()->attach(drawableNode);
     }
 
-    auto cameraNode = std::make_shared<simplex::core::CameraNode>("", defaultFramebuffer);
+    auto cameraNode = std::make_shared<simplex::core::CameraNode>("");
     cameraNode->setTransform(simplex::utils::Transform::makeLookAt(
         glm::vec3(-3.f, 2.f, 4.f),
         glm::vec3(0.f),
@@ -115,7 +114,7 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     pointLightNode->setRadiuses(glm::vec2(5.f, 8.f));
     scene->sceneRootNode()->attach(pointLightNode);
 
-    auto IBLNode = std::make_shared<simplex::core::IBLLightNode>("");
+    auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
     IBLNode->setContribution(.3f);
     //scene->sceneRootNode()->attach(IBLNode);
 
@@ -264,7 +263,7 @@ int main(int argc, char* argv[])
     }
 
     auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene");
-    window->engine()->setScene(createScene("SimpleScene", window->defaultFrameBuffer(), window->graphicsEngine()->graphicsRenderer()));
+    window->engine()->setScene(createScene("SimpleScene", window->graphicsEngine()->graphicsRenderer()));
     window->setKeyCallback(keyCallback);
     window->setUpdateCallback(updateCallback);
 

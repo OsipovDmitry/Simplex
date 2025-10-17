@@ -11,10 +11,8 @@
 #include <core/scenerootnode.h>
 #include <core/background.h>
 #include <core/cameranode.h>
-#include <core/visualdrawablenode.h>
+#include <core/drawablenode.h>
 #include <core/lightnode.h>
-#include <core/pbrdrawable.h>
-#include <core/flatdrawable.h>
 #include <core/nodecollector.h>
 #include <core/shadow.h>
 #include <core/settings.h>
@@ -23,12 +21,10 @@
 #include <core/igraphicswidget.h>
 
 #include "graphicsengineprivate.h"
-#include "backgrounddrawable.h"
 #include "cameranodeprivate.h"
 #include "lightnodeprivate.h"
 #include "backgroundprivate.h"
 #include "shadowprivate.h"
-#include "lightdrawable.h"
 #include "blur.h"
 #include "nodevisitorhelpers.h"
 #include "framebufferhelpers.h"
@@ -94,70 +90,9 @@ GraphicsEngine::GraphicsEngine(const std::string &name, const std::shared_ptr<gr
     auto texturesManager = std::make_shared<TexturesManager>(renderer);
     m_->texturesManager() = texturesManager;
 
-    m_->frameBuffer() = m_->renderer()->createFrameBuffer();
-    m_->vertexArray() = m_->renderer()->createVertexArray();
-
+    m_->frameBuffer() = renderer->createFrameBuffer();
+    m_->vertexArray() = renderer->createVertexArray();
     m_->geometryBuffer() = std::make_shared<GeometryBuffer>(glm::uvec2(0u));
-
-    const std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, utils::VertexComponentType>> screenQuadVertexDeclaration{
-        {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}};
-    m_->screenQuadVertexArray() = graphics::VAOMesh::create(utils::MeshPainter(utils::Mesh::createEmptyMesh(screenQuadVertexDeclaration)).drawScreenQuad().mesh());
-    m_->screenQuadDrawable() = std::make_shared<Drawable>(m_->screenQuadVertexArray());
-
-    const std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, utils::VertexComponentType>> debugBoundingBoxVertexDeclaration{
-        {utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}}};
-
-    utils::MeshPainter debugBoundingBoxPainter(utils::Mesh::createEmptyMesh(debugBoundingBoxVertexDeclaration));
-    auto debugBoundingBoxVertexArray = graphics::VAOMesh::create(debugBoundingBoxPainter.drawBoundingBox().mesh());
-    auto debugBoundingBoxBB = debugBoundingBoxPainter.calculateBoundingBox();
-
-    m_->nodeBoundingBoxDrawable() = std::make_shared<FlatDrawable>(debugBoundingBoxVertexArray, debugBoundingBoxBB);
-    m_->nodeBoundingBoxDrawable()->setColor(debugRenderSettings.nodeBoundingBox().color());
-
-    m_->visualDrawableNodeLocalBoundingBoxDrawable() = std::make_shared<FlatDrawable>(debugBoundingBoxVertexArray, debugBoundingBoxBB);
-    m_->visualDrawableNodeLocalBoundingBoxDrawable()->setColor(debugRenderSettings.visualDrawableNodeLocalBoundingBox().color());
-
-    m_->visualDrawableBoundingBoxDrawable() = std::make_shared<FlatDrawable>(debugBoundingBoxVertexArray, debugBoundingBoxBB);
-    m_->visualDrawableBoundingBoxDrawable()->setColor(debugRenderSettings.visualDrawableBoundingBox().color());
-
-    m_->lightNodeAreaBoundingBoxDrawable() = std::make_shared<FlatDrawable>(debugBoundingBoxVertexArray, debugBoundingBoxBB);
-    m_->lightNodeAreaBoundingBoxDrawable()->setColor(debugRenderSettings.lightNodeAreaBoundingBox().color());
-
-    const std::unordered_map<utils::VertexAttribute, std::tuple<uint32_t, utils::VertexComponentType>> lightAreaVertexDeclaration{
-        {utils::VertexAttribute::Position, {3u, utils::VertexComponentType::Single}}};
-
-    utils::MeshPainter pointLightAreaPainter(utils::Mesh::createEmptyMesh(lightAreaVertexDeclaration));
-    m_->pointLightAreaVertexArray() = graphics::VAOMesh::create(pointLightAreaPainter.drawSphere(8u).mesh());
-    m_->pointLightAreaBoundingBox() = pointLightAreaPainter.calculateBoundingBox();
-
-    utils::MeshPainter spotLightAreaPainter(utils::Mesh::createEmptyMesh(lightAreaVertexDeclaration));
-    m_->spotLightAreaVertexArray() = graphics::VAOMesh::create(spotLightAreaPainter.drawCone(8u).mesh());
-    m_->spotLightAreaBoundingBox() = spotLightAreaPainter.calculateBoundingBox();
-
-    utils::MeshPainter directionalLightAreaPainter(utils::Mesh::createEmptyMesh(lightAreaVertexDeclaration));
-    m_->directionalLightAreaVertexArray() = graphics::VAOMesh::create(directionalLightAreaPainter.drawCube(glm::vec3(2.f)).mesh());
-
-//    auto boundingBoxMesh = std::make_shared<utils::Mesh>();
-//    boundingBoxMesh->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
-//    utils::MeshPainter(boundingBoxMesh).drawBoundingBox();
-//    auto boundingBoxVertexArray = renderer->createVertexArray(boundingBoxMesh);
-
-//    m_->nodeBoundingBoxDrawable() = std::make_shared<StandardDrawable>(boundingBoxVertexArray);
-//    m_->nodeBoundingBoxDrawable()->setColor(glm::vec4(.8f, .8f, .8f, 1.f));
-
-//    m_->drawableNodeLocalBoundingBoxDrawable() = std::make_shared<StandardDrawable>(boundingBoxVertexArray);
-//    m_->drawableNodeLocalBoundingBoxDrawable()->setColor(glm::vec4(.8f, .2f, .2f, 1.f));
-
-//    m_->cameraNodeFrustumDrawable() = std::make_shared<StandardDrawable>(boundingBoxVertexArray);
-//    m_->cameraNodeFrustumDrawable()->setColor(glm::vec4(.2f, .8f, .2f, 1.f));
-
-//    utils::MeshPainter cameraPainter(std::make_shared<utils::Mesh>());
-//    cameraPainter.mesh()->attachVertexBuffer(utils::VertexAttribute::Position, std::make_shared<utils::VertexBuffer>(0u, 3u));
-//    cameraPainter.setVertexTransform(glm::scale(glm::mat4(1.f), glm::vec3(3.f)));
-//    cameraPainter.drawCamera();
-
-//    m_->cameraNodeCameraDrawable() = std::make_shared<StandardDrawable>(renderer->createVertexArray(cameraPainter.mesh()));
-//    m_->cameraNodeCameraDrawable()->setColor(glm::vec4(.2f, .2f, .8f, 1.f));
 
     LOG_INFO << "Engine \"" << GraphicsEngine::name() << "\" has been created";
 }
@@ -259,8 +194,8 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
     static const auto& settings = settings::Settings::instance();
     static const auto& debugRenderingSettings = settings.graphics().debugRendering();
     static const auto nodeLocalBoundingBoxFlag = debugRenderingSettings.nodeBoundingBox().isEnabled();
-    static const auto visualDrawableNodeLocalBoundingBoxFlag = debugRenderingSettings.visualDrawableNodeLocalBoundingBox().isEnabled();
-    static const auto visualDrawableBoundingBoxFlag = debugRenderingSettings.visualDrawableBoundingBox().isEnabled();
+    static const auto visualDrawableNodeLocalBoundingBoxFlag = debugRenderingSettings.drawableNodeLocalBoundingBox().isEnabled();
+    static const auto visualDrawableBoundingBoxFlag = debugRenderingSettings.drawableBoundingBox().isEnabled();
     static const auto lightNodeAreaBoundingBoxFlag = debugRenderingSettings.lightNodeAreaBoundingBox().isEnabled();
     static const auto debugRender =
         nodeLocalBoundingBoxFlag ||
@@ -319,7 +254,7 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
         if (!camera->isDefaultFramebufferUsed())
             cameraGeometryBuffer = cameraPrivate.geometryBuffer();
 
-        cameraPrivate.resize(renderer, m_->frameBuffer(), cameraGeometryBuffer);
+        cameraPrivate.resize(cameraGeometryBuffer->size());
 
         const auto& cameraViewportSize = cameraGeometryBuffer->size();
         const auto cameraViewTransform = camera->globalTransform().inverted();
@@ -333,7 +268,7 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
         const utils::Frustum cameraFrustum(cameraViewTransform, camera->clipSpace(), cameraZRangeCalculator.resolveZRange());
         const auto& cameraProjectionMatrix = cameraFrustum.projectionMatrix();
 
-        VisualDrawablesCollector cameraVisualDrawablesCollector(cameraFrustum);
+        DrawablesCollector cameraVisualDrawablesCollector(cameraFrustum);
         rootNode->acceptDown(cameraVisualDrawablesCollector);
 
         LightNodesCollector lightNodesCollector(cameraFrustum);
@@ -341,26 +276,26 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
 
         if (debugRender)
         {
-            DebugGeometryCollector cameraDebugGeometryCollector(cameraFrustum,
-                nodeLocalBoundingBoxFlag,
-                visualDrawableNodeLocalBoundingBoxFlag,
-                visualDrawableBoundingBoxFlag,
-                lightNodeAreaBoundingBoxFlag);
-            rootNode->acceptDown(cameraDebugGeometryCollector);
+            //DebugGeometryCollector cameraDebugGeometryCollector(cameraFrustum,
+            //    nodeLocalBoundingBoxFlag,
+            //    visualDrawableNodeLocalBoundingBoxFlag,
+            //    visualDrawableBoundingBoxFlag,
+            //    lightNodeAreaBoundingBoxFlag);
+            //rootNode->acceptDown(cameraDebugGeometryCollector);
 
-            auto& cameraVisualDrawables = cameraVisualDrawablesCollector.visualDrawables();
+            //auto& cameraVisualDrawables = cameraVisualDrawablesCollector.drawables();
 
-            for (const auto& modelMatrix : cameraDebugGeometryCollector.nodeBoundingBoxes())
-                cameraVisualDrawables.push_back(std::make_tuple(m_->nodeBoundingBoxDrawable(), modelMatrix));
+            //for (const auto& modelMatrix : cameraDebugGeometryCollector.nodeBoundingBoxes())
+            //    cameraVisualDrawables.push_back(std::make_tuple(m_->nodeBoundingBoxDrawable(), modelMatrix));
 
-            for (const auto& modelMatrix : cameraDebugGeometryCollector.visualDrawableNodeLocalBoundingBoxes())
-                cameraVisualDrawables.push_back(std::make_tuple(m_->visualDrawableNodeLocalBoundingBoxDrawable(), modelMatrix));
+            //for (const auto& modelMatrix : cameraDebugGeometryCollector.drawableNodeLocalBoundingBoxes())
+            //    cameraVisualDrawables.push_back(std::make_tuple(m_->drawableNodeLocalBoundingBoxDrawable(), modelMatrix));
 
-            for (const auto& modelMatrix : cameraDebugGeometryCollector.visualDrawableBoundingBoxes())
-                cameraVisualDrawables.push_back(std::make_tuple(m_->visualDrawableBoundingBoxDrawable(), modelMatrix));
+            //for (const auto& modelMatrix : cameraDebugGeometryCollector.drawableBoundingBoxes())
+            //    cameraVisualDrawables.push_back(std::make_tuple(m_->drawableBoundingBoxDrawable(), modelMatrix));
 
-            for (const auto& modelMatrix : cameraDebugGeometryCollector.lightNodeAreaBoundingBoxes())
-                cameraVisualDrawables.push_back(std::make_tuple(m_->lightNodeAreaBoundingBoxDrawable(), modelMatrix));
+            //for (const auto& modelMatrix : cameraDebugGeometryCollector.lightNodeAreaBoundingBoxes())
+            //    cameraVisualDrawables.push_back(std::make_tuple(m_->lightNodeAreaBoundingBoxDrawable(), modelMatrix));
         }
 
         auto cameraRenderInfo = std::make_shared<GeometryRenderInfo>();
@@ -638,15 +573,26 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
         //    glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
         //    cameraRenderInfo);
 
-        // postprocess
-        cameraPrivate.postprocessFrameBuffer()->setForPass();
-        renderer->clearRenderData();
-        renderer->addRenderData(programsManager->loadOrGetPostprocessPassRenderProgram(
-            m_->screenQuadDrawable()->vertexAttrubiteSet()),
-            m_->screenQuadDrawable());
-        renderer->render(cameraPrivate.postprocessFrameBuffer()->frameBuffer(),
+        //// postprocess
+        //cameraPrivate.postprocessFrameBuffer()->setForPass();
+        //renderer->clearRenderData();
+        //renderer->addRenderData(programsManager->loadOrGetPostprocessPassRenderProgram(
+        //    m_->screenQuadDrawable()->vertexAttrubiteSet()),
+        //    m_->screenQuadDrawable());
+        //renderer->render(cameraPrivate.postprocessFrameBuffer()->frameBuffer(),
+        //    glm::uvec4(0u, 0u, screenSize),
+        //    cameraRenderInfo);
+
+        
+        m_->frameBuffer()->detachAll();
+        m_->frameBuffer()->attach(graphics::FrameBufferAttachment::Color0, cameraGeometryBuffer->finalTexture());
+
+        m_->renderer()->blitFrameBuffer(
+            m_->frameBuffer(),
+            widget->defaultFrameBuffer(),
+            glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
             glm::uvec4(0u, 0u, screenSize),
-            cameraRenderInfo);
+            true, false, false, false);
 
         sceneInfo.camerasInformation.push_back(cameraInfo);
     }

@@ -10,7 +10,7 @@
 #include <core/scene.h>
 #include <core/scenerootnode.h>
 #include <core/cameranode.h>
-#include <core/visualdrawablenode.h>
+#include <core/drawablenode.h>
 #include <core/pbrdrawable.h>
 #include <core/ibllightnode.h>
 #include <core/nodecollector.h>
@@ -40,11 +40,11 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     drawable->setMetalness(0.f);
     drawable->setRoughness(.2f);
 
-    auto drawableNode = std::make_shared<simplex::core::VisualDrawableNode>("DrawableNode");
-    drawableNode->addVisualDrawable(drawable);
+    auto drawableNode = std::make_shared<simplex::core::DrawableNode>("DrawableNode");
+    drawableNode->addDrawable(drawable);
     scene->sceneRootNode()->attach(drawableNode);
 
-    auto lighNode = std::make_shared<simplex::core::IBLLightNode>("");
+    auto lighNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
     lighNode->setContribution(.1f);
     scene->sceneRootNode()->attach(lighNode);
 

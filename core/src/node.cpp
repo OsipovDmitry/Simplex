@@ -81,12 +81,12 @@ std::shared_ptr<const CameraNode> Node::asCameraNode() const
     return nullptr;
 }
 
-std::shared_ptr<VisualDrawableNode> Node::asVisualDrawableNode()
+std::shared_ptr<DrawableNode> Node::asDrawableNode()
 {
     return nullptr;
 }
 
-std::shared_ptr<const VisualDrawableNode> Node::asVisualDrawableNode() const
+std::shared_ptr<const DrawableNode> Node::asDrawableNode() const
 {
     return nullptr;
 }

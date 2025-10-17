@@ -360,37 +360,37 @@ const glm::vec4 &NodeBoundingBox::color() const
     return s_color;
 }
 
-VisualDrawableNodeLocalBoundingBox::VisualDrawableNodeLocalBoundingBox(const rapidjson::Document::ValueType *value)
+DrawableNodeLocalBoundingBox::DrawableNodeLocalBoundingBox(const rapidjson::Document::ValueType *value)
     : utils::SettingsComponent(value)
 {
 }
 
-VisualDrawableNodeLocalBoundingBox::~VisualDrawableNodeLocalBoundingBox() = default;
+DrawableNodeLocalBoundingBox::~DrawableNodeLocalBoundingBox() = default;
 
-bool VisualDrawableNodeLocalBoundingBox::isEnabled() const
+bool DrawableNodeLocalBoundingBox::isEnabled() const
 {
     return readBool("IsEnabled", false);
 }
 
-const glm::vec4 &VisualDrawableNodeLocalBoundingBox::color() const
+const glm::vec4 &DrawableNodeLocalBoundingBox::color() const
 {
     static const auto s_color = readVec4("Color", glm::vec4(0.f, 1.f, 0.f, 1.f));
     return s_color;
 }
 
-VisualDrawableBoundingBox::VisualDrawableBoundingBox(const rapidjson::Document::ValueType *value)
+DrawableBoundingBox::DrawableBoundingBox(const rapidjson::Document::ValueType *value)
     : utils::SettingsComponent(value)
 {
 }
 
-VisualDrawableBoundingBox::~VisualDrawableBoundingBox() = default;
+DrawableBoundingBox::~DrawableBoundingBox() = default;
 
-bool VisualDrawableBoundingBox::isEnabled() const
+bool DrawableBoundingBox::isEnabled() const
 {
     return readBool("IsEnabled", false);
 }
 
-const glm::vec4 &VisualDrawableBoundingBox::color() const
+const glm::vec4 &DrawableBoundingBox::color() const
 {
     static const auto s_color = readVec4("Color", glm::vec4(0.f, 0.f, 1.f, 1.f));
     return s_color;
@@ -427,16 +427,16 @@ const NodeBoundingBox &DebugRendering::nodeBoundingBox() const
     return s_nodeBoundingBox;
 }
 
-const VisualDrawableNodeLocalBoundingBox &DebugRendering::visualDrawableNodeLocalBoundingBox() const
+const DrawableNodeLocalBoundingBox &DebugRendering::drawableNodeLocalBoundingBox() const
 {
-    static const VisualDrawableNodeLocalBoundingBox s_visualDrawableNodeLocalBoundingBox(read("VisualDrawableNodeLocalBoundingBox"));
-    return s_visualDrawableNodeLocalBoundingBox;
+    static const DrawableNodeLocalBoundingBox s_drawableNodeLocalBoundingBox(read("DrawableNodeLocalBoundingBox"));
+    return s_drawableNodeLocalBoundingBox;
 }
 
-const VisualDrawableBoundingBox &DebugRendering::visualDrawableBoundingBox() const
+const DrawableBoundingBox &DebugRendering::drawableBoundingBox() const
 {
-    static const VisualDrawableBoundingBox s_visualDrawableBoundingBox(read("VisualDrawableBoundingBox"));
-    return s_visualDrawableBoundingBox;
+    static const DrawableBoundingBox s_drawableBoundingBox(read("DrawableBoundingBox"));
+    return s_drawableBoundingBox;
 }
 
 const LightNodeAreaBoundingBox &DebugRendering::lightNodeAreaBoundingBox() const

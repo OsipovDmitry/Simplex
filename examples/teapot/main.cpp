@@ -10,7 +10,7 @@
 #include <core/scene.h>
 #include <core/scenerootnode.h>
 #include <core/cameranode.h>
-#include <core/visualdrawablenode.h>
+#include <core/drawablenode.h>
 #include <core/pbrdrawable.h>
 #include <core/ibllightnode.h>
 #include <core/mesh.h>
@@ -45,8 +45,8 @@ static std::shared_ptr<simplex::core::Scene> createScene(
 
     auto drawable = std::make_shared<simplex::core::PBRDrawable>(mesh, material, teapotBoundingBox);
 
-    auto drawableNode = std::make_shared<simplex::core::VisualDrawableNode>("TeapotNode");
-    drawableNode->addVisualDrawable(drawable);
+    auto drawableNode = std::make_shared<simplex::core::DrawableNode>("TeapotNode");
+    drawableNode->addDrawable(drawable);
     scene->sceneRootNode()->attach(drawableNode);
 
     auto cameraNode = std::make_shared<simplex::core::CameraNode>("", defaultFramebuffer);
@@ -56,7 +56,7 @@ static std::shared_ptr<simplex::core::Scene> createScene(
         glm::vec3(0.f, 1.f, 0.f)).inverted());
     scene->sceneRootNode()->attach(cameraNode);
 
-    auto lightNode = std::make_shared<simplex::core::IBLLightNode>("");
+    auto lightNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
     lightNode->setContribution(.5f);
     scene->sceneRootNode()->attach(lightNode);
 

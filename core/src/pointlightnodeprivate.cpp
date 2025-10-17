@@ -35,7 +35,7 @@ void PointLightNodePrivate::doAfterTransformChanged()
 
 void PointLightNodePrivate::doAttachToScene(const std::shared_ptr<Scene>& scene)
 {
-    if (auto sceneData = scene->m().sceneData())
+    if (auto& sceneData = scene->m().sceneData())
         addToSceneData(sceneData);
 }
 
@@ -52,11 +52,6 @@ glm::vec3& PointLightNodePrivate::color()
 glm::vec2& PointLightNodePrivate::radiuses()
 {
     return m_radiuses;
-}
-
-std::shared_ptr<PointLightHandler>& PointLightNodePrivate::handler()
-{
-    return m_handler;
 }
 
 void PointLightNodePrivate::addToSceneData(const std::shared_ptr<SceneData>& sceneData)
@@ -80,6 +75,11 @@ void PointLightNodePrivate::changeInSceneData()
     if (m_handler)
         if (auto sceneData = m_handler->sceneData().lock())
             sceneData->onPointLightChanged(m_handler->ID(), d().globalTransform(), doAreaScale(), m_color, m_radiuses);
+}
+
+std::shared_ptr<PointLightHandler>& PointLightNodePrivate::handler()
+{
+    return m_handler;
 }
 
 LightNodePrivate::ShadowTransform PointLightNodePrivate::doShadowTransform(const utils::Frustum::Points&)
@@ -107,14 +107,13 @@ LightNodePrivate::ShadowTransform PointLightNodePrivate::doShadowTransform(const
     for (uint32_t i = 0; i < numLayers; ++i)
         result.layeredViewTransforms[i] = layeredLookAt[i] * viewTransform;
     result.clipSpase = utils::ClipSpace::makePerspective(1.f, glm::half_pi<float>());
-    result.cullPlanesLimits = shadow().cullPlanesLimits() * utils::Range(0.f, dPublic.radiuses()[1u]);
+    result.cullPlanesLimits = shadow().cullPlanesLimits() * utils::Range(0.f, m_radiuses[1u]);
     return result;
 }
 
 glm::mat4x4 PointLightNodePrivate::doAreaMatrix()
 {
-    auto &dPublic = d();
-    return glm::scale(glm::mat4x4(1.f), glm::vec3(extendedRadius(dPublic.radiuses()[1u])));
+    return glm::scale(glm::mat4x4(1.f), glm::vec3(extendedRadius(m_radiuses[1u])));
 }
 
 utils::BoundingBox PointLightNodePrivate::doAreaBoundingBox()
@@ -131,12 +130,12 @@ utils::BoundingBox PointLightNodePrivate::doAreaBoundingBox()
     if (!graphicsEngine)
         LOG_CRITICAL << "Graphics engine can't be nullptr";
 
-    return areaMatrix() * graphicsEngine->m().pointLightAreaBoundingBox();
+    return areaMatrix() * utils::BoundingBox(); // graphicsEngine->m().pointLightAreaBoundingBox();
 }
 
 glm::vec3 PointLightNodePrivate::doAreaScale() const
 {
-    return glm::vec3(extendedRadius(d().radiuses()[1u]));
+    return glm::vec3(extendedRadius(m_radiuses[1u]));
 }
 
 }

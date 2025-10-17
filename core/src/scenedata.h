@@ -131,7 +131,7 @@ struct SpotLightDescription
     glm::mat4x4 modelMatrix;
     glm::vec4 areaScaleAndInnerRadius;
     glm::vec4 colorAndOuterRadius;
-    glm::vec2 cosAngles;
+    glm::vec2 cosHalfAngles;
 
     static glm::vec4 makeAreaScaleAndInnerRadius(const glm::vec3&, float);
     static glm::vec4 makeColorAndOuterRadius(const glm::vec3&, float);
@@ -273,6 +273,42 @@ private:
     size_t m_ID;
 };
 
+class SpotLightHandler : public ResourceHandler
+{
+public:
+    SpotLightHandler(const std::weak_ptr<SceneData>&, size_t);
+    ~SpotLightHandler() override;
+
+    size_t ID() const;
+
+private:
+    size_t m_ID;
+};
+
+class DirectionalLightHandler : public ResourceHandler
+{
+public:
+    DirectionalLightHandler(const std::weak_ptr<SceneData>&, size_t);
+    ~DirectionalLightHandler() override;
+
+    size_t ID() const;
+
+private:
+    size_t m_ID;
+};
+
+class ImageBasedLightHandler : public ResourceHandler
+{
+public:
+    ImageBasedLightHandler(const std::weak_ptr<SceneData>&, size_t);
+    ~ImageBasedLightHandler() override;
+
+    size_t ID() const;
+
+private:
+    size_t m_ID;
+};
+
 class SceneData : public StateSet, public std::enable_shared_from_this<SceneData>
 {
 public:
@@ -330,6 +366,36 @@ public:
         const glm::vec3&,
         const glm::vec3&,
         const glm::vec2&);
+
+    std::shared_ptr<SpotLightHandler> addSpotLight(const glm::mat4x4&, const glm::vec3&, const glm::vec3&, const glm::vec2&, const glm::vec2&);
+    void removeSpotLight(utils::IDsGenerator::value_type);
+    void onSpotLightChanged(
+        utils::IDsGenerator::value_type,
+        const glm::mat4x4&,
+        const glm::vec3&,
+        const glm::vec3&,
+        const glm::vec2&,
+        const glm::vec2&);
+
+    std::shared_ptr<DirectionalLightHandler> addDirectionalLight(const glm::mat4x4&, const glm::vec3&);
+    void removeDirectionalLight(utils::IDsGenerator::value_type);
+    void onDirectionalLightChanged(
+        utils::IDsGenerator::value_type,
+        const glm::mat4x4&,
+        const glm::vec3&);
+
+    std::shared_ptr<ImageBasedLightHandler> addImageBasedLight(
+        const std::shared_ptr<const MaterialMap>&,
+        const std::shared_ptr<const MaterialMap>&,
+        const std::shared_ptr<const MaterialMap>&,
+        float);
+    void removeImageBasedLight(utils::IDsGenerator::value_type);
+    void onImageBasedLightChanged(
+        utils::IDsGenerator::value_type,
+        const std::shared_ptr<const MaterialMap>&,
+        const std::shared_ptr<const MaterialMap>&,
+        const std::shared_ptr<const MaterialMap>&,
+        float);
 
     VertexDataBuffer& vertexDataBuffer();
     const VertexDataBuffer& vertexDataBuffer() const;

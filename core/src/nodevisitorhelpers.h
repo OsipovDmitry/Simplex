@@ -135,8 +135,8 @@ public:
 
     DebugGeometryCollector(const utils::Frustum&,
                            bool nodeBoundingBox,
-                           bool visualDrawableNodeLocalBoundingBox,
-                           bool visualDrawableBoundingBox,
+                           bool drawableNodeLocalBoundingBox,
+                           bool drawableBoundingBox,
                            bool lightNodeAreaBoundingBox);
 
     bool visit(Node&) override;
@@ -144,47 +144,47 @@ public:
     const Collection &nodeBoundingBoxes() const;
     Collection &nodeBoundingBoxes();
 
-    const Collection &visualDrawableNodeLocalBoundingBoxes() const;
-    Collection &visualDrawableNodeLocalBoundingBoxes();
+    const Collection &drawableNodeLocalBoundingBoxes() const;
+    Collection &drawableNodeLocalBoundingBoxes();
 
-    const Collection &visualDrawableBoundingBoxes() const;
-    Collection &visualDrawableBoundingBoxes();
+    const Collection &drawableBoundingBoxes() const;
+    Collection &drawableBoundingBoxes();
 
     const Collection &lightNodeAreaBoundingBoxes() const;
     Collection &lightNodeAreaBoundingBoxes();
 
 protected:
     Collection m_nodeBoundingBoxes;
-    Collection m_visualDrawableNodeLocalBoundingBoxes;
-    Collection m_visualDrawableBoundingBoxes;
+    Collection m_drawableNodeLocalBoundingBoxes;
+    Collection m_drawableBoundingBoxes;
     Collection m_lightNodeAreaBoundingBoxes;
 
     bool m_nodeBoundingBoxesFlag;
-    bool m_visualDrawableNodeLocalBoundingBoxesFlag;
-    bool m_visualDrawableBoundingBoxesFlag;
+    bool m_drawableNodeLocalBoundingBoxesFlag;
+    bool m_drawableBoundingBoxesFlag;
     bool m_lightNodeAreaBoundingBoxesFlag;
 };
 
-// VisualDrawablesCollector
+// DrawablesCollector
 
-class VisualDrawablesCollector : public FrustumCullingNodeVisitor
+class DrawablesCollector : public FrustumCullingNodeVisitor
 {
 public:
-    using VisualDrawableNodesCollection = std::deque<std::shared_ptr<VisualDrawableNode>>;
-    using VisualDrawablesCollection = std::deque<std::tuple<std::shared_ptr<VisualDrawable>, glm::mat4x4>>;
+    using DrawableNodesCollection = std::deque<std::shared_ptr<DrawableNode>>;
+    using DrawablesCollection = std::deque<std::tuple<std::shared_ptr<Drawable>, glm::mat4x4>>;
 
-    VisualDrawablesCollector(const utils::Frustum&);
+    DrawablesCollector(const utils::Frustum&);
 
     bool visit(Node&) override;
 
-    const VisualDrawableNodesCollection &visualDrawableNodesCollection() const;
+    const DrawableNodesCollection &drawableNodesCollection() const;
 
-    const VisualDrawablesCollection &visualDrawables() const;
-    VisualDrawablesCollection &visualDrawables();
+    const DrawablesCollection &drawables() const;
+    DrawablesCollection &drawables();
 
 protected:
-    VisualDrawableNodesCollection m_visualDrawableNodesCollection;
-    VisualDrawablesCollection m_visualDrawables;
+    DrawableNodesCollection m_drawableNodesCollection;
+    DrawablesCollection m_drawables;
 };
 
 // LightNodesCollector
@@ -213,7 +213,7 @@ public:
     ZRangeCalculator(const utils::Transform &viewTransform,
                      const utils::ClipSpace &clipSpace,
                      const utils::Range &cullPlanesLimits,
-                     bool visualDrawables, bool lights);
+                     bool drawables, bool lights);
 
     bool visit(Node&) override;
 
@@ -221,7 +221,7 @@ public:
 
 protected:
     utils::Range m_zRange;
-    bool m_accountVisualDrawables;
+    bool m_accountDrawables;
     bool m_accountLights;
 
     utils::Range calculateZRangeForOrthoClipSpace(const Node&, const utils::BoundingBox&);

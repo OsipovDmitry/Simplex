@@ -13,15 +13,11 @@ namespace core
 {
 
 class GeometryBuffer;
-class GFrameBufferTmp;
-class SSAOFrameBuffer;
-class BlurFrameBuffer;
-class PostprocessFrameBuffer;
 
 class CameraNodePrivate : public NodePrivate
 {
 public:
-    CameraNodePrivate(CameraNode&, const std::string&, /*tmp*/const std::shared_ptr<graphics::IFrameBuffer>&);
+    CameraNodePrivate(CameraNode&, const std::string&);
     ~CameraNodePrivate() override;
 
     bool &isRenderingEnabled();
@@ -36,19 +32,12 @@ public:
 
     SSAO &ssao();
 
-    std::shared_ptr<GFrameBufferTmp> &gFrameBuffer();
-    std::shared_ptr<SSAOFrameBuffer> &ssaoFrameBuffer();
-    std::shared_ptr<BlurFrameBuffer> &ssaoBlurFrameBuffer();
-    std::shared_ptr<PostprocessFrameBuffer> &postprocessFrameBuffer();
-
-    void resize(const std::shared_ptr<graphics::RendererBase>&, const std::shared_ptr<graphics::IFrameBuffer>&, const std::shared_ptr<GeometryBuffer>&);
+    void resize(const glm::uvec2&);
 
 private:
     bool m_isRenderingEnabled;
 
     std::shared_ptr<GeometryBuffer> m_geometryBuffer;
-
-    /*tmp*/std::shared_ptr<graphics::IFrameBuffer> m_defaultFrameBuffer;
 
     utils::ClipSpaceType m_clipSpaceType;
     float m_clipSpaceVerticalParam;
@@ -57,11 +46,6 @@ private:
     utils::Range m_cullPlanesLimits;
 
     SSAO m_ssao;
-
-    std::shared_ptr<GFrameBufferTmp> m_gFrameBuffer;
-    std::shared_ptr<SSAOFrameBuffer> m_ssaoFrameBuffer;
-    std::shared_ptr<BlurFrameBuffer> m_ssaoBlurFrameBuffer;
-    std::shared_ptr<PostprocessFrameBuffer> m_postprocessFrameBuffer;
 };
 
 }

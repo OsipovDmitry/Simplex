@@ -1,15 +1,10 @@
 #include <utils/logger.h>
-#include <utils/clipspace.h>
 
-#include <core/igraphicswidget.h>
-#include <core/graphicsengine.h>
-#include <core/uniform.h>
 #include <core/scene.h>
 #include <core/spotlightnode.h>
 
 #include "graphicsengineprivate.h"
 #include "spotlightnodeprivate.h"
-#include "lightdrawable.h"
 
 namespace simplex
 {
@@ -19,26 +14,9 @@ namespace core
 SpotLightNode::SpotLightNode(const std::string &name)
     : LightNode(std::make_unique<SpotLightNodePrivate>(*this, name))
 {
-    static const auto s_defaultHalfAngles = glm::quarter_pi<float>() * glm::vec2(0.f, 1.f);
-
-    auto graphicsRenderer = graphics::RendererBase::current();
-    if (!graphicsRenderer)
-        LOG_CRITICAL << "Graphics renderer can't be nullptr";
-
-    auto graphicsWidget = graphicsRenderer->widget();
-    if (!graphicsWidget)
-        LOG_CRITICAL << "Graphics widget can't be nullptr";
-
-    auto graphicsEngine = graphicsWidget->graphicsEngine();
-    if (!graphicsEngine)
-        LOG_CRITICAL << "Graphics engine can't be nullptr";
-
-    auto &mPrivate = m();
-    mPrivate.areaDrawable() = std::make_shared<LightDrawable>(graphicsEngine->m().spotLightAreaVertexArray());
-
     setColor(glm::vec3(1.f));
     setRadiuses(glm::vec2(1.f, 2.f));
-    setHalfAngles(s_defaultHalfAngles);
+    setHalfAngles(glm::quarter_pi<float>() * glm::vec2(0.f, 1.f));
 }
 
 SpotLightNode::~SpotLightNode() = default;
@@ -56,17 +34,20 @@ std::shared_ptr<const SpotLightNode> SpotLightNode::asSpotLightNode() const
 
 const glm::vec3 &SpotLightNode::color() const
 {
-    return uniform_cast<glm::vec3>(m().areaDrawable()->uniform(UniformID::LightColor))->data();
+    return m().color();
 }
 
 void SpotLightNode::setColor(const glm::vec3 &value)
 {
-    m().areaDrawable()->getOrCreateUniform(UniformID::LightColor) = makeUniform(value);
+    auto& mPrivate = m();
+
+    mPrivate.color() = value;
+    mPrivate.changeInSceneData();
 }
 
 const glm::vec2 &SpotLightNode::radiuses() const
 {
-    return uniform_cast<glm::vec2>(m().areaDrawable()->uniform(UniformID::LightRadiuses))->data();
+    return m().radiuses();
 }
 
 void SpotLightNode::setRadiuses(const glm::vec2 &value)
@@ -77,8 +58,9 @@ void SpotLightNode::setRadiuses(const glm::vec2 &value)
     if (value[1] <= value[0])
         LOG_CRITICAL << "maxRadius must be greater than minRadius";
 
-    auto &mPrivate = m();
-    mPrivate.areaDrawable()->getOrCreateUniform(UniformID::LightRadiuses) = makeUniform(value);
+    auto& mPrivate = m();
+    mPrivate.radiuses() = value;
+    mPrivate.changeInSceneData();
 
     mPrivate.dirtyAreaMatrix();
     mPrivate.dirtyAreaBoundingBox();
@@ -100,9 +82,9 @@ void SpotLightNode::setHalfAngles(const glm::vec2 &value)
     if (value[1] >= glm::half_pi<float>())
         LOG_CRITICAL << "Max angle must be less than pi/2";
 
-    auto &mPrivate = m();
+    auto& mPrivate = m();
     mPrivate.halfAngles() = value;
-    mPrivate.areaDrawable()->getOrCreateUniform(UniformID::LightCosHalfAngles) = makeUniform(glm::cos(value));
+    mPrivate.changeInSceneData();
 
     mPrivate.dirtyAreaMatrix();
     mPrivate.dirtyAreaBoundingBox();

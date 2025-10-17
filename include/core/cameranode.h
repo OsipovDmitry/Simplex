@@ -16,7 +16,7 @@ class CORE_SHARED_EXPORT CameraNode : public Node, public utils::SortedObject
 {
     PRIVATE_IMPL(CameraNode)
 public:
-    CameraNode(const std::string&, const std::shared_ptr<graphics::IFrameBuffer>&);
+    CameraNode(const std::string&);
     ~CameraNode() override;
 
     std::shared_ptr<CameraNode> asCameraNode() override;

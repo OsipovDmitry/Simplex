@@ -3,7 +3,6 @@
 
 #include <core/ssao.h>
 #include <core/cameranode.h>
-#include <core/scene.h>
 #include <core/settings.h>
 
 #include "cameranodeprivate.h"
@@ -14,8 +13,8 @@ namespace simplex
 namespace core
 {
 
-CameraNode::CameraNode(const std::string &name, const std::shared_ptr<graphics::IFrameBuffer> &defaultFrameBuffer)
-    : Node(std::make_unique<CameraNodePrivate>(*this, name, defaultFrameBuffer))
+CameraNode::CameraNode(const std::string &name)
+    : Node(std::make_unique<CameraNodePrivate>(*this, name))
 {
     setRenderingEnabled(true);
     useDefaultFramebuffer();

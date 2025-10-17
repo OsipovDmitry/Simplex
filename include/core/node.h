@@ -51,8 +51,8 @@ public:
     virtual std::shared_ptr<CameraNode> asCameraNode();
     virtual std::shared_ptr<const CameraNode> asCameraNode() const;
 
-    virtual std::shared_ptr<VisualDrawableNode> asVisualDrawableNode();
-    virtual std::shared_ptr<const VisualDrawableNode> asVisualDrawableNode() const;
+    virtual std::shared_ptr<DrawableNode> asDrawableNode();
+    virtual std::shared_ptr<const DrawableNode> asDrawableNode() const;
 
     virtual std::shared_ptr<LightNode> asLightNode();
     virtual std::shared_ptr<const LightNode> asLightNode() const;

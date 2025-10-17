@@ -15,7 +15,7 @@ ENUMCLASS(LightType, uint16_t,
           Point,
           Spot,
           Directional,
-          IBL)
+          ImageBased)
 
 class LightNodePrivate;
 class CORE_SHARED_EXPORT LightNode : public Node
@@ -38,8 +38,8 @@ public:
     virtual std::shared_ptr<DirectionalLightNode> asDirectionalLightNode();
     virtual std::shared_ptr<const DirectionalLightNode> asDirectionalLightNode() const;
 
-    virtual std::shared_ptr<IBLLightNode> asIBLLightNode();
-    virtual std::shared_ptr<const IBLLightNode> asIBLLightNode() const;
+    virtual std::shared_ptr<ImageBasedLightNode> asIBLLightNode();
+    virtual std::shared_ptr<const ImageBasedLightNode> asIBLLightNode() const;
 
     bool isLightingEnabled() const;
     void setLightingEnabled(bool);

@@ -60,61 +60,6 @@ std::shared_ptr<GeometryBuffer>& GraphicsEnginePrivate::geometryBuffer()
     return m_geometryBuffer;
 }
 
-std::shared_ptr<graphics::VAOMesh> &GraphicsEnginePrivate::screenQuadVertexArray()
-{
-    return m_screenQuadVertexArray;
-}
-
-std::shared_ptr<graphics::VAOMesh> &GraphicsEnginePrivate::pointLightAreaVertexArray()
-{
-    return m_pointLightAreaVertexArray;
-}
-
-utils::BoundingBox &GraphicsEnginePrivate::pointLightAreaBoundingBox()
-{
-    return m_pointLightAreaBoundingBox;
-}
-
-std::shared_ptr<graphics::VAOMesh> &GraphicsEnginePrivate::spotLightAreaVertexArray()
-{
-    return m_spotLightAreaVertexArray;
-}
-
-utils::BoundingBox &GraphicsEnginePrivate::spotLightAreaBoundingBox()
-{
-    return m_spotLightAreaBoundingBox;
-}
-
-std::shared_ptr<graphics::VAOMesh> &GraphicsEnginePrivate::directionalLightAreaVertexArray()
-{
-    return m_directionalLightAreaVertexArray;
-}
-
-std::shared_ptr<Drawable> &GraphicsEnginePrivate::screenQuadDrawable()
-{
-    return m_screenQuadDrawable;
-}
-
-std::shared_ptr<FlatDrawable> &GraphicsEnginePrivate::nodeBoundingBoxDrawable()
-{
-    return m_nodeBoundingBoxDrawable;
-}
-
-std::shared_ptr<FlatDrawable> &GraphicsEnginePrivate::visualDrawableNodeLocalBoundingBoxDrawable()
-{
-    return m_visualDrawableNodeLocalBoundingBoxDrawable;
-}
-
-std::shared_ptr<FlatDrawable> &GraphicsEnginePrivate::visualDrawableBoundingBoxDrawable()
-{
-    return m_visualDrawableBoundingBoxDrawable;
-}
-
-std::shared_ptr<FlatDrawable> &GraphicsEnginePrivate::lightNodeAreaBoundingBoxDrawable()
-{
-    return m_lightNodeAreaBoundingBoxDrawable;
-}
-
 const std::string &GraphicsEnginePrivate::attributeNameByID(utils::VertexAttribute ID)
 {
     static const std::string s_undefinedId = "";

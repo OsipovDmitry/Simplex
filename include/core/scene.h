@@ -37,7 +37,7 @@ public:
     std::shared_ptr<const Background> background() const;
     
     static std::shared_ptr<Scene> createEmpty(const std::string&);
-    static std::shared_ptr<Scene> createFromGLTF(const std::filesystem::path&, const std::shared_ptr<graphics::IFrameBuffer>&);
+    //static std::shared_ptr<Scene> createFromGLTF(const std::filesystem::path&, const std::shared_ptr<graphics::IFrameBuffer>&);
 
 private:
     Scene(const std::string&);
