@@ -8,7 +8,7 @@ namespace simplex
 namespace core
 {
 
-class DirectionalLightHandler;
+class LightHandler;
 class SceneData;
 
 class DirectionalLightNodePrivate : public LightNodePrivate
@@ -29,16 +29,13 @@ public:
     void removeFromSceneData();
     void changeInSceneData();
 
-    std::shared_ptr<DirectionalLightHandler>& handler();
+    std::shared_ptr<LightHandler>& handler();
 
 private:
     ShadowTransform doShadowTransform(const utils::Frustum::Points&) override;
 
-    glm::mat4x4 doAreaMatrix() override;
-    utils::BoundingBox doAreaBoundingBox() override;
-
     glm::vec3 m_color;
-    std::shared_ptr<DirectionalLightHandler> m_handler;
+    std::shared_ptr<LightHandler> m_handler;
 };
 
 }

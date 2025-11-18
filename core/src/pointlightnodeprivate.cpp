@@ -62,7 +62,7 @@ void PointLightNodePrivate::addToSceneData(const std::shared_ptr<SceneData>& sce
         return;
     }
 
-    m_handler = sceneData->addPointLight(d().globalTransform(), doAreaScale(), m_color, m_radiuses);
+    m_handler = sceneData->addPointLight(d().globalTransform(), m_color, m_radiuses);
 }
 
 void PointLightNodePrivate::removeFromSceneData()
@@ -74,10 +74,10 @@ void PointLightNodePrivate::changeInSceneData()
 {
     if (m_handler)
         if (auto sceneData = m_handler->sceneData().lock())
-            sceneData->onPointLightChanged(m_handler->ID(), d().globalTransform(), doAreaScale(), m_color, m_radiuses);
+            sceneData->onPointLightChanged(m_handler->ID(), d().globalTransform(), m_color, m_radiuses);
 }
 
-std::shared_ptr<PointLightHandler>& PointLightNodePrivate::handler()
+std::shared_ptr<LightHandler>& PointLightNodePrivate::handler()
 {
     return m_handler;
 }
@@ -109,33 +109,6 @@ LightNodePrivate::ShadowTransform PointLightNodePrivate::doShadowTransform(const
     result.clipSpase = utils::ClipSpace::makePerspective(1.f, glm::half_pi<float>());
     result.cullPlanesLimits = shadow().cullPlanesLimits() * utils::Range(0.f, m_radiuses[1u]);
     return result;
-}
-
-glm::mat4x4 PointLightNodePrivate::doAreaMatrix()
-{
-    return glm::scale(glm::mat4x4(1.f), glm::vec3(extendedRadius(m_radiuses[1u])));
-}
-
-utils::BoundingBox PointLightNodePrivate::doAreaBoundingBox()
-{
-    auto graphicsRenderer = graphics::RendererBase::current();
-    if (!graphicsRenderer)
-        LOG_CRITICAL << "Graphics renderer can't be nullptr";
-
-    auto graphicsWidget = graphicsRenderer->widget();
-    if (!graphicsWidget)
-        LOG_CRITICAL << "Graphics widget can't be nullptr";
-
-    auto graphicsEngine = graphicsWidget->graphicsEngine();
-    if (!graphicsEngine)
-        LOG_CRITICAL << "Graphics engine can't be nullptr";
-
-    return areaMatrix() * utils::BoundingBox(); // graphicsEngine->m().pointLightAreaBoundingBox();
-}
-
-glm::vec3 PointLightNodePrivate::doAreaScale() const
-{
-    return glm::vec3(extendedRadius(m_radiuses[1u]));
 }
 
 }

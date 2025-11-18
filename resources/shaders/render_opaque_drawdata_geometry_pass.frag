@@ -1,12 +1,10 @@
 #extension GL_ARB_bindless_texture : enable
 
-#include<descriptions.glsl>
 #include<gammacorrection.glsl>
 #include<packing.glsl>
-
-layout (std430) readonly buffer ssbo_meshesBuffer { MeshDescription meshes[]; };
-layout (std430) readonly buffer ssbo_materialMapsBuffer { uvec2 materialMaps[]; };
-layout (std430) readonly buffer ssbo_materialsBuffer { MaterialDescription materials[]; };
+#include<mesh.glsl>
+#include<material.glsl>
+#include<material_map.glsl>
 
 flat in uint v_meshID;
 flat in uint v_materialID;
@@ -19,72 +17,73 @@ in vec4 v_color;
 out uvec4 o_fragColor0;
 
 void main(void)
-{
-	MeshDescription meshDescription = meshes[v_meshID];
-	MaterialDescription materialDescription = materials[v_materialID];
+{	
+	bool hasTexCoords = meshTexCoordsComponentsCount(v_meshID) > 0u;
 	
-	bool hasTexCoords = meshTexCoordsComponentsCount(meshDescription) > 0u;
-	bool hasTangent = meshTangentFlag(meshDescription);
-	bool isLighted = isMaterialLighted(materialDescription);
-	bool isShadowed = isMaterialShadowed(materialDescription);
+    vec4 baseColor = materialBaseColor(v_materialID);
+	baseColor *= v_color;
 	
-    vec4 baseColor = materialDescription.baseColor;
-	if (meshColorComponentsCount(meshDescription) > 0u)
-	{
-		baseColor *= v_color;
-	}
-	if (hasTexCoords && (materialDescription.baseColorTextureID != 0xFFFFFFFFu))
-	{
-		baseColor *= toLinearRGB(texture(sampler2D(materialMaps[materialDescription.baseColorTextureID]), v_texCoords));
-	}
+	uint baseColorMapID = materialBaseColorMapID(v_materialID);
+	if (hasTexCoords && (baseColorMapID != 0xFFFFFFFFu))
+		baseColor *= toLinearRGB(texture(sampler2D(materialMap(baseColorMapID)), v_texCoords));
 	
 	float alpha = baseColor.a;
-	if (alpha < materialAlphaCutoff(materialDescription))
+	if (alpha < materialAlphaCutoff(v_materialID))
 		discard;
 	
-	vec3 emission = materialDescription.emission.rgb;
-	if (hasTexCoords && (materialDescription.emissionTextureID != 0xFFFFFFFFu))
-	{
-		emission *= toLinearRGB(texture(sampler2D(materialMaps[materialDescription.emissionTextureID]), v_texCoords)).rgb;
-    }
+	vec3 emission = materialEmission(v_materialID);
+	
+	uint emissionMapID = materialEmissionMapID(v_materialID);
+	if (hasTexCoords && (emissionMapID != 0xFFFFFFFFu))
+		emission *= toLinearRGB(texture(sampler2D(materialMap(emissionMapID)), v_texCoords).rgb);
+	
+	bool isLighted = isMaterialLighted(v_materialID);
     if (!isLighted)
     {
         emission += baseColor.rgb;
         baseColor.rgb = vec3(0.0f);
     }
 	
+	uvec3 ORMSwizzleMask = materialORMSwizzleMask(v_materialID);
+	
 	float occlusion = 1.0f;
-    if (hasTexCoords && (materialDescription.occlusionTextureID != 0xFFFFFFFFu))
+	
+	uint occlusionMapID = materialOcclusionMapID(v_materialID);
+    if (hasTexCoords && (occlusionMapID != 0xFFFFFFFFu))
 	{
-        occlusion *= texture(sampler2D(materialMaps[materialDescription.occlusionTextureID]), v_texCoords)[materialOcclusionMapSwizzle(materialDescription)];
-		occlusion *= materialOcclusionMapStrength(materialDescription);
+        occlusion *= texture(sampler2D(materialMap(occlusionMapID)), v_texCoords)[ORMSwizzleMask[0u]];
+		occlusion *= materialOcclusionMapStrength(v_materialID);
     }
 	
-	float roughness = materialRoughness(materialDescription);
-	if (hasTexCoords && (materialDescription.roughnessTextureID != 0xFFFFFFFFu))
-	{
-		roughness *= texture(sampler2D(materialMaps[materialDescription.roughnessTextureID]), v_texCoords)[materialRoughnessMapSwizzle(materialDescription)];
-	}
+	float roughness = materialRoughness(v_materialID);
 	
-	float metalness = materialMetalness(materialDescription);
-	if (hasTexCoords && (materialDescription.metalnessTextureID != 0xFFFFFFFFu))
+	uint roughnessMapID = materialRoughnessMapID(v_materialID);
+	if (hasTexCoords && (roughnessMapID != 0xFFFFFFFFu))
+		roughness *= texture(sampler2D(materialMap(roughnessMapID)), v_texCoords)[ORMSwizzleMask[1u]];
+	
+	float metalness = materialMetalness(v_materialID);
+	
+	uint metalnessMapID = materialMetalnessMapID(v_materialID);
+	if (hasTexCoords && (metalnessMapID != 0xFFFFFFFFu))
 	{
-		metalness *= texture(sampler2D(materialMaps[materialDescription.metalnessTextureID]), v_texCoords)[materialMetalnessMapSwizzle(materialDescription)];
+		metalness *= texture(sampler2D(materialMap(metalnessMapID)), v_texCoords)[ORMSwizzleMask[2u]];
 	}
 	
 	vec3 normal = v_normal;
-	if (hasTangent && hasTexCoords && (materialDescription.normalTextureID != 0xFFFFFFFFu))
+
+	uint normalMapID = materialNormalMapID(v_materialID);
+	if (hasTexCoords && meshTangentFlag(v_meshID) && (normalMapID != 0xFFFFFFFFu))
 	{
 		vec3 tangent = normalize(v_tangent);
 		vec3 binormal = normalize(v_binormal);
-		normal = mat3(tangent, binormal, normal) * unpackNormal(texture(sampler2D(materialMaps[materialDescription.normalTextureID]), v_texCoords).xyz);
-		normal.xz *= materialNormalMapScale(materialDescription);
+		normal = mat3(tangent, binormal, normal) * unpackNormal(texture(sampler2D(materialMap(normalMapID)), v_texCoords).xyz);
+		normal.xy *= materialNormalMapScale(v_materialID);
 		normal = normalize(normal);
 	}
 	
 	if (!gl_FrontFacing)
 		normal = -normal;
-
+	
 	o_fragColor0 = packPBRData(
 		baseColor.rgb,
 		emission,
@@ -94,5 +93,5 @@ void main(void)
 		1.0f,
 		normal,
 		isLighted,
-		isShadowed);
+		isMaterialShadowed(v_materialID));
 }

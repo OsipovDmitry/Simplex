@@ -63,6 +63,9 @@ public:
                         const QuatType& = QuatType(static_cast<T>(1), PointType(static_cast<T>(0))),
                         const PointType& = PointType(static_cast<T>(0)));
 
+    PointType transformVector(const PointType&) const;
+    PointType transformPoint(const PointType&) const;
+
     PointType operator *(const PointType &) const;
     TransformT<L, T> &operator *=(const TransformT<L, T>&);
     TransformT<L, T> operator *(const TransformT<L, T>&) const;
@@ -84,9 +87,21 @@ inline TransformT<L, T>::TransformT(T s, const QuatType &r, const PointType &t)
     : rotation(r), translation(t), scale(s) {}
 
 template<glm::length_t L, typename T>
-inline typename TransformT<L, T>::PointType TransformT<L, T>::operator *(const PointType &v) const
+inline typename TransformT<L, T>::PointType TransformT<L, T>::transformVector(const PointType& v) const
 {
-    return translation + PointType(rotation * vec3_cast(scale * v));
+    return rotation * vec3_cast(v);
+}
+
+template<glm::length_t L, typename T>
+inline typename TransformT<L, T>::PointType TransformT<L, T>::transformPoint(const PointType& p) const
+{
+    return translation + PointType(rotation * vec3_cast(scale * p));
+}
+
+template<glm::length_t L, typename T>
+inline typename TransformT<L, T>::PointType TransformT<L, T>::operator *(const PointType &p) const
+{
+    return transformPoint(p);
 }
 
 template <glm::length_t L, typename T>

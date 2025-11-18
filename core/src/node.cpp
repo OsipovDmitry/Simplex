@@ -1,5 +1,3 @@
-#include <utils/logger.h>
-
 #include <core/nodevisitor.h>
 #include <core/node.h>
 #include <core/scenerootnode.h>
@@ -39,8 +37,8 @@ std::shared_ptr<const Node> Node::rootNode() const
 std::shared_ptr<Scene> Node::scene()
 {
     std::shared_ptr<Scene> result;
-    if (auto sceneNode = rootNode()->asSceneRootNode())
-        result = sceneNode->scene();
+    if (auto sceneRootNode = rootNode()->asSceneRootNode())
+        result = sceneRootNode->scene();
 
     return result;
 }
@@ -139,15 +137,9 @@ void Node::setTransform(const utils::Transform &t)
     m_->transform() = t;
 
     m_->dirtyGlobalTransform();
-    m_->dirtyBoundingBox();
 
     AfterTransformChangedNodeVisitor afterTransformChangedNodeVisitor;
     acceptDown(afterTransformChangedNodeVisitor);
-}
-
-const utils::BoundingBox &Node::boundingBox() const
-{
-    return m_->boundingBox();
 }
 
 void Node::acceptUp(NodeVisitor &nodeVisitor)
@@ -172,7 +164,6 @@ Node::Node(std::unique_ptr<NodePrivate> nodePrivate)
 void Node::doAttach()
 {
     m_->dirtyGlobalTransform();
-    m_->dirtyBoundingBox();
 
     m_->doAttachToParent(parent());
 
@@ -194,7 +185,6 @@ void Node::doDetach()
     m_->doDetachFromParent(parent());
 
     m_->dirtyGlobalTransform();
-    m_->dirtyBoundingBox();
 }
 
 }

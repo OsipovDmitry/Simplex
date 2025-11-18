@@ -60,10 +60,6 @@ void PointLightNode::setRadiuses(const glm::vec2 &value)
     auto &mPrivate = m();
     mPrivate.radiuses() = value;
     mPrivate.changeInSceneData();
-
-    mPrivate.dirtyAreaMatrix();
-    mPrivate.dirtyAreaBoundingBox();
-
 }
 
 }

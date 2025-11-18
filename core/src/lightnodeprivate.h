@@ -32,8 +32,6 @@ public:
     LightNodePrivate(LightNode&, const std::string&, LightType);
     ~LightNodePrivate() override;
 
-    utils::BoundingBox doBoundingBox() override;
-
     LightType& type();
 
     static uint32_t numLayeredShadowMatrices(LightType type);
@@ -44,11 +42,6 @@ public:
     Shadow &shadow();
 
     ShadowTransform &shadowTransform(const utils::Frustum::Points&);
-    const glm::mat4x4 &areaMatrix();
-    const utils::BoundingBox &areaBoundingBox();
-
-    void dirtyAreaMatrix();
-    void dirtyAreaBoundingBox();
 
 private:
     LightType m_type;
@@ -56,18 +49,9 @@ private:
     bool m_isLightingEnabled;
 
     std::shared_ptr<Shadow> m_shadow;
-
     ShadowTransform m_shadowTransform;
-    glm::mat4x4 m_areaMatrix;
-    utils::BoundingBox m_areaBoundingBox;
-
-    bool m_isAreaMatrixDirty;
-    bool m_isAreaBoundingBoxDirty;
 
     virtual ShadowTransform doShadowTransform(const utils::Frustum::Points&);
-
-    virtual glm::mat4x4 doAreaMatrix() = 0;
-    virtual utils::BoundingBox doAreaBoundingBox() = 0;
 };
 
 }

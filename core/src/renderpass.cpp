@@ -5,9 +5,9 @@ namespace simplex
 namespace core
 {
 
-Pass::~Pass() = default;
+RenderPass::~RenderPass() = default;
 
-Pass::Pass()
+RenderPass::RenderPass()
     : StateSet()
 {
 }

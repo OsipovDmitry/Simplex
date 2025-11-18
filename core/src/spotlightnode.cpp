@@ -61,9 +61,6 @@ void SpotLightNode::setRadiuses(const glm::vec2 &value)
     auto& mPrivate = m();
     mPrivate.radiuses() = value;
     mPrivate.changeInSceneData();
-
-    mPrivate.dirtyAreaMatrix();
-    mPrivate.dirtyAreaBoundingBox();
 }
 
 const glm::vec2 &SpotLightNode::halfAngles() const
@@ -85,9 +82,6 @@ void SpotLightNode::setHalfAngles(const glm::vec2 &value)
     auto& mPrivate = m();
     mPrivate.halfAngles() = value;
     mPrivate.changeInSceneData();
-
-    mPrivate.dirtyAreaMatrix();
-    mPrivate.dirtyAreaBoundingBox();
 }
 
 }

@@ -73,17 +73,6 @@ public:
     bool visit(Node&) override;
 };
 
-// DirtyBoundingBoxNodeVisitor
-
-class DirtyBoundingBoxNodeVisitor : public NodeVisitor
-{
-public:
-    DirtyBoundingBoxNodeVisitor();
-
-    bool visit(Node&) override;
-
-};
-
 // AttachToSceneNodeVisitor
 
 class AttachToSceneNodeVisitor : public NodeVisitor
@@ -126,86 +115,86 @@ protected:
     utils::Frustum m_transformedFrustum;
 };
 
-// DebugCollector
+//// DebugCollector
+//
+//class DebugGeometryCollector : public FrustumCullingNodeVisitor
+//{
+//public:
+//    using Collection = std::deque<glm::mat4x4>;
+//
+//    DebugGeometryCollector(const utils::Frustum&,
+//                           bool nodeBoundingBox,
+//                           bool drawableNodeLocalBoundingBox,
+//                           bool drawableBoundingBox,
+//                           bool lightNodeAreaBoundingBox);
+//
+//    bool visit(Node&) override;
+//
+//    const Collection &nodeBoundingBoxes() const;
+//    Collection &nodeBoundingBoxes();
+//
+//    const Collection &drawableNodeLocalBoundingBoxes() const;
+//    Collection &drawableNodeLocalBoundingBoxes();
+//
+//    const Collection &drawableBoundingBoxes() const;
+//    Collection &drawableBoundingBoxes();
+//
+//    const Collection &lightNodeAreaBoundingBoxes() const;
+//    Collection &lightNodeAreaBoundingBoxes();
+//
+//protected:
+//    Collection m_nodeBoundingBoxes;
+//    Collection m_drawableNodeLocalBoundingBoxes;
+//    Collection m_drawableBoundingBoxes;
+//    Collection m_lightNodeAreaBoundingBoxes;
+//
+//    bool m_nodeBoundingBoxesFlag;
+//    bool m_drawableNodeLocalBoundingBoxesFlag;
+//    bool m_drawableBoundingBoxesFlag;
+//    bool m_lightNodeAreaBoundingBoxesFlag;
+//};
+//
+//// DrawablesCollector
+//
+//class DrawablesCollector : public FrustumCullingNodeVisitor
+//{
+//public:
+//    using DrawableNodesCollection = std::deque<std::shared_ptr<DrawableNode>>;
+//    using DrawablesCollection = std::deque<std::tuple<std::shared_ptr<Drawable>, glm::mat4x4>>;
+//
+//    DrawablesCollector(const utils::Frustum&);
+//
+//    bool visit(Node&) override;
+//
+//    const DrawableNodesCollection &drawableNodesCollection() const;
+//
+//    const DrawablesCollection &drawables() const;
+//    DrawablesCollection &drawables();
+//
+//protected:
+//    DrawableNodesCollection m_drawableNodesCollection;
+//    DrawablesCollection m_drawables;
+//};
+//
+//// LightNodesCollector
+//
+//class LightNodesCollector : public FrustumCullingNodeVisitor
+//{
+//public:
+//    using Collection = std::deque<std::shared_ptr<LightNode>>;
+//
+//    LightNodesCollector(const utils::Frustum&);
+//
+//    bool visit(Node&) override;
+//
+//    const Collection &lightNodes() const;
+//    Collection &lightNodes();
+//
+//protected:
+//    Collection m_lightNodes;
+//};
 
-class DebugGeometryCollector : public FrustumCullingNodeVisitor
-{
-public:
-    using Collection = std::deque<glm::mat4x4>;
-
-    DebugGeometryCollector(const utils::Frustum&,
-                           bool nodeBoundingBox,
-                           bool drawableNodeLocalBoundingBox,
-                           bool drawableBoundingBox,
-                           bool lightNodeAreaBoundingBox);
-
-    bool visit(Node&) override;
-
-    const Collection &nodeBoundingBoxes() const;
-    Collection &nodeBoundingBoxes();
-
-    const Collection &drawableNodeLocalBoundingBoxes() const;
-    Collection &drawableNodeLocalBoundingBoxes();
-
-    const Collection &drawableBoundingBoxes() const;
-    Collection &drawableBoundingBoxes();
-
-    const Collection &lightNodeAreaBoundingBoxes() const;
-    Collection &lightNodeAreaBoundingBoxes();
-
-protected:
-    Collection m_nodeBoundingBoxes;
-    Collection m_drawableNodeLocalBoundingBoxes;
-    Collection m_drawableBoundingBoxes;
-    Collection m_lightNodeAreaBoundingBoxes;
-
-    bool m_nodeBoundingBoxesFlag;
-    bool m_drawableNodeLocalBoundingBoxesFlag;
-    bool m_drawableBoundingBoxesFlag;
-    bool m_lightNodeAreaBoundingBoxesFlag;
-};
-
-// DrawablesCollector
-
-class DrawablesCollector : public FrustumCullingNodeVisitor
-{
-public:
-    using DrawableNodesCollection = std::deque<std::shared_ptr<DrawableNode>>;
-    using DrawablesCollection = std::deque<std::tuple<std::shared_ptr<Drawable>, glm::mat4x4>>;
-
-    DrawablesCollector(const utils::Frustum&);
-
-    bool visit(Node&) override;
-
-    const DrawableNodesCollection &drawableNodesCollection() const;
-
-    const DrawablesCollection &drawables() const;
-    DrawablesCollection &drawables();
-
-protected:
-    DrawableNodesCollection m_drawableNodesCollection;
-    DrawablesCollection m_drawables;
-};
-
-// LightNodesCollector
-
-class LightNodesCollector : public FrustumCullingNodeVisitor
-{
-public:
-    using Collection = std::deque<std::shared_ptr<LightNode>>;
-
-    LightNodesCollector(const utils::Frustum&);
-
-    bool visit(Node&) override;
-
-    const Collection &lightNodes() const;
-    Collection &lightNodes();
-
-protected:
-    Collection m_lightNodes;
-};
-
-// FrustumBuilder
+// ZRangeCalculator
 
 class ZRangeCalculator : public FrustumCullingNodeVisitor
 {
@@ -220,6 +209,8 @@ public:
     utils::Range resolveZRange() const;
 
 protected:
+    utils::ClipSpace m_clipSpace;
+    utils::Range m_cullPlanesLimits;
     utils::Range m_zRange;
     bool m_accountDrawables;
     bool m_accountLights;

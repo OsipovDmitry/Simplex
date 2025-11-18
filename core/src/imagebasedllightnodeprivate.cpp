@@ -20,9 +20,6 @@ ImageBasedLightNodePrivate::~ImageBasedLightNodePrivate() = default;
 
 void ImageBasedLightNodePrivate::doAfterTransformChanged()
 {
-    dirtyAreaMatrix();
-    dirtyAreaBoundingBox();
-
     changeInSceneData();
 }
 
@@ -65,7 +62,7 @@ void ImageBasedLightNodePrivate::addToSceneData(const std::shared_ptr<SceneData>
         return;
     }
 
-    m_handler = sceneData->addImageBasedLight(m_BRDFLutMap, m_diffuseMap, m_specularMap, m_contribution);
+    m_handler = sceneData->addImageBasedLight(d().globalTransform(), m_BRDFLutMap, m_diffuseMap, m_specularMap, m_contribution);
 }
 
 void ImageBasedLightNodePrivate::removeFromSceneData()
@@ -77,22 +74,12 @@ void ImageBasedLightNodePrivate::changeInSceneData()
 {
     if (m_handler)
         if (auto sceneData = m_handler->sceneData().lock())
-            sceneData->onImageBasedLightChanged(m_handler->ID(), m_BRDFLutMap, m_diffuseMap, m_specularMap, m_contribution);
+            sceneData->onImageBasedLightChanged(m_handler->ID(), d().globalTransform(), m_BRDFLutMap, m_diffuseMap, m_specularMap, m_contribution);
 }
 
-std::shared_ptr<ImageBasedLightHandler>& ImageBasedLightNodePrivate::handler()
+std::shared_ptr<LightHandler>& ImageBasedLightNodePrivate::handler()
 {
     return m_handler;
-}
-
-glm::mat4x4 ImageBasedLightNodePrivate::doAreaMatrix()
-{
-    return glm::mat4x4(1.f); // it is not used because bb policy is Root
-}
-
-utils::BoundingBox ImageBasedLightNodePrivate::doAreaBoundingBox()
-{
-    return utils::BoundingBox::empty(); // it is not used because bb policy is Root
 }
 
 }

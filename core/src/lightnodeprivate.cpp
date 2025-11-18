@@ -12,17 +12,10 @@ LightNodePrivate::LightNodePrivate(LightNode &lightNode, const std::string &name
     , m_isLightingEnabled(true)
     , m_shadow(std::make_shared<Shadow>(type))
     , m_shadowTransform()
-    , m_isAreaMatrixDirty(true)
-    , m_isAreaBoundingBoxDirty(true)
 {
 }
 
 LightNodePrivate::~LightNodePrivate() = default;
-
-utils::BoundingBox LightNodePrivate::doBoundingBox()
-{
-    return areaBoundingBox();
-}
 
 LightType& LightNodePrivate::type()
 {
@@ -72,37 +65,6 @@ LightNodePrivate::ShadowTransform &LightNodePrivate::shadowTransform(const utils
 {
     m_shadowTransform = doShadowTransform(cameraFrustumPoints);
     return m_shadowTransform;
-}
-
-const glm::mat4x4 &LightNodePrivate::areaMatrix()
-{
-    if (m_isAreaMatrixDirty)
-    {
-        m_areaMatrix = doAreaMatrix();
-        m_isAreaMatrixDirty = false;
-    }
-    return m_areaMatrix;
-}
-
-const utils::BoundingBox &LightNodePrivate::areaBoundingBox()
-{
-    if (m_isAreaBoundingBoxDirty)
-    {
-        m_areaBoundingBox = doAreaBoundingBox();
-        m_isAreaBoundingBoxDirty = false;
-    }
-    return m_areaBoundingBox;
-}
-
-void LightNodePrivate::dirtyAreaMatrix()
-{
-    m_isAreaMatrixDirty = true;
-}
-
-void LightNodePrivate::dirtyAreaBoundingBox()
-{
-    m_isAreaBoundingBoxDirty = true;
-    dirtyBoundingBox();
 }
 
 LightNodePrivate::ShadowTransform LightNodePrivate::doShadowTransform(const utils::Frustum::Points&)

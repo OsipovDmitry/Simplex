@@ -185,37 +185,6 @@ inline FrustumT<T> operator *(const TransformT<FrustumT<T>::length(), T> &t, con
     return result;
 }
 
-//template <typename T>
-//struct OpenFrustumT : public FrustumT<T>
-//{
-//    OpenFrustumT(const typename FrustumT<T>::TransformType &viewTransform = FrustumT<T>::TransformType(),
-//                 const typename FrustumT<T>::ClipSpaceType &clipSpace = FrustumT<T>::ClipSpace(),
-//                 const typename FrustumT<T>::ZRangeType &zRange = FrustumT<T>::ZRangeType())
-//        : FrustumT<T>(viewTransform, clipSpace, zRange)
-//    {
-//        // Points on far plane are not needed for OpenFrustumT. Remove them.
-//        for (size_t p = 0u; p < FrustumT<T>::numPoints(); ++p)
-//        {
-//            if (std::bitset<FrustumT<T>::length()> index = p; index.test(FrustumT<T>::length() - 1u))
-//                FrustumT<T>::m_points.erase(p);
-//        }
-
-//        // Edges connected with far plane are not needed for OpenFrustumT. Remove them
-//        for (size_t e = 0u; e < FrustumT<T>::numEdges(); ++e)
-//        {
-//            for (auto eIndex : FrustumT<T>::edgeIndices(e))
-//                if (std::bitset<FrustumT<T>::length()> index = eIndex; index.test(FrustumT<T>::length() - 1u))
-//                {
-//                    FrustumT<T>::m_edges.erase(e);
-//                    break;
-//                }
-//        }
-
-//        // Far plane is not needed for OpenFrustumT. Remove it.
-//        FrustumT<T>::m_planes.erase(FrustumT<T>::PlaneIndex::Far);
-//    }
-//};
-
 } // namespace
 } // namespace
 

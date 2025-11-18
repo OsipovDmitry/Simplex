@@ -1,7 +1,7 @@
 #ifndef CORE_GEOMETRYBUFFER_H
 #define CORE_GEOMETRYBUFFER_H
 
-#include <core/forwarddecl.h>
+#include <core/stateset.h>
 
 namespace simplex
 {
@@ -25,7 +25,7 @@ struct OITBufferNode
 using POITBuffer = std::shared_ptr<graphics::VectorBuffer<OITBufferNode, OITBufferReservedData>>;
 using PConstOITBuffer = std::shared_ptr<const graphics::VectorBuffer<OITBufferNode, OITBufferReservedData>>;
 
-class GeometryBuffer
+class GeometryBuffer : public StateSet
 {
 public:
     GeometryBuffer(const glm::uvec2&);

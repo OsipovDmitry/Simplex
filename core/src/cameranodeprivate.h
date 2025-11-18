@@ -33,6 +33,7 @@ public:
     SSAO &ssao();
 
     void resize(const glm::uvec2&);
+    void updateClipSpace();
 
 private:
     bool m_isRenderingEnabled;
@@ -41,6 +42,7 @@ private:
 
     utils::ClipSpaceType m_clipSpaceType;
     float m_clipSpaceVerticalParam;
+    float m_viewportAspectRatio;
     utils::ClipSpace m_clipSpace;
 
     utils::Range m_cullPlanesLimits;

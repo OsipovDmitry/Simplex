@@ -37,8 +37,6 @@ public:
     const utils::Transform &transform() const;
     void setTransform(const utils::Transform&);
 
-    const utils::BoundingBox &boundingBox() const;
-
     void acceptUp(NodeVisitor&);
     void acceptDown(NodeVisitor&);
 

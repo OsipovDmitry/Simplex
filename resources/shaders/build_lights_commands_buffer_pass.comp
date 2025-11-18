@@ -1,41 +1,20 @@
-layout (local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-#include<descriptions.glsl>
+#include<light.glsl>
+#include<mesh.glsl>
 
-layout (std430) readonly buffer ssbo_meshesBuffer { MeshDescription meshes[]; };
-layout (std430) readonly buffer ssbo_pointLightsBuffer {
-	LightBufferReservedData pointLightsBufferReservedData;
-	PointLightDescription pointLights[];
-};
-layout (std430) readonly buffer ssbo_spotLightsBuffer {
-	LightBufferReservedData spotLightsBufferReservedData;
-	SpotLightDescription spotLights[];
-};
-layout (std430) readonly buffer ssbo_directionalLightsBuffer {
-	LightBufferReservedData directionalLightsBufferReservedData;
-	DirectionalLightDescription directionalLights[];
-};
-layout (std430) readonly buffer ssbo_imageBasedLightsBuffer {
-	LightBufferReservedData imageBasedLightsBufferReservedData;
-	ImageBasedLightDescription imageBasedLights[];
-};
 layout (std430) buffer ssbo_commandsBuffer {
 	DrawIndirectCommandsBufferReservedData lightsIndirectCommandsBufferReservedData;
 	DrawArraysIndirectCommand lightsCommands[];
 };
 
 void main(void)
-{
-	uint totalLightsCount =
-		pointLightsBufferReservedData.count +
-		spotLightsBufferReservedData.count +
-		directionalLightsBufferReservedData.count +
-		imageBasedLightsBufferReservedData.count;
-	
+{	
     uint lightID = gl_GlobalInvocationID.x;
-	if (lightID < totalLightsCount)
+	if (lightID < lightsCount())
 	{
-		MeshDescription meshDescription;
+		uint numElements = 0u;
+		uint elementsOffset = 0u;
 
 		if (lightID < pointLightsBufferReservedData.count)
 		{
@@ -56,9 +35,9 @@ void main(void)
 
 		uint commandID = atomicAdd(lightsIndirectCommandsBufferReservedData.count, 1u);
 		lightsCommands[commandID] = DrawArraysIndirectCommand(
-			meshNumElements(meshDescription),
+			numElements,
 			1u,
-			meshDescription.elementsOffset,
+			elementsOffset,
 			lightID);
 	}
 

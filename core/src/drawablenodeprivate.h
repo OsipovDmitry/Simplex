@@ -25,7 +25,6 @@ public:
     DrawableNodePrivate(DrawableNode&, const std::string&);
     ~DrawableNodePrivate() override;
 
-    utils::BoundingBox doBoundingBox() override;
     void doAfterTransformChanged() override;
     void doAttachToScene(const std::shared_ptr<Scene>&) override;
     void doDetachFromScene(const std::shared_ptr<Scene>&) override;
@@ -37,15 +36,9 @@ public:
     std::unordered_set<std::shared_ptr<Drawable>> &drawables();
     std::unordered_map<std::shared_ptr<const Drawable>, std::shared_ptr<DrawDataHandler>>& handlers();
 
-    const utils::BoundingBox &localBoundingBox();
-
-    void dirtyLocalBoundingBox();
-
 private:
     std::unordered_set<std::shared_ptr<Drawable>> m_drawables;
     std::unordered_map<std::shared_ptr<const Drawable>, std::shared_ptr<DrawDataHandler>> m_handlers;
-    utils::BoundingBox m_localBoundingBox;
-    bool m_isLocalBoundingBoxDirty;
 };
 
 }

@@ -15,7 +15,7 @@ namespace utils
 {
 
 template<glm::length_t L, typename T>
-struct PlaneT : protected glm::vec<L+1, T>
+struct PlaneT
 {
     static_assert((L >= 1) && (L < 4), "The dimaension of Plane must be [1..3]");
     static_assert(std::numeric_limits<T>::is_iec559, "The base type of Plane must be floating point");
@@ -23,22 +23,26 @@ struct PlaneT : protected glm::vec<L+1, T>
 public:
     static constexpr glm::length_t length() { return L; }
     using value_type = T;
-
     using PointType = glm::vec<L, T>;
-    using BaseType = glm::vec<L+1, T>;
+    using BaseType = glm::vec<L + 1, T>;
 
-    PlaneT(const BaseType &v = BaseType(glm::vec4(1.f, 0.f, 0.f, 0.f))) : glm::vec<L+1, T>(v) { *this /= glm::length(normal()); }
-    PlaneT(const PointType &n, T d) : glm::vec<L+1, T>(glm::normalize(n), -d) {}
+    PlaneT(const BaseType &v = BaseType(glm::vec4(1.f, 0.f, 0.f, 0.f))) : m_coefs(v) { m_coefs /= glm::length(normal()); }
+    PlaneT(const PointType &n, T d) : m_coefs(glm::normalize(n), -d) {}
 
-    PointType normal() const { return PointType(*this); }
-    void setNormal(const PointType &n) { *this = PlaneT<L, T>(glm::normalize(n), dist()); }
+    operator BaseType() const { return m_coefs; };
 
-    T dist() const { return -this->operator [](L); }
-    void setDist(T d) { this->operator [](L) = -d; }
+    PointType normal() const { return PointType(m_coefs); }
+    void setNormal(const PointType &n) { m_coefs = BaseType(glm::normalize(n), dist()); }
 
-    PointType anyPoint(T distanceToPlane = 0.0) const { return normal() * (distanceToPlane + dist()); }
+    value_type dist() const { return -m_coefs[L]; }
+    void setDist(value_type d) { m_coefs[L] = -d; }
 
-    T distanceTo(const PointType &v) const { return glm::dot(*this, BaseType(v, static_cast<T>(1))); }
+    PointType anyPoint(value_type distanceToPlane = 0.0) const { return normal() * (distanceToPlane + dist()); }
+
+    value_type distanceTo(const PointType &v) const { return glm::dot(m_coefs, BaseType(v, static_cast<value_type>(1))); }
+
+private:
+    BaseType m_coefs;
 };
 
 template<glm::length_t L, typename T>

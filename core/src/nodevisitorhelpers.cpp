@@ -92,19 +92,6 @@ bool DirtyGlobalTransformNodeVisitor::visit(Node &node)
     return true;
 }
 
-// DirtyBoundingBoxNodeVisitor
-
-DirtyBoundingBoxNodeVisitor::DirtyBoundingBoxNodeVisitor()
-    : NodeVisitor()
-{
-}
-
-bool DirtyBoundingBoxNodeVisitor::visit(Node &node)
-{
-    node.m().isBoundingBoxDirty() = true;
-    return true;
-}
-
 //  AttachToSceneNodeVisitor
 
 AttachToSceneNodeVisitor::AttachToSceneNodeVisitor(const std::shared_ptr<Scene>& scene)
@@ -145,7 +132,7 @@ FrustumCullingNodeVisitor::FrustumCullingNodeVisitor(const utils::Frustum &frust
 bool FrustumCullingNodeVisitor::visit(Node &node)
 {
     m_transformedFrustum = node.globalTransform().inverted() * m_frustum;
-    return m_transformedFrustum.classifyBoundingBox(node.boundingBox()) != -1;
+    return m_transformedFrustum.classifyBoundingBox(utils::BoundingBox::empty()/*node.boundingBox()*/) != -1;
 }
 
 const utils::Frustum &FrustumCullingNodeVisitor::frustum() const
@@ -153,208 +140,208 @@ const utils::Frustum &FrustumCullingNodeVisitor::frustum() const
     return m_frustum;
 }
 
-// DebugGeometryCollector
+//// DebugGeometryCollector
+//
+//DebugGeometryCollector::DebugGeometryCollector(const utils::Frustum &frustum,
+//                                               bool nodeBoundingBox,
+//                                               bool drawableNodeLocalBoundingBox,
+//                                               bool drawableBoundingBox,
+//                                               bool lightNodeAreaBoundingBox)
+//    : FrustumCullingNodeVisitor(frustum)
+//    , m_nodeBoundingBoxesFlag(nodeBoundingBox)
+//    , m_drawableNodeLocalBoundingBoxesFlag(drawableNodeLocalBoundingBox)
+//    , m_drawableBoundingBoxesFlag(drawableBoundingBox)
+//    , m_lightNodeAreaBoundingBoxesFlag(lightNodeAreaBoundingBox)
+//{
+//}
+//
+//bool DebugGeometryCollector::visit(Node &node)
+//{
+//    auto result = FrustumCullingNodeVisitor::visit(node);
+//
+//    if (result)
+//    {
+//        if (m_nodeBoundingBoxesFlag)
+//        {
+//            const auto &nodeBoundingBox = node.boundingBox();
+//            m_nodeBoundingBoxes.push_back(node.globalTransform() *
+//                                          glm::translate(glm::mat4x4(1.f), nodeBoundingBox.center()) *
+//                                          glm::scale(glm::mat4x4(1.f), nodeBoundingBox.halfSize()));
+//        }
+//
+//        if (auto drawableNode = node.asDrawableNode(); drawableNode)
+//        {
+//            const auto &drawableNodeLocalBoundingBox = drawableNode->m().localBoundingBox();
+//            if (m_transformedFrustum.classifyBoundingBox(drawableNodeLocalBoundingBox) != -1)
+//            {
+//                if (m_drawableNodeLocalBoundingBoxesFlag)
+//                {
+//                    m_drawableNodeLocalBoundingBoxes.push_back(drawableNode->globalTransform() *
+//                                                                     glm::translate(glm::mat4x4(1.f), drawableNodeLocalBoundingBox.center()) *
+//                                                                     glm::scale(glm::mat4x4(1.f), drawableNodeLocalBoundingBox.halfSize()));
+//                }
+//
+//                if (m_drawableBoundingBoxesFlag)
+//                {
+//                    for (auto &drawable : drawableNode->drawables())
+//                    {
+//                        if (auto mesh = drawable->mesh())
+//                        {
+//                            const auto& drawableBoundingBox = mesh->boundingBox();
+//                            if (m_transformedFrustum.classifyBoundingBox(drawableBoundingBox) != -1)
+//                                m_drawableBoundingBoxes.push_back(drawableNode->globalTransform() *
+//                                    glm::translate(glm::mat4x4(1.f), drawableBoundingBox.center()) *
+//                                    glm::scale(glm::mat4x4(1.f), drawableBoundingBox.halfSize()));
+//                        }
+//                    }
+//                }
+//            }
+//        }
+//        else if (auto lightNode = node.asLightNode(); lightNode)
+//        {
+//            const auto &lightNodeAreaBoundingBox = lightNode->m().areaBoundingBox();
+//            if (m_transformedFrustum.classifyBoundingBox(lightNodeAreaBoundingBox) != -1)
+//            {
+//                if (m_lightNodeAreaBoundingBoxesFlag)
+//                {
+//                    m_lightNodeAreaBoundingBoxes.push_back(lightNode->globalTransform() *
+//                                                           glm::translate(glm::mat4x4(1.f), lightNodeAreaBoundingBox.center()) *
+//                                                           glm::scale(glm::mat4x4(1.f), lightNodeAreaBoundingBox.halfSize()));
+//                }
+//            }
+//        }
+//    }
+//
+//    return result;
+//}
+//
+//const DebugGeometryCollector::Collection &DebugGeometryCollector::nodeBoundingBoxes() const
+//{
+//    return const_cast<DebugGeometryCollector*>(this)->nodeBoundingBoxes();
+//}
+//
+//DebugGeometryCollector::Collection &DebugGeometryCollector::nodeBoundingBoxes()
+//{
+//    return m_nodeBoundingBoxes;
+//}
+//
+//const DebugGeometryCollector::Collection &DebugGeometryCollector::drawableNodeLocalBoundingBoxes() const
+//{
+//    return const_cast<DebugGeometryCollector*>(this)->drawableNodeLocalBoundingBoxes();
+//}
+//
+//DebugGeometryCollector::Collection &DebugGeometryCollector::drawableNodeLocalBoundingBoxes()
+//{
+//    return m_drawableNodeLocalBoundingBoxes;
+//}
+//
+//const DebugGeometryCollector::Collection &DebugGeometryCollector::drawableBoundingBoxes() const
+//{
+//    return const_cast<DebugGeometryCollector*>(this)->drawableBoundingBoxes();
+//}
+//
+//DebugGeometryCollector::Collection &DebugGeometryCollector::drawableBoundingBoxes()
+//{
+//    return m_drawableBoundingBoxes;
+//}
+//
+//const DebugGeometryCollector::Collection &DebugGeometryCollector::lightNodeAreaBoundingBoxes() const
+//{
+//    return const_cast<DebugGeometryCollector*>(this)->lightNodeAreaBoundingBoxes();
+//}
+//
+//DebugGeometryCollector::Collection &DebugGeometryCollector::lightNodeAreaBoundingBoxes()
+//{
+//    return m_lightNodeAreaBoundingBoxes;
+//}
+//
+//// DrawablesCollector
+//
+//DrawablesCollector::DrawablesCollector(const utils::Frustum &frustum)
+//    : FrustumCullingNodeVisitor(frustum)
+//{
+//}
+//
+//bool DrawablesCollector::visit(Node &node)
+//{
+//    auto result = FrustumCullingNodeVisitor::visit(node);
+//
+//    if (result)
+//    {
+//        if (auto drawableNode = node.asDrawableNode(); drawableNode)
+//        {
+//            m_drawableNodesCollection.push_back(drawableNode);
+//
+//            const glm::mat4x4 modelMatrix = drawableNode->globalTransform();
+//            for (auto& drawable : drawableNode->drawables())
+//            {
+//                if (auto mesh = drawable->mesh())
+//                {
+//                    if (m_transformedFrustum.classifyBoundingBox(mesh->boundingBox()) != -1)
+//                        m_drawables.push_back(std::make_tuple(drawable, modelMatrix));
+//                }
+//            }
+//        }
+//    }
+//
+//    return result;
+//}
+//
+//const DrawablesCollector::DrawableNodesCollection &DrawablesCollector::drawableNodesCollection() const
+//{
+//    return m_drawableNodesCollection;
+//}
+//
+//const DrawablesCollector::DrawablesCollection &DrawablesCollector::drawables() const
+//{
+//    return const_cast<DrawablesCollector*>(this)->drawables();
+//}
+//
+//DrawablesCollector::DrawablesCollection &DrawablesCollector::drawables()
+//{
+//    return m_drawables;
+//}
+//
+//// LightNodesCollector
+//
+//LightNodesCollector::LightNodesCollector(const utils::Frustum &frustum)
+//    : FrustumCullingNodeVisitor(frustum)
+//{
+//}
+//
+//bool LightNodesCollector::visit(Node &node)
+//{
+//    auto lightNode = node.asLightNode();
+//
+//    if (lightNode)
+//        if (lightNode->asDirectionalLightNode() || lightNode->asIBLLightNode())
+//        {
+//            m_lightNodes.push_back(lightNode);
+//            return true;
+//        }
+//
+//    auto result = FrustumCullingNodeVisitor::visit(node);
+//
+//    if (result && lightNode)
+//    {
+//        if (m_transformedFrustum.classifyBoundingBox(lightNode->m().areaBoundingBox()) != -1)
+//            m_lightNodes.push_back(lightNode);
+//    }
+//
+//    return result;
+//}
+//
+//const LightNodesCollector::Collection &LightNodesCollector::lightNodes() const
+//{
+//    return m_lightNodes;
+//}
+//
+//LightNodesCollector::Collection &LightNodesCollector::lightNodes()
+//{
+//    return m_lightNodes;
+//}
 
-DebugGeometryCollector::DebugGeometryCollector(const utils::Frustum &frustum,
-                                               bool nodeBoundingBox,
-                                               bool drawableNodeLocalBoundingBox,
-                                               bool drawableBoundingBox,
-                                               bool lightNodeAreaBoundingBox)
-    : FrustumCullingNodeVisitor(frustum)
-    , m_nodeBoundingBoxesFlag(nodeBoundingBox)
-    , m_drawableNodeLocalBoundingBoxesFlag(drawableNodeLocalBoundingBox)
-    , m_drawableBoundingBoxesFlag(drawableBoundingBox)
-    , m_lightNodeAreaBoundingBoxesFlag(lightNodeAreaBoundingBox)
-{
-}
-
-bool DebugGeometryCollector::visit(Node &node)
-{
-    auto result = FrustumCullingNodeVisitor::visit(node);
-
-    if (result)
-    {
-        if (m_nodeBoundingBoxesFlag)
-        {
-            const auto &nodeBoundingBox = node.boundingBox();
-            m_nodeBoundingBoxes.push_back(node.globalTransform() *
-                                          glm::translate(glm::mat4x4(1.f), nodeBoundingBox.center()) *
-                                          glm::scale(glm::mat4x4(1.f), nodeBoundingBox.halfSize()));
-        }
-
-        if (auto drawableNode = node.asDrawableNode(); drawableNode)
-        {
-            const auto &drawableNodeLocalBoundingBox = drawableNode->m().localBoundingBox();
-            if (m_transformedFrustum.classifyBoundingBox(drawableNodeLocalBoundingBox) != -1)
-            {
-                if (m_drawableNodeLocalBoundingBoxesFlag)
-                {
-                    m_drawableNodeLocalBoundingBoxes.push_back(drawableNode->globalTransform() *
-                                                                     glm::translate(glm::mat4x4(1.f), drawableNodeLocalBoundingBox.center()) *
-                                                                     glm::scale(glm::mat4x4(1.f), drawableNodeLocalBoundingBox.halfSize()));
-                }
-
-                if (m_drawableBoundingBoxesFlag)
-                {
-                    for (auto &drawable : drawableNode->drawables())
-                    {
-                        if (auto mesh = drawable->mesh())
-                        {
-                            const auto& drawableBoundingBox = mesh->boundingBox();
-                            if (m_transformedFrustum.classifyBoundingBox(drawableBoundingBox) != -1)
-                                m_drawableBoundingBoxes.push_back(drawableNode->globalTransform() *
-                                    glm::translate(glm::mat4x4(1.f), drawableBoundingBox.center()) *
-                                    glm::scale(glm::mat4x4(1.f), drawableBoundingBox.halfSize()));
-                        }
-                    }
-                }
-            }
-        }
-        else if (auto lightNode = node.asLightNode(); lightNode)
-        {
-            const auto &lightNodeAreaBoundingBox = lightNode->m().areaBoundingBox();
-            if (m_transformedFrustum.classifyBoundingBox(lightNodeAreaBoundingBox) != -1)
-            {
-                if (m_lightNodeAreaBoundingBoxesFlag)
-                {
-                    m_lightNodeAreaBoundingBoxes.push_back(lightNode->globalTransform() *
-                                                           glm::translate(glm::mat4x4(1.f), lightNodeAreaBoundingBox.center()) *
-                                                           glm::scale(glm::mat4x4(1.f), lightNodeAreaBoundingBox.halfSize()));
-                }
-            }
-        }
-    }
-
-    return result;
-}
-
-const DebugGeometryCollector::Collection &DebugGeometryCollector::nodeBoundingBoxes() const
-{
-    return const_cast<DebugGeometryCollector*>(this)->nodeBoundingBoxes();
-}
-
-DebugGeometryCollector::Collection &DebugGeometryCollector::nodeBoundingBoxes()
-{
-    return m_nodeBoundingBoxes;
-}
-
-const DebugGeometryCollector::Collection &DebugGeometryCollector::drawableNodeLocalBoundingBoxes() const
-{
-    return const_cast<DebugGeometryCollector*>(this)->drawableNodeLocalBoundingBoxes();
-}
-
-DebugGeometryCollector::Collection &DebugGeometryCollector::drawableNodeLocalBoundingBoxes()
-{
-    return m_drawableNodeLocalBoundingBoxes;
-}
-
-const DebugGeometryCollector::Collection &DebugGeometryCollector::drawableBoundingBoxes() const
-{
-    return const_cast<DebugGeometryCollector*>(this)->drawableBoundingBoxes();
-}
-
-DebugGeometryCollector::Collection &DebugGeometryCollector::drawableBoundingBoxes()
-{
-    return m_drawableBoundingBoxes;
-}
-
-const DebugGeometryCollector::Collection &DebugGeometryCollector::lightNodeAreaBoundingBoxes() const
-{
-    return const_cast<DebugGeometryCollector*>(this)->lightNodeAreaBoundingBoxes();
-}
-
-DebugGeometryCollector::Collection &DebugGeometryCollector::lightNodeAreaBoundingBoxes()
-{
-    return m_lightNodeAreaBoundingBoxes;
-}
-
-// DrawablesCollector
-
-DrawablesCollector::DrawablesCollector(const utils::Frustum &frustum)
-    : FrustumCullingNodeVisitor(frustum)
-{
-}
-
-bool DrawablesCollector::visit(Node &node)
-{
-    auto result = FrustumCullingNodeVisitor::visit(node);
-
-    if (result)
-    {
-        if (auto drawableNode = node.asDrawableNode(); drawableNode)
-        {
-            m_drawableNodesCollection.push_back(drawableNode);
-
-            const glm::mat4x4 modelMatrix = drawableNode->globalTransform();
-            for (auto& drawable : drawableNode->drawables())
-            {
-                if (auto mesh = drawable->mesh())
-                {
-                    if (m_transformedFrustum.classifyBoundingBox(mesh->boundingBox()) != -1)
-                        m_drawables.push_back(std::make_tuple(drawable, modelMatrix));
-                }
-            }
-        }
-    }
-
-    return result;
-}
-
-const DrawablesCollector::DrawableNodesCollection &DrawablesCollector::drawableNodesCollection() const
-{
-    return m_drawableNodesCollection;
-}
-
-const DrawablesCollector::DrawablesCollection &DrawablesCollector::drawables() const
-{
-    return const_cast<DrawablesCollector*>(this)->drawables();
-}
-
-DrawablesCollector::DrawablesCollection &DrawablesCollector::drawables()
-{
-    return m_drawables;
-}
-
-// LightNodesCollector
-
-LightNodesCollector::LightNodesCollector(const utils::Frustum &frustum)
-    : FrustumCullingNodeVisitor(frustum)
-{
-}
-
-bool LightNodesCollector::visit(Node &node)
-{
-    auto lightNode = node.asLightNode();
-
-    if (lightNode)
-        if (lightNode->asDirectionalLightNode() || lightNode->asIBLLightNode())
-        {
-            m_lightNodes.push_back(lightNode);
-            return true;
-        }
-
-    auto result = FrustumCullingNodeVisitor::visit(node);
-
-    if (result && lightNode)
-    {
-        if (m_transformedFrustum.classifyBoundingBox(lightNode->m().areaBoundingBox()) != -1)
-            m_lightNodes.push_back(lightNode);
-    }
-
-    return result;
-}
-
-const LightNodesCollector::Collection &LightNodesCollector::lightNodes() const
-{
-    return m_lightNodes;
-}
-
-LightNodesCollector::Collection &LightNodesCollector::lightNodes()
-{
-    return m_lightNodes;
-}
-
-// FrustumBuilder
+// ZRangeCalculator
 
 std::array<utils::Range(ZRangeCalculator::*)(const Node&, const utils::BoundingBox&), utils::numElementsClipSpaceType()> ZRangeCalculator::s_calculateZRangeForClipSpaceFuncs {
     &ZRangeCalculator::calculateZRangeForOrthoClipSpace,
@@ -367,6 +354,8 @@ ZRangeCalculator::ZRangeCalculator(const utils::Transform &viewTransform,
                                    const utils::Range &cullPlanesLimits,
                                    bool drawables, bool lights)
     : FrustumCullingNodeVisitor(utils::Frustum(viewTransform, clipSpace, cullPlanesLimits))
+    , m_clipSpace(clipSpace)
+    , m_cullPlanesLimits(cullPlanesLimits)
     , m_zRange()
     , m_accountDrawables(drawables)
     , m_accountLights(lights)
@@ -380,14 +369,14 @@ bool ZRangeCalculator::visit(Node &node)
     if (result)
     {
         utils::BoundingBox boundingBoxOfDrawable;
-        if (auto drawableNode = node.asDrawableNode(); m_accountDrawables && drawableNode)
-            boundingBoxOfDrawable = drawableNode->m().localBoundingBox();
-        else if (auto lightNode = node.asLightNode(); m_accountLights && lightNode)
-            boundingBoxOfDrawable = lightNode->m().areaBoundingBox();
+        //if (auto drawableNode = node.asDrawableNode(); m_accountDrawables && drawableNode)
+        //    boundingBoxOfDrawable = drawableNode->m().localBoundingBox();
+        //else if (auto lightNode = node.asLightNode(); m_accountLights && lightNode)
+        //    boundingBoxOfDrawable = lightNode->m().areaBoundingBox();
 
         if (!boundingBoxOfDrawable.isEmpty())
         {
-            auto func = s_calculateZRangeForClipSpaceFuncs[utils::castFromClipSpaceType(frustum().clipSpace().type())];
+            auto func = s_calculateZRangeForClipSpaceFuncs[utils::castFromClipSpaceType(m_clipSpace.type())];
             utils::Range zRange = (this->*func)(node, boundingBoxOfDrawable);
             (m_zRange += zRange).setNearValue(glm::max(m_zRange.nearValue(), 0.f));
         }
@@ -398,7 +387,7 @@ bool ZRangeCalculator::visit(Node &node)
 
 utils::Range ZRangeCalculator::resolveZRange() const
 {
-    const auto &cullPlaneLimits = frustum().zRange();
+    const auto &cullPlaneLimits = m_cullPlanesLimits;
     utils::Range result(cullPlaneLimits.nearValue(), cullPlaneLimits.nearValue() + 1.f);
     if (!m_zRange.isEmpty())
     {

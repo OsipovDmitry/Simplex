@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include <utils/boundingbox.h>
+#include <utils/transform.h>
 
 #include <core/forwarddecl.h>
 
@@ -25,10 +25,7 @@ public:
     utils::Transform &transform();
     utils::Transform &globalTransform();
 
-    utils::BoundingBox &boundingBox();
-
     virtual void doUpdate(uint64_t, uint32_t);
-    virtual utils::BoundingBox doBoundingBox();
     virtual void doBeforeTransformChanged();
     virtual void doAfterTransformChanged();
     virtual void doAttachToParent(const std::shared_ptr<Node>&);
@@ -37,10 +34,7 @@ public:
     virtual void doDetachFromScene(const std::shared_ptr<Scene>&);
 
     bool &isGlobalTransfomDirty();
-    bool &isBoundingBoxDirty();
-
     void dirtyGlobalTransform();
-    void dirtyBoundingBox();
 
 protected:
     Node &d_;
@@ -50,10 +44,7 @@ protected:
     utils::Transform m_transform;
     utils::Transform m_globalTransform;
 
-    utils::BoundingBox m_boundingBox;
-
     bool m_isGlobalTransfomDirty;
-    bool m_isBoundingBoxDirty;
 };
 
 }

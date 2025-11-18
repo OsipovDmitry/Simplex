@@ -8,6 +8,7 @@
 
 #include "graphicsengineprivate.h"
 #include "spotlightnodeprivate.h"
+#include "scenedata.h"
 #include "sceneprivate.h"
 
 namespace simplex
@@ -66,7 +67,7 @@ void SpotLightNodePrivate::addToSceneData(const std::shared_ptr<SceneData>&scene
         return;
     }
 
-    m_handler = sceneData->addSpotLight(d().globalTransform(), doAreaScale(), m_color, m_radiuses, m_halfAngles);
+    m_handler = sceneData->addSpotLight(d().globalTransform(), m_color, m_radiuses, m_halfAngles);
 }
 
 void SpotLightNodePrivate::removeFromSceneData()
@@ -78,10 +79,10 @@ void SpotLightNodePrivate::changeInSceneData()
 {
     if (m_handler)
         if (auto sceneData = m_handler->sceneData().lock())
-            sceneData->onSpotLightChanged(m_handler->ID(), d().globalTransform(), doAreaScale(), m_color, m_radiuses, m_halfAngles);
+            sceneData->onSpotLightChanged(m_handler->ID(), d().globalTransform(), m_color, m_radiuses, m_halfAngles);
 }
 
-std::shared_ptr<SpotLightHandler>& SpotLightNodePrivate::handler()
+std::shared_ptr<LightHandler>& SpotLightNodePrivate::handler()
 {
     return m_handler;
 }
@@ -119,34 +120,6 @@ LightNodePrivate::ShadowTransform SpotLightNodePrivate::doShadowTransform(const 
     result.clipSpase = clipSpace;
     result.cullPlanesLimits = shadow().cullPlanesLimits() * utils::Range(0.f, dPublic.radiuses()[1u]);
     return result;
-}
-
-glm::mat4x4 SpotLightNodePrivate::doAreaMatrix()
-{
-    auto &dPublic = d();
-    return glm::scale(glm::mat4x4(1.f), glm::vec3(extendedRadius(dPublic.radiuses()[1u])) * glm::vec3(glm::vec2(glm::tan(dPublic.halfAngles()[1u])), 1.f));
-}
-
-utils::BoundingBox SpotLightNodePrivate::doAreaBoundingBox()
-{
-    auto graphicsRenderer = graphics::RendererBase::current();
-    if (!graphicsRenderer)
-        LOG_CRITICAL << "Graphics renderer can't be nullptr";
-
-    auto graphicsWidget = graphicsRenderer->widget();
-    if (!graphicsWidget)
-        LOG_CRITICAL << "Graphics widget can't be nullptr";
-
-    auto graphicsEngine = graphicsWidget->graphicsEngine();
-    if (!graphicsEngine)
-        LOG_CRITICAL << "Graphics engine can't be nullptr";
-
-    return areaMatrix() * utils::BoundingBox(); //graphicsEngine->m().spotLightAreaBoundingBox();
-}
-
-glm::vec3 SpotLightNodePrivate::doAreaScale() const
-{
-    return glm::vec3(extendedRadius(m_radiuses[1u])) * glm::vec3(glm::vec2(glm::tan(m_halfAngles[1u])), 1.f);
 }
 
 }

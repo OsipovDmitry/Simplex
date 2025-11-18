@@ -14,6 +14,7 @@ CameraNodePrivate::CameraNodePrivate(CameraNode &cameraNode, const std::string &
     , m_isRenderingEnabled(true)
     , m_clipSpaceType(utils::ClipSpaceType::Perspective)
     , m_clipSpaceVerticalParam(glm::pi<float>() / 3.f)
+    , m_viewportAspectRatio(1.f)
     , m_clipSpace()
 {
 }
@@ -58,18 +59,27 @@ SSAO &CameraNodePrivate::ssao()
 void CameraNodePrivate::resize(const glm::uvec2& size)
 {
     const auto viewportSize = glm::max(glm::uvec2(1u), size);
-    const float viewportAspectRatio = static_cast<float>(viewportSize[0u]) / static_cast<float>(viewportSize[1u]);
+    const auto viewportAspectRatio = static_cast<float>(viewportSize[0u]) / static_cast<float>(viewportSize[1u]);
 
+    if (m_viewportAspectRatio != viewportAspectRatio)
+    {
+        m_viewportAspectRatio = viewportAspectRatio;
+        updateClipSpace();
+    }
+}
+
+void CameraNodePrivate::updateClipSpace()
+{
     switch (m_clipSpaceType)
     {
     case utils::ClipSpaceType::Ortho:
     {
-        m_clipSpace = utils::ClipSpace::makeOrtho(viewportAspectRatio, m_clipSpaceVerticalParam);
+        m_clipSpace = utils::ClipSpace::makeOrtho(m_viewportAspectRatio, m_clipSpaceVerticalParam);
         break;
     }
     case utils::ClipSpaceType::Perspective:
     {
-        m_clipSpace = utils::ClipSpace::makePerspective(viewportAspectRatio, m_clipSpaceVerticalParam);
+        m_clipSpace = utils::ClipSpace::makePerspective(m_viewportAspectRatio, m_clipSpaceVerticalParam);
         break;
     }
     default:

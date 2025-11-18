@@ -28,12 +28,12 @@
 #include "blur.h"
 #include "nodevisitorhelpers.h"
 #include "framebufferhelpers.h"
-#include "renderpasshelpers.h"
+#include "renderpipeline.h"
 #include "sceneprivate.h"
 #include "scenedata.h"
 #include "geometrybuffer.h"
 #include "shadowbuffer.h"
-#include "geometryrenderinfo.h"
+#include "camerarenderinfo.h"
 #include "shadowrenderinfo.h"
 
 namespace simplex
@@ -86,13 +86,13 @@ GraphicsEngine::GraphicsEngine(const std::string &name, const std::shared_ptr<gr
             LOG_ERROR << "Shader storage block name has not been set for ID = " << i;
 
     m_->programsManager() = std::make_shared<ProgramsManager>(renderer);
-
-    auto texturesManager = std::make_shared<TexturesManager>(renderer);
-    m_->texturesManager() = texturesManager;
+    m_->texturesManager() = std::make_shared<TexturesManager>(renderer);
 
     m_->frameBuffer() = renderer->createFrameBuffer();
     m_->vertexArray() = renderer->createVertexArray();
     m_->geometryBuffer() = std::make_shared<GeometryBuffer>(glm::uvec2(0u));
+
+    m_->renderPipeLine() = std::make_shared<RenderPipeLine>(m_->programsManager(), renderer, m_->frameBuffer(), m_->vertexArray());
 
     LOG_INFO << "Engine \"" << GraphicsEngine::name() << "\" has been created";
 }
@@ -130,33 +130,6 @@ std::shared_ptr<const core::Scene> GraphicsEngine::scene() const
 void GraphicsEngine::setScene(const std::shared_ptr<core::Scene>& value)
 {
     m_->scene() = value;
-
-    auto& passes = m_->passes();
-    auto& programsManager = m_->programsManager();
-    passes.clear();
-
-    auto buildDrawDataCommandsBufferPass = std::make_shared<BuildDrawDataCommandsBufferPass>(programsManager);
-    passes.push_back(buildDrawDataCommandsBufferPass);
-
-    auto renderDrawDataGeometryPass = std::make_shared<RenderDrawDataGeometryPass>(
-        programsManager,
-        buildDrawDataCommandsBufferPass->opaqueCommandsBuffer(),
-        buildDrawDataCommandsBufferPass->transparentCommandsBuffer());
-    passes.push_back(renderDrawDataGeometryPass);
-
-    auto renderBackgroundPass = std::make_shared<RenderBackgroundPass>(programsManager);
-    passes.push_back(renderBackgroundPass);
-
-    auto buildLightsCommandsBufferPass = std::make_shared<BuildLightsCommandsBufferPass>(programsManager);
-    passes.push_back(buildLightsCommandsBufferPass);
-
-    auto renderDrawDataStencilPass = std::make_shared<RenderDrawDataStencilPass>(
-        programsManager,
-        buildLightsCommandsBufferPass->lightsCommandsBuffer());
-    passes.push_back(renderDrawDataStencilPass);
-
-    auto blendPass = std::make_shared<BlendPass>(programsManager);
-    passes.push_back(blendPass);
 }
 
 std::shared_ptr<graphics::RendererBase> GraphicsEngine::graphicsRenderer()
@@ -256,57 +229,14 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
 
         cameraPrivate.resize(cameraGeometryBuffer->size());
 
-        const auto& cameraViewportSize = cameraGeometryBuffer->size();
-        const auto cameraViewTransform = camera->globalTransform().inverted();
-
-        ZRangeCalculator cameraZRangeCalculator(cameraViewTransform,
+        auto& renderPipeLine = m_->renderPipeLine();
+        renderPipeLine->setFrustum(
+            camera->globalTransform().inverted(),
             camera->clipSpace(),
-            camera->cullPlanesLimits(),
-            true, true);
-        rootNode->acceptDown(cameraZRangeCalculator);
-
-        const utils::Frustum cameraFrustum(cameraViewTransform, camera->clipSpace(), cameraZRangeCalculator.resolveZRange());
-        const auto& cameraProjectionMatrix = cameraFrustum.projectionMatrix();
-
-        DrawablesCollector cameraVisualDrawablesCollector(cameraFrustum);
-        rootNode->acceptDown(cameraVisualDrawablesCollector);
-
-        LightNodesCollector lightNodesCollector(cameraFrustum);
-        rootNode->acceptDown(lightNodesCollector);
-
-        if (debugRender)
-        {
-            //DebugGeometryCollector cameraDebugGeometryCollector(cameraFrustum,
-            //    nodeLocalBoundingBoxFlag,
-            //    visualDrawableNodeLocalBoundingBoxFlag,
-            //    visualDrawableBoundingBoxFlag,
-            //    lightNodeAreaBoundingBoxFlag);
-            //rootNode->acceptDown(cameraDebugGeometryCollector);
-
-            //auto& cameraVisualDrawables = cameraVisualDrawablesCollector.drawables();
-
-            //for (const auto& modelMatrix : cameraDebugGeometryCollector.nodeBoundingBoxes())
-            //    cameraVisualDrawables.push_back(std::make_tuple(m_->nodeBoundingBoxDrawable(), modelMatrix));
-
-            //for (const auto& modelMatrix : cameraDebugGeometryCollector.drawableNodeLocalBoundingBoxes())
-            //    cameraVisualDrawables.push_back(std::make_tuple(m_->drawableNodeLocalBoundingBoxDrawable(), modelMatrix));
-
-            //for (const auto& modelMatrix : cameraDebugGeometryCollector.drawableBoundingBoxes())
-            //    cameraVisualDrawables.push_back(std::make_tuple(m_->drawableBoundingBoxDrawable(), modelMatrix));
-
-            //for (const auto& modelMatrix : cameraDebugGeometryCollector.lightNodeAreaBoundingBoxes())
-            //    cameraVisualDrawables.push_back(std::make_tuple(m_->lightNodeAreaBoundingBoxDrawable(), modelMatrix));
-        }
-
-        auto cameraRenderInfo = std::make_shared<GeometryRenderInfo>();
-        cameraRenderInfo->setViewMatrix(cameraViewTransform);
-        cameraRenderInfo->setProjectionMatrix(cameraProjectionMatrix);
-        cameraRenderInfo->setGeometryBuffer(cameraGeometryBuffer);
-
-        auto& sceneData = scene->m().sceneData();
-
-        for (auto& pass : m_->passes())
-            pass->run(renderer, m_->frameBuffer(), m_->vertexArray(), cameraRenderInfo, sceneData);
+            camera->cullPlanesLimits());
+        renderPipeLine->run(
+            cameraGeometryBuffer,
+            scene->m().sceneData());
 
         //// reset fragments counter buffer
         //cameraGeometryBuffer->clearOITNodesBuffer();

@@ -1,19 +1,16 @@
 #ifndef GRAPHICSENGINEPRIVATE_H
 #define GRAPHICSENGINEPRIVATE_H
 
-#include <utils/boundingbox.h>
-
 #include <core/forwarddecl.h>
-
-#include "scenedata.h"
 
 namespace simplex
 {
 namespace core
 {
 
-class Pass;
+class RenderPipeLine;
 class GeometryBuffer;
+class Scene;
 
 class GraphicsEnginePrivate
 {
@@ -28,7 +25,7 @@ public:
 
     std::shared_ptr<Scene>& scene();
 
-    std::vector<std::shared_ptr<Pass>> &passes();
+    std::shared_ptr<RenderPipeLine> &renderPipeLine();
 
     std::shared_ptr<graphics::IFrameBuffer>& frameBuffer();
     std::shared_ptr<graphics::IVertexArray>& vertexArray();
@@ -49,7 +46,7 @@ private:
 
     std::shared_ptr<Scene> m_scene;
 
-    std::vector<std::shared_ptr<Pass>> m_passes;
+    std::shared_ptr<RenderPipeLine> m_renderPipeLine;
 
     std::shared_ptr<graphics::IFrameBuffer> m_frameBuffer;
     std::shared_ptr<graphics::IVertexArray> m_vertexArray;

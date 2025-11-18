@@ -6,11 +6,12 @@
 #include <utils/glm/vec3.hpp>
 #include <utils/glm/vec4.hpp>
 #include <utils/glm/mat4x4.hpp>
-#include <utils/glm/common.hpp>
 #include <utils/idgenerator.h>
 
 #include <core/forwarddecl.h>
 #include <core/stateset.h>
+
+#include "descriptions.h"
 
 namespace simplex
 {
@@ -20,140 +21,6 @@ namespace core
 using VertexDataDescription = float;
 using ElementsDescription = uint32_t;
 
-struct MeshDescription
-{
-    glm::vec4 boundingBoxMinPointAndNumVertexData;
-    glm::vec4 boundingBoxMaxPointAndNumElements;
-    uint32_t vertexDataOffset;
-    uint32_t elementsOffset; // draw arrays is used if 0xFFFFFFFFu
-    uint32_t flags;
-    //  0.. 1 - position components count [0..3]
-    //  2.. 3 - normal components count [0..3]
-    //  4.. 5 - texture coords component count [0..3]
-    //  6.. 8 - bones count [0..7]
-    //  9.. 9 - tangent space flag [0 - no tangents, 1 - tangents + binormals flags]
-    // 10..12 - color components count [0 - no colors, 1 - grayscale, 2 - grayscale,alpha, 3 - RGB, 4 - RGBA, 5..7 - not used]
-    // 13..31 - free (19 bits)
-    uint32_t padding[1u];
-
-    static uint32_t makeFlags(
-        uint32_t numPositionComponents,
-        uint32_t numNormalComponents,
-        uint32_t numTexCoordsComponents,
-        uint32_t numBones,
-        bool hasTangent,
-        uint32_t numColorComponents);
-    static uint32_t numVertexData(const MeshDescription&);
-    static uint32_t numElements(const MeshDescription&);
-};
-
-struct MaterialMapDescription
-{
-    graphics::TextureHandle handle;
-};
-
-struct MaterialDescription
-{
-    glm::vec4 baseColor;
-    glm::vec4 emission;
-    uint32_t baseColorTextureID;
-    uint32_t emissionTextureID;
-    uint32_t occlusionTextureID;
-    uint32_t roughnessTextureID;
-    uint32_t metalnessTextureID;
-    uint32_t normalTextureID;
-    uint32_t flags0; // 0.. 7 - roughness, 8..15 - metalness, 16..23 - occlusionMapStrength, 24..31 - normalMapScale
-    uint32_t flags1;
-    //  0.. 1 - occlusion map swizzle
-    //  2.. 3 - roughness map swizzle
-    //  4.. 5 - metalness map swizzle
-    //  6.. 6 - is lighted
-    //  7.. 7 - is shadowed
-    //  8.. 8 - is transparent
-    //  9.. 9 - is double sided
-    // 10..17 - alpha cutoff
-    // 18..31 - free (14 bits)
-
-    static uint32_t makeFlags0(
-        float roughness,
-        float metalness,
-        float occlusionMapStrength,
-        float normalMapScale);
-    static inline uint32_t makeFlags1(
-        const glm::u32vec3& ORMSwizzleMask,
-        bool isLighted,
-        bool isShadowed,
-        bool isTransparent,
-        bool isDoubleSided,
-        float alphaCutoff);
-    static bool isTransparent(const glm::vec4& baseColor, const std::shared_ptr<const MaterialMap>& baseColorMap);
-};
-
-struct DrawableDescription
-{
-    uint32_t meshID;
-    uint32_t materialID;
-};
-
-struct DrawDataBufferReservedData { uint32_t count; uint32_t padding[3u]; };
-struct DrawDataDescription
-{
-    glm::mat4x4 modelMatrix;
-    glm::mat3x4 normalMatrixAndDrawableID;
-    // [0][0]..[2][2] - normal matrix
-    // [0][3] - drawable ID
-
-    static glm::mat3x4 makeNormalMatrixAndDrawableID(const glm::mat4x4&, utils::IDsGenerator::value_type);
-};
-
-struct BackgroundDescription
-{
-    glm::vec4 environmentColorAndBlurPower;
-    uint32_t environmentMapID;
-
-    static glm::vec4 makeEnvironmentColorAndBlurPower(const glm::vec3&, float);
-};
-
-struct LightBufferReservedData { uint32_t count; uint32_t areaMeshID; uint32_t padding[2u]; };
-
-struct PointLightDescription
-{
-    glm::mat4x4 modelMatrix;
-    glm::vec4 areaScaleAndInnerRadius;
-    glm::vec4 colorAndOuterRadius;
-
-    static glm::vec4 makeAreaScaleAndInnerRadius(const glm::vec3&, float);
-    static glm::vec4 makeColorAndOuterRadius(const glm::vec3&, float);
-};
-
-struct SpotLightDescription
-{
-    glm::mat4x4 modelMatrix;
-    glm::vec4 areaScaleAndInnerRadius;
-    glm::vec4 colorAndOuterRadius;
-    glm::vec2 cosHalfAngles;
-
-    static glm::vec4 makeAreaScaleAndInnerRadius(const glm::vec3&, float);
-    static glm::vec4 makeColorAndOuterRadius(const glm::vec3&, float);
-};
-
-struct DirectionalLightDescription
-{
-    glm::vec4 direction;
-    glm::vec4 color;
-
-    static glm::vec4 makeDirection(const glm::mat4x4&);
-    static glm::vec4 makeColor(const glm::vec3&);
-};
-
-struct ImageBasedLightDescription
-{
-    uint32_t BRDFLutTextureID;
-    uint32_t diffuseTextureID;
-    uint32_t specularTextureID;
-    float contribution;
-};
-
 using VertexDataBuffer = std::shared_ptr<graphics::VectorBuffer<VertexDataDescription>>;
 using ElementsBuffer = std::shared_ptr<graphics::VectorBuffer<ElementsDescription>>;
 using MeshesBuffer = std::shared_ptr<graphics::VectorBuffer<MeshDescription>>;
@@ -162,10 +29,7 @@ using MaterialsBuffer = std::shared_ptr<graphics::VectorBuffer<MaterialDescripti
 using DrawablesBuffer = std::shared_ptr<graphics::VectorBuffer<DrawableDescription>>;
 using DrawDataBuffer = std::shared_ptr<graphics::VectorBuffer<DrawDataDescription, DrawDataBufferReservedData>>;
 using BackgroundBuffer = std::shared_ptr<graphics::StructBuffer<BackgroundDescription>>;
-using PointLightsBuffer = std::shared_ptr<graphics::VectorBuffer<PointLightDescription, LightBufferReservedData>>;
-using SpotLightsBuffer = std::shared_ptr<graphics::VectorBuffer<SpotLightDescription, LightBufferReservedData>>;
-using DirectionalLightsBuffer = std::shared_ptr<graphics::VectorBuffer<DirectionalLightDescription, LightBufferReservedData>>;
-using ImageBasedLightsBuffer = std::shared_ptr<graphics::VectorBuffer<ImageBasedLightDescription, LightBufferReservedData>>;
+using LightsBuffer = std::shared_ptr<graphics::VectorBuffer<LightDescription, LightBufferReservedData>>;
 
 class SceneData;
 
@@ -261,47 +125,11 @@ private:
     std::weak_ptr<const Background> m_background;
 };
 
-class PointLightHandler : public ResourceHandler
+class LightHandler : public ResourceHandler
 {
 public:
-    PointLightHandler(const std::weak_ptr<SceneData>&, size_t);
-    ~PointLightHandler() override;
-
-    size_t ID() const;
-
-private:
-    size_t m_ID;
-};
-
-class SpotLightHandler : public ResourceHandler
-{
-public:
-    SpotLightHandler(const std::weak_ptr<SceneData>&, size_t);
-    ~SpotLightHandler() override;
-
-    size_t ID() const;
-
-private:
-    size_t m_ID;
-};
-
-class DirectionalLightHandler : public ResourceHandler
-{
-public:
-    DirectionalLightHandler(const std::weak_ptr<SceneData>&, size_t);
-    ~DirectionalLightHandler() override;
-
-    size_t ID() const;
-
-private:
-    size_t m_ID;
-};
-
-class ImageBasedLightHandler : public ResourceHandler
-{
-public:
-    ImageBasedLightHandler(const std::weak_ptr<SceneData>&, size_t);
-    ~ImageBasedLightHandler() override;
+    LightHandler(const std::weak_ptr<SceneData>&, size_t);
+    ~LightHandler() override;
 
     size_t ID() const;
 
@@ -350,52 +178,54 @@ public:
     void removeDrawable(const std::shared_ptr<const Drawable>&);
     void onDrawableChanged(utils::IDsGenerator::value_type, const std::shared_ptr<const Mesh>&, const std::shared_ptr<const Material>&);
 
-    std::shared_ptr<DrawDataHandler> addDrawData(const std::shared_ptr<const Drawable>&, const glm::mat4x4&);
+    std::shared_ptr<DrawDataHandler> addDrawData(const std::shared_ptr<const Drawable>&, const utils::Transform&);
     void removeDrawData(utils::IDsGenerator::value_type);
-    void onDrawDataChanged(utils::IDsGenerator::value_type, const std::shared_ptr<const Drawable>&, const glm::mat4x4&);
+    void onDrawDataChanged(utils::IDsGenerator::value_type, const std::shared_ptr<const Drawable>&, const utils::Transform&);
 
     void setBackground(const std::shared_ptr<const Background>&);
     void removeBackground();
     void onBackgroundChanged(const std::shared_ptr<const MaterialMap>&, const glm::vec3&, float);
 
-    std::shared_ptr<PointLightHandler> addPointLight(const glm::mat4x4&, const glm::vec3&, const glm::vec3&, const glm::vec2&);
-    void removePointLight(utils::IDsGenerator::value_type);
+    std::shared_ptr<LightHandler> addPointLight(const utils::Transform&, const glm::vec3&, const glm::vec2&);
     void onPointLightChanged(
         utils::IDsGenerator::value_type,
-        const glm::mat4x4&,
-        const glm::vec3&,
+        const utils::Transform&,
         const glm::vec3&,
         const glm::vec2&);
 
-    std::shared_ptr<SpotLightHandler> addSpotLight(const glm::mat4x4&, const glm::vec3&, const glm::vec3&, const glm::vec2&, const glm::vec2&);
-    void removeSpotLight(utils::IDsGenerator::value_type);
+    std::shared_ptr<LightHandler> addSpotLight(
+        const utils::Transform&,
+        const glm::vec3&,
+        const glm::vec2&,
+        const glm::vec2&);
     void onSpotLightChanged(
         utils::IDsGenerator::value_type,
-        const glm::mat4x4&,
-        const glm::vec3&,
+        const utils::Transform&,
         const glm::vec3&,
         const glm::vec2&,
         const glm::vec2&);
 
-    std::shared_ptr<DirectionalLightHandler> addDirectionalLight(const glm::mat4x4&, const glm::vec3&);
-    void removeDirectionalLight(utils::IDsGenerator::value_type);
+    std::shared_ptr<LightHandler> addDirectionalLight(const utils::Transform&, const glm::vec3&);
     void onDirectionalLightChanged(
         utils::IDsGenerator::value_type,
-        const glm::mat4x4&,
+        const utils::Transform&,
         const glm::vec3&);
 
-    std::shared_ptr<ImageBasedLightHandler> addImageBasedLight(
+    std::shared_ptr<LightHandler> addImageBasedLight(
+        const utils::Transform&,
         const std::shared_ptr<const MaterialMap>&,
         const std::shared_ptr<const MaterialMap>&,
         const std::shared_ptr<const MaterialMap>&,
         float);
-    void removeImageBasedLight(utils::IDsGenerator::value_type);
     void onImageBasedLightChanged(
         utils::IDsGenerator::value_type,
+        const utils::Transform&,
         const std::shared_ptr<const MaterialMap>&,
         const std::shared_ptr<const MaterialMap>&,
         const std::shared_ptr<const MaterialMap>&,
         float);
+
+    void removeLight(utils::IDsGenerator::value_type);
 
     VertexDataBuffer& vertexDataBuffer();
     const VertexDataBuffer& vertexDataBuffer() const;
@@ -413,14 +243,8 @@ public:
     const DrawDataBuffer& drawDataBuffer() const;
     BackgroundBuffer& backgroundBuffer();
     const BackgroundBuffer& backgroundBuffer() const;
-    PointLightsBuffer& pointLightsBuffer();
-    const PointLightsBuffer& pointLightsBuffer() const;
-    SpotLightsBuffer& spotLightsBuffer();
-    const SpotLightsBuffer& spotLightsBuffer() const;
-    DirectionalLightsBuffer& directionalLightsBuffer();
-    const DirectionalLightsBuffer& directionalLightsBuffer() const;
-    ImageBasedLightsBuffer& imageBasedLightsBuffer();
-    const ImageBasedLightsBuffer& imageBasedLightsBuffer() const;
+    LightsBuffer& lightsBuffer();
+    const LightsBuffer& lightsBuffer() const;
 
     graphics::PDrawArraysIndirectCommandsConstBuffer screenQuadCommandsBuffer() const;
 
@@ -428,6 +252,11 @@ public:
 
 private:
     SceneData();
+
+    std::shared_ptr<LightHandler> addLight();
+    void onLightChanged(utils::IDsGenerator::value_type, const LightDescription&);
+
+    static bool isMaterialTransparent(const glm::vec4& baseColor, const std::shared_ptr<const MaterialMap>& baseColorMap);
 
     VertexDataBuffer m_vertexDataBuffer;
     ElementsBuffer m_elementsBuffer;
@@ -437,10 +266,7 @@ private:
     DrawablesBuffer m_drawablesBuffer;
     DrawDataBuffer m_drawDataBuffer;
     BackgroundBuffer m_backgroundBuffer;
-    PointLightsBuffer m_pointLightsBuffer;
-    SpotLightsBuffer m_spotLightsBuffer;
-    DirectionalLightsBuffer m_directionalLightsBuffer;
-    ImageBasedLightsBuffer m_imageBasedLightsBuffer;
+    LightsBuffer m_lightsBuffer;
 
     graphics::PDrawArraysIndirectCommandsBuffer m_screenQuadCommandsBuffer;
 
@@ -449,10 +275,7 @@ private:
     utils::IDsGenerator m_materialIDsGenerator;
     utils::IDsGenerator m_drawableIDsGenerator;
     utils::IDsGenerator m_drawDataIDsGenerator;
-    utils::IDsGenerator m_pointLightIDsGenerator;
-    utils::IDsGenerator m_spotLightIDsGenerator;
-    utils::IDsGenerator m_directionalLightIDsGenerator;
-    utils::IDsGenerator m_imageBasedLightIDsGenerator;
+    utils::IDsGenerator m_lightIDsGenerator;
 
     std::deque<graphics::PTextureHandle> m_textureHandles;
     std::weak_ptr<BackgroundHandler> m_backgroundHandler;

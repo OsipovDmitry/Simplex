@@ -77,6 +77,7 @@ void CameraNode::setOrthoClipSpace(float height)
     auto &mPrivate = m();
     mPrivate.clipSpaceType() = utils::ClipSpaceType::Ortho;
     mPrivate.clipSpaceVerticalParam() = height;
+    mPrivate.updateClipSpace();
 }
 
 void CameraNode::setPerspectiveClipSpace(float fovY)
@@ -84,6 +85,7 @@ void CameraNode::setPerspectiveClipSpace(float fovY)
     auto &mPrivate = m();
     mPrivate.clipSpaceType() = utils::ClipSpaceType::Perspective;
     mPrivate.clipSpaceVerticalParam() = fovY;
+    mPrivate.updateClipSpace();
 }
 
 const utils::Range &CameraNode::cullPlanesLimits() const

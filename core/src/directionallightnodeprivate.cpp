@@ -19,9 +19,6 @@ DirectionalLightNodePrivate::~DirectionalLightNodePrivate() = default;
 
 void DirectionalLightNodePrivate::doAfterTransformChanged()
 {
-    dirtyAreaMatrix();
-    dirtyAreaBoundingBox();
-
     changeInSceneData();
 }
 
@@ -64,7 +61,7 @@ void DirectionalLightNodePrivate::changeInSceneData()
             sceneData->onDirectionalLightChanged(m_handler->ID(), d().globalTransform(), m_color);
 }
 
-std::shared_ptr<DirectionalLightHandler>& DirectionalLightNodePrivate::handler()
+std::shared_ptr<LightHandler>& DirectionalLightNodePrivate::handler()
 {
     return m_handler;
 }
@@ -80,7 +77,7 @@ LightNodePrivate::ShadowTransform DirectionalLightNodePrivate::doShadowTransform
         cameraFrustumBB += corner;
 
     const auto sceneRootNode = d_.rootNode();
-    const auto sceneBB = sceneRootNode->globalTransform() * sceneRootNode->boundingBox();
+    const auto sceneBB = sceneRootNode->globalTransform() * utils::BoundingBox();// sceneRootNode->boundingBox();
 
     const auto shadowBB = cameraFrustumBB * sceneBB;
     const auto shadowBBCenter = shadowBB.center();
@@ -106,16 +103,6 @@ LightNodePrivate::ShadowTransform DirectionalLightNodePrivate::doShadowTransform
     result.clipSpase = clipSpace;
     result.cullPlanesLimits = shadow().cullPlanesLimits();
     return result;
-}
-
-glm::mat4x4 DirectionalLightNodePrivate::doAreaMatrix()
-{
-    return glm::mat4x4(1.f); // it is not used because bb policy is Root
-}
-
-utils::BoundingBox DirectionalLightNodePrivate::doAreaBoundingBox()
-{
-    return utils::BoundingBox::empty(); // it is not used because bb policy is Root
 }
 
 }

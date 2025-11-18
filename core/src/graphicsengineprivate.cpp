@@ -40,9 +40,9 @@ std::shared_ptr<Scene>& GraphicsEnginePrivate::scene()
     return m_scene;
 }
 
-std::vector<std::shared_ptr<Pass>>& GraphicsEnginePrivate::passes()
+std::shared_ptr<RenderPipeLine>& GraphicsEnginePrivate::renderPipeLine()
 {
-    return m_passes;
+    return m_renderPipeLine;
 }
 
 std::shared_ptr<graphics::IFrameBuffer>& GraphicsEnginePrivate::frameBuffer()
@@ -186,14 +186,12 @@ const std::string &GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
         { ShaderStorageBlockID::DrawablesBuffer, "ssbo_drawablesBuffer" },
         { ShaderStorageBlockID::DrawDataBuffer, "ssbo_drawDataBuffer" },
         { ShaderStorageBlockID::BackgroundBuffer, "ssbo_backgroundBuffer" },
-        { ShaderStorageBlockID::LightsInfoBuffer, "ssbo_lightsInfoBuffer" },
-        { ShaderStorageBlockID::PointLightsBuffer, "ssbo_pointLightsBuffer" },
-        { ShaderStorageBlockID::SpotLightsBuffer, "ssbo_spotLightsBuffer" },
-        { ShaderStorageBlockID::DirectionalLightsBuffer, "ssbo_directionalLightsBuffer" },
-        { ShaderStorageBlockID::ImageBasedLightsBuffer, "ssbo_imageBasedLightsBuffer" },
+        { ShaderStorageBlockID::LightsBuffer, "ssbo_lightsBuffer" },
         { ShaderStorageBlockID::CommandsBuffer, "ssbo_commandsBuffer" },
         { ShaderStorageBlockID::OpaqueCommandsBuffer, "ssbo_opaqueCommandsBuffer" },
         { ShaderStorageBlockID::TransparentCommandsBuffer, "ssbo_transparentCommandsBuffer" },
+        { ShaderStorageBlockID::ZRangeBuffer, "ssbo_ZRangeBuffer" },
+        { ShaderStorageBlockID::CameraBuffer, "ssbo_cameraBuffer" },
         { ShaderStorageBlockID::OITBuffer, "ssbo_OITBuffer" },
         { ShaderStorageBlockID::LayeredShadowMatrices, "ssbo_layeredShadowMatricesBuffer" },
         { ShaderStorageBlockID::SSAOKernel, "ssbo_SSAOKernelBuffer" },

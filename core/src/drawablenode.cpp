@@ -45,19 +45,16 @@ void DrawableNode::addDrawable(const std::shared_ptr<Drawable>& drawable)
 
     auto &mPrivate = m();
     mPrivate.drawables().insert(drawable);
-    mPrivate.dirtyLocalBoundingBox();
 
     if (auto s = scene())
         if (auto& sceneData = s->m().sceneData())
-            mPrivate.addDrawDataToSceneData(sceneData, drawable); // to add draw data after marking local BB as dirty
+            mPrivate.addDrawDataToSceneData(sceneData, drawable);
 }
 
 void DrawableNode::removeDrawable(const std::shared_ptr<Drawable>& drawable)
 {
     auto &mPrivate = m();
     mPrivate.drawables().erase(drawable);
-    mPrivate.dirtyLocalBoundingBox();
-
     mPrivate.removeDrawDataFromSceneData(drawable);
 
 }

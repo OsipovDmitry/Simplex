@@ -8,11 +8,12 @@ namespace simplex
 namespace core
 {
 
-class ImageBasedLightHandler;
+class LightHandler;
 class SceneData;
 
 class ImageBasedLightNodePrivate : public LightNodePrivate
 {
+    PUBLIC_IMPL(ImageBasedLightNode)
 public:
     ImageBasedLightNodePrivate(ImageBasedLightNode&, const std::string &name);
     ~ImageBasedLightNodePrivate() override;
@@ -30,17 +31,14 @@ public:
     void removeFromSceneData();
     void changeInSceneData();
 
-    std::shared_ptr<ImageBasedLightHandler>& handler();
+    std::shared_ptr<LightHandler>& handler();
 
 private:
-    glm::mat4x4 doAreaMatrix() override;
-    utils::BoundingBox doAreaBoundingBox() override;
-
     std::shared_ptr<MaterialMap> m_BRDFLutMap;
     std::shared_ptr<MaterialMap> m_diffuseMap;
     std::shared_ptr<MaterialMap> m_specularMap;
     float m_contribution;
-    std::shared_ptr<ImageBasedLightHandler> m_handler;
+    std::shared_ptr<LightHandler> m_handler;
 
 };
 

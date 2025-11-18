@@ -1,4 +1,5 @@
 #include <set>
+#include <optional>
 
 #include <utils/shader.h>
 #include <utils/logger.h>
@@ -52,8 +53,62 @@ std::shared_ptr<Shader> Shader::loadFromData(const std::string &data)
 
 std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filename, const ShaderDefines &defines)
 {
+    static const std::string versionString = "#version";
+    static const std::string includeString = "#include<";
+    static const std::string closedBracket = ">";
+
+    static const auto includeProccess = [](
+        const auto& self,
+        const std::string& srcData,
+        const std::filesystem::path& filename,
+        const std::filesystem::path& dir,
+        std::set<std::filesystem::path>& includedFiles) -> std::optional<std::string>
+    {
+        std::string result = srcData;
+
+        for (auto pos = result.find(includeString); pos != std::string::npos; pos = result.find(includeString, pos))
+        {
+            auto pos2 = result.find(closedBracket, pos);
+            if (pos2 == std::string::npos)
+            {
+                LOG_ERROR << "Shader file " << filename << ": Wrong order '<' and '>' in #include";
+                return std::nullopt;
+            }
+
+            auto pos1 = pos + includeString.length();
+            auto includedPath = std::filesystem::path(result.substr(pos1, pos2 - pos1));
+            std::filesystem::path includedFilename = includedPath.is_absolute() ?
+                includedPath :
+                dir / includedPath;
+            includedFilename = std::filesystem::canonical(includedFilename);
+
+            if (includedFiles.count(includedFilename))
+            {
+                result.replace(pos, pos2 - pos + 1, "");
+                continue;
+            }
+            includedFiles.insert(includedFilename);
+
+            auto includedFile = TextFile::loadFromFile(includedFilename);
+            if (!includedFile)
+            {
+                LOG_ERROR << "Shader file " << filename << ": Can't open included file " << includedFilename;
+                return std::nullopt;
+            }
+
+            auto includedData = self(self, includedFile->data(), includedPath, includedFilename.parent_path(), includedFiles);
+            if (!includedData.has_value())
+            {
+                return std::nullopt;
+            }
+
+            result.replace(pos, pos2 - pos + 1, includedData.value());
+        }
+
+        return result;
+    };
+
     auto absoluteFilename = std::filesystem::absolute(filename);
-    auto absoluteDir = absoluteFilename.parent_path();
 
     auto shaderFile = TextFile::loadFromFile(absoluteFilename);
     if (!shaderFile)
@@ -63,45 +118,23 @@ std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filena
     }
 
     auto result = std::make_shared<Shader>();
-    result->m_data = std::move(shaderFile->data());
-
-    static const std::string versionString = "#version";
-    static const std::string includeString = "#include<";
-    static const std::string closedBracket = ">";
 
     std::set<std::filesystem::path> includedFiles;
-    includedFiles.insert(absoluteFilename);
+    includedFiles.insert(std::filesystem::canonical(absoluteFilename));
 
-    for (auto pos = result->m_data.find(includeString); pos != std::string::npos; pos = result->m_data.find(includeString, pos))
+    if (auto includedData = includeProccess(
+        includeProccess,
+        shaderFile->data(),
+        absoluteFilename,
+        absoluteFilename.parent_path(),
+        includedFiles);
+        !includedData.has_value())
     {
-        auto pos2 = result->m_data.find(closedBracket, pos);
-        if (pos2 == std::string::npos)
-        {
-            LOG_ERROR << "Shader file " << absoluteFilename << ": Wrong order '<' and '>' in #include";
-            return nullptr;
-        }
-
-        auto pos1 = pos + includeString.length();
-        auto includedPath = std::filesystem::path(result->m_data.substr(pos1, pos2-pos1));
-        std::filesystem::path includedFilename = includedPath.is_absolute() ?
-                    includedPath : absoluteDir / includedPath;
-
-        if (includedFiles.count(includedFilename))
-        {
-            result->m_data.replace(pos, pos2-pos+1, "");
-            continue;
-        }
-
-        auto includedFile = TextFile::loadFromFile(includedFilename);
-        if (!includedFile)
-        {
-            LOG_ERROR << "Shader file " << absoluteFilename << ": Can't open included file " << includedFilename;
-            return nullptr;
-        }
-
-        result->m_data.replace(pos, pos2-pos+1, includedFile->data());
-        includedFiles.insert(includedFilename);
+        LOG_ERROR << "Shader file " << absoluteFilename << " parse error";
+        return nullptr;
     }
+    else
+        result->m_data = std::move(includedData.value());
 
     for (const auto &define : defines)
         result->m_data.insert(0, "#define " + define.first + " " + define.second + "\n");

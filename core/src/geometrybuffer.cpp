@@ -4,6 +4,7 @@
 #include <core/settings.h>
 
 #include "geometrybuffer.h"
+#include "uniform.h"
 
 namespace simplex
 {
@@ -11,6 +12,7 @@ namespace core
 {
 
 GeometryBuffer::GeometryBuffer(const glm::uvec2& size)
+    : StateSet()
 {
     resize(size);
 }
@@ -46,6 +48,15 @@ void GeometryBuffer::resize(const glm::uvec2& size)
     auto maxNumNodes = glm::min(OITSetings.maxNodes(), m_size.x * m_size.y * OITSetings.nodesPerPixel());
     m_OITBuffer->resize(maxNumNodes);
     m_OITBuffer->setReservedData({ maxNumNodes, 0u });
+
+    getOrCreateUniform(UniformID::ViewportSize) = makeUniform(m_size);
+    getOrCreateUniform(UniformID::GBufferColorMap0) = makeUniform(colorTexture0());
+    getOrCreateUniform(UniformID::GBufferDepthMap) = makeUniform(depthTexture());
+    getOrCreateUniform(UniformID::OITDepthMap) = makeUniform(OITDepthTexture());
+    getOrCreateUniform(UniformID::OITIndicesMap) = makeUniform(OITIndicesTexture());
+    getOrCreateUniform(UniformID::GBufferFinalMap) = makeUniform(finalTexture());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::OITBuffer) = graphics::BufferRange::create(m_OITBuffer->buffer());
 }
 
 void GeometryBuffer::clearOITBuffer()

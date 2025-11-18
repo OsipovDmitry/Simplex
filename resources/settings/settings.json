@@ -8,7 +8,7 @@
         }
     },
     "Graphics": {
-        "CullPlaneLimits": [0.1, 1000000.0],
+        "CullPlaneLimits": [0.1, 10000.0],
         "Camera": {
             "ClipSpace": {
                 "OrthoHeight": 1.0,

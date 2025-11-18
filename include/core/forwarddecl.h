@@ -158,7 +158,7 @@ class ApplicationBase;
 using ApplicationTimeCallback = std::function<uint64_t()>;
 using ApplicationPollEventsCallback = std::function<void()>;
 
-class GeometryRenderInfo;
+class CameraRenderInfo;
 
 class IEngine;
 class GraphicsEngine;

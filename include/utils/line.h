@@ -54,7 +54,7 @@ inline LineT<L, T> operator *(const TransformT<L, T> &t, const LineT<L, T> &l)
     const auto point0 = t * l.point(static_cast<T>(0));
     const auto point1 = t * l.point(static_cast<T>(1));
 
-    return PlaneT<L, T>(t * l.origin(), point1 - point0);
+    return LineT<L, T>(t * l.origin(), point1 - point0);
 }
 
 } // namespace

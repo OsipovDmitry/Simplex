@@ -15,15 +15,9 @@ namespace core
 
 DrawableNodePrivate::DrawableNodePrivate(DrawableNode &drawableNode, const std::string &name)
     : NodePrivate(drawableNode, name)
-    , m_isLocalBoundingBoxDirty(true)
 {}
 
 DrawableNodePrivate::~DrawableNodePrivate() = default;
-
-utils::BoundingBox DrawableNodePrivate::doBoundingBox()
-{
-    return localBoundingBox();
-}
 
 void DrawableNodePrivate::doAfterTransformChanged()
 {
@@ -101,27 +95,6 @@ std::unordered_set<std::shared_ptr<Drawable>> &DrawableNodePrivate::drawables()
 std::unordered_map<std::shared_ptr<const Drawable>, std::shared_ptr<DrawDataHandler>>& DrawableNodePrivate::handlers()
 {
     return m_handlers;
-}
-
-const utils::BoundingBox &DrawableNodePrivate::localBoundingBox()
-{
-    if (m_isLocalBoundingBoxDirty)
-    {
-        utils::BoundingBox bb;
-        for (const auto &drawable : drawables())
-            if (auto mesh = drawable->mesh())
-            bb += mesh->boundingBox();
-
-        m_localBoundingBox = bb;
-        m_isLocalBoundingBoxDirty = false;
-    }
-    return m_localBoundingBox;
-}
-
-void DrawableNodePrivate::dirtyLocalBoundingBox()
-{
-    m_isLocalBoundingBoxDirty = true;
-    dirtyBoundingBox();
 }
 
 }

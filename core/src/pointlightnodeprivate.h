@@ -8,7 +8,7 @@ namespace simplex
 namespace core
 {
 
-class PointLightHandler;
+class LightHandler;
 class SceneData;
 
 class PointLightNodePrivate : public LightNodePrivate
@@ -30,19 +30,14 @@ public:
     void removeFromSceneData();
     void changeInSceneData();
 
-    std::shared_ptr<PointLightHandler>& handler();
+    std::shared_ptr<LightHandler>& handler();
 
 private:
     ShadowTransform doShadowTransform(const utils::Frustum::Points&) override;
 
-    glm::mat4x4 doAreaMatrix() override;
-    utils::BoundingBox doAreaBoundingBox() override;
-
-    glm::vec3 doAreaScale() const;
-
     glm::vec3 m_color;
     glm::vec2 m_radiuses;
-    std::shared_ptr<PointLightHandler> m_handler;
+    std::shared_ptr<LightHandler> m_handler;
 
 };
 
