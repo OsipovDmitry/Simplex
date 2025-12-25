@@ -1,0 +1,39 @@
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+
+#include<math/bounding_box.glsl>
+#include<camera.glsl>
+#include<cluster_node.glsl>
+#include<scene_info.glsl>
+
+void main(void)
+{
+	uvec3 clusterSize = sceneInfoClusterSize();
+    if (all(lessThan(gl_GlobalInvocationID, clusterSize)))
+    {
+		BoundingBox bb = makeEmptyBoundingBox();
+		for (uint i = 0u; i < BOUNDING_BOX_POINTS_COUNT; ++i)
+		{
+			vec2 NDC_XY = vec2(
+				float(gl_GlobalInvocationID.x + bitfieldExtract(i, 0, 1)),
+				float(gl_GlobalInvocationID.y + bitfieldExtract(i, 1, 1)));
+			NDC_XY /= vec2(clusterSize.xy);
+			NDC_XY *= 2.0f;
+			NDC_XY -= vec2(1.0f);
+
+			vec4 nearPoint = cameraViewProjectionMatrixInverted() * vec4(NDC_XY, -1.0f, 1.0f);
+			nearPoint /= nearPoint.w;
+			
+			vec4 farPoint = cameraViewProjectionMatrixInverted() * vec4(NDC_XY, 1.0f, 1.0f);
+			farPoint /= farPoint.w;
+
+			float linearZ = float(gl_GlobalInvocationID.z + bitfieldExtract(i, 2, 1)) / float(clusterSize.z);
+			bb = boundingBoxAdd(bb, mix(nearPoint.xyz, farPoint.xyz, linearZ));
+		}
+		
+		uint clusterNodeID =
+			gl_GlobalInvocationID.x * 1u +
+			gl_GlobalInvocationID.y * clusterSize.x +
+			gl_GlobalInvocationID.z * clusterSize.x * clusterSize.y;
+		clusterNodeInitialize(clusterNodeID, bb);
+    }
+}

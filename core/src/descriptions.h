@@ -34,18 +34,47 @@ struct CameraDescription
     glm::vec4 viewYDirection;
     glm::vec4 viewZDirection;
     std::array<glm::vec4, utils::Frustum::numPoints()> frustumPoints;
-    std::array<std::array<glm::vec4, 2u>, utils::Frustum::numEdges()> frustumEdges;
     std::array<glm::vec4, utils::Frustum::numPlanes()> frustumPlanes;
 
     static CameraDescription make(const utils::Frustum&);
 };
 
-struct ClusterDescription
+struct ClusterNodeDescription
 {
-    glm::vec4 boundingBoxMinPointAndFirstLightNodeID;
+    glm::vec4 boundingBoxMinPoint;
     glm::vec4 boundingBoxMaxPoint;
+    uint32_t firstLightNodeID;
+    uint32_t padding[3u];
+};
 
-    static ClusterDescription make(const utils::BoundingBox&);
+struct LightNodeDescription
+{
+    uint32_t lightID;
+    uint32_t nextID;
+    uint32_t padding[2u];
+};
+
+struct SceneInfoDescription
+{
+    glm::uvec4 clusterSize;
+    glm::uvec2 ZRange;
+    uint32_t drawDataCount;
+    uint32_t lightsCount;
+    uint32_t opaqueCommandsCount;
+    uint32_t transparentCommandsCount;
+    uint32_t OITNodesMaxCount;
+    uint32_t OITNodesCount;
+    uint32_t clusterLightNodesMaxCount;
+    uint32_t clusterLightNodesCount;
+    uint32_t firstGlobalLightNodeID;
+    uint32_t padding[1u];
+
+    static SceneInfoDescription make(
+        const glm::uvec3& clusterSize,
+        uint32_t drawDataCount,
+        uint32_t lightsCount,
+        uint32_t OITNodesMaxCount,
+        uint32_t clusterLightNodesMaxCount);
 };
 
 struct MeshDescription

@@ -61,6 +61,7 @@ public:
     MeshPainter &drawPlane();
     MeshPainter &drawTetrahedron();
     MeshPainter &drawCube(const glm::vec3& = glm::vec3(1.f));
+    MeshPainter& drawFrustum(const glm::mat4x4&);
     MeshPainter &drawSuzanne();
     MeshPainter &drawBunny();
     MeshPainter &drawTeapot();

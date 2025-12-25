@@ -1,12 +1,5 @@
 #include<packing.glsl>
 
-struct OITBufferReservedData
-{
-	uint maxNodesCount;
-	uint nodesCount;
-	uint padding[2u];
-};
-
 struct OITBufferNode 
 {
     uvec4 packedPBRData;

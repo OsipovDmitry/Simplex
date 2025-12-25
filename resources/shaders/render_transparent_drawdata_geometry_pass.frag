@@ -8,12 +8,10 @@ layout (early_fragment_tests) in;
 #include<material.glsl>
 #include<material_map.glsl>
 #include<oit_node.glsl>
+#include<scene_info.glsl>
 
 layout (r32ui) uniform uimage2DRect u_OITIndicesMap;
-layout (std430) buffer ssbo_OITBuffer {
-	OITBufferReservedData OITReservedData;
-	OITBufferNode OITNodes[];
-};
+layout (std430) buffer ssbo_OITBuffer { OITBufferNode OITNodes[]; };
 
 flat in uint v_meshID;
 flat in uint v_materialID;
@@ -88,8 +86,8 @@ void main(void)
 		normal = normalize(normal);
 	}
 	
-    uint OITIndex = atomicAdd(OITReservedData.nodesCount, 1u);
-	if (OITIndex < OITReservedData.maxNodesCount)
+    uint OITIndex = sceneInfoGenerateOITNodeID();
+	if (OITIndex < sceneInfoOITNodesMaxCount())
     {
 		uint prevOITIndex = imageAtomicExchange(u_OITIndicesMap, ivec2(gl_FragCoord.xy), OITIndex);
         OITNodes[OITIndex] = packOITBufferNode(

@@ -22,10 +22,18 @@
 
 #include <graphics_glfw/glfwwidget.h>
 
+//tmp
+#include <utils/clipspace.h>
+#include <utils/frustum.h>
+#include <optional>
+
+std::optional<simplex::utils::Frustum> frustum;
+std::weak_ptr<simplex::core::DrawableNode> pointDrawableNodeWeak;
+
 
 static std::shared_ptr<simplex::core::Scene> createScene(
     const std::string& name,
-    const std::shared_ptr<simplex::core::graphics::RendererBase> &renderer)
+    const std::shared_ptr<simplex::core::graphics::RendererBase>& renderer)
 {
     renderer->makeCurrent();
 
@@ -56,16 +64,16 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     auto planeDrawableNode = std::make_shared<simplex::core::DrawableNode>("");
     planeDrawableNode->addDrawable(
         std::make_shared<simplex::core::Drawable>(planeMesh, planeMaterial));
-    scene->sceneRootNode()->attach(planeDrawableNode);
     planeDrawableNode->setTransform(simplex::utils::Transform::makeRotation(glm::quat(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f))));
+    scene->sceneRootNode()->attach(planeDrawableNode);
 
     static const size_t NumGeometries = 4u;
     static const std::array<glm::vec3, NumGeometries> nodePositions{
         glm::vec3(-1.f, 0.f, -1.f),
-        glm::vec3(-1.f, 0.f, +1.f), 
-        glm::vec3(+1.f, 1.f, +1.f), 
-        glm::vec3(+1.f, 0.f, -1.f)};
-    static const std::array<simplex::utils::MeshPainter&(simplex::utils::MeshPainter::*)(), NumGeometries> painterFunctions{
+        glm::vec3(-1.f, 0.f, +1.f),
+        glm::vec3(+1.f, 1.f, +1.f),
+        glm::vec3(+1.f, 0.f, -1.f) };
+    static const std::array<simplex::utils::MeshPainter& (simplex::utils::MeshPainter::*)(), NumGeometries> painterFunctions{
         &simplex::utils::MeshPainter::drawBunny,
         &simplex::utils::MeshPainter::drawTeapot,
         &simplex::utils::MeshPainter::drawSuzanne,
@@ -73,7 +81,7 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     };
     static const std::array<glm::vec4, NumGeometries> materialBaseColors{
         glm::convertSRGBToLinear(glm::vec4(.5f, .5f, 1.f, 1.f)),
-        glm::convertSRGBToLinear(glm::vec4(1.f, 0.f, 0.f, .5f)),
+        glm::convertSRGBToLinear(glm::vec4(1.f, 0.f, 0.f, 1.f)),
         glm::convertSRGBToLinear(glm::vec4(0.f, 1.f, 0.f, 1.f)),
         glm::convertSRGBToLinear(glm::vec4(0.f, 0.f, 1.f, 1.f)) };
 
@@ -81,7 +89,7 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     {
         simplex::utils::MeshPainter painter(simplex::utils::Mesh::createEmptyMesh({
         {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
-        {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}}}));
+        {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}} }));
 
         (painter.*(painterFunctions[i]))();
         auto boundingBox = painter.calculateBoundingBox();
@@ -123,13 +131,62 @@ static std::shared_ptr<simplex::core::Scene> createScene(
         glm::vec3(3.f, 2.f, -3.f),
         glm::vec3(0.f),
         glm::vec3(0.f, 1.f, 0.f)).inverted()*/
-        simplex::utils::Transform::makeTranslation(glm::vec3(10.f, -5.f, 3.f)) * 
+        simplex::utils::Transform::makeTranslation(glm::vec3(10.f, -5.f, 3.f)) *
         simplex::utils::Transform::makeRotation(glm::quat(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f))));
     directionalLightNode->shadow().setMode(simplex::core::ShadingMode::Opaque);
     directionalLightNode->shadow().setFilter(simplex::core::ShadingFilter::Point);
     scene->sceneRootNode()->attach(directionalLightNode);
 
     return scene;
+}
+
+//add frustum and closestPoint to scene
+static void addFrustumToScene(
+    const std::shared_ptr<simplex::core::Scene>& scene,
+    const simplex::utils::Frustum& f)
+{
+    simplex::utils::MeshPainter frustumPainter(simplex::utils::Mesh::createEmptyMesh({
+        {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
+        {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}} }));
+
+    frustumPainter.drawFrustum(f.projectionMatrix());
+    auto frustumBoundingBox = frustumPainter.calculateBoundingBox();
+
+    auto frustumMesh = std::make_shared<simplex::core::Mesh>(frustumPainter.mesh(), frustumBoundingBox);
+
+    auto frustumMaterial = std::make_shared<simplex::core::Material>();
+    frustumMaterial->setBaseColor(glm::vec4(.3f, .3f, 1.f, .3f));
+    frustumMaterial->setMetalness(0.f);
+    frustumMaterial->setRoughness(.2f);
+
+    auto frustumDrawable = std::make_shared<simplex::core::Drawable>(frustumMesh, frustumMaterial);
+
+    auto frustumDrawableNode = std::make_shared<simplex::core::DrawableNode>("");
+    frustumDrawableNode->addDrawable(frustumDrawable);
+    frustumDrawableNode->setTransform(f.viewTransform().inverted());
+    scene->sceneRootNode()->attach(frustumDrawableNode);
+
+    simplex::utils::MeshPainter pointPainter(simplex::utils::Mesh::createEmptyMesh({
+        {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
+        {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}} }));
+
+    pointPainter.setVertexTransform(simplex::utils::Transform::makeScale(.07f));
+    pointPainter.drawSphere();
+    auto pointBoundingBox = pointPainter.calculateBoundingBox();
+
+    auto pointMesh = std::make_shared<simplex::core::Mesh>(pointPainter.mesh(), pointBoundingBox);
+
+    auto pointMaterial = std::make_shared<simplex::core::Material>();
+    pointMaterial->setBaseColor(glm::vec4(1.f, 0.f, 0.f, 1.f));
+    pointMaterial->setMetalness(0.f);
+    pointMaterial->setRoughness(.2f);
+
+    auto pointDrawable = std::make_shared<simplex::core::Drawable>(pointMesh, pointMaterial);
+
+    auto pointDrawableNode = std::make_shared<simplex::core::DrawableNode>("");
+    pointDrawableNode->addDrawable(pointDrawable);
+    scene->sceneRootNode()->attach(pointDrawableNode);
+    pointDrawableNodeWeak = pointDrawableNode;
 }
 
 static bool isWPressed = false;
@@ -140,10 +197,10 @@ static bool isLeftPressed = false;
 static bool isRightPressed = false;
 static bool isUpPressed = false;
 static bool isDownPressed = false;
-static glm::vec2 cameraAngles(-0.37f, 5.5f);
+static glm::vec2 cameraAngles(0.f, 0.f/*-0.37f, 5.5f*/);
 static glm::vec3 cameraPosition(-2.94f, 1.83f, 2.44f);
 
-void keyCallback(
+static void keyCallback(
     simplex::core::graphics::KeyState keyState,
     simplex::core::graphics::KeyCode keyCode,
     const simplex::core::graphics::KeyModifiers&)
@@ -190,12 +247,38 @@ void keyCallback(
         isDownPressed = keyState != simplex::core::graphics::KeyState::Released;
         break;
     }
+    case simplex::core::graphics::KeyCode::Space:
+    {
+        if (keyState == simplex::core::graphics::KeyState::Pressed)
+        {
+            if (auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene"))
+                if (auto graphicsEngine = window->graphicsEngine())
+                {
+                    //graphicsEngine->setF();
+
+                    auto scene = graphicsEngine->scene();
+                    simplex::core::NodeCollector<simplex::core::CameraNode> cameraCollector;
+                    scene->sceneRootNode()->acceptDown(cameraCollector);
+                    if (auto& cameraNode = cameraCollector.nodes().front())
+                    {
+                        frustum = simplex::utils::Frustum(
+                            cameraNode->globalTransform().inverted(),
+                            cameraNode->clipSpace(),
+                            simplex::utils::Range(.1f, 5.f));
+
+                        addFrustumToScene(scene, frustum.value());
+                    }
+                }
+        }
+
+        break;
+    }
     default:
         break;
     }
 }
 
-void updateCallback(uint64_t time, uint32_t dt)
+static void updateCallback(uint64_t time, uint32_t dt)
 {
     glm::vec2 deltaAngles(0.f, 0.f);
 
@@ -249,10 +332,32 @@ void updateCallback(uint64_t time, uint32_t dt)
             scene->sceneRootNode()->acceptDown(cameraCollector);
             cameraCollector.nodes().front()->setTransform(cameraTransform);
         }
+
+    //tmp
+    if (auto pointDrawableNode = pointDrawableNodeWeak.lock(); pointDrawableNode && frustum.has_value())
+        pointDrawableNode->setTransform(simplex::utils::Transform::makeTranslation(frustum.value().closestPoint(cameraPosition)));
 }
 
 int main(int argc, char* argv[])
 {
+    auto viewTransform = simplex::utils::Transform();
+    auto clipSpace = simplex::utils::ClipSpace::makePerspective(1.f, glm::half_pi<float>());
+    auto zRange = simplex::utils::Range(1.f, 10.f);
+    simplex::utils::Frustum frustum(viewTransform, clipSpace, zRange);
+
+    glm::vec3 p(0.f, 8.f, -5.f);
+
+    const auto& topPlane = frustum.plane(simplex::utils::Frustum::PlaneIndex::Top);
+
+    auto p1 = p - topPlane.normal() * glm::dot(topPlane.normal(), p - topPlane.anyPoint());
+
+    auto tmp = frustum.projectionMatrix() * glm::vec4(p, 1.f);
+    tmp /= tmp.w;
+    tmp = glm::vec4(simplex::utils::BoundingBox({ glm::vec3(-1.f), glm::vec3(1.f) }).closestPoint(glm::vec3(tmp)), 1.f);
+    auto p2 = glm::inverse(frustum.projectionMatrix()) * tmp;
+    p2 /= p2.w;
+
+
     if (!simplex::core::ApplicationBase::initialize(
         []() { return simplex::graphics_glfw::GLFWWidget::time(); },
         []() { simplex::graphics_glfw::GLFWWidget::pollEvents(); }

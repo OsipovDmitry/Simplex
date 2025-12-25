@@ -11,7 +11,6 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEAS
 add_subdirectory("3rdparties")
 add_subdirectory("utils")
 add_subdirectory("core")
-add_subdirectory("audio_openal")
 add_subdirectory("graphics_glfw")
 #add_subdirectory("app")
 #add_subdirectory("iblgenerator")

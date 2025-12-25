@@ -38,7 +38,7 @@ Shadow::Shadow(LightType lightType)
 
     auto layeredMatricesBuffer = ShadowPrivate::LayeredMatricesBuffer::element_type::create();
     layeredMatricesBuffer->resize(numLayeredMatrices);
-    layeredMatricesBuffer->setReservedData({ numLayeredMatrices, 0u, 0u, 0u });
+    //layeredMatricesBuffer->setReservedData({ numLayeredMatrices, 0u, 0u, 0u });
     m_->layeredMatricesBuffer() = layeredMatricesBuffer;
 
     const auto &graphicsSettings = settings::Settings::instance().graphics();

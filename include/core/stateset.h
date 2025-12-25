@@ -100,9 +100,11 @@ ENUMCLASS(ShaderStorageBlockID, uint16_t,
     CommandsBuffer,
     OpaqueCommandsBuffer,
     TransparentCommandsBuffer,
-    ZRangeBuffer,
 
     CameraBuffer,
+    ClusterNodesBuffer,
+    LightNodesBuffer,
+    SceneInfoBuffer,
 
     LayeredShadowMatrices,
     OITBuffer,

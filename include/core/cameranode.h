@@ -36,6 +36,9 @@ public:
     const utils::Range &cullPlanesLimits() const;
     void setCullPlanesLimits(const utils::Range&);
 
+    const glm::uvec3& clusterMaxSize() const;
+    void setClusterMaxSize(const glm::uvec3&);
+
     SSAO &ssao();
     const SSAO &ssao() const;
 };

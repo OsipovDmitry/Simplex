@@ -588,7 +588,7 @@ GLuint BufferBase_4_5::id() const
 BufferBase_4_5::BufferBase_4_5(uint64_t size, const void* data)
 {
     SAVE_CURRENT_CONTEXT;
-        glCreateBuffers(1, &m_id);
+    glCreateBuffers(1, &m_id);
     glNamedBufferStorage(m_id, size, data, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
 }
 
@@ -629,7 +629,8 @@ std::unique_ptr<BufferBase_4_5::MappedData_4_5> BufferBase_4_5::mapImpl(core::gr
 
     return std::make_unique<MappedData_4_5>(
                 weak_from_this(),
-                static_cast<uint8_t*>(glMapNamedBufferRange(m_id,
+                static_cast<uint8_t*>(glMapNamedBufferRange(
+                    m_id,
                     static_cast<GLintptr>(offset),
                     static_cast<GLsizei>(size),
                     Conversions::BufferMapAccess2GL(access))));
@@ -735,6 +736,7 @@ void DynamicBuffer_4_5::shrinkToFit()
     CHECK_CURRENT_CONTEXT;
     resizeImpl(m_size);
 }
+
 void DynamicBuffer_4_5::clear()
 {
     CHECK_CURRENT_CONTEXT;
@@ -786,8 +788,6 @@ void DynamicBuffer_4_5::insert(size_t offset, const void* data, size_t insertedS
 void DynamicBuffer_4_5::erase(size_t offset, size_t erasedSize)
 {
     CHECK_CURRENT_CONTEXT;
-    
-    CHECK_CURRENT_CONTEXT;
 
     if (!erasedSize)
         return;
@@ -802,7 +802,7 @@ void DynamicBuffer_4_5::erase(size_t offset, size_t erasedSize)
 
     if (offset + erasedSize > oldSize)
     {
-        LOG_ERROR << "The sizee of erased data is out of range";
+        LOG_ERROR << "The size of erased data is out of range";
         return;
     }
 
@@ -831,7 +831,10 @@ void DynamicBuffer_4_5::erase(size_t offset, size_t erasedSize)
 void DynamicBuffer_4_5::resize(size_t size)
 {
     CHECK_CURRENT_CONTEXT;
-    expand(size);
+
+    if (auto capacitySize = capacity();  size > capacitySize)
+        reserve(glm::max(size, capacitySize * 2u));
+
     m_size = size;
 }
 
@@ -868,13 +871,6 @@ std::unique_ptr<const core::graphics::IBuffer::MappedData> DynamicBuffer_4_5::ma
 std::shared_ptr<DynamicBuffer_4_5> DynamicBuffer_4_5::create(size_t size, const void* data)
 {
     return std::make_shared<DynamicBuffer_4_5>(size, data);
-}
-
-void DynamicBuffer_4_5::expand(size_t requiredSize)
-{
-    CHECK_CURRENT_CONTEXT;
-    if (requiredSize > capacity())
-        reserve(glm::max(requiredSize, capacity() * 2u));
 }
 
 // VertexArray_4_5
@@ -4207,7 +4203,7 @@ void GLFWRenderer::drawArraysIndirect(
 
     glDrawArraysIndirect(
         Conversions::PrimitiveType2GL(primitiveType),
-        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()));
+        nullptr);
 }
 
 void GLFWRenderer::drawElementsIndirect(
@@ -4229,7 +4225,7 @@ void GLFWRenderer::drawElementsIndirect(
     glDrawElementsIndirect(
         Conversions::PrimitiveType2GL(primitiveType),
         Conversions::DrawElementsIndexType2GL(indexType),
-        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()));
+        nullptr);
 }
 
 void GLFWRenderer::multiDrawArraysIndirect(
@@ -4249,7 +4245,7 @@ void GLFWRenderer::multiDrawArraysIndirect(
 
     glMultiDrawArraysIndirect(
         Conversions::PrimitiveType2GL(primitiveType),
-        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()),
+        nullptr,
         static_cast<GLsizei>(commandsBuffer->size()),
         static_cast<GLsizei>(0u));
 }
@@ -4273,7 +4269,7 @@ void GLFWRenderer::multiDrawElementsIndirect(
     glMultiDrawElementsIndirect(
         Conversions::PrimitiveType2GL(primitiveType),
         Conversions::DrawElementsIndexType2GL(indexType),
-        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()),
+        nullptr,
         static_cast<GLsizei>(commandsBuffer->size()),
         static_cast<GLsizei>(0u));
 }
@@ -4285,19 +4281,20 @@ void GLFWRenderer::multiDrawArraysIndirectCount(
     const std::shared_ptr<core::graphics::IVertexArray>& VAO,
     const core::StateSetList& stateSetList,
     utils::PrimitiveType primitiveType,
-    const core::graphics::PDrawArraysIndirectCommandsConstBuffer& commandsBuffer)
+    const core::graphics::PDrawArraysIndirectCommandsConstBuffer& commandsBuffer,
+    const core::graphics::PConstBufferRange& parameterBuffer)
 {
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
     setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
     bindDrawIndirectBuffer(commandsBuffer->buffer());
-    bindParameterBuffer(commandsBuffer->buffer());
+    bindParameterBuffer(parameterBuffer->buffer());
 
     glMultiDrawArraysIndirectCountARB(
         Conversions::PrimitiveType2GL(primitiveType),
-        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()),
-        static_cast<GLintptr>(0u),
+        nullptr,
+        static_cast<GLintptr>(parameterBuffer->offset()),
         static_cast<GLsizei>(commandsBuffer->size()),
         static_cast<GLsizei>(0u));
 }
@@ -4310,20 +4307,21 @@ void GLFWRenderer::multiDrawElementsIndirectCount(
     const core::StateSetList& stateSetList,
     utils::PrimitiveType primitiveType,
     utils::DrawElementsIndexType indexType,
-    const core::graphics::PDrawElementsIndirectCommandConstBuffer& commandsBuffer)
+    const core::graphics::PDrawElementsIndirectCommandConstBuffer& commandsBuffer,
+    const core::graphics::PConstBufferRange& parameterBuffer)
 {
     CHECK_THIS_CONTEXT;
     DEFAULT_SETUP;
 
     setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
     bindDrawIndirectBuffer(commandsBuffer->buffer());
-    bindParameterBuffer(commandsBuffer->buffer());
+    bindParameterBuffer(parameterBuffer->buffer());
 
     glMultiDrawElementsIndirectCountARB(
         Conversions::PrimitiveType2GL(primitiveType),
         Conversions::DrawElementsIndexType2GL(indexType),
-        reinterpret_cast<const void*>(commandsBuffer->sizeofReservedType()),
-        static_cast<GLintptr>(0u),
+        nullptr,
+        static_cast<GLintptr>(parameterBuffer->offset()),
         static_cast<GLsizei>(commandsBuffer->size()),
         static_cast<GLsizei>(0u));
 }

@@ -1,0 +1,64 @@
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#include<math/bounding_box.glsl>
+#include<math/sphere.glsl>
+#include<cluster_node.glsl>
+#include<light_node.glsl>
+#include<light.glsl>
+#include<scene_info.glsl>
+
+void addLightAsGlobal(in uint lightID)
+{
+	uint lightNodeID = sceneInfoGenerateClusterLightNodeID();
+	if (lightNodeID < sceneInfoClusterLightNodesMaxCount())
+	{
+		uint nextLightNodeID = sceneInfoSetFirstGlobalLightNodeID(lightNodeID);
+		lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
+	}
+}
+
+void addPointLight(in uint lightID, in Sphere s)
+{
+	for (uint i = 0u; i < sceneInfoClusterSize(); ++i)
+	{
+		BoundingBox bb = clusterNodeBoundingBox(i);
+		if (sphereClassifyBoundingBox(s, bb) != OUTSIDE)
+		{
+			uint lightNodeID = sceneInfoGenerateClusterLightNodeID();
+			if (lightNodeID < sceneInfoClusterLightNodesMaxCount())
+			{
+				uint nextLightNodeID = clusterNodeSetFirstLightNodeID(i, lightNodeID);
+				lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
+			}
+		}
+	}
+}
+
+void main(void)
+{
+	int lightID = gl_GlobalInvocationID.x;
+	if (lightID < sceneInfoLightsCount())
+	{
+		uint typeID = lightTypeID(lightID);
+		if ((typeID == DirectionalLightTypeID) || (typeID == ImageBasedLightTypeID))
+		{
+			addLightAsGlobal(lightID);
+		}
+		else if (typeID == PointLightTypeID)
+		{
+			Sphere s = transformSphere(
+				lightTransform(lightID),
+				makeSphere(vec3(0.0f), pointLightRadiuses(lightID)));
+				
+			int c = sphereClassifyFrustum(s, cameraFrustum());
+			if (c == INSIDE)
+				addLightAsGlobal(lightID);
+			else if (c == INTERSECT)
+				addPointLight(lightID, s);
+		}
+		else if (typeID == SpotLightTypeID)
+		{
+			
+		}
+	}
+}

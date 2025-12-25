@@ -1,3 +1,4 @@
+#include "camerarenderinfo.h"
 #include "renderpasshelpers.h"
 #include "renderpipeline.h"
 
@@ -15,19 +16,30 @@ RenderPipeLine::RenderPipeLine(
     , m_frameBuffer(frameBuffer)
     , m_vertexArray(vertexArray)
 {
-    m_frustumCullingPass = std::make_shared<FrustumCullingPass>(programsManager);
+    m_cameraRenderInfo = std::make_shared<CameraRenderInfo>();
+
+    m_frustumCullingPass = std::make_shared<FrustumCullingPass>(
+        programsManager,
+        m_cameraRenderInfo);
     m_passes.push_back(m_frustumCullingPass);
+
+    m_buildClusterPass = std::make_shared<BuildClusterPass>(
+        programsManager,
+        m_cameraRenderInfo);
+    m_passes.push_back(m_buildClusterPass);
 
     auto renderDrawDataGeometryPass = std::make_shared<RenderDrawDataGeometryPass>(
         programsManager,
-        m_frustumCullingPass->cameraRenderInfo(),
+        m_cameraRenderInfo,
         m_frustumCullingPass->opaqueCommandsBuffer(),
-        m_frustumCullingPass->transparentCommandsBuffer());
+        m_frustumCullingPass->opaqueParameterBuffer(),
+        m_frustumCullingPass->transparentCommandsBuffer(),
+        m_frustumCullingPass->transparentParameterBuffer());
     m_passes.push_back(renderDrawDataGeometryPass);
 
     auto renderBackgroundPass = std::make_shared<RenderBackgroundPass>(
         programsManager,
-        m_frustumCullingPass->cameraRenderInfo());
+        m_cameraRenderInfo);
     m_passes.push_back(renderBackgroundPass);
 
     auto blendPass = std::make_shared<BlendPass>(programsManager);
@@ -42,6 +54,11 @@ void RenderPipeLine::setFrustum(
     const utils::Range& ZRange)
 {
     m_frustumCullingPass->setFrustum(viewTransform, clipSpace, ZRange);
+}
+
+void RenderPipeLine::setCluster(const glm::uvec3& value)
+{
+    m_buildClusterPass->setCluster(value);
 }
 
 void RenderPipeLine::run(

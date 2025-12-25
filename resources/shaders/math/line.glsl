@@ -1,5 +1,5 @@
-#include<plane.glsl>
 #include<constants.glsl>
+#include<plane.glsl>
 
 struct Line
 {
@@ -26,7 +26,7 @@ bool lineIntersectPlane(in Line l, in vec4 p, out float t)
 	return true;
 }
 
-float projectOnLine(in Line l, in vec3 p)
+float lineProjectOn(in Line l, in vec3 p)
 {
 	return dot(p - l.origin, l.direction);
 }

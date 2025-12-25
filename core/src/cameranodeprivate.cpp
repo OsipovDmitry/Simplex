@@ -16,6 +16,7 @@ CameraNodePrivate::CameraNodePrivate(CameraNode &cameraNode, const std::string &
     , m_clipSpaceVerticalParam(glm::pi<float>() / 3.f)
     , m_viewportAspectRatio(1.f)
     , m_clipSpace()
+    , m_clusterMaxSize()
 {
 }
 
@@ -49,6 +50,11 @@ utils::ClipSpace &CameraNodePrivate::clipSpace()
 utils::Range &CameraNodePrivate::cullPlanesLimits()
 {
     return m_cullPlanesLimits;
+}
+
+glm::uvec3& CameraNodePrivate::clusterMaxSize()
+{
+    return m_clusterMaxSize;
 }
 
 SSAO &CameraNodePrivate::ssao()

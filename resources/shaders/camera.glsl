@@ -13,7 +13,6 @@ struct CameraDescription
     vec4 viewYDirection;
     vec4 viewZDirection;
     vec4 frustumPoints[FRUSTUM_POINTS_COUNT];
-    vec4 frustumEdges[FRUSTUM_EDGES_COUNT][2u];
     vec4 frustumPlanes[FRUSTUM_PLANES_COUNT];
 };
 
@@ -78,12 +77,6 @@ Frustum cameraFrustum()
 	
 	for (uint i = 0u; i < FRUSTUM_POINTS_COUNT; ++i)
 		frustum.points[i] = camera.frustumPoints[i].xyz;
-	
-	for (uint i = 0u; i < FRUSTUM_EDGES_COUNT; ++i)
-	{
-		frustum.edges[i][0u] = camera.frustumEdges[i][0u].xyz;
-		frustum.edges[i][1u] = camera.frustumEdges[i][1u].xyz;
-	}
 	
 	for (uint i = 0u; i < FRUSTUM_PLANES_COUNT; ++i)
 		frustum.planes[i] = camera.frustumPlanes[i];

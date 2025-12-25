@@ -93,7 +93,7 @@ class BufferRange;
 class Image;
 class VAOMesh;
 template <typename T> class StructBuffer;
-template <typename T, typename ReservedType = void> class VectorBuffer;
+template <typename T> class VectorBuffer;
 
 using PConstBuffer = std::shared_ptr<const IBuffer>;
 using PBuffer = std::shared_ptr<IBuffer>;
@@ -110,11 +110,11 @@ using PTextureHandle = std::shared_ptr<ITextureHandle>;
 using PConstImage = std::shared_ptr<const Image>;
 using PImage = std::shared_ptr<Image>;
 
-using DrawArraysIndirectCommandsBuffer = VectorBuffer<DrawArraysIndirectCommand, DrawIndirectCommandsBufferReservedData>;
+using DrawArraysIndirectCommandsBuffer = VectorBuffer<DrawArraysIndirectCommand>;
 using PDrawArraysIndirectCommandsBuffer = std::shared_ptr<DrawArraysIndirectCommandsBuffer>;
 using PDrawArraysIndirectCommandsConstBuffer = std::shared_ptr<const DrawArraysIndirectCommandsBuffer>;
 
-using DrawElementsIndirectCommandBuffer = VectorBuffer<DrawElementsIndirectCommand, DrawIndirectCommandsBufferReservedData>;
+using DrawElementsIndirectCommandBuffer = VectorBuffer<DrawElementsIndirectCommand>;
 using PDrawElementsIndirectCommandBuffer = std::shared_ptr<DrawElementsIndirectCommandBuffer>;
 using PDrawElementsIndirectCommandConstBuffer = std::shared_ptr<const DrawElementsIndirectCommandBuffer>;
 

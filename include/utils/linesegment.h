@@ -42,12 +42,14 @@ public:
     int classifyByPlane(const PlaneT<L, T> &p) const; // 0 - intersect, +1 - in front, -1 - in back
     bool intersectPlane(const PlaneT<L, T> &p, PointType &resPoint) const;
 
+    PointType projectOn(const PointType& v) const;
+
 private:
     std::array<PointType, 2u> m_points;
 };
 
 template <glm::length_t L, typename T>
-int LineSegmentT<L, T>::classifyByPlane(const PlaneT<L, T> &p) const
+inline int LineSegmentT<L, T>::classifyByPlane(const PlaneT<L, T> &p) const
 {
     const auto s1 = p.distanceTo(m_points[0u]), s2 = p.distanceTo(m_points[1u]);
     if (s1 > 0.f && s2 > 0.f) return +1;
@@ -56,7 +58,21 @@ int LineSegmentT<L, T>::classifyByPlane(const PlaneT<L, T> &p) const
 }
 
 template <glm::length_t L, typename T>
-bool LineSegmentT<L, T>::intersectPlane(const PlaneT<L, T> &p, PointType &resPoint) const
+inline typename LineSegmentT<L, T>::PointType LineSegmentT<L, T>::projectOn(const LineSegmentT<L, T>::PointType& v) const
+{
+    auto dir = endPoint() - startPoint();
+    const auto dirLen = glm::length(dir);
+
+    if (dirLen < utils::epsilon<T>())
+        return startPoint();
+
+    dir /= dirLen;
+    const auto t = glm::clamp(glm::dot(dir, v - startPoint()), static_cast<T>(0), dirLen);
+    return startPoint() + dir * t;
+}
+
+template <glm::length_t L, typename T>
+inline bool LineSegmentT<L, T>::intersectPlane(const PlaneT<L, T> &p, PointType &resPoint) const
 {
     const auto dir = endPoint() - startPoint();
     const auto dirLen = glm::length(dir);

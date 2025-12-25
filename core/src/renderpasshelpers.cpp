@@ -13,8 +13,11 @@ namespace simplex
 namespace core
 {
 
-FrustumCullingPass::FrustumCullingPass(const std::shared_ptr<ProgramsManager>& programsManager)
+FrustumCullingPass::FrustumCullingPass(
+    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<CameraRenderInfo>& cameraRenderInfo)
     : RenderPass()
+    , m_cameraRenderInfo(cameraRenderInfo)
 {
     m_program = programsManager->loadOrGetComputeProgram(resources::FrustumCullingPassComputeShaderPath, {});
 
@@ -26,11 +29,16 @@ FrustumCullingPass::FrustumCullingPass(const std::shared_ptr<ProgramsManager>& p
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::TransparentCommandsBuffer) =
         graphics::BufferRange::create(m_transparentCommandsBuffer->buffer());
 
-    m_ZRangeBuffer = graphics::StructBuffer<glm::uvec2>::create();
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ZRangeBuffer) =
-        graphics::BufferRange::create(m_ZRangeBuffer->buffer());
+    m_opaqueParameterBuffer = graphics::PBufferRange::element_type::create(
+        m_cameraRenderInfo->sceneInfoBuffer()->buffer(),
+        offsetof(SceneInfoDescription, opaqueCommandsCount),
+        sizeof(SceneInfoDescription::opaqueCommandsCount));
 
-    m_cameraRenderInfo = std::make_shared<CameraRenderInfo>();
+    m_transparentParameterBuffer = graphics::PBufferRange::element_type::create(
+        m_cameraRenderInfo->sceneInfoBuffer()->buffer(),
+        offsetof(SceneInfoDescription, transparentCommandsCount),
+        sizeof(SceneInfoDescription::transparentCommandsCount));
+
 }
 
 FrustumCullingPass::~FrustumCullingPass() = default;
@@ -39,30 +47,25 @@ void FrustumCullingPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>&,
     const std::shared_ptr<graphics::IVertexArray>&,
-    const std::shared_ptr<GeometryBuffer>&,
+    const std::shared_ptr<GeometryBuffer>& geometryBuffer,
     const std::shared_ptr<const SceneData>& sceneData)
 {
-    const auto bufferSize = sceneData->drawDataBuffer()->size();
+    const auto drawDataCount = sceneData->drawDataBuffer()->size();
+    const auto lightsCount = sceneData->lightsBuffer()->size();
 
-    m_opaqueCommandsBuffer->resize(bufferSize);
-    m_opaqueCommandsBuffer->setReservedData({ 0u, static_cast<uint32_t>(bufferSize), {0u, 0u}});
+    m_opaqueCommandsBuffer->resize(drawDataCount);
+    m_transparentCommandsBuffer->resize(drawDataCount);
 
-    m_transparentCommandsBuffer->resize(bufferSize);
-    m_transparentCommandsBuffer->setReservedData({ 0u, static_cast<uint32_t>(bufferSize), {0u, 0u} });
-
-    m_ZRangeBuffer->set(glm::uvec2(glm::floatBitsToUint(FLT_MAX), glm::floatBitsToUint(0.f)));
-    m_cameraRenderInfo->setFrustum(m_viewTransform, m_clipSpace, m_cullPlanesLimits);
+    m_cameraRenderInfo->setFrustum(utils::Frustum(m_viewTransform, m_clipSpace, m_cullPlanesLimits));
+    m_cameraRenderInfo->resetSceneInfo(glm::uvec3(), drawDataCount, lightsCount, geometryBuffer->OITBuffer()->size());
 
     renderer->compute(
-        glm::uvec3(static_cast<uint32_t>(bufferSize), 1u, 1u),
+        glm::uvec3(static_cast<uint32_t>(drawDataCount), 1u, 1u),
         m_program,
         { m_cameraRenderInfo, sceneData, shared_from_this()});
 
     utils::Range ZRange(m_cullPlanesLimits.nearValue(), m_cullPlanesLimits.nearValue() + 1.f);
-
-    const auto ZRangeData = m_ZRangeBuffer->get();
-    if (auto calculatedZRange = utils::Range(glm::uintBitsToFloat(ZRangeData[0u]), glm::uintBitsToFloat(ZRangeData[1u]));
-        !calculatedZRange.isEmpty())
+    if (auto calculatedZRange = m_cameraRenderInfo->sceneInfoZRange(); !calculatedZRange.isEmpty())
     {
         static const auto s_nearCoef = 0.99f;
         static const auto s_farCoef = 1.01f;
@@ -70,7 +73,7 @@ void FrustumCullingPass::run(
         ZRange = m_cullPlanesLimits * utils::Range(ZRange.nearValue() * s_nearCoef, ZRange.farValue() * s_farCoef);
     }
 
-    m_cameraRenderInfo->setFrustum(m_viewTransform, m_clipSpace, ZRange);
+    m_cameraRenderInfo->setFrustum(utils::Frustum(m_viewTransform, m_clipSpace, ZRange));
 }
 
 void FrustumCullingPass::setFrustum(
@@ -83,14 +86,14 @@ void FrustumCullingPass::setFrustum(
     m_cullPlanesLimits = cullPlanesLimits;
 }
 
-std::shared_ptr<const CameraRenderInfo> FrustumCullingPass::cameraRenderInfo() const
-{
-    return m_cameraRenderInfo;
-}
-
 graphics::PDrawArraysIndirectCommandsConstBuffer FrustumCullingPass::opaqueCommandsBuffer() const
 {
     return m_opaqueCommandsBuffer;
+}
+
+graphics::PConstBufferRange FrustumCullingPass::opaqueParameterBuffer() const
+{
+    return m_opaqueParameterBuffer;
 }
 
 graphics::PDrawArraysIndirectCommandsConstBuffer FrustumCullingPass::transparentCommandsBuffer() const
@@ -98,15 +101,57 @@ graphics::PDrawArraysIndirectCommandsConstBuffer FrustumCullingPass::transparent
     return m_transparentCommandsBuffer;
 }
 
+graphics::PConstBufferRange FrustumCullingPass::transparentParameterBuffer() const
+{
+    return m_transparentParameterBuffer;
+}
+
+BuildClusterPass::BuildClusterPass(
+    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<CameraRenderInfo>& cameraRenderInfo)
+    : RenderPass()
+    , m_cameraRenderInfo(cameraRenderInfo)
+    , m_clusterMaxSize(0u)
+{
+    m_program = programsManager->loadOrGetComputeProgram(resources::BuildClusterPassComputeShaderPath, {});
+}
+
+BuildClusterPass::~BuildClusterPass() = default;
+
+void BuildClusterPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>&,
+    const std::shared_ptr<graphics::IVertexArray>&,
+    const std::shared_ptr<GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>&)
+{
+    m_cameraRenderInfo->sceneInfoBuffer()->setField(offsetof(SceneInfoDescription, clusterSize), glm::uvec4(m_clusterMaxSize, 0u));
+    m_cameraRenderInfo->clusterNodesBuffer()->resize(glm::compMul(m_clusterMaxSize));
+    renderer->compute(
+        m_clusterMaxSize,
+        m_program,
+        { m_cameraRenderInfo });
+}
+
+void BuildClusterPass::setCluster(const glm::uvec3& clusterMaxSize)
+{
+    m_clusterMaxSize = clusterMaxSize;
+}
+
 RenderDrawDataGeometryPass::RenderDrawDataGeometryPass(
     const std::shared_ptr<ProgramsManager>& programsManager,
     const std::shared_ptr<const CameraRenderInfo>& cameraRenderInfo,
-    const graphics::PDrawArraysIndirectCommandsConstBuffer& opaqueDrawDataCommandsBuffer,
-    const graphics::PDrawArraysIndirectCommandsConstBuffer& transparentDrawDataCommandsBuffer)
+    const graphics::PDrawArraysIndirectCommandsConstBuffer& opaqueCommandsBuffer,
+    const graphics::PConstBufferRange& opaqueParameterBuffer,
+    const graphics::PDrawArraysIndirectCommandsConstBuffer& transparentCommandsBuffer,
+    const graphics::PConstBufferRange& transparentParameterBuffer)
     : RenderPass()
     , m_cameraRenderInfo(cameraRenderInfo)
-    , m_opaqueDrawDataCommandsBuffer(opaqueDrawDataCommandsBuffer)
-    , m_transparentDrawDataCommandsBuffer(transparentDrawDataCommandsBuffer)
+    , m_opaqueCommandsBuffer(opaqueCommandsBuffer)
+    , m_transparentCommandsBuffer(transparentCommandsBuffer)
+    , m_opaqueParameterBuffer(opaqueParameterBuffer)
+    , m_transparentParameterBuffer(transparentParameterBuffer)
+
 {
     m_opaqueProgram = programsManager->loadOrGetRenderProgram(
         resources::RenderDrawDataGeometryPassVertexShaderPath,
@@ -138,8 +183,7 @@ void RenderDrawDataGeometryPass::run(
 {
     framebuffer->detachAll();
     framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->colorTexture0());
-    framebuffer->attach(graphics::FrameBufferAttachment::Depth, geometryBuffer->depthTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::Stencil, geometryBuffer->stencilTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::DepthStencil, geometryBuffer->depthStencilTexture());
 
     framebuffer->setClearDepthStencil(1.f, 0x00u);
     framebuffer->setClearColor(0u, glm::uvec4(0u));
@@ -166,17 +210,16 @@ void RenderDrawDataGeometryPass::run(
         vertexArray,
         { m_cameraRenderInfo, sceneData },
         utils::PrimitiveType::Triangles,
-        m_opaqueDrawDataCommandsBuffer);
+        m_opaqueCommandsBuffer,
+        m_opaqueParameterBuffer);
 
-    geometryBuffer->clearOITBuffer();
     renderer->compute(
         glm::uvec3(geometryBuffer->size(), 1u),
         m_clearOITIndicesImageProgram,
         { geometryBuffer });
 
     framebuffer->detachAll();
-    framebuffer->attach(graphics::FrameBufferAttachment::Depth, geometryBuffer->depthTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::Stencil, geometryBuffer->stencilTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::DepthStencil, geometryBuffer->depthStencilTexture());
 
     framebuffer->setClearMask({});
 
@@ -194,12 +237,28 @@ void RenderDrawDataGeometryPass::run(
         vertexArray,
         { geometryBuffer, m_cameraRenderInfo, sceneData },
         utils::PrimitiveType::Triangles,
-        m_transparentDrawDataCommandsBuffer);
+        m_transparentCommandsBuffer,
+        m_transparentParameterBuffer);
 
     renderer->compute(
         glm::uvec3(geometryBuffer->size(), 1u),
         m_sortOITNodesProgram,
         { geometryBuffer });
+}
+
+ClusterLightPass::ClusterLightPass(
+    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<CameraRenderInfo>& cameraRenderInfo)
+    : RenderPass()
+    , m_cameraRenderInfo(cameraRenderInfo)
+{
+    m_program = programsManager->loadOrGetComputeProgram(resources::ClusterLightPassComputeShaderPath, {});
+}
+
+ClusterLightPass::~ClusterLightPass() = default;
+
+void ClusterLightPass::run(const std::shared_ptr<graphics::RendererBase>&, const std::shared_ptr<graphics::IFrameBuffer>&, const std::shared_ptr<graphics::IVertexArray>&, const std::shared_ptr<GeometryBuffer>&, const std::shared_ptr<const SceneData>&)
+{
 }
 
 RenderBackgroundPass::RenderBackgroundPass(
@@ -223,7 +282,7 @@ void RenderBackgroundPass::run(
 {
     framebuffer->detachAll();
     framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->finalTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::Stencil, geometryBuffer->stencilTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::DepthStencil, geometryBuffer->depthStencilTexture());
 
     framebuffer->setClearColor(0u, glm::vec4(glm::vec3(0.f), 1.f));
     framebuffer->setClearMask({ core::graphics::FrameBufferAttachment::Color0 });
@@ -237,7 +296,7 @@ void RenderBackgroundPass::run(
         { graphics::StencilOperation::Keep, graphics::StencilOperation::Keep, graphics::StencilOperation::Keep });
     framebuffer->setBlending(false);
 
-    renderer->multiDrawArraysIndirectCount(
+    renderer->drawArraysIndirect(
         glm::uvec4(0u, 0u, geometryBuffer->size()),
         m_program,
         framebuffer,
@@ -340,7 +399,7 @@ void BlendPass::run(
         graphics::BlendFactor::SrcAlpha, graphics::BlendFactor::OneMinusSrcAlpha,
         graphics::BlendFactor::One, graphics::BlendFactor::SrcAlpha);
 
-    renderer->multiDrawArraysIndirectCount(
+    renderer->drawArraysIndirect(
         glm::uvec4(0u, 0u, geometryBuffer->size()),
         m_program,
         framebuffer,

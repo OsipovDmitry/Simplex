@@ -1,4 +1,6 @@
 #include<line.glsl>
+#include<plane.glsl>
+#include<transform.glsl>
 
 struct LineSegment
 {
@@ -11,19 +13,7 @@ LineSegment makeLineSegment(in vec3 startPoint, in vec3 endPoint)
 	return LineSegment(startPoint, endPoint);
 }
 
-int lineSegmentClassifyByPlane(in LineSegment ls, in vec4 p)
-{
-	const float s1 = distanceToPlane(p, ls.startPoint);
-	const float s2 = distanceToPlane(p, ls.endPoint);
-	if ((s1 > 0.0f) && (s2 > 0.0f))
-		return +1;
-	else if ((s1 < 0.0f) && (s2 < 0.0f))
-		return -1;
-	else
-		return 0;
-}
-
-bool lineSegmentIntersectPlane(in LineSegment ls, in vec4 p, out vec3 resPoint)
+bool lineSegmentIntersectPlane(in LineSegment ls, in Plane p, out vec3 resPoint)
 {
 	const vec3 dir = ls.endPoint - ls.startPoint;
     const float dirLen = length(dir);
@@ -39,7 +29,7 @@ bool lineSegmentIntersectPlane(in LineSegment ls, in vec4 p, out vec3 resPoint)
     return true;
 }
 
-LineSegment transformLine(in Transform t, in LineSegment ls)
+LineSegment transformLineSegment(in Transform t, in LineSegment ls)
 {
 	return makeLineSegment(transformPoint(t, ls.startPoint), transformPoint(t, ls.endPoint));
 }

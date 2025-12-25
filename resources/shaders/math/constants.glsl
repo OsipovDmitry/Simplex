@@ -1,3 +1,9 @@
+#define INSIDE 1
+#define OUTSIDE -1
+#define INTERSECT 0
+#define IN_FRONT INSIDE
+#define IN_BACK OUTSIDE
+
 const float PI = 3.14159265359f;
 const float EPS = 0.0001f;
 const float FLT_MAX = 3.402823466e+38;

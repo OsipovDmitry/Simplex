@@ -46,23 +46,31 @@ CameraDescription CameraDescription::make(const utils::Frustum& value)
     desc.viewProjectionMatrixInverted = glm::inverse(desc.viewProjectionMatrix);
     for (size_t i = 0u; i < utils::Frustum::numPoints(); ++i)
         desc.frustumPoints[i] = glm::vec4(value.points().at(i), 1.f);
-    for (size_t i = 0u; i < utils::Frustum::numEdges(); ++i)
-    {
-        const auto& edge = value.edge(i);
-        desc.frustumEdges[i] = { glm::vec4(edge.startPoint(), 1.f), glm::vec4(edge.endPoint(), 1.f) };
-    }
     for (size_t i = 0u; i < utils::Frustum::numPlanes(); ++i)
         desc.frustumPlanes[i] = value.plane(utils::Frustum::castToPlaneIndex(i));
 
     return desc;
 }
 
-ClusterDescription ClusterDescription::make(const utils::BoundingBox& bb)
+SceneInfoDescription SceneInfoDescription::make(
+    const glm::uvec3& clusterSize,
+    uint32_t drawDataCount,
+    uint32_t lightsCount,
+    uint32_t OITNodesMaxCount,
+    uint32_t clusterLightNodesMaxCount)
 {
     return {
-        glm::vec4(bb.minPoint(), glm::uintBitsToFloat(utils::IDsGenerator::last())),
-        glm::vec4(bb.maxPoint(), 0u),
-    };
+        glm::uvec4(clusterSize, 0u),
+        glm::uvec2(glm::floatBitsToUint(FLT_MAX), glm::floatBitsToUint(0.f)),
+        drawDataCount,
+        lightsCount,
+        0u,
+        0u,
+        OITNodesMaxCount,
+        0u,
+        clusterLightNodesMaxCount,
+        0u,
+        0xFFFFFFFFu};
 }
 
 MeshDescription MeshDescription::make(

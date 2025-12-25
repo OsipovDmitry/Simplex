@@ -42,13 +42,7 @@ public:
 
     void update(uint64_t time, uint32_t dt, debug::SceneInformation&);
 
-    void setF(int);
-    bool b = false;
-    float ssaoContrib = 0.f;
-
-    ShadingMode tempMode;
-    ShadingFilter tempFilter;
-    bool upShading = false;
+    void setF();
 
 private:
     std::unique_ptr<GraphicsEnginePrivate> m_;

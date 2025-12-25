@@ -11,8 +11,10 @@
 #include <core/scenerootnode.h>
 #include <core/cameranode.h>
 #include <core/drawablenode.h>
-#include <core/pbrdrawable.h>
-#include <core/ibllightnode.h>
+#include <core/drawable.h>
+#include <core/mesh.h>
+#include <core/material.h>
+#include <core/imagebasedllightnode.h>
 #include <core/nodecollector.h>
 
 #include <graphics_glfw/glfwwidget.h>
@@ -25,20 +27,23 @@ static std::shared_ptr<simplex::core::Scene> createScene(
 
     auto scene = simplex::core::Scene::createEmpty(name);
 
-    simplex::utils::MeshPainter teapotPainter(simplex::utils::Mesh::createEmptyMesh({
+    simplex::utils::MeshPainter painter(simplex::utils::Mesh::createEmptyMesh({
         {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
         {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}},
         {simplex::utils::VertexAttribute::TexCoords, {2u, simplex::utils::VertexComponentType::Single}}
         }));
-    teapotPainter.setVertexTransform(simplex::utils::Transform::makeTranslation(glm::vec3(0.f, -.5f, 0.f)));
-    teapotPainter.drawBunny();
-    auto teapotBoundingBox = teapotPainter.calculateBoundingBox();
-    auto teapotVao = renderer->createVertexArray(teapotPainter.mesh());
+    painter.setVertexTransform(simplex::utils::Transform::makeTranslation(glm::vec3(0.f, -.5f, 0.f)));
+    painter.drawBunny();
+    auto boundingBox = painter.calculateBoundingBox();
 
-    auto drawable = std::make_shared<simplex::core::PBRDrawable>(teapotVao, teapotBoundingBox);
-    drawable->setBaseColor(glm::convertSRGBToLinear(glm::vec4(1.f, .8f, 0.f, 1.f)));
-    drawable->setMetalness(0.f);
-    drawable->setRoughness(.2f);
+    auto mesh = std::make_shared<simplex::core::Mesh>(painter.mesh(), boundingBox);
+
+    auto material = std::make_shared<simplex::core::Material>();
+    material->setBaseColor(glm::convertSRGBToLinear(glm::vec4(1.f, .8f, 0.f, 1.f)));
+    material->setMetalness(0.f);
+    material->setRoughness(.2f);
+
+    auto drawable = std::make_shared<simplex::core::Drawable>(mesh, material);
 
     auto drawableNode = std::make_shared<simplex::core::DrawableNode>("DrawableNode");
     drawableNode->addDrawable(drawable);
@@ -55,13 +60,13 @@ static void addCameraToScene(
     const std::shared_ptr<simplex::core::Scene> &scene,
     const std::string& cameraName,
     const glm::vec3& cameraPos,
-    const std::shared_ptr<simplex::core::graphics::IFrameBuffer>& defaultFramebuffer)
+    const glm::vec3& upVector)
 {
-    auto cameraNode = std::make_shared<simplex::core::CameraNode>(cameraName, defaultFramebuffer);
+    auto cameraNode = std::make_shared<simplex::core::CameraNode>(cameraName);
     cameraNode->setTransform(simplex::utils::Transform::makeLookAt(
         cameraPos,
         glm::vec3(0.f),
-        glm::vec3(0.f, 1.f, 0.f)).inverted());
+        upVector).inverted());
     scene->sceneRootNode()->attach(cameraNode);
 }
 
@@ -75,7 +80,7 @@ static const auto updateCallback = [](const std::shared_ptr<simplex::core::Scene
     {
         cameraNode->setRenderingEnabled(cameraNode->name() == cameraNodeName);
     }
-    };
+};
 
 int main(int argc, char* argv[])
 {
@@ -92,19 +97,21 @@ int main(int argc, char* argv[])
     auto scene = createScene(
         "Teapot",
         window0->graphicsEngine()->graphicsRenderer());
-    addCameraToScene(scene, "CameraNode0", glm::vec3(2.f, 0.f, 0.f), window0->defaultFrameBuffer());
-    window0->setScene(scene);
-    //window0->setUpdateCallback([&scene](uint64_t time, uint32_t) { updateCallback(scene, "CameraNode0"); });
+    addCameraToScene(scene, "CameraNode0", glm::vec3(2.f, 0.f, 0.f), glm::vec3(0.f, 1.f, 0.f));
+    window0->engine()->setScene(scene);
+    window0->setUpdateCallback([&window0](uint64_t time, uint32_t) { updateCallback(window0->engine()->scene(), "CameraNode0"); });
 
     auto window1 = simplex::graphics_glfw::GLFWWidget::getOrCreate("Up View", window0);
-    //addCameraToScene(scene, "CameraNode1", glm::vec3(0.f, 2.f, 0.f), window1->defaultFrameBuffer());
-    window1->setScene(scene);
-    //window1->setUpdateCallback([&scene](uint64_t time, uint32_t) { updateCallback(scene, "CameraNode1"); });
+    addCameraToScene(scene, "CameraNode1", glm::vec3(0.f, 2.f, 0.f), glm::vec3(0.f, 0.f, 1.f));
+    window1->engine()->setScene(scene);
+    window1->setUpdateCallback([&window1](uint64_t time, uint32_t) { updateCallback(window1->engine()->scene(), "CameraNode1"); });
 
     auto window2 = simplex::graphics_glfw::GLFWWidget::getOrCreate("Forward View", window0);
-    //addCameraToScene(scene, "CameraNode2", glm::vec3(0.f, 0.f, 2.f), window2->defaultFrameBuffer());
-    window2->setScene(scene);
-    //window2->setUpdateCallback([&scene](uint64_t time, uint32_t) { updateCallback(scene, "CameraNode2"); });
+    addCameraToScene(scene, "CameraNode2", glm::vec3(0.f, 0.f, 2.f), glm::vec3(0.f, 1.f, 0.f));
+    window2->engine()->setScene(scene);
+    window2->setUpdateCallback([&window2](uint64_t time, uint32_t) { updateCallback(window2->engine()->scene(), "CameraNode2"); });
+
+    scene.reset();
 
     auto& app = simplex::core::ApplicationBase::instance();
     app.registerDevice(window0);

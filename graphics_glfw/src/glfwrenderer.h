@@ -151,8 +151,6 @@ public:
 
 private:
     size_t m_size = 0;
-
-    void expand(size_t);
 };
 
 class VertexArray_4_5 : public core::graphics::IVertexArray
@@ -1036,7 +1034,8 @@ public:
         const std::shared_ptr<core::graphics::IVertexArray>&,
         const core::StateSetList&,
         utils::PrimitiveType,
-        const core::graphics::PDrawArraysIndirectCommandsConstBuffer&) override;
+        const core::graphics::PDrawArraysIndirectCommandsConstBuffer&,
+        const core::graphics::PConstBufferRange&) override;
 
     void multiDrawElementsIndirectCount(
         const glm::uvec4&,
@@ -1046,7 +1045,8 @@ public:
         const core::StateSetList&,
         utils::PrimitiveType,
         utils::DrawElementsIndexType,
-        const core::graphics::PDrawElementsIndirectCommandConstBuffer&) override;
+        const core::graphics::PDrawElementsIndirectCommandConstBuffer&,
+        const core::graphics::PConstBufferRange&) override;
 
     void clearRenderData() override;
     void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,

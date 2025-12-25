@@ -6,24 +6,20 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 #include<material.glsl>
 #include<mesh.glsl>
 #include<camera.glsl>
-#include<math/bounding_box.glsl>
+#include<scene_info.glsl>
+#include<math/classification.glsl>
 
 layout (std430) buffer ssbo_opaqueCommandsBuffer {
-	DrawIndirectCommandsBufferReservedData opaqueIndirectCommandsBufferReservedData;
 	DrawArraysIndirectCommand opaqueCommands[];
 };
 layout (std430) buffer ssbo_transparentCommandsBuffer {
-	DrawIndirectCommandsBufferReservedData transparentIndirectCommandsBufferReservedData;
 	DrawArraysIndirectCommand transparentCommands[];
-};
-layout (std430) buffer ssbo_ZRangeBuffer {
-	uvec2 ZRange;
 };
 
 void main(void)
 {
     uint drawDataID = gl_GlobalInvocationID.x;
-    if (drawDataID < drawDataCount())
+    if (drawDataID < sceneInfoDrawDataCount())
     {
 		Transform ddTransform = drawDataTransform(drawDataID);
 		Transform ddTransformInverted = transformInverted(ddTransform);
@@ -33,38 +29,9 @@ void main(void)
 	
 		uint drawableID = drawDataDrawableID(drawDataID);
 		uint meshID = drawableMeshID(drawableID);
-		
 		BoundingBox boundingBox = meshBoundingBox(meshID);
 		
-		bool isVisible = !isBoundingBoxEmpty(boundingBox);
-		
-		for (uint i = 0u; isVisible && (i < FRUSTUM_PLANES_COUNT); ++i)
-		{
-			if (boundingBoxDistanceToPlane(boundingBox, transformedFrustum.planes[i]) < 0.0f)
-				isVisible = false;
-		}
-		
-		for (uint k = 0u; isVisible && (k < 3u); ++k)
-		{
-			bool anyInside = false;
-			for (uint i = 0u; !anyInside && (i < FRUSTUM_POINTS_COUNT); ++i)
-				if (transformedFrustum.points[i][k] >= boundingBox.points[0u][k])
-					anyInside = true;
-			if (!anyInside)
-				isVisible = false;
-		}
-		
-		for (uint k = 0u; isVisible && (k < 3u); ++k)
-		{
-			bool anyInside = false;
-			for (uint i = 0u; !anyInside && (i < FRUSTUM_POINTS_COUNT); ++i)
-				if (transformedFrustum.points[i][k] <= boundingBox.points[1u][k])
-					anyInside = true;
-			if (!anyInside)
-				isVisible = false;
-		}
-		
-		if (isVisible)
+		if (frustumClassifyBoundingBox(transformedFrustum, boundingBox) != OUTSIDE)
 		{
 			vec3 points[BOUNDING_BOX_POINTS_COUNT + FRUSTUM_POINTS_COUNT + BOUNDING_BOX_EDGES_COUNT];
 			uint pointsCount = 0u;
@@ -72,14 +39,14 @@ void main(void)
 			for (uint i = 0u; i < BOUNDING_BOX_POINTS_COUNT; ++i)
 			{
 				const vec3 point = boundingBoxPoint(boundingBox, i);
-				if (frustumClassifyPoint(transformedFrustum, point) != -1)
+				if (frustumClassifyPoint(transformedFrustum, point) != OUTSIDE)
 					points[pointsCount++] = point;
 			}
 			
 			for (uint i = 0u; i < FRUSTUM_POINTS_COUNT; ++i)
 			{
 				const vec3 point = transformedFrustum.points[i];
-				if (boundingBoxClassifyPoint(boundingBox, point) != -1)
+				if (boundingBoxClassifyPoint(boundingBox, point) != OUTSIDE)
 					points[pointsCount++] = point;
 			}
 			
@@ -106,18 +73,12 @@ void main(void)
 				}
 			}
 			nearFar[0u] = max(nearFar[0u], 0.0f);
-			
-			atomicMin(ZRange[0u], floatBitsToUint(nearFar[0u]));
-			atomicMax(ZRange[1u], floatBitsToUint(nearFar[1u])); 
-		}
-		
-		if (isVisible)
-		{
+			sceneInfoExpandZRange(nearFar);
+
 			uint materialID = drawableMaterialID(drawableID);
-			
 			if (isMeshTransparent(meshID) || isMaterialTransparent(materialID))
 			{
-				uint commandID = atomicAdd(transparentIndirectCommandsBufferReservedData.count, 1u);
+				uint commandID = sceneInfoGenerateTransparentCommandID();
 				transparentCommands[commandID] = DrawArraysIndirectCommand(
 					meshNumElements(meshID),
 					1u,
@@ -126,7 +87,7 @@ void main(void)
 			}
 			else
 			{
-				uint commandID = atomicAdd(opaqueIndirectCommandsBufferReservedData.count, 1u);
+				uint commandID = sceneInfoGenerateOpaqueCommandID();
 				opaqueCommands[commandID] = DrawArraysIndirectCommand(
 					meshNumElements(meshID),
 					1u,

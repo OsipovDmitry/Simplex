@@ -1,11 +1,5 @@
 #include<math/transform.glsl>
 
-struct DrawDataBufferReservedData
-{
-	uint count;
-	uint padding[3u];
-};
-
 struct DrawDataDescription
 {
 	Transform transform;
@@ -14,14 +8,8 @@ struct DrawDataDescription
 };
 
 layout (std430) readonly buffer ssbo_drawDataBuffer {
-	DrawDataBufferReservedData drawDataBufferReservedData;
 	DrawDataDescription drawData[];
 };
-
-uint drawDataCount()
-{
-	return drawDataBufferReservedData.count;
-}
 
 Transform drawDataTransform(in uint drawDataID)
 {

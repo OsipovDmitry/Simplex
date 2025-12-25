@@ -37,21 +37,18 @@ void GeometryBuffer::resize(const glm::uvec2& size)
     }
 
     m_colorTexture0 = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA32UI);
-    m_depthTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Depth32F);
-    m_stencilTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Stencil8);
+    m_depthStencilTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Dept32FStencil8);
     m_OITDepthTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R32F);
     m_OITIndicesTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R32UI);
     m_finalTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA16F);
 
     m_OITBuffer = POITBuffer::element_type::create();
     static const auto& OITSetings = settings::Settings::instance().graphics().oit();
-    auto maxNumNodes = glm::min(OITSetings.maxNodes(), m_size.x * m_size.y * OITSetings.nodesPerPixel());
-    m_OITBuffer->resize(maxNumNodes);
-    m_OITBuffer->setReservedData({ maxNumNodes, 0u });
+    m_OITBuffer->resize(glm::min(OITSetings.maxNodes(), m_size.x * m_size.y * OITSetings.nodesPerPixel()));
 
     getOrCreateUniform(UniformID::ViewportSize) = makeUniform(m_size);
     getOrCreateUniform(UniformID::GBufferColorMap0) = makeUniform(colorTexture0());
-    getOrCreateUniform(UniformID::GBufferDepthMap) = makeUniform(depthTexture());
+    getOrCreateUniform(UniformID::GBufferDepthMap) = makeUniform(depthStencilTexture());
     getOrCreateUniform(UniformID::OITDepthMap) = makeUniform(OITDepthTexture());
     getOrCreateUniform(UniformID::OITIndicesMap) = makeUniform(OITIndicesTexture());
     getOrCreateUniform(UniformID::GBufferFinalMap) = makeUniform(finalTexture());
@@ -59,26 +56,14 @@ void GeometryBuffer::resize(const glm::uvec2& size)
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::OITBuffer) = graphics::BufferRange::create(m_OITBuffer->buffer());
 }
 
-void GeometryBuffer::clearOITBuffer()
-{
-    auto reserverdData = m_OITBuffer->reservedData();
-    reserverdData.nodesCount = 0u;
-    m_OITBuffer->setReservedData(reserverdData);
-}
-
 graphics::PConstTexture GeometryBuffer::colorTexture0() const
 {
     return m_colorTexture0;
 }
 
-graphics::PConstTexture GeometryBuffer::depthTexture() const
+graphics::PConstTexture GeometryBuffer::depthStencilTexture() const
 {
-    return m_depthTexture;
-}
-
-graphics::PConstTexture GeometryBuffer::stencilTexture() const
-{
-    return m_stencilTexture;
+    return m_depthStencilTexture;
 }
 
 graphics::PConstTexture GeometryBuffer::OITDepthTexture() const

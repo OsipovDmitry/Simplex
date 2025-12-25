@@ -27,6 +27,7 @@ CameraNode::CameraNode(const std::string &name)
         setOrthoClipSpace(cameraSettings.clipSpace().orthoHeight());
 
     setCullPlanesLimits(graphicsSettings.cullPlaneLimits());
+    setClusterMaxSize(cameraSettings.clusterMaxSize());
 }
 
 CameraNode::~CameraNode() = default;
@@ -102,6 +103,16 @@ void CameraNode::setCullPlanesLimits(const utils::Range &value)
         LOG_CRITICAL << "Zfar must be greater than Znear";
 
     m().cullPlanesLimits() = value;
+}
+
+const glm::uvec3& CameraNode::clusterMaxSize() const
+{
+    return m().clusterMaxSize();
+}
+
+void CameraNode::setClusterMaxSize(const glm::uvec3& value)
+{
+    m().clusterMaxSize() = value;
 }
 
 SSAO &CameraNode::ssao()

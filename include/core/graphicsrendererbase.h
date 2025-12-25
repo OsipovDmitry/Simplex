@@ -479,13 +479,6 @@ struct DrawElementsIndirectCommand
     uint32_t baseInstance;
 };
 
-struct DrawIndirectCommandsBufferReservedData
-{
-    uint32_t count;
-    uint32_t maxSize;
-    uint32_t padding[2u];
-};
-
 class RendererBasePrivate;
 class CORE_SHARED_EXPORT RendererBase : public std::enable_shared_from_this<RendererBase>, public IRenderer
 {
@@ -760,7 +753,8 @@ public:
         const std::shared_ptr<graphics::IVertexArray>&,
         const StateSetList&,
         utils::PrimitiveType,
-        const PDrawArraysIndirectCommandsConstBuffer&) = 0;
+        const PDrawArraysIndirectCommandsConstBuffer&,
+        const PConstBufferRange&) = 0;
 
     virtual void multiDrawElementsIndirectCount(
         const glm::uvec4&,
@@ -770,7 +764,8 @@ public:
         const StateSetList&,
         utils::PrimitiveType,
         utils::DrawElementsIndexType,
-        const PDrawElementsIndirectCommandConstBuffer&) = 0;
+        const PDrawElementsIndirectCommandConstBuffer&,
+        const PConstBufferRange&) = 0;
 
     virtual void clearRenderData() = 0;
     virtual void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
@@ -872,9 +867,21 @@ public:
         return *reinterpret_cast<value_type*>(m_buffer->map(IBuffer::MapAccess::ReadOnly)->get());
     }
 
+    template <typename FieldType>
+    FieldType getField(size_t offset) const
+    {
+        return *reinterpret_cast<FieldType*>(m_buffer->map(IBuffer::MapAccess::ReadOnly, offset, sizeof(FieldType))->get());
+    }
+
     void set(const value_type& value)
     {
         *reinterpret_cast<value_type*>(m_buffer->map(IBuffer::MapAccess::WriteOnly)->get()) = value;
+    }
+
+    template <typename FieldType>
+    void setField(size_t offset, const FieldType& value) const
+    {
+        *reinterpret_cast<FieldType*>(m_buffer->map(IBuffer::MapAccess::WriteOnly, offset, sizeof(FieldType))->get()) = value;
     }
 
     static std::shared_ptr<StructBuffer<value_type>> create(const value_type& value = value_type())
@@ -899,7 +906,7 @@ private:
     std::shared_ptr<IStaticBuffer> m_buffer;
 };
 
-template <typename T, typename ReservedType = void>
+template <typename T>
 class VectorBuffer final
 {
     NONCOPYBLE(VectorBuffer)
@@ -907,39 +914,23 @@ public:
     using value_type = T;
     static constexpr size_t sizeofT() { return sizeof(value_type); }
 
-    using reserved_type = ReservedType;
-    static constexpr size_t sizeofReservedType() {
-        if constexpr (std::is_same_v<reserved_type, void>) return 0u;
-        else return sizeof(reserved_type);
-    }
-
     ~VectorBuffer() = default;
 
     std::shared_ptr<const IDynamicBuffer> buffer() const { return m_buffer; }
 
-    template <typename U = reserved_type, typename std::enable_if<!std::is_void<U>::value>::type* = nullptr>
-    reserved_type reservedData() const {
-        return *reinterpret_cast<reserved_type*>(m_buffer->map(IBuffer::MapAccess::ReadOnly, 0u, sizeofReservedType())->get());
-    }
-
-    template <typename U = reserved_type, typename std::enable_if<!std::is_void<U>::value>::type* = nullptr>
-    void setReservedData(const U& value) {
-        *reinterpret_cast<reserved_type*>(m_buffer->map(IBuffer::MapAccess::WriteOnly, 0u, sizeofReservedType())->get()) = value;
-    }
-
     bool isEmpty() const { return size() == 0u; }
-    size_t size() const { return (m_buffer->size() - sizeofReservedType()) / sizeofT(); }
+    size_t size() const { return m_buffer->size() / sizeofT(); }
 
-    size_t capacity() const { return (m_buffer->capacity() - sizeofReservedType()) / sizeofT(); }
-    void reserve(size_t value) { m_buffer->reserve(value * sizeofT() + sizeofReservedType()); }
+    size_t capacity() const { return m_buffer->capacity() / sizeofT(); }
+    void reserve(size_t value) { m_buffer->reserve(value * sizeofT()); }
     void shrinkToFit() { m_buffer->shrinkToFit(); }
 
     void clear() { resize(0u); }
     void insert(size_t index, const value_type* data, size_t count) {
-        m_buffer->insert(index * sizeofT() + sizeofReservedType(), data, count * sizeofT()); }
+        m_buffer->insert(index * sizeofT(), data, count * sizeofT()); }
     void insert(size_t index, std::initializer_list<value_type> l) { insert(index, l.begin(), l.size()); }
-    void erase(size_t index, size_t count) { m_buffer->erase(index * sizeofT() + sizeofReservedType(), count * sizeofT()); }
-    void resize(size_t count) { m_buffer->resize(count * sizeofT() + sizeofReservedType()); }
+    void erase(size_t index, size_t count) { m_buffer->erase(index * sizeofT(), count * sizeofT()); }
+    void resize(size_t count) { m_buffer->resize(count * sizeofT()); }
 
     void pushBack(const value_type& value) { insert(size(), &value, 1u); }
     void set(size_t index, const value_type& value)
@@ -947,23 +938,26 @@ public:
         if (index >= size())
             LOG_CRITICAL << "Index is out of range";
 
-        *reinterpret_cast<value_type*>(m_buffer->map(
+        auto mapData = m_buffer->map(
             IBuffer::MapAccess::WriteOnly,
-            index * sizeofT() + sizeofReservedType(),
-            sizeofT())->get()) = value;
+            index * sizeofT(),
+            sizeofT());
+        *reinterpret_cast<value_type*>(mapData->get()) = value;
     }
     value_type get(size_t index) const
     {
         if (index >= size())
             LOG_CRITICAL << "Index is out of range";
 
-        return *reinterpret_cast<value_type*>(m_buffer->map(
+        auto mapData = m_buffer->map(
             IBuffer::MapAccess::ReadOnly,
-            index * sizeofT() + sizeofReservedType(),
-            sizeofT())->get());
+            index * sizeofT(),
+            sizeofT());
+
+        return *reinterpret_cast<value_type*>(mapData->get());
     }
 
-    static std::shared_ptr<VectorBuffer<value_type, reserved_type>> create(std::initializer_list<value_type> l = {})
+    static std::shared_ptr<VectorBuffer<value_type>> create(std::initializer_list<value_type> l = {})
     {
         auto currentContext = RendererBase::current();
         if (!currentContext)
@@ -972,16 +966,8 @@ public:
             return nullptr;
         }
 
-        return std::shared_ptr<VectorBuffer<value_type, reserved_type>>(new VectorBuffer<value_type, reserved_type>(
+        return std::shared_ptr<VectorBuffer<value_type>>(new VectorBuffer<value_type>(
             currentContext->createDynamicBuffer(), l.begin(), l.size()));
-    }
-
-    template <typename U = reserved_type, typename std::enable_if<!std::is_void<U>::value>::type* = nullptr>
-    static std::shared_ptr<VectorBuffer<value_type, U>> create(const U& r = U(), std::initializer_list<value_type> l = {})
-    {
-        auto result = create(l);
-        result->setReservedData(r);
-        return result;
     }
 
 private:

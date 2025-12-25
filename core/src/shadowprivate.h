@@ -36,7 +36,7 @@ public:
     std::shared_ptr<Blur> &blur();
 
     struct LayeredMatricesBufferReservedData { uint32_t numLayers; uint32_t padding[3]; };
-    using LayeredMatricesBuffer = std::shared_ptr<graphics::VectorBuffer<glm::mat4x4, LayeredMatricesBufferReservedData>>;
+    using LayeredMatricesBuffer = std::shared_ptr<graphics::VectorBuffer<glm::mat4x4>>;
     LayeredMatricesBuffer& layeredMatricesBuffer();
 
     void update(const std::shared_ptr<graphics::IFrameBuffer>&, const std::vector<glm::mat4x4>&);

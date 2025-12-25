@@ -27,7 +27,6 @@
 #include "shadowprivate.h"
 #include "blur.h"
 #include "nodevisitorhelpers.h"
-#include "framebufferhelpers.h"
 #include "renderpipeline.h"
 #include "sceneprivate.h"
 #include "scenedata.h"
@@ -35,6 +34,12 @@
 #include "shadowbuffer.h"
 #include "camerarenderinfo.h"
 #include "shadowrenderinfo.h"
+
+//tmp
+#include <core/material.h>
+#include <core/mesh.h>
+#include <core/drawable.h>
+#include "renderpasshelpers.h"
 
 namespace simplex
 {
@@ -234,6 +239,7 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
             camera->globalTransform().inverted(),
             camera->clipSpace(),
             camera->cullPlanesLimits());
+        renderPipeLine->setCluster(camera->clusterMaxSize());
         renderPipeLine->run(
             cameraGeometryBuffer,
             scene->m().sceneData());
@@ -531,12 +537,44 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
 }
 
 
-void GraphicsEngine::setF(int i)
+void GraphicsEngine::setF()
 {
-    if (i == -1)
+    auto scene = GraphicsEngine::scene();
+    if (!scene)
+        return;
+
+    auto& renderPipeLine = m_->renderPipeLine();
+    auto clusterNodesBuffer = renderPipeLine->cameraRenderInfo()->clusterNodesBuffer();
+
+    simplex::utils::MeshPainter painter(simplex::utils::Mesh::createEmptyMesh({
+            {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
+            {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}}, }));
+
+    for (size_t i = 0u; i < clusterNodesBuffer->size(); ++i)
     {
-        b = true;
+        auto clusterNode = clusterNodesBuffer->get(i);
+        utils::BoundingBox bb({
+            glm::vec3(clusterNode.boundingBoxMinPoint),
+            glm::vec3(clusterNode.boundingBoxMaxPoint) });
+
+        painter.setVertexTransform(utils::Transform::makeTranslation(bb.center()));
+        painter.drawCube(bb.halfSize() * 2.f);
     }
+
+    auto boundingBox = painter.calculateBoundingBox();
+    auto mesh = std::make_shared<simplex::core::Mesh>(painter.mesh(), boundingBox);
+
+    auto material = std::make_shared<simplex::core::Material>();
+    material->setBaseColor(glm::vec4(glm::vec3(1.f), .2f));
+    material->setMetalness(0.f);
+    material->setRoughness(.2f);
+
+    auto drawable = std::make_shared<simplex::core::Drawable>(mesh, material);
+
+    auto drawableNode = std::make_shared<simplex::core::DrawableNode>("");
+    drawableNode->addDrawable(drawable);
+
+    scene->sceneRootNode()->attach(drawableNode);
 }
 
 }

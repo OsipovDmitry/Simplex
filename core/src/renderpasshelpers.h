@@ -16,7 +16,9 @@ class CameraRenderInfo;
 class FrustumCullingPass : public RenderPass
 {
 public:
-    FrustumCullingPass(const std::shared_ptr<ProgramsManager>&);
+    FrustumCullingPass(
+        const std::shared_ptr<ProgramsManager>&,
+        const std::shared_ptr<CameraRenderInfo>&);
     ~FrustumCullingPass() override;
 
     void run(
@@ -28,20 +30,46 @@ public:
 
     void setFrustum(const utils::Transform&, const utils::ClipSpace&, const utils::Range&);
 
-    std::shared_ptr<const CameraRenderInfo> cameraRenderInfo() const;
-
     graphics::PDrawArraysIndirectCommandsConstBuffer opaqueCommandsBuffer() const;
+    graphics::PConstBufferRange opaqueParameterBuffer() const;
+
     graphics::PDrawArraysIndirectCommandsConstBuffer transparentCommandsBuffer() const;
+    graphics::PConstBufferRange transparentParameterBuffer() const;
 
 private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
     graphics::PDrawArraysIndirectCommandsBuffer m_opaqueCommandsBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_transparentCommandsBuffer;
-    std::shared_ptr<graphics::StructBuffer<glm::uvec2>> m_ZRangeBuffer;
+    graphics::PBufferRange m_opaqueParameterBuffer;
+    graphics::PBufferRange m_transparentParameterBuffer;
     std::shared_ptr<CameraRenderInfo> m_cameraRenderInfo;
     utils::Transform m_viewTransform;
     utils::ClipSpace m_clipSpace;
     utils::Range m_cullPlanesLimits;
+};
+
+class BuildClusterPass : public RenderPass
+{
+public:
+    BuildClusterPass(
+        const std::shared_ptr<ProgramsManager>&,
+        const std::shared_ptr<CameraRenderInfo>&);
+    ~BuildClusterPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+    void setCluster(const glm::uvec3&);
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+    std::shared_ptr<CameraRenderInfo> m_cameraRenderInfo;
+
+    glm::uvec3 m_clusterMaxSize;
 };
 
 class RenderDrawDataGeometryPass : public RenderPass
@@ -51,7 +79,9 @@ public:
         const std::shared_ptr<ProgramsManager>&,
         const std::shared_ptr<const CameraRenderInfo>&,
         const graphics::PDrawArraysIndirectCommandsConstBuffer&,
-        const graphics::PDrawArraysIndirectCommandsConstBuffer&);
+        const graphics::PConstBufferRange&,
+        const graphics::PDrawArraysIndirectCommandsConstBuffer&,
+        const graphics::PConstBufferRange&);
     ~RenderDrawDataGeometryPass() override;
 
     void run(
@@ -67,8 +97,30 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_clearOITIndicesImageProgram;
     std::shared_ptr<graphics::IComputeProgram> m_sortOITNodesProgram;
     std::shared_ptr<const CameraRenderInfo> m_cameraRenderInfo;
-    graphics::PDrawArraysIndirectCommandsConstBuffer m_opaqueDrawDataCommandsBuffer;
-    graphics::PDrawArraysIndirectCommandsConstBuffer m_transparentDrawDataCommandsBuffer;
+    graphics::PDrawArraysIndirectCommandsConstBuffer m_opaqueCommandsBuffer;
+    graphics::PDrawArraysIndirectCommandsConstBuffer m_transparentCommandsBuffer;
+    graphics::PConstBufferRange m_opaqueParameterBuffer;
+    graphics::PConstBufferRange m_transparentParameterBuffer;
+};
+
+class ClusterLightPass : public RenderPass
+{
+public:
+    ClusterLightPass(
+        const std::shared_ptr<ProgramsManager>&,
+        const std::shared_ptr<CameraRenderInfo>&);
+    ~ClusterLightPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+    std::shared_ptr<CameraRenderInfo> m_cameraRenderInfo;
 };
 
 class RenderBackgroundPass : public RenderPass

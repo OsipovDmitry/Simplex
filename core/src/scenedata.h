@@ -27,9 +27,9 @@ using MeshesBuffer = std::shared_ptr<graphics::VectorBuffer<MeshDescription>>;
 using MaterialMapsBuffer = std::shared_ptr<graphics::VectorBuffer<MaterialMapDescription>>;
 using MaterialsBuffer = std::shared_ptr<graphics::VectorBuffer<MaterialDescription>>;
 using DrawablesBuffer = std::shared_ptr<graphics::VectorBuffer<DrawableDescription>>;
-using DrawDataBuffer = std::shared_ptr<graphics::VectorBuffer<DrawDataDescription, DrawDataBufferReservedData>>;
+using DrawDataBuffer = std::shared_ptr<graphics::VectorBuffer<DrawDataDescription>>;
 using BackgroundBuffer = std::shared_ptr<graphics::StructBuffer<BackgroundDescription>>;
-using LightsBuffer = std::shared_ptr<graphics::VectorBuffer<LightDescription, LightBufferReservedData>>;
+using LightsBuffer = std::shared_ptr<graphics::VectorBuffer<LightDescription>>;
 
 class SceneData;
 

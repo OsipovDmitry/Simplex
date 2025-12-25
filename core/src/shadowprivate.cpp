@@ -3,7 +3,6 @@
 
 #include "shadowprivate.h"
 #include "shadowbuffer.h"
-#include "framebufferhelpers.h"
 #include "blur.h"
 
 namespace simplex
@@ -72,15 +71,15 @@ void ShadowPrivate::update(
     m_shadowBuffer->update(m_mapSize, m_mode, m_filter);
 
     // tmp
-    m_frameBuffer = std::make_shared<ShadowFrameBuffer>(frameBuffer, m_shadowBuffer);
+    //m_frameBuffer = std::make_shared<ShadowFrameBuffer>(frameBuffer, m_shadowBuffer);
 
-    if (m_filter == ShadingFilter::VSM)
-    {
-        if (!m_blur)
-            m_blur = std::make_shared<Blur>();
-    }
-    else
-        m_blur = nullptr; // blur is not needed if filter is not VSM
+    //if (m_filter == ShadingFilter::VSM)
+    //{
+    //    if (!m_blur)
+    //        m_blur = std::make_shared<Blur>();
+    //}
+    //else
+    //    m_blur = nullptr; // blur is not needed if filter is not VSM
 }
 
 }

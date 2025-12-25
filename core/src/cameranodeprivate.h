@@ -29,6 +29,7 @@ public:
     utils::ClipSpace &clipSpace();
 
     utils::Range &cullPlanesLimits();
+    glm::uvec3& clusterMaxSize();
 
     SSAO &ssao();
 
@@ -46,6 +47,7 @@ private:
     utils::ClipSpace m_clipSpace;
 
     utils::Range m_cullPlanesLimits;
+    glm::uvec3 m_clusterMaxSize;
 
     SSAO m_ssao;
 };

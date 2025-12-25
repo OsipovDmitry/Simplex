@@ -144,6 +144,12 @@ const ClipSpace &Camera::clipSpace() const
     return s_clipsapce;
 }
 
+const glm::u32vec3& Camera::clusterMaxSize() const
+{
+    static const auto s_clusterMaxSize = readUVec3("ClusterMaxSize", glm::u32vec3(16u, 9u, 24u));
+    return s_clusterMaxSize;
+}
+
 Background::Background(const rapidjson::Document::ValueType *value)
     : utils::SettingsComponent(value)
 {

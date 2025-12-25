@@ -52,6 +52,7 @@ public:
     ~Camera() override;
 
     const ClipSpace &clipSpace() const;
+    const glm::u32vec3& clusterMaxSize() const;
 };
 
 class CORE_SHARED_EXPORT Background : public utils::SettingsComponent

@@ -851,10 +851,7 @@ void SceneData::onDrawDataChanged(
     }
 
     if (m_drawDataBuffer->size() <= ID)
-    {
         m_drawDataBuffer->resize(ID + 1u);
-        m_drawDataBuffer->setReservedData({ static_cast<uint32_t>(m_drawDataBuffer->size()), {0u, 0u, 0u} });
-    }
 
     m_drawDataBuffer->set(ID, DrawDataDescription::make(transform, addDrawable(drawable)->ID()));
 }
@@ -1098,13 +1095,12 @@ std::shared_ptr<SceneData> SceneData::create()
 
     // create screen quad commands buffer
     auto screenQuadMeshDescription = result->meshesBuffer()->get(screenQuadMeshHandler->ID());
-    result->m_screenQuadCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create(
-        { 1u, 1u, {0u, 0u} }, { {
-                MeshDescription::numElements(screenQuadMeshDescription),
-                1u,
-                screenQuadMeshDescription.elementsOffset,
-                screenQuadMeshHandler->ID() }
-        });
+    result->m_screenQuadCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({{
+        MeshDescription::numElements(screenQuadMeshDescription),
+        1u,
+        screenQuadMeshDescription.elementsOffset,
+        screenQuadMeshHandler->ID() }
+    });
 
     return result;
 }
@@ -1141,13 +1137,7 @@ std::shared_ptr<LightHandler> SceneData::addLight()
 void SceneData::onLightChanged(utils::IDsGenerator::value_type ID, const LightDescription& lightDescription)
 {
     if (m_lightsBuffer->size() <= ID)
-    {
         m_lightsBuffer->resize(ID + 1u);
-
-        auto reservedData = m_lightsBuffer->reservedData();
-        reservedData.count = static_cast<uint32_t>(m_lightsBuffer->size());
-        m_lightsBuffer->setReservedData(reservedData);
-    }
 
     m_lightsBuffer->set(ID, lightDescription);
 }

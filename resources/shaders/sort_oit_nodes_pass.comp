@@ -6,10 +6,7 @@ uniform sampler2DRect u_GBufferDepthMap;
 layout (r32f) uniform image2DRect u_OITDepthMap;
 layout (r32ui) uniform uimage2DRect u_OITIndicesMap;
 
-layout (std430) buffer ssbo_OITBuffer {
-	OITBufferReservedData OITReservedData;
-	OITBufferNode OITNodes[];
-};
+layout (std430) buffer ssbo_OITBuffer { OITBufferNode OITNodes[]; };
 
 uint sortOITNodes(in uint startIndex)
 {

@@ -34,13 +34,15 @@ public:
 
     bool intersectPlane(const PlaneT<L, T> &p, T &tRes) const;
 
+    PointType projectOn(const PointType& v) const { return point(glm::dot(m_direction, v - m_origin)); }
+
 private:
     PointType m_origin;
     PointType m_direction;
 };
 
 template <glm::length_t L, typename T>
-bool LineT<L, T>::intersectPlane(const PlaneT<L, T> &p, T &tRes) const
+inline bool LineT<L, T>::intersectPlane(const PlaneT<L, T> &p, T &tRes) const
 {
     const auto denom = glm::dot(p.normal(), m_direction);
     if (glm::abs(denom) < utils::epsilon<T>()) return false;

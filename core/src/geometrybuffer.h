@@ -8,13 +8,6 @@ namespace simplex
 namespace core
 {
 
-struct OITBufferReservedData
-{
-    uint32_t maxNodesCount;
-    uint32_t nodesCount;
-    uint32_t padding[2u];
-};
-
 struct OITBufferNode
 {
     glm::u32vec4 packedPBRData;
@@ -22,8 +15,8 @@ struct OITBufferNode
     uint32_t next;
 };
 
-using POITBuffer = std::shared_ptr<graphics::VectorBuffer<OITBufferNode, OITBufferReservedData>>;
-using PConstOITBuffer = std::shared_ptr<const graphics::VectorBuffer<OITBufferNode, OITBufferReservedData>>;
+using POITBuffer = std::shared_ptr<graphics::VectorBuffer<OITBufferNode>>;
+using PConstOITBuffer = std::shared_ptr<const graphics::VectorBuffer<OITBufferNode>>;
 
 class GeometryBuffer : public StateSet
 {
@@ -34,11 +27,8 @@ public:
     const glm::uvec2& size() const;
     void resize(const glm::uvec2&);
 
-    void clearOITBuffer();
-
     graphics::PConstTexture colorTexture0() const;
-    graphics::PConstTexture depthTexture() const;
-    graphics::PConstTexture stencilTexture() const;
+    graphics::PConstTexture depthStencilTexture() const;
     graphics::PConstTexture OITDepthTexture() const;
     graphics::PConstTexture OITIndicesTexture() const;
     graphics::PConstTexture finalTexture() const;
@@ -48,8 +38,7 @@ private:
     glm::uvec2 m_size;
 
     graphics::PTexture m_colorTexture0;
-    graphics::PTexture m_depthTexture;
-    graphics::PTexture m_stencilTexture;
+    graphics::PTexture m_depthStencilTexture;
     graphics::PTexture m_OITDepthTexture;
     graphics::PTexture m_OITIndicesTexture;
     graphics::PTexture m_finalTexture;

@@ -14,7 +14,8 @@
                 "OrthoHeight": 1.0,
                 "PerspectiveFOV": 1.047198,
                 "Type": "perspective"
-            }
+            },
+			"ClusterMaxSize": [4, 4, 4]
         },
         "Background": {
             "EnvironmentColor": [1.0, 1.0, 1.0],
@@ -54,8 +55,8 @@
             "Sigma": 2.0
         },
 		"OIT": {
-			"NodesPerPixel": 8,
-			"MaxNodes": 12441600
+			"NodesPerPixel": 24,
+			"MaxNodes": 124416000
 		},
         "DebugRendering": {
             "NodeBoundingBox": {

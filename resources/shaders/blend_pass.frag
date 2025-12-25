@@ -4,10 +4,7 @@
 uniform usampler2DRect u_GBufferColorMap0;
 uniform usampler2DRect u_OITIndicesMap;
 
-layout (std430) readonly buffer ssbo_OITBuffer {
-	OITBufferReservedData OITReservedData;
-	OITBufferNode OITNodes[];
-};
+layout (std430) readonly buffer ssbo_OITBuffer { OITBufferNode OITNodes[]; };
 
 out vec4 o_fragColor0;
 

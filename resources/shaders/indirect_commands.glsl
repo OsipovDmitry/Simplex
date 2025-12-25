@@ -1,10 +1,3 @@
-struct DrawIndirectCommandsBufferReservedData
-{
-	uint count;
-	uint maxSize;
-	uint padding[2u];
-};
-
 struct DrawArraysIndirectCommand
 {
     uint count;

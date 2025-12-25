@@ -6,12 +6,6 @@ const uint DirectionalLightTypeID = 2u;
 const uint ImageBasedLightTypeID = 3u;
 const uint EmptyLightTypeID = 0xFFFFFFFFu;
 
-struct LightBufferReservedData
-{
-	uint count;
-	uint padding[3u];
-};
-
 struct LightDescription
 {
     Transform transform;
@@ -19,15 +13,7 @@ struct LightDescription
     vec4 flags1;
 };
 
-layout (std430) readonly buffer ssbo_lightsBuffer {
-	LightBufferReservedData lightsBufferReservedData;
-	LightDescription lights[];
-};
-
-uint lightsCount()
-{
-	return lightsBufferReservedData.count;
-}
+layout (std430) readonly buffer ssbo_lightsBuffer { LightDescription lights[]; };
 
 Transform lightTransform(in uint lightID)
 {

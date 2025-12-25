@@ -11,8 +11,10 @@
 #include <core/scenerootnode.h>
 #include <core/cameranode.h>
 #include <core/drawablenode.h>
-#include <core/pbrdrawable.h>
-#include <core/ibllightnode.h>
+#include <core/drawable.h>
+#include <core/mesh.h>
+#include <core/material.h>
+#include <core/imagebasedllightnode.h>
 
 #include <graphics_glfw/glfwwidget.h>
 
@@ -20,7 +22,6 @@ ENUMCLASS(SceneType, uint16_t, Teapot, Bunny)
 
 static std::shared_ptr<simplex::core::Scene> createScene(
     const std::string& name,
-    const std::shared_ptr<simplex::core::graphics::IFrameBuffer>& defaultFramebuffer,
     const std::shared_ptr<simplex::core::graphics::RendererBase>& renderer,
     SceneType sceneType,
     const glm::vec4 &baseColor)
@@ -29,31 +30,34 @@ static std::shared_ptr<simplex::core::Scene> createScene(
 
     auto scene = simplex::core::Scene::createEmpty(name);
 
-    simplex::utils::MeshPainter teapotPainter(simplex::utils::Mesh::createEmptyMesh({
+    simplex::utils::MeshPainter painter(simplex::utils::Mesh::createEmptyMesh({
         {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
         {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}},
         {simplex::utils::VertexAttribute::TexCoords, {2u, simplex::utils::VertexComponentType::Single}}
         }));
-    teapotPainter.setVertexTransform(simplex::utils::Transform::makeTranslation(glm::vec3(0.f, -.5f, 0.f)));
+    painter.setVertexTransform(simplex::utils::Transform::makeTranslation(glm::vec3(0.f, -.5f, 0.f)));
     switch (sceneType)
     {
-    case SceneType::Teapot: { teapotPainter.drawTeapot(); break; }
-    case SceneType::Bunny: { teapotPainter.drawBunny(); break; }
+    case SceneType::Teapot: { painter.drawTeapot(); break; }
+    case SceneType::Bunny: { painter.drawBunny(); break; }
     default: break;
     }
-    auto teapotBoundingBox = teapotPainter.calculateBoundingBox();
-    auto teapotVao = renderer->createVertexArray(teapotPainter.mesh());
+    auto boundingBox = painter.calculateBoundingBox();
 
-    auto drawable = std::make_shared<simplex::core::PBRDrawable>(teapotVao, teapotBoundingBox);
-    drawable->setBaseColor(baseColor);
-    drawable->setMetalness(0.f);
-    drawable->setRoughness(.2f);
+    auto mesh = std::make_shared<simplex::core::Mesh>(painter.mesh(), boundingBox);
+
+    auto material = std::make_shared<simplex::core::Material>();
+    material->setBaseColor(baseColor);
+    material->setMetalness(0.f);
+    material->setRoughness(.2f);
+
+    auto drawable = std::make_shared<simplex::core::Drawable>(mesh, material);
 
     auto drawableNode = std::make_shared<simplex::core::DrawableNode>("DrawableNode");
     drawableNode->addDrawable(drawable);
     scene->sceneRootNode()->attach(drawableNode);
 
-    auto cameraNode = std::make_shared<simplex::core::CameraNode>("", defaultFramebuffer);
+    auto cameraNode = std::make_shared<simplex::core::CameraNode>("");
     cameraNode->setTransform(simplex::utils::Transform::makeLookAt(
         glm::vec3(0.f, 0.f, 2.f),
         glm::vec3(0.f),
@@ -79,7 +83,9 @@ int main(int argc, char* argv[])
     }
 
     static const auto updateCallback = [](const std::shared_ptr<simplex::graphics_glfw::GLFWWidget>& window, uint64_t time) {
-        auto& nodes = window->scene()->sceneRootNode()->children();
+        auto engine = window->engine();
+        engine->renderer()->makeCurrent();
+        auto& nodes = engine->scene()->sceneRootNode()->children();
         if (auto it = std::find_if(nodes.begin(), nodes.end(),
             [](const std::shared_ptr<simplex::core::Node>& node) {
                 return node->name() == "DrawableNode";
@@ -90,18 +96,16 @@ int main(int argc, char* argv[])
     };
 
     auto window1 = simplex::graphics_glfw::GLFWWidget::getOrCreate("Teapot");
-    window1->setScene(createScene(
+    window1->engine()->setScene(createScene(
         "Teapot",
-        window1->defaultFrameBuffer(),
         window1->graphicsEngine()->graphicsRenderer(),
         SceneType::Teapot,
         glm::convertSRGBToLinear(glm::vec4(.5f, .5f, 1.f, 1.f))));
     window1->setUpdateCallback([&window1](uint64_t time, uint32_t) { updateCallback(window1, time); });
 
     auto window2 = simplex::graphics_glfw::GLFWWidget::getOrCreate("Bunny");
-    window2->setScene(createScene(
+    window2->engine()->setScene(createScene(
         "Bunny",
-        window2->defaultFrameBuffer(),
         window2->graphicsEngine()->graphicsRenderer(),
         SceneType::Bunny,
         glm::convertSRGBToLinear(glm::vec4(1.f, .8f, 0.f, 1.f))));

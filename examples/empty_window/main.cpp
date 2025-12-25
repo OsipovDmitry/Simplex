@@ -11,14 +11,13 @@
 
 static std::shared_ptr<simplex::core::Scene> createScene(
     const std::string& name,
-    const std::shared_ptr<simplex::core::graphics::IFrameBuffer> &defaultFramebuffer,
     const std::shared_ptr<simplex::core::graphics::RendererBase> &renderer)
 {
     renderer->makeCurrent();
 
     auto scene = simplex::core::Scene::createEmpty(name);
 
-    auto cameraNode = std::make_shared<simplex::core::CameraNode>("", defaultFramebuffer);
+    auto cameraNode = std::make_shared<simplex::core::CameraNode>("");
     scene->sceneRootNode()->attach(cameraNode);
 
     return scene;
@@ -38,7 +37,7 @@ int main(int argc, char* argv[])
     auto& app = simplex::core::ApplicationBase::instance();
 
     auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Empty window");
-    window->engine()->setScene(createScene("Empty scene", window->defaultFrameBuffer(), window->graphicsEngine()->graphicsRenderer()));
+    window->engine()->setScene(createScene("Empty scene", window->graphicsEngine()->graphicsRenderer()));
 
     app.registerDevice(window);
     app.run();

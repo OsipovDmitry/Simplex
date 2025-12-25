@@ -41,9 +41,18 @@ public:
 
     value_type distanceTo(const PointType &v) const { return glm::dot(m_coefs, BaseType(v, static_cast<value_type>(1))); }
 
+    PointType projectOn(const PointType& v) const;
+
 private:
     BaseType m_coefs;
 };
+
+template<glm::length_t L, typename T>
+inline typename PlaneT<L, T>::PointType PlaneT<L, T>::projectOn(const PlaneT<L, T>::PointType& v) const
+{
+    const auto n = normal();
+    return v - n * glm::dot(n, v - anyPoint());
+}
 
 template<glm::length_t L, typename T>
 inline PlaneT<L, T> operator *(const TransformT<L, T> &t, const PlaneT<L, T> &p)

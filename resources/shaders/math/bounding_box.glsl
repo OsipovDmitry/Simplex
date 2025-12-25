@@ -1,4 +1,6 @@
+#include<line.glsl>
 #include<line_segment.glsl>
+#include<transform.glsl>
 
 struct BoundingBox
 {
@@ -8,6 +10,11 @@ struct BoundingBox
 BoundingBox makeBoundingBox(in vec3 minPoint, in vec3 maxPoint)
 {
 	return BoundingBox(vec3[2u](minPoint, maxPoint));
+}
+
+BoundingBox makeEmptyBoundingBox()
+{
+	return makeBoundingBox(vec3(FLT_MAX), vec3(-FLT_MAX));
 }
 
 bool isBoundingBoxEmpty(in BoundingBox bb)
@@ -26,18 +33,10 @@ vec3 boundingBoxPoint(in BoundingBox bb, in uint ID)
 
 LineSegment boundingBoxEdge(in BoundingBox bb, in uint ID)
 {
-	uvec2 edgeIndices = boundingBoxEdgeIndices(ID);
+	const uvec2 edgeIndices = boundingBoxEdgeIndices(ID);
 	return makeLineSegment(
 		boundingBoxPoint(bb, edgeIndices[0u]),
 		boundingBoxPoint(bb, edgeIndices[1u]));
-}
-
-int boundingBoxClassifyPoint(in BoundingBox bb, in vec3 p)
-{
-	if (any(lessThan(p, bb.points[0u])) || any(greaterThan(p, bb.points[1u])))
-		return -1;
-		
-	return +1;
 }
 
 vec2 boundingBoxProjectOnLine(in BoundingBox bb, in Line l)
@@ -53,18 +52,15 @@ vec2 boundingBoxProjectOnLine(in BoundingBox bb, in Line l)
 			vmax[i] = tmp;
 		}
 	}
-    return vec2(projectOnLine(l, vmin), projectOnLine(l, vmax));
+    return vec2(lineProjectOn(l, vmin), lineProjectOn(l, vmax));
 }
 
-vec2 boundingBoxPairDistancesToPlane(in BoundingBox bb, in vec4 plane)
+BoundingBox boundingBoxAdd(in BoundingBox bb, in vec3 v)
 {
-	return boundingBoxProjectOnLine(bb, makeLine(planeAnyPoint(plane), planeNormal(plane)));
+	return makeBoundingBox(min(bb.points[0u], v), max(bb.points[1u], v));
 }
 
-float boundingBoxDistanceToPlane(in BoundingBox bb, in vec4 plane)
+vec3 boundingBoxClosestPoint(in BoundingBox bb, in vec3 v)
 {
-	vec2 dists = boundingBoxPairDistancesToPlane(bb, plane);
-	return (dists[0u] * dists[1u] <= 0.0f) ?
-		0.0f :
-		((dists[0u] > 0.0f) ? dists[0u] : dists[1u]);
+	return clamp(v, bb.points[0u], bb.points[1u]);
 }

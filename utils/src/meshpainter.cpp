@@ -724,7 +724,7 @@ MeshPainter &MeshPainter::drawCube(const glm::vec3 &size)
 {
     const glm::vec4 v4Size(size, 1.f);
     std::vector<glm::vec4> vertices(s_cubeVertices.size());
-    for (uint32_t i = 0u; i < s_cubeVertices.size(); ++i)
+    for (size_t i = 0u; i < s_cubeVertices.size(); ++i)
         vertices[i] = s_cubeVertices[i] * v4Size;
 
     drawElements({{VertexAttribute::Position, vertices},
@@ -733,6 +733,28 @@ MeshPainter &MeshPainter::drawCube(const glm::vec3 &size)
                  PrimitiveType::Triangles,
                  s_cubeIndices,
                  toDrawElementsIndexType<decltype(s_cubeIndices)::value_type>());
+    if (m_->mesh->vertexBuffers().count(VertexAttribute::Tangent))
+        m_->calculateTangents();
+    return *this;
+}
+
+MeshPainter& MeshPainter::drawFrustum(const glm::mat4x4& projectionMatrix)
+{
+    const auto projectionMatrixInverted = glm::inverse(projectionMatrix);
+
+    std::vector<glm::vec4> vertices(s_cubeVertices.size());
+    for (size_t i = 0u; i < s_cubeVertices.size(); ++i)
+    {
+        vertices[i] = projectionMatrixInverted * glm::vec4(2.f * glm::vec3(s_cubeVertices[i]), 1.f);
+        vertices[i] /= vertices[i].w;
+    }
+
+    drawElements({ {VertexAttribute::Position, vertices},
+                  {VertexAttribute::Normal, s_cubeNormals},
+                  {VertexAttribute::TexCoords, s_cubeTexCoords} },
+        PrimitiveType::Triangles,
+        s_cubeIndices,
+        toDrawElementsIndexType<decltype(s_cubeIndices)::value_type>());
     if (m_->mesh->vertexBuffers().count(VertexAttribute::Tangent))
         m_->calculateTangents();
     return *this;
