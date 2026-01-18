@@ -14,37 +14,37 @@ out vec4 v_color;
 
 void main(void)
 {
-	uint drawDataID = gl_BaseInstance;
+	const uint drawDataID = gl_BaseInstance;
 	
-	Transform transform = drawDataTransform(drawDataID);
-	uint drawableID = drawDataDrawableID(drawDataID);
+	const Transform modelTransform = drawDataTransform(drawDataID);
+	const uint drawableID = drawDataDrawableID(drawDataID);
 	
 	v_meshID = drawableMeshID(drawableID);
 	v_materialID = drawableMaterialID(drawableID);
 	
-	uint vertexDataOffset = meshVertexDataOffset(v_meshID);
-	uint vertexStride = meshVertexStride(v_meshID);
-	uint vertexID = (meshElementsOffset(v_meshID) == 0xFFFFFFFFu) ? gl_VertexID : elementID(gl_VertexID);
+	const uint vertexDataOffset = meshVertexDataOffset(v_meshID);
+	const uint vertexStride = meshVertexStride(v_meshID);
+	const uint vertexID = (meshElementsOffset(v_meshID) == 0xFFFFFFFFu) ? gl_VertexID : elementID(gl_VertexID);
 	uint relativeOffset = 0u;
 	
+	const uint positionComponentsCount = meshPositionComponentsCount(v_meshID);
 	vec3 position = vec3(0.0f);
-	uint positionComponentsCount = meshPositionComponentsCount(v_meshID);
 	if (positionComponentsCount > 0u)
 	{
 		position = vertexDataPosition(vertexDataOffset, vertexStride, vertexID, relativeOffset, positionComponentsCount);
 		relativeOffset += positionComponentsCount;
 	}
 	
+	const uint normalComponentsCount = meshNormalComponentsCount(v_meshID);
 	vec3 normal = vec3(0.0f);
-	uint normalComponentsCount = meshNormalComponentsCount(v_meshID);
 	if (normalComponentsCount > 0u)
 	{
 		normal = vertexDataNormal(vertexDataOffset, vertexStride, vertexID, relativeOffset, normalComponentsCount);
 		relativeOffset += normalComponentsCount;
 	}
 	
+	const uint texCoordsComponentsCount = meshTexCoordsComponentsCount(v_meshID);
 	vec2 texCoords = vec2(0.0f);
-	uint texCoordsComponentsCount = meshTexCoordsComponentsCount(v_meshID);
 	if (texCoordsComponentsCount > 0u)
 	{
 		texCoords = vertexDataTexCoords(vertexDataOffset, vertexStride, vertexID, relativeOffset, texCoordsComponentsCount);
@@ -61,32 +61,29 @@ void main(void)
 		relativeOffset += 4u;
 	}
 	
-	uint numBones = meshBonesCount(v_meshID);
-	if (numBones > 0u)
+	const uint bonesCount = meshBonesCount(v_meshID);
+	for (uint i = 0u; i < bonesCount; ++i)
 	{
-		for (uint i = 0u; i < numBones; ++i)
-		{
-			uint boneID = 0u;
-			float boneWeight = 0.0f;
-			vertexDataBoneIDAndWeight(vertexDataOffset, vertexStride, vertexID, relativeOffset, i, boneID, boneWeight);
-			
-			// transform "position", "normal", "tangent" and "binormal" by bone
-		}
-		relativeOffset += 2u * numBones;
+		uint boneID = 0u;
+		float boneWeight = 0.0f;
+		vertexDataBoneIDAndWeight(vertexDataOffset, vertexStride, vertexID, relativeOffset, i, boneID, boneWeight);
+		
+		// transform "position", "normal", "tangent" and "binormal" by bone
 	}
+	relativeOffset += 2u * bonesCount;
 	
+	const uint colorComponentsCount = meshColorComponentsCount(v_meshID);
 	vec4 color = vec4(1.0f);
-	uint colorComponentsCount = meshColorComponentsCount(v_meshID);
 	if (colorComponentsCount > 0u)
 	{
 		color = vertexDataColor(vertexDataOffset, vertexStride, vertexID, relativeOffset, colorComponentsCount);
 		relativeOffset += colorComponentsCount;
 	}
 	
-	gl_Position = cameraViewProjectionMatrix() * vec4(transformPoint(transform, position), 1.0f);
-	v_normal = transformVector(transform, normal);
+	gl_Position = cameraViewProjectionMatrix() * vec4(transformPoint(modelTransform, position), 1.0f);
+	v_normal = transformVector(modelTransform, normal);
 	v_texCoords = texCoords;
-	v_tangent = transformVector(transform, tangent);
-	v_binormal = transformVector(transform, binormal);
+	v_tangent = transformVector(modelTransform, tangent);
+	v_binormal = transformVector(modelTransform, binormal);
 	v_color = color;	
 }

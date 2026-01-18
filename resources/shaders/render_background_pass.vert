@@ -1,6 +1,7 @@
-#include<vertex_data.glsl>
-#include<mesh.glsl>
+#include<background.glsl>
 #include<camera.glsl>
+#include<mesh.glsl>
+#include<vertex_data.glsl>
 
 out vec3 v_texCoords;
 
@@ -20,9 +21,6 @@ void main(void)
 		relativeOffset += positionComponentsCount;
 	}
 	
+    v_texCoords = rotateVector(backgroundRotation(), projectPoint(cameraViewProjectionMatrixInverted(), position) - cameraViewPosition());
     gl_Position = vec4(position, 1.0f);
-
-    vec4 texCoords = cameraViewProjectionMatrixInverted() * vec4(position, 1.0f);
-    v_texCoords = texCoords.xyz / texCoords.w;
-    v_texCoords -= cameraViewPosition();
 }

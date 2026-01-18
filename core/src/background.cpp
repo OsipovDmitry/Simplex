@@ -38,6 +38,17 @@ void Background::setEnvironmentMap(const std::shared_ptr<MaterialMap>& value)
     m_->onChanged();
 }
 
+const glm::quat& Background::rotation() const
+{
+    return m_->rotation();
+}
+
+void Background::setRotation(const glm::quat& value)
+{
+    m_->rotation() = value;
+    m_->onChanged();
+}
+
 const glm::vec3& Background::environmentColor() const
 {
     return m_->environmentColor();

@@ -692,6 +692,7 @@ std::shared_ptr<MaterialHandler> SceneData::addMaterial(const std::shared_ptr<co
                 material->ORMSwizzleMask(),
                 material->isLighted(),
                 material->isShadowed(),
+                material->isShadowCasted(),
                 material->isDoubleSided());
         }
     }
@@ -730,6 +731,7 @@ void SceneData::onMaterialChanged(
     const glm::u32vec3& ORMSwizzleMask,
     bool isLighted,
     bool isShadowed,
+    bool isShadowCasted,
     bool isDoubleSided)
 {
     if (m_materialsBuffer->size() <= ID)
@@ -751,8 +753,9 @@ void SceneData::onMaterialChanged(
         ORMSwizzleMask,
         isLighted,
         isShadowed,
-        isMaterialTransparent(baseColor, baseColorMap),
+        isShadowCasted,
         isDoubleSided,
+        isMaterialTransparent(baseColor, baseColorMap),
         alphaCutoff));
 }
 
@@ -871,7 +874,7 @@ void SceneData::setBackground(const std::shared_ptr<const Background>& backgroun
 
     m_backgroundHandler = handler;
 
-    onBackgroundChanged(background->environmentMap(), background->environmentColor(), background->blurPower());
+    onBackgroundChanged(background->environmentMap(), background->rotation(), background->environmentColor(), background->blurPower());
 }
 
 void SceneData::removeBackground()
@@ -886,6 +889,7 @@ void SceneData::removeBackground()
 
 void SceneData::onBackgroundChanged(
     const std::shared_ptr<const MaterialMap>& environmentMap,
+    const glm::quat& rotation,
     const glm::vec3& environmentColor,
     float blurPower)
 {
@@ -897,7 +901,7 @@ void SceneData::onBackgroundChanged(
             if (auto texture = textureHandle->texture())
                 mipmapLevel = glm::clamp(blurPower, 0.f, 1.f) * glm::max(0u, (texture->numMipmapLevels() - 1u));
 
-    m_backgroundBuffer->set(BackgroundDescription::make(environmentColor, mipmapLevel, materialMapHandler->ID()));
+    m_backgroundBuffer->set(BackgroundDescription::make(rotation, environmentColor, mipmapLevel, materialMapHandler->ID()));
 }
 
 std::shared_ptr<LightHandler> SceneData::addPointLight(

@@ -16,8 +16,9 @@ static const std::filesystem::path DefaultIBLDiffuseMapPath = "./resources/textu
 static const std::filesystem::path DefaultIBLSpecularMapPath = "./resources/textures/ibl/radiance.json";
 
 static const std::filesystem::path FrustumCullingPassComputeShaderPath = "./resources/shaders/frustum_culling_pass.comp";
+static const std::filesystem::path UpdateCameraInfoPassComputeShaderPath = "./resources/shaders/update_camera_info_pass.comp";
 static const std::filesystem::path BuildClusterPassComputeShaderPath = "./resources/shaders/build_cluster_pass.comp";
-static const std::filesystem::path ClearOITIndicesImagePassComputeShaderPath = "./resources/shaders/clear_oit_indices_image_pass.comp";
+static const std::filesystem::path ClearOITNodeIDImagePassComputeShaderPath = "./resources/shaders/clear_oit_node_id_image_pass.comp";
 static const std::filesystem::path RenderDrawDataGeometryPassVertexShaderPath = "./resources/shaders/render_drawdata_geometry_pass.vert";
 static const std::filesystem::path RenderOpaqueDrawDataGeometryPassFragmentShaderPath = "./resources/shaders/render_opaque_drawdata_geometry_pass.frag";
 static const std::filesystem::path RenderTransparentDrawDataGeometryPassFragmentShaderPath = "./resources/shaders/render_transparent_drawdata_geometry_pass.frag";

@@ -1,4 +1,24 @@
+#include<constants.glsl>
+
 #define Quat vec4
+
+// Create a quaternion from two normalized axis
+Quat makeQuat(in vec3 u, in vec3 v)
+{
+	const float norm_u_norm_v = sqrt(dot(u, u) * dot(v, v));
+	float real_part = norm_u_norm_v + dot(u, v);
+	vec3 t;
+
+	if (real_part < EPS * norm_u_norm_v)
+	{
+		real_part = 0.0f;
+		t = abs(u.x) > abs(u.z) ? vec3(-u.y, u.x, 0.0f) : vec3(0.0f, -u.z, u.y);
+	}
+	else
+		t = cross(u, v);
+
+	return normalize(Quat(t, real_part));
+}
 
 vec3 rotateVector(in Quat q, in vec3 v)
 {
@@ -15,4 +35,9 @@ Quat quatMult(in Quat p, in Quat q)
 		p.w * q.y + p.y * q.w + p.z * q.x - p.x * q.z,
 		p.w * q.z + p.z * q.w + p.x * q.y - p.y * q.x,
 		p.w * q.w - p.x * q.x - p.y * q.y - p.z * q.z);
+}
+
+Quat quatConjugate(in Quat q)
+{
+	return Quat(-q.x, -q.y, -q.z, q.w);
 }

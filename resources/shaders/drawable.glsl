@@ -1,8 +1,4 @@
-struct DrawableDescription
-{
-    uint meshID;
-    uint materialID;
-};
+#include<descriptions.glsl>
 
 layout (std430) readonly buffer ssbo_drawablesBuffer { DrawableDescription drawables[]; };
 

@@ -34,7 +34,7 @@ public:
 
     bool intersectPlane(const PlaneT<L, T> &p, T &tRes) const;
 
-    PointType projectOn(const PointType& v) const { return point(glm::dot(m_direction, v - m_origin)); }
+    T projectOn(const PointType& v) const { return glm::dot(m_direction, v - m_origin); }
 
 private:
     PointType m_origin;

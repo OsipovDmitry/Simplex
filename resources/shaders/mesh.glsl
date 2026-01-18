@@ -1,21 +1,5 @@
 #include<math/bounding_box.glsl>
-
-struct MeshDescription
-{
-	vec4 boundingBoxMinPointAndNumVertexData;
-	vec4 boundingBoxMaxPointAndNumElements;
-    uint vertexDataOffset;
-    uint elementsOffset; // draw arrays is used if 0xFFFFFFFFu
-    uint flags;
-    //  0.. 1 - position components count [0..3]
-    //  2.. 3 - normal components count [0..3]
-    //  4.. 5 - texture coords component count [0..3]
-    //  6.. 8 - bones count [0..7]
-    //  9.. 9 - tangent space flag [0 - no tangents, 1 - tangents + binormals flags]
-    // 10..12 - color components count [0 - no colors, 1 - grayscale, 2 - grayscale,alpha, 3 - RGB, 4 - RGBA, 5..7 - not used]
-    // 13..31 - free (19 bits)
-    uint padding[1u];
-};
+#include<descriptions.glsl>
 
 layout (std430) readonly buffer ssbo_meshesBuffer { MeshDescription meshes[]; };
 

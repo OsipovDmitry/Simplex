@@ -1,13 +1,13 @@
 #ifndef UTILS_TRANSFORM_H
 #define UTILS_TRANSFORM_H
 
-#include <utils/glm/gtx/quaternion.hpp>
 #include <utils/glm/detail/type_vec1.hpp>
 #include <utils/glm/detail/type_vec2.hpp>
 #include <utils/glm/detail/type_vec3.hpp>
 #include <utils/glm/detail/type_mat2x2.hpp>
 #include <utils/glm/detail/type_mat3x3.hpp>
 #include <utils/glm/detail/type_mat4x4.hpp>
+#include <utils/glm/gtx/quaternion.hpp>
 
 #include <utils/forwarddecl.h>
 

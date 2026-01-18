@@ -118,7 +118,6 @@ const std::string &GraphicsEnginePrivate::uniformNameByID(UniformID ID)
         { UniformID::GBufferColorMap1, "u_GBufferColorMap1" },
         { UniformID::GBufferColorMap2, "u_GBufferColorMap2" },
         { UniformID::GBufferDepthMap, "u_GBufferDepthMap" },
-        { UniformID::OITDepthMap, "u_OITDepthMap" },
         { UniformID::OITIndicesMap, "u_OITIndicesMap" },
         { UniformID::GBufferFinalMap, "u_GBufferFinalMap" },
         { UniformID::SSAOMap, "u_SSAOMap" },
@@ -194,7 +193,8 @@ const std::string &GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
         { ShaderStorageBlockID::ClusterNodesBuffer, "ssbo_clusterNodesBuffer" },
         { ShaderStorageBlockID::LightNodesBuffer, "ssbo_lightNodesBuffer" },
         { ShaderStorageBlockID::SceneInfoBuffer, "ssbo_sceneInfoBuffer" },
-        { ShaderStorageBlockID::OITBuffer, "ssbo_OITBuffer" },
+        { ShaderStorageBlockID::GBuffer, "ssbo_GBuffer" },
+        { ShaderStorageBlockID::OITNodesBuffer, "ssbo_OITNodesBuffer" },
         { ShaderStorageBlockID::LayeredShadowMatrices, "ssbo_layeredShadowMatricesBuffer" },
         { ShaderStorageBlockID::SSAOKernel, "ssbo_SSAOKernelBuffer" },
         { ShaderStorageBlockID::BlurKernel, "ssbo_blurKernelBuffer" }

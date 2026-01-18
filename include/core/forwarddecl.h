@@ -79,7 +79,9 @@ class IVertexArray;
 class ISurface;
 class ITexture;
 using TextureHandle = uint64_t;
+using ImageHandle = uint64_t;
 class ITextureHandle;
+class IImageHandle;
 class IRenderBuffer;
 class IFrameBuffer;
 class IProgram;
@@ -109,6 +111,9 @@ using PTextureHandle = std::shared_ptr<ITextureHandle>;
 
 using PConstImage = std::shared_ptr<const Image>;
 using PImage = std::shared_ptr<Image>;
+
+using PConstImageHandle = std::shared_ptr<const IImageHandle>;
+using PImageHandle = std::shared_ptr<IImageHandle>;
 
 using DrawArraysIndirectCommandsBuffer = VectorBuffer<DrawArraysIndirectCommand>;
 using PDrawArraysIndirectCommandsBuffer = std::shared_ptr<DrawArraysIndirectCommandsBuffer>;
@@ -157,8 +162,6 @@ class IDevice;
 class ApplicationBase;
 using ApplicationTimeCallback = std::function<uint64_t()>;
 using ApplicationPollEventsCallback = std::function<void()>;
-
-class CameraRenderInfo;
 
 class IEngine;
 class GraphicsEngine;

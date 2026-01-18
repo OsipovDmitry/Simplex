@@ -1,4 +1,7 @@
+#include <utils/boundingbox.h>
+#include <utils/clipspace.h>
 #include <utils/idgenerator.h>
+#include <utils/transform.h>
 
 #include <core/lightnode.h>
 
@@ -15,6 +18,10 @@ static const uint32_t DirectionalLightTypeID = castFromLightType(LightType::Dire
 static const uint32_t ImageBasedLightTypeID = castFromLightType(LightType::ImageBased);
 static const uint32_t EmptyLightTypeID = std::numeric_limits<uint32_t>::max();
 
+QuatDescription QuatDescription::make(const glm::quat& value)
+{
+    return { glm::vec4(value.x, value.y, value.z, value.w) };
+}
 
 TransformDescription TransformDescription::makeEmpty()
 {
@@ -24,53 +31,75 @@ TransformDescription TransformDescription::makeEmpty()
 TransformDescription TransformDescription::make(const utils::Transform& value)
 {
     return {
-        glm::vec4(value.rotation.x, value.rotation.y, value.rotation.z, value.rotation.w),
+        QuatDescription::make(value.rotation),
         glm::vec4(value.translation, value.scale) };
 }
 
-CameraDescription CameraDescription::make(const utils::Frustum& value)
+ClipSpaceDescription ClipSpaceDescription::make(const utils::ClipSpace& clipSpace)
 {
-    const auto& viewTransform = value.viewTransform();
-    const auto viewTransformInverted = value.viewTransform().inverted();
+    return {
+        clipSpace.params(),
+        utils::castFromClipSpaceType(clipSpace.type()) };
+}
 
-    CameraDescription desc{};
-    desc.viewTransform = TransformDescription::make(viewTransform);
-    desc.viewTransformInverted = TransformDescription::make(viewTransformInverted);
-    desc.viewPosition = glm::vec4(viewTransformInverted.transformPoint(glm::vec3(0.f)), 1.f);
-    desc.viewXDirection = glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(1.f, 0.f, 0.f))), 0.f);
-    desc.viewYDirection = glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(0.f, 1.f, 0.f))), 0.f);
-    desc.viewZDirection = glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(0.f, 0.f, 1.f))), 0.f);
-    desc.projectionMatrix = value.projectionMatrix();
-    desc.projectionMatrixInverted = glm::inverse(desc.projectionMatrix);
-    desc.viewProjectionMatrix = desc.projectionMatrix * viewTransform;
-    desc.viewProjectionMatrixInverted = glm::inverse(desc.viewProjectionMatrix);
-    for (size_t i = 0u; i < utils::Frustum::numPoints(); ++i)
-        desc.frustumPoints[i] = glm::vec4(value.points().at(i), 1.f);
-    for (size_t i = 0u; i < utils::Frustum::numPlanes(); ++i)
-        desc.frustumPlanes[i] = value.plane(utils::Frustum::castToPlaneIndex(i));
+CameraDescription CameraDescription::make(
+    const glm::uvec3& clusterMaxSize,
+    const utils::Transform& viewTransform,
+    const utils::ClipSpace& clipSpace,
+    const utils::Range& cullPlaneLimits)
+{
+    const auto viewTransformInverted = viewTransform.inverted();
+    const auto projectionMatrix = clipSpace.projectionMatrix(cullPlaneLimits);
+    const auto viewProjectionMatrix = projectionMatrix * viewTransform;
 
-    return desc;
+    return {
+        glm::uvec4(clusterMaxSize, 0u),
+        TransformDescription::make(viewTransform),
+        ClipSpaceDescription::make(clipSpace),
+        glm::vec2(cullPlaneLimits.nearValue(), cullPlaneLimits.farValue()),
+        glm::uvec2(glm::floatBitsToUint(FLT_MAX), glm::floatBitsToUint(0.f)),
+        TransformDescription::make(viewTransformInverted),
+        projectionMatrix,
+        glm::inverse(projectionMatrix),
+        viewProjectionMatrix,
+        glm::inverse(viewProjectionMatrix),
+        glm::vec4(viewTransformInverted.transformPoint(glm::vec3(0.f)), 1.f),
+        glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(1.f, 0.f, 0.f))), 0.f),
+        glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(0.f, 1.f, 0.f))), 0.f),
+        glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(0.f, 0.f, 1.f))), 0.f) };
 }
 
 SceneInfoDescription SceneInfoDescription::make(
-    const glm::uvec3& clusterSize,
     uint32_t drawDataCount,
     uint32_t lightsCount,
-    uint32_t OITNodesMaxCount,
     uint32_t clusterLightNodesMaxCount)
 {
     return {
-        glm::uvec4(clusterSize, 0u),
-        glm::uvec2(glm::floatBitsToUint(FLT_MAX), glm::floatBitsToUint(0.f)),
         drawDataCount,
         lightsCount,
         0u,
         0u,
-        OITNodesMaxCount,
-        0u,
         clusterLightNodesMaxCount,
         0u,
         0xFFFFFFFFu};
+}
+
+GBufferDescription GBufferDescription::make(
+    graphics::TextureHandle colorTextureHandle,
+    graphics::TextureHandle depthStencilTextureHandle,
+    graphics::ImageHandle OITIndicesImageHandle,
+    graphics::TextureHandle finalTextureHandle,
+    const glm::uvec2& size,
+    uint32_t OITNodesMaxCount)
+{
+    return {
+        colorTextureHandle,
+        depthStencilTextureHandle,
+        OITIndicesImageHandle,
+        finalTextureHandle,
+        size,
+        OITNodesMaxCount,
+        0u };
 }
 
 MeshDescription MeshDescription::make(
@@ -120,12 +149,12 @@ MaterialMapDescription MaterialMapDescription::make(graphics::TextureHandle text
 MaterialDescription MaterialDescription::make(
     const glm::vec4& baseColor,
     const glm::vec4& emission,
-    uint32_t baseColorTextureID,
-    uint32_t emissionTextureID,
-    uint32_t occlusionTextureID,
-    uint32_t roughnessTextureID,
-    uint32_t metalnessTextureID,
-    uint32_t normalTextureID,
+    uint32_t baseColorMapID,
+    uint32_t emissionMapID,
+    uint32_t occlusionMapID,
+    uint32_t roughnessMapID,
+    uint32_t metalnessMapID,
+    uint32_t normalMapID,
     float roughness,
     float metalness,
     float occlusionMapStrength,
@@ -133,8 +162,9 @@ MaterialDescription MaterialDescription::make(
     const glm::u32vec3& ORMSwizzleMask,
     bool isLighted,
     bool isShadowed,
-    bool isTransparent,
+    bool isShadowCasted,
     bool isDoubleSided,
+    bool isTransparent,
     float alphaCutoff)
 {
     uint32_t flags0 = 0u;
@@ -149,19 +179,20 @@ MaterialDescription MaterialDescription::make(
     flags1 |= (ORMSwizzleMask.b & 0x3u) << 4u;
     flags1 |= ((isLighted ? 1u : 0u) & 0x1u) << 6u;
     flags1 |= ((isShadowed ? 1u : 0u) & 0x1u) << 7u;
-    flags1 |= ((isTransparent ? 1u : 0u) & 0x1u) << 8u;
+    flags1 |= ((isShadowCasted ? 1u : 0u) & 0x1u) << 8u;
     flags1 |= ((isDoubleSided ? 1u : 0u) & 0x1u) << 9u;
-    flags1 |= (static_cast<uint32_t>(glm::clamp(alphaCutoff, 0.f, 1.f) * 255.f) & 0xFF) << 10u;
+    flags1 |= ((isTransparent ? 1u : 0u) & 0x1u) << 10u;
+    flags1 |= (static_cast<uint32_t>(glm::clamp(alphaCutoff, 0.f, 1.f) * 255.f) & 0xFF) << 11u;
     
     return {
         baseColor,
         emission,
-        baseColorTextureID,
-        emissionTextureID,
-        occlusionTextureID,
-        roughnessTextureID,
-        metalnessTextureID,
-        normalTextureID,
+        baseColorMapID,
+        emissionMapID,
+        occlusionMapID,
+        roughnessMapID,
+        metalnessMapID,
+        normalMapID,
         flags0,
         flags1 };
 }
@@ -183,12 +214,16 @@ DrawDataDescription DrawDataDescription::make(const utils::Transform& transform,
 
 BackgroundDescription BackgroundDescription::makeEmpty()
 {
-    return BackgroundDescription::make(glm::vec3(1.f), 0.f, utils::IDsGenerator::last());
+    return BackgroundDescription::make(glm::quat(), glm::vec3(1.f), 0.f, utils::IDsGenerator::last());
 }
 
-BackgroundDescription BackgroundDescription::make(const glm::vec3& environmentColor, float blurPower, uint32_t environmentMapID)
+BackgroundDescription BackgroundDescription::make(
+    const glm::quat& rotation,
+    const glm::vec3& environmentColor,
+    float blurPower,
+    uint32_t environmentMapID)
 {
-    return { glm::vec4(environmentColor, blurPower), environmentMapID };
+    return { QuatDescription::make(rotation), glm::vec4(environmentColor, blurPower), environmentMapID };
 }
 
 LightDescription LightDescription::makeEmpty()
@@ -219,7 +254,7 @@ LightDescription LightDescription::makeSpot(
     return {
         TransformDescription::make(transform),
         glm::vec4(color, glm::uintBitsToFloat(SpotLightTypeID)),
-        glm::vec4(radiuses, glm::cos(halfAngles)) };
+        glm::vec4(radiuses, halfAngles) };
 }
 
 LightDescription LightDescription::makeDirectional(

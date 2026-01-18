@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <utils/glm/vec3.hpp>
+#include <utils/glm/ext/quaternion_float.hpp>
 #include <utils/pimpl.h>
 #include <utils/noncopyble.h>
 
@@ -28,11 +29,16 @@ public:
     std::shared_ptr<const MaterialMap> environmentMap() const;
     void setEnvironmentMap(const std::shared_ptr<MaterialMap>&);
 
+    const glm::quat& rotation() const;
+    void setRotation(const glm::quat&);
+
     const glm::vec3& environmentColor() const;
     void setEnvironmentColor(const glm::vec3&) const;
 
     float blurPower() const;
     void setBlurPower(float);
+
+
 
 private:
     std::unique_ptr<BackgroundPrivate> m_;

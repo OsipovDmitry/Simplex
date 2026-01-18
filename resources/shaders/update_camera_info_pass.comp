@@ -1,0 +1,22 @@
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+#include<camera.glsl>
+
+void main(void)
+{
+    if (all(lessThan(gl_GlobalInvocationID, uvec3(1u))))
+	{
+		const vec2 cullPlaneLimits = cameraCullPlaneLimits();
+		const vec2 calculatedZRange = cameraZRange();
+		
+		vec2 ZRange = vec2(cullPlaneLimits[0u], cullPlaneLimits[0u] + 1.f);
+		if (calculatedZRange[0u] <= calculatedZRange[1u])
+		{
+			ZRange[0u] = max(cullPlaneLimits[0u], 0.99f * calculatedZRange[0u]);
+			ZRange[1u] = min(cullPlaneLimits[1u], 1.01f * calculatedZRange[1u]);
+		}
+		
+		cameraExpandZRange(ZRange);
+		cameraUpdateProjectionMatrix(ZRange);
+	}
+}

@@ -1,11 +1,5 @@
 #include<math/transform.glsl>
-
-struct DrawDataDescription
-{
-	Transform transform;
-	uint drawableID;
-	uint padding[3u];
-};
+#include<descriptions.glsl>
 
 layout (std430) readonly buffer ssbo_drawDataBuffer {
 	DrawDataDescription drawData[];
@@ -13,7 +7,7 @@ layout (std430) readonly buffer ssbo_drawDataBuffer {
 
 Transform drawDataTransform(in uint drawDataID)
 {
-	return drawData[drawDataID].transform;
+	return makeTransform(drawData[drawDataID].transform);
 }
 
 uint drawDataDrawableID(in uint drawDataID)

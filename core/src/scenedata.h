@@ -172,6 +172,7 @@ public:
         const glm::u32vec3& ORMSwizzleMask,
         bool isLighted,
         bool isShadowed,
+        bool isShadowCasted,
         bool isDoubleSided);
 
     std::shared_ptr<DrawableHandler> addDrawable(const std::shared_ptr<const Drawable>&);
@@ -184,7 +185,7 @@ public:
 
     void setBackground(const std::shared_ptr<const Background>&);
     void removeBackground();
-    void onBackgroundChanged(const std::shared_ptr<const MaterialMap>&, const glm::vec3&, float);
+    void onBackgroundChanged(const std::shared_ptr<const MaterialMap>&, const glm::quat&, const glm::vec3&, float);
 
     std::shared_ptr<LightHandler> addPointLight(const utils::Transform&, const glm::vec3&, const glm::vec2&);
     void onPointLightChanged(

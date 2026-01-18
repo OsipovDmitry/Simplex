@@ -7,7 +7,8 @@ namespace core
 {
 
 BackgroundPrivate::BackgroundPrivate()
-    : m_environmentColor(1.f)
+    : m_rotation()
+    , m_environmentColor(1.f)
     , m_blurPower(0.f)
 {}
 
@@ -16,6 +17,11 @@ BackgroundPrivate::~BackgroundPrivate() = default;
 std::shared_ptr<MaterialMap>& BackgroundPrivate::environmentMap()
 {
     return m_environmentMap;
+}
+
+glm::quat& BackgroundPrivate::rotation()
+{
+    return m_rotation;
 }
 
 glm::vec3& BackgroundPrivate::environmentColor()
@@ -37,7 +43,7 @@ void BackgroundPrivate::onChanged()
 {
     if (m_handler)
         if (auto sceneData = m_handler->sceneData().lock())
-            sceneData->onBackgroundChanged(m_environmentMap, m_environmentColor, m_blurPower);
+            sceneData->onBackgroundChanged(m_environmentMap, m_rotation, m_environmentColor, m_blurPower);
 }
 
 }

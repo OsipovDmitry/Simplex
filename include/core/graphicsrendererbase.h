@@ -354,6 +354,19 @@ public:
     virtual void doneResident() = 0;
 };
 
+class IImageHandle
+{
+public:
+    virtual ~IImageHandle() = default;
+
+    virtual TextureHandle handle() const = 0;
+
+    virtual PConstImage image() const = 0;
+
+    virtual void makeResident() = 0;
+    virtual void doneResident() = 0;
+};
+
 class IRenderBuffer : public ISurface
 {
 public:
@@ -365,6 +378,7 @@ public:
     virtual ~IFrameBuffer() = default;
 
     virtual bool isComplete() const = 0;
+    virtual void clear() = 0;
     
     virtual void attach(FrameBufferAttachment, std::shared_ptr<const ISurface>, uint32_t level = 0u) = 0;
     virtual void attachLayer(FrameBufferAttachment, std::shared_ptr<const ITexture>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
@@ -590,6 +604,7 @@ public:
     virtual std::shared_ptr<ITexture> createTextureRect(const std::shared_ptr<const utils::Image>&,
                                                         core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Count) const = 0;
     virtual std::shared_ptr<ITextureHandle> createTextureHandle(const PConstTexture&) const = 0;
+    virtual std::shared_ptr<IImageHandle> createImageHandle(const PConstImage&) const = 0;
     virtual std::shared_ptr<IRenderBuffer> createRenderBuffer(uint32_t width,
                                                               uint32_t height,
                                                               PixelInternalFormat) const = 0;

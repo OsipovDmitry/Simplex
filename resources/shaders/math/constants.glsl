@@ -10,11 +10,11 @@ const float FLT_MAX = 3.402823466e+38;
 
 const uint BOUNDING_BOX_POINTS_COUNT = 8u;
 const uint BOUNDING_BOX_EDGES_COUNT = 12u;
+const uint BOUNDING_BOX_PLANES_COUNT = 6u;
 
 const uint FRUSTUM_POINTS_COUNT = 8u;
 const uint FRUSTUM_EDGES_COUNT = 12u;
 const uint FRUSTUM_PLANES_COUNT = 6u;
-const uint FRUSTUM_SIDE_PLANES_COUNT = 4u;
 
 const uint[64u] NTH_NUMBER_WITH_EVEN_BITS_COUNT = uint[64u](
     0, 3, 5, 6, 9, 10, 12, 15, 17, 18,

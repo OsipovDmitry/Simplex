@@ -1,25 +1,4 @@
-struct MaterialDescription
-{
-    vec4 baseColor;
-    vec4 emission;
-    uint baseColorTextureID;
-    uint emissionTextureID;
-    uint occlusionTextureID;
-    uint roughnessTextureID;
-    uint metalnessTextureID;
-    uint normalTextureID;
-    uint flags0; // 0.. 7 - roughness, 8..15 - metalness, 16..23 - occlusionMapStrength, 24..31 - normalMapScale
-    uint flags1;
-    //  0.. 1 - occlusion map swizzle
-    //  2.. 3 - roughness map swizzle
-    //  4.. 5 - metalness map swizzle
-    //  6.. 6 - is lighted
-    //  7.. 7 - is shadowed
-    //  8.. 8 - is transparent
-    //  9.. 9 - is double sided
-    // 10..17 - alpha cutoff
-    // 18..31 - free (14 bits)
-};
+#include<descriptions.glsl>
 
 layout (std430) readonly buffer ssbo_materialsBuffer { MaterialDescription materials[]; };
 
@@ -50,32 +29,32 @@ float materialAlphaCutoff(in uint materialID)
 
 uint materialBaseColorMapID(in uint materialID)
 {
-	return materials[materialID].baseColorTextureID;
+	return materials[materialID].baseColorMapID;
 }
 
 uint materialEmissionMapID(in uint materialID)
 {
-	return materials[materialID].emissionTextureID;
+	return materials[materialID].emissionMapID;
 }
 
 uint materialOcclusionMapID(in uint materialID)
 {
-	return materials[materialID].occlusionTextureID;
+	return materials[materialID].occlusionMapID;
 }
 
 uint materialRoughnessMapID(in uint materialID)
 {
-	return materials[materialID].roughnessTextureID;
+	return materials[materialID].roughnessMapID;
 }
 
 uint materialMetalnessMapID(in uint materialID)
 {
-	return materials[materialID].metalnessTextureID;
+	return materials[materialID].metalnessMapID;
 }
 
 uint materialNormalMapID(in uint materialID)
 {
-	return materials[materialID].normalTextureID;
+	return materials[materialID].normalMapID;
 }
 
 float materialOcclusionMapStrength(in uint materialID)
@@ -106,6 +85,11 @@ bool isMaterialShadowed(in uint materialID)
 	return bitfieldExtract(materials[materialID].flags1, 7, 1) != 0u;
 }
 
+bool isMaterialShadowCasted(in uint materialID)
+{
+	return bitfieldExtract(materials[materialID].flags1, 8, 1) != 0u;
+}
+
 bool isMaterialDoubleSided(in uint materialID)
 {
 	return bitfieldExtract(materials[materialID].flags1, 9, 1) != 0u;
@@ -113,5 +97,5 @@ bool isMaterialDoubleSided(in uint materialID)
 
 bool isMaterialTransparent(in uint materialID)
 {
-	return bitfieldExtract(materials[materialID].flags1, 8, 1) != 0u;
+	return bitfieldExtract(materials[materialID].flags1, 10, 1) != 0u;
 }

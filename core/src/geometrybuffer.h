@@ -3,46 +3,55 @@
 
 #include <core/stateset.h>
 
+#include "descriptions.h"
+
 namespace simplex
 {
 namespace core
 {
 
-struct OITBufferNode
-{
-    glm::u32vec4 packedPBRData;
-    float depth;
-    uint32_t next;
-};
+using POITBuffer = std::shared_ptr<graphics::VectorBuffer<OITNodeDescription>>;
+using PConstOITBuffer = std::shared_ptr<const graphics::VectorBuffer<OITNodeDescription>>;
 
-using POITBuffer = std::shared_ptr<graphics::VectorBuffer<OITBufferNode>>;
-using PConstOITBuffer = std::shared_ptr<const graphics::VectorBuffer<OITBufferNode>>;
+using PGBuffer = std::shared_ptr<graphics::StructBuffer<GBufferDescription>>;
+using PConstGBuffer = std::shared_ptr<const graphics::StructBuffer<GBufferDescription>>;
 
-class GeometryBuffer : public StateSet
+class GeometryBuffer : public StateSet, public std::enable_shared_from_this<GeometryBuffer>
 {
 public:
     GeometryBuffer(const glm::uvec2&);
     ~GeometryBuffer() = default;
 
     const glm::uvec2& size() const;
-    void resize(const glm::uvec2&);
+    void resize(const glm::uvec2&, const std::shared_ptr<graphics::RendererBase>&);
 
-    graphics::PConstTexture colorTexture0() const;
-    graphics::PConstTexture depthStencilTexture() const;
-    graphics::PConstTexture OITDepthTexture() const;
-    graphics::PConstTexture OITIndicesTexture() const;
-    graphics::PConstTexture finalTexture() const;
+    void initialize(const std::shared_ptr<ProgramsManager>&);
+    void clear(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&) const;
+    void sortOITNodes(const std::shared_ptr<graphics::RendererBase>&) const;
+
+    PConstGBuffer GBuffer() const;
     PConstOITBuffer OITBuffer() const;
+
+    graphics::PConstTexture colorTexture() const;
+    graphics::PConstTexture depthStencilTexture() const;
+    graphics::PConstTexture finalTexture() const;
 
 private:
     glm::uvec2 m_size;
 
-    graphics::PTexture m_colorTexture0;
-    graphics::PTexture m_depthStencilTexture;
-    graphics::PTexture m_OITDepthTexture;
-    graphics::PTexture m_OITIndicesTexture;
-    graphics::PTexture m_finalTexture;
+    PGBuffer m_GBuffer;
     POITBuffer m_OITBuffer;
+
+    graphics::PTextureHandle m_colorTextureHandle;
+    graphics::PTextureHandle m_depthStencilTextureHandle;
+    graphics::PImageHandle m_OITNodeIDImageHandle;
+    graphics::PTextureHandle m_finalTextureHandle;
+
+    bool m_isInitialized;
+    std::shared_ptr<graphics::IComputeProgram> m_clearOITNodeIDImageProgram;
+    std::shared_ptr<graphics::IComputeProgram> m_sortOITNodesProgram;
 };
 
 }

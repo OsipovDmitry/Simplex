@@ -27,6 +27,8 @@ public:
     explicit ClipSpaceT();
 
     ClipSpaceType type() const;
+    const glm::vec<4u, T>& params() const;
+
     MatrixType projectionMatrix(const utils::RangeT<T>&) const;
 
     static ClipSpaceT<T> makeIdentity();
@@ -40,10 +42,7 @@ protected:
     ClipSpaceT(ClipSpaceType type, T left, T right, T bottom, T top);
 
     ClipSpaceType m_type;
-    T m_left;
-    T m_right;
-    T m_bottom;
-    T m_top;
+    glm::vec<4u, T> m_params;
 
 };
 
@@ -60,6 +59,12 @@ inline ClipSpaceType ClipSpaceT<T>::type() const
 }
 
 template<typename T>
+inline const glm::vec<4u, T>& ClipSpaceT<T>::params() const
+{
+    return m_params;
+}
+
+template<typename T>
 inline typename ClipSpaceT<T>::MatrixType ClipSpaceT<T>::projectionMatrix(const utils::RangeT<T> &zRange) const
 {
     MatrixType result(1.f);
@@ -70,12 +75,24 @@ inline typename ClipSpaceT<T>::MatrixType ClipSpaceT<T>::projectionMatrix(const 
     switch (m_type)
     {
     case ClipSpaceType::Ortho: {
-        result =  glm::ortho(m_left, m_right, m_bottom, m_top, zRange.nearValue(), zRange.farValue());
+        result =  glm::ortho(
+            m_params[0u],
+            m_params[1u],
+            m_params[2u],
+            m_params[3u],
+            zRange.nearValue(),
+            zRange.farValue());
         break;
     }
     case ClipSpaceType::Perspective: {
         const auto &zNear = zRange.nearValue();
-        result = glm::frustum(m_left * zNear, m_right * zNear, m_bottom * zNear, m_top * zNear, zRange.nearValue(), zRange.farValue());
+        result = glm::frustum(
+            m_params[0u] * zNear,
+            m_params[1u] * zNear,
+            m_params[2u] * zNear,
+            m_params[3u] * zNear,
+            zRange.nearValue(),
+            zRange.farValue());
         break;
     }
     case ClipSpaceType::Spherical: {
@@ -134,10 +151,7 @@ inline ClipSpaceT<T> ClipSpaceT<T>::makeSpherical()
 template<typename T>
 inline ClipSpaceT<T>::ClipSpaceT(ClipSpaceType type, T left, T right, T bottom, T top)
     : m_type(type)
-    , m_left(left)
-    , m_right(right)
-    , m_bottom(bottom)
-    , m_top(top)
+    , m_params(left, right, bottom, top)
 {
 }
 

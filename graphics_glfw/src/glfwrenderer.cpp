@@ -2135,6 +2135,7 @@ TextureHandle_4_5::~TextureHandle_4_5()
 
 core::graphics::TextureHandle TextureHandle_4_5::handle() const
 {
+    CHECK_CURRENT_CONTEXT;
     return m_id;
 }
 
@@ -2161,16 +2162,73 @@ std::shared_ptr<TextureHandle_4_5> TextureHandle_4_5::create(const core::graphic
     return std::make_shared<TextureHandle_4_5>(texture);
 }
 
+// ImageHandle_4_5
+
+ImageHandle_4_5::ImageHandle_4_5(const core::graphics::PConstImage& image)
+    : m_image(image)
+{
+    SAVE_CURRENT_CONTEXT;
+
+    if (auto texture_4_5 = std::dynamic_pointer_cast<const TextureBase_4_5>(image->texture()); texture_4_5)
+    {
+        m_id = glGetImageHandleARB(
+            texture_4_5->id(),
+            image->mipmapLevel(),
+            GL_TRUE,
+            0u,
+            Conversions::PixelInternalFormat2GL(texture_4_5->internalFormat()));
+    }
+    else
+        LOG_CRITICAL << "Texture can't be nullptr";
+}
+
+ImageHandle_4_5::~ImageHandle_4_5()
+{
+    CHECK_CURRENT_CONTEXT;
+    glMakeImageHandleNonResidentARB(m_id);
+}
+
+core::graphics::TextureHandle ImageHandle_4_5::handle() const
+{
+    CHECK_CURRENT_CONTEXT;
+    return m_id;
+}
+
+core::graphics::PConstImage ImageHandle_4_5::image() const
+{
+    CHECK_CURRENT_CONTEXT;
+    return m_image;
+}
+
+void ImageHandle_4_5::makeResident()
+{
+    CHECK_CURRENT_CONTEXT;
+    glMakeImageHandleResidentARB(m_id, Conversions::ImageDataAccess2GL(m_image->access()));
+}
+
+void ImageHandle_4_5::doneResident()
+{
+    CHECK_CURRENT_CONTEXT;
+    glMakeImageHandleNonResidentARB(m_id);
+
+}
+
+std::shared_ptr<ImageHandle_4_5> ImageHandle_4_5::create(const core::graphics::PConstImage& image)
+{
+    return std::make_shared<ImageHandle_4_5>(image);
+}
+
 // RenderBuffer_4_5
 
 RenderBuffer_4_5::RenderBuffer_4_5(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat internalFormat)
 {
     SAVE_CURRENT_CONTEXT;
     glCreateRenderbuffers(1, &m_id);
-    glNamedRenderbufferStorage(m_id,
-                                         Conversions::PixelInternalFormat2GL(internalFormat),
-                                         static_cast<GLsizei>(width),
-                                         static_cast<GLsizei>(height));
+    glNamedRenderbufferStorage(
+        m_id,
+        Conversions::PixelInternalFormat2GL(internalFormat),
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height));
 }
 
 RenderBuffer_4_5::~RenderBuffer_4_5()
@@ -2271,6 +2329,12 @@ GLuint FrameBufferBase_4_5::id() const
     return m_id;
 }
 
+bool FrameBufferBase_4_5::isComplete() const
+{
+    CHECK_CURRENT_CONTEXT;
+    return glCheckNamedFramebufferStatus(m_id, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
+}
+
 void FrameBufferBase_4_5::clear()
 {
     CHECK_CURRENT_CONTEXT;
@@ -2346,12 +2410,6 @@ void FrameBufferBase_4_5::clear()
             continue;
         }
     }
-}
-
-bool FrameBufferBase_4_5::isComplete() const
-{
-    CHECK_CURRENT_CONTEXT;
-    return glCheckNamedFramebufferStatus(m_id, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
 }
 
 std::shared_ptr<const core::graphics::ISurface> FrameBufferBase_4_5::attachmentSurface(core::graphics::FrameBufferAttachment value) const
@@ -3888,6 +3946,13 @@ std::shared_ptr<core::graphics::ITextureHandle> GLFWRenderer::createTextureHandl
 {
     CHECK_THIS_CONTEXT;
     return TextureHandle_4_5::create(texture);
+}
+
+std::shared_ptr<core::graphics::IImageHandle> GLFWRenderer::createImageHandle(
+    const core::graphics::PConstImage& image) const
+{
+    CHECK_THIS_CONTEXT;
+    return ImageHandle_4_5::create(image);
 }
 
 std::shared_ptr<core::graphics::IRenderBuffer> GLFWRenderer::createRenderBuffer(uint32_t width,

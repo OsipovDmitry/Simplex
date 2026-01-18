@@ -1,6 +1,9 @@
+#include<constants.glsl>
 #include<line.glsl>
 #include<line_segment.glsl>
+#include<range.glsl>
 #include<transform.glsl>
+#include<utils.glsl>
 
 struct BoundingBox
 {
@@ -22,6 +25,26 @@ bool isBoundingBoxEmpty(in BoundingBox bb)
 	return any(greaterThan(bb.points[0u], bb.points[1u]));
 }
 
+vec3 boundingBoxMinPoint(in BoundingBox bb)
+{
+	return bb.points[0u];
+}
+
+vec3 boundingBoxMaxPoint(in BoundingBox bb)
+{
+	return bb.points[1u];
+}
+
+vec3 boundingBoxCenter(in BoundingBox bb)
+{
+	return 0.5f * (bb.points[1u] + bb.points[0u]);
+}
+
+vec3 boundingBoxHalfSize(in BoundingBox bb)
+{
+	return 0.5f * (bb.points[1u] - bb.points[0u]);
+}
+
 vec3 boundingBoxPoint(in BoundingBox bb, in uint ID)
 {
 	const uint index = clamp(ID, 0u, BOUNDING_BOX_POINTS_COUNT - 1u);
@@ -39,28 +62,34 @@ LineSegment boundingBoxEdge(in BoundingBox bb, in uint ID)
 		boundingBoxPoint(bb, edgeIndices[1u]));
 }
 
-vec2 boundingBoxProjectOnLine(in BoundingBox bb, in Line l)
+Range boundingBoxProjectOnLine(in BoundingBox bb, in Line l)
 {
 	vec3 vmin = bb.points[0u];
 	vec3 vmax = bb.points[1u];
 	for (uint i = 0u; i < 3u; ++i)
 	{
 		if (l.direction[i] < 0.0f)
-		{
-			float tmp = vmin[i];
-			vmin[i] = vmax[i];
-			vmax[i] = tmp;
-		}
+			swap(vmin[i], vmax[i]);
 	}
-    return vec2(lineProjectOn(l, vmin), lineProjectOn(l, vmax));
+    return makeRange(lineProjectOn(l, vmin), lineProjectOn(l, vmax));
 }
 
-BoundingBox boundingBoxAdd(in BoundingBox bb, in vec3 v)
+BoundingBox boundingBoxExpand(in BoundingBox bb, in vec3 v)
 {
 	return makeBoundingBox(min(bb.points[0u], v), max(bb.points[1u], v));
+}
+
+BoundingBox boundingBoxExpand(in BoundingBox bb0, in BoundingBox bb1)
+{
+	return makeBoundingBox(min(bb0.points[0u], bb1.points[0u]), max(bb0.points[1u], bb1.points[1u]));
 }
 
 vec3 boundingBoxClosestPoint(in BoundingBox bb, in vec3 v)
 {
 	return clamp(v, bb.points[0u], bb.points[1u]);
+}
+
+bool boundingBoxIsPointInside(in BoundingBox bb, in vec3 v)
+{
+	return all(greaterThan(boundingBoxMinPoint(bb), v)) && all(greaterThan(v, boundingBoxMaxPoint(bb)));
 }

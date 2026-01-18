@@ -1,7 +1,6 @@
-#include<constants.glsl>
+#include<math/constants.glsl>
 
-float DistributionGGX(in float NdotH,
-                      in float roughness)
+float DistributionGGX(in float NdotH, in float roughness)
 {
     float a2 = roughness * roughness * roughness * roughness;
 
@@ -12,8 +11,7 @@ float DistributionGGX(in float NdotH,
     return num / denom;
 }
 
-float GeometrySchlickGGX(in float NdotV,
-                         in float roughness)
+float GeometrySchlickGGX(in float NdotV, in float roughness)
 {
     float r = (roughness + 1.0f);
     float k = (r * r) / 8.0f;
@@ -24,20 +22,20 @@ float GeometrySchlickGGX(in float NdotV,
     return num / denom;
 }
 
-vec3 fresnelSchlick(in float cosTheta,
-                    in vec3 F0)
+vec3 fresnelSchlick(in float cosTheta, in vec3 F0)
 {
     return F0 + (vec3(1.0f) - F0) * pow(1.0f - cosTheta, 5.0f);
 }
 
-vec3 calculatePBR(in vec3 baseColor,
-                  in float metalness,
-                  in float roughness,
-                  in vec3 F0,
-                  in vec3 lightColor,
-                  in vec3 N,
-                  in vec3 L,
-                  in vec3 V)
+vec3 calculatePBR(
+	in vec3 baseColor,
+	in float metalness,
+	in float roughness,
+	in vec3 F0,
+	in vec3 lightColor,
+	in vec3 N,
+	in vec3 L,
+	in vec3 V)
 {
     vec3 H = normalize(L + V);
     float NdotL = max(dot(N, L), 0.0f);
@@ -54,6 +52,6 @@ vec3 calculatePBR(in vec3 baseColor,
 
     vec3 specular = (NDF * G * F) / max((4.0f * NdotV * NdotL), 1e-3f);
 
-    return lightColor * NdotL * (kD * baseColor / PI + specular);
+    return lightColor * NdotL * (kD * baseColor /*/ PI */ + specular);
 }
 

@@ -7,8 +7,9 @@ namespace core
 
 RenderPass::~RenderPass() = default;
 
-RenderPass::RenderPass()
+RenderPass::RenderPass(const std::weak_ptr<RenderPipeLine>& renderPipeLine)
     : StateSet()
+    , m_renderPipeLine(renderPipeLine)
 {
 }
 

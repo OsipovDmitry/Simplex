@@ -1,10 +1,11 @@
 #ifndef CORE_DESCRIPTIONS_H
 #define CORE_DESCRIPTIONS_H
 
+#include <utils/glm/vec2.hpp>
 #include <utils/glm/vec3.hpp>
 #include <utils/glm/vec4.hpp>
 #include <utils/glm/mat4x4.hpp>
-#include <utils/frustum.h>
+#include <utils/glm/ext/quaternion_float.hpp>
 #include <utils/forwarddecl.h>
 
 namespace simplex
@@ -12,18 +13,38 @@ namespace simplex
 namespace core
 {
 
+struct QuatDescription
+{
+    glm::vec4 q;
+
+    static QuatDescription make(const glm::quat&);
+};
+
 struct TransformDescription
 {
-    glm::vec4 rotation;
+    QuatDescription rotation;
     glm::vec4 translationAndScale;
 
     static TransformDescription makeEmpty();
     static TransformDescription make(const utils::Transform&);
 };
 
+struct ClipSpaceDescription
+{
+    glm::vec4 params;
+    uint32_t type;
+    uint32_t padding[3u];
+
+    static ClipSpaceDescription make(const utils::ClipSpace&);
+};
+
 struct CameraDescription
 {
+    glm::uvec4 clusterMaxSize;
     TransformDescription viewTransform;
+    ClipSpaceDescription clipSpace;
+    glm::vec2 cullPlaneLimits;
+    glm::uvec2 ZRange; // uvec2 for atomic operations
     TransformDescription viewTransformInverted;
     glm::mat4x4 projectionMatrix;
     glm::mat4x4 projectionMatrixInverted;
@@ -33,10 +54,12 @@ struct CameraDescription
     glm::vec4 viewXDirection;
     glm::vec4 viewYDirection;
     glm::vec4 viewZDirection;
-    std::array<glm::vec4, utils::Frustum::numPoints()> frustumPoints;
-    std::array<glm::vec4, utils::Frustum::numPlanes()> frustumPlanes;
 
-    static CameraDescription make(const utils::Frustum&);
+    static CameraDescription make(
+        const glm::uvec3& clusterMaxSize,
+        const utils::Transform&,
+        const utils::ClipSpace&,
+        const utils::Range&);
 };
 
 struct ClusterNodeDescription
@@ -56,25 +79,46 @@ struct LightNodeDescription
 
 struct SceneInfoDescription
 {
-    glm::uvec4 clusterSize;
-    glm::uvec2 ZRange;
     uint32_t drawDataCount;
     uint32_t lightsCount;
     uint32_t opaqueCommandsCount;
     uint32_t transparentCommandsCount;
-    uint32_t OITNodesMaxCount;
-    uint32_t OITNodesCount;
-    uint32_t clusterLightNodesMaxCount;
-    uint32_t clusterLightNodesCount;
+    uint32_t lightNodesMaxCount;
+    uint32_t lightNodesCount;
     uint32_t firstGlobalLightNodeID;
     uint32_t padding[1u];
 
     static SceneInfoDescription make(
-        const glm::uvec3& clusterSize,
         uint32_t drawDataCount,
         uint32_t lightsCount,
-        uint32_t OITNodesMaxCount,
         uint32_t clusterLightNodesMaxCount);
+};
+
+struct GBufferDescription
+{
+    graphics::TextureHandle colorTextureHandle;
+    graphics::TextureHandle depthStencilTextureHandle;
+    graphics::ImageHandle OITIndicesImageeHandle;
+    graphics::TextureHandle finalTextureHandle;
+    glm::uvec2 size;
+    uint32_t OITNodesMaxCount;
+    uint32_t OITNodesCount;
+
+    static GBufferDescription make(
+        graphics::TextureHandle colorTextureHandle,
+        graphics::TextureHandle depthStencilTextureHandle,
+        graphics::ImageHandle OITIndicesImageHandle,
+        graphics::TextureHandle finalTextureHandle,
+        const glm::uvec2& size,
+        uint32_t OITNodesMaxCount);
+};
+
+struct OITNodeDescription
+{
+    glm::u32vec4 PBRData;
+    float depth;
+    uint32_t nextID;
+    uint32_t padding[2u];
 };
 
 struct MeshDescription
@@ -111,7 +155,7 @@ struct MeshDescription
 
 struct MaterialMapDescription
 {
-    graphics::TextureHandle handle;
+    graphics::TextureHandle textureHandle;
 
     static MaterialMapDescription make(graphics::TextureHandle);
 };
@@ -120,12 +164,12 @@ struct MaterialDescription
 {
     glm::vec4 baseColor;
     glm::vec4 emission;
-    uint32_t baseColorTextureID;
-    uint32_t emissionTextureID;
-    uint32_t occlusionTextureID;
-    uint32_t roughnessTextureID;
-    uint32_t metalnessTextureID;
-    uint32_t normalTextureID;
+    uint32_t baseColorMapID;
+    uint32_t emissionMapID;
+    uint32_t occlusionMapID;
+    uint32_t roughnessMapID;
+    uint32_t metalnessMapID;
+    uint32_t normalMapID;
     uint32_t flags0; // 0.. 7 - roughness, 8..15 - metalness, 16..23 - occlusionMapStrength, 24..31 - normalMapScale
     uint32_t flags1;
     //  0.. 1 - occlusion map swizzle
@@ -133,20 +177,21 @@ struct MaterialDescription
     //  4.. 5 - metalness map swizzle
     //  6.. 6 - is lighted
     //  7.. 7 - is shadowed
-    //  8.. 8 - is transparent
+    //  8.. 8 - is shadow casted
     //  9.. 9 - is double sided
-    // 10..17 - alpha cutoff
-    // 18..31 - free (14 bits)
+    // 10..10 - is transparent
+    // 11..18 - alpha cutoff
+    // 19..31 - free (13 bits)
 
     static MaterialDescription make(
         const glm::vec4& baseColor,
         const glm::vec4& emission,
-        uint32_t baseColorTextureID,
-        uint32_t emissionTextureID,
-        uint32_t occlusionTextureID,
-        uint32_t roughnessTextureID,
-        uint32_t metalnessTextureID,
-        uint32_t normalTextureID,
+        uint32_t baseColorMapID,
+        uint32_t emissionMapID,
+        uint32_t occlusionMapID,
+        uint32_t roughnessMapID,
+        uint32_t metalnessMapID,
+        uint32_t normalMapID,
         float roughness,
         float metalness,
         float occlusionMapStrength,
@@ -154,8 +199,9 @@ struct MaterialDescription
         const glm::u32vec3& ORMSwizzleMask,
         bool isLighted,
         bool isShadowed,
-        bool isTransparent,
+        bool isShadowCasted,
         bool isDoubleSided,
+        bool isTransparent,
         float alphaCutoff);
 };
 
@@ -163,6 +209,7 @@ struct DrawableDescription
 {
     uint32_t meshID;
     uint32_t materialID;
+    uint32_t padding[2u];
 
     static DrawableDescription make(uint32_t meshID, uint32_t materialID);
 };
@@ -180,11 +227,17 @@ struct DrawDataDescription
 
 struct BackgroundDescription
 {
+    QuatDescription rotation;
     glm::vec4 environmentColorAndBlurPower;
     uint32_t environmentMapID;
+    uint32_t padding[3u];
 
     static BackgroundDescription makeEmpty();
-    static BackgroundDescription make(const glm::vec3& environmentColor, float blurPower, uint32_t environmentMapID);
+    static BackgroundDescription make(
+        const glm::quat& rotation,
+        const glm::vec3& environmentColor,
+        float blurPower,
+        uint32_t environmentMapID);
 };
 
 struct LightBufferReservedData { uint32_t count; uint32_t padding[3u]; };

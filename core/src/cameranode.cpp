@@ -97,10 +97,10 @@ const utils::Range &CameraNode::cullPlanesLimits() const
 void CameraNode::setCullPlanesLimits(const utils::Range &value)
 {
     if (value.nearValue() <= 0.f)
-        LOG_CRITICAL << "Znear must be greater than 0.0";
+        LOG_CRITICAL << "ZNear must be greater than 0.0";
 
     if (value.farValue() <= value.nearValue())
-        LOG_CRITICAL << "Zfar must be greater than Znear";
+        LOG_CRITICAL << "ZFar must be greater than Znear";
 
     m().cullPlanesLimits() = value;
 }

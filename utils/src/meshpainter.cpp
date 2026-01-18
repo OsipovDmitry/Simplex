@@ -852,9 +852,10 @@ MeshPainter &MeshPainter::drawSphere(uint32_t segs)
     return *this;
 }
 
-MeshPainter &MeshPainter::drawCone(uint32_t segs)
+MeshPainter &MeshPainter::drawCone(float height, float halfAngle, uint32_t segs)
 {
     segs = glm::max(segs, 3u);
+    halfAngle = glm::tan(halfAngle);
 
     std::vector<glm::vec4> vertices((segs+1u) * 4u);
     std::vector<glm::vec4> normals((segs+1u) * 4u);
@@ -867,13 +868,13 @@ MeshPainter &MeshPainter::drawCone(uint32_t segs)
         const auto angleA = glm::two_pi<float>() * fA;
         const auto sinA = glm::sin(angleA);
         const auto cosA = glm::cos(angleA);
-        const auto p = glm::vec3(cosA, sinA, -1.0f);
+        const auto p = glm::vec3(cosA * halfAngle, sinA * halfAngle, -1.0f) * height;
         const auto n = glm::normalize(glm::vec3(cosA, sinA, 1.0f));
 
         vertices[4u * a + 0u] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
         vertices[4u * a + 1u] = glm::vec4(p, 1.0f);
         vertices[4u * a + 2u] = glm::vec4(p, 1.0f);
-        vertices[4u * a + 3u] = glm::vec4(0.0f, 0.0f, -1.0f, 1.0f);
+        vertices[4u * a + 3u] = glm::vec4(0.0f, 0.0f, -height, 1.0f);
 
         normals[4u * a + 0u] = glm::vec4(n, 0.0f);
         normals[4u * a + 1u] = glm::vec4(n, 0.0f);

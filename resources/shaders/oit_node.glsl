@@ -2,7 +2,7 @@
 
 struct OITBufferNode 
 {
-    uvec4 packedPBRData;
+    uvec4 PBRData;
     float depth;
     uint next;
 };
@@ -35,7 +35,7 @@ OITBufferNode packOITBufferNode(
 		next);
 }
 
-void unpackOITBufferNode(
+/*void unpackOITBufferNode(
 	in OITBufferNode node,
 	out vec3 baseColor,
 	out vec3 emission,
@@ -50,7 +50,7 @@ void unpackOITBufferNode(
 	out uint next)
 { 
     unpackPBRData(
-		node.packedPBRData,
+		node.PBRData,
 		baseColor,
 		emission,
 		occlusion,
@@ -64,7 +64,7 @@ void unpackOITBufferNode(
     next = node.next;
 }
 
-/*void packOITNodeMaterial(inout OITBufferNode node, in vec3 baseColor, in float occlusion, in float roughness, in float metalness)
+void packOITNodeMaterial(inout OITBufferNode node, in vec3 baseColor, in float occlusion, in float roughness, in float metalness)
 {
     node.packedBaseColor = packF2x11_1x10(baseColor);
     packUnorm8(node.packedORMAlpha, occlusion, 0);

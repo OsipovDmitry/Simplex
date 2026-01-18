@@ -3,7 +3,7 @@
 
 #include <utils/enumclass.h>
 #include <utils/glm/vec3.hpp>
-#include <utils/glm/gtc/quaternion.hpp>
+#include <utils/glm/ext/quaternion_float.hpp>
 #include <utils/forwarddecl.h>
 
 #include <core/coreglobal.h>

@@ -66,7 +66,7 @@ public:
     MeshPainter &drawBunny();
     MeshPainter &drawTeapot();
     MeshPainter &drawSphere(uint32_t = 8u);
-    MeshPainter &drawCone(uint32_t = 8u);
+    MeshPainter &drawCone(float height, float halfAngle, uint32_t = 8u);
     MeshPainter &drawCamera();
     MeshPainter &drawBoundingBox();
     MeshPainter &drawScreenQuad();

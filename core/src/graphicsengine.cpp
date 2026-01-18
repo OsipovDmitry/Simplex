@@ -32,14 +32,15 @@
 #include "scenedata.h"
 #include "geometrybuffer.h"
 #include "shadowbuffer.h"
-#include "camerarenderinfo.h"
 #include "shadowrenderinfo.h"
 
 //tmp
 #include <core/material.h>
 #include <core/mesh.h>
 #include <core/drawable.h>
+#include "descriptions.h"
 #include "renderpasshelpers.h"
+#include "descriptions.h"
 
 namespace simplex
 {
@@ -97,7 +98,7 @@ GraphicsEngine::GraphicsEngine(const std::string &name, const std::shared_ptr<gr
     m_->vertexArray() = renderer->createVertexArray();
     m_->geometryBuffer() = std::make_shared<GeometryBuffer>(glm::uvec2(0u));
 
-    m_->renderPipeLine() = std::make_shared<RenderPipeLine>(m_->programsManager(), renderer, m_->frameBuffer(), m_->vertexArray());
+    m_->renderPipeLine() = RenderPipeLine::create(m_->programsManager(), renderer, m_->frameBuffer(), m_->vertexArray());
 
     LOG_INFO << "Engine \"" << GraphicsEngine::name() << "\" has been created";
 }
@@ -209,7 +210,10 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
     }
 
     const auto screenSize = widget->size();
-    m_->geometryBuffer()->resize(screenSize);
+
+    auto& geometryBuffer = m_->geometryBuffer();
+    geometryBuffer->initialize(programsManager);
+    geometryBuffer->resize(screenSize, renderer);
 
     auto rootNode = scene->sceneRootNode();
 
@@ -228,21 +232,20 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
         if (!camera->isRenderingEnabled())
             continue;
 
-        std::shared_ptr<GeometryBuffer> cameraGeometryBuffer = m_->geometryBuffer();
+        std::shared_ptr<GeometryBuffer> cameraGeometryBuffer = geometryBuffer;
         if (!camera->isDefaultFramebufferUsed())
             cameraGeometryBuffer = cameraPrivate.geometryBuffer();
 
         cameraPrivate.resize(cameraGeometryBuffer->size());
 
         auto& renderPipeLine = m_->renderPipeLine();
-        renderPipeLine->setFrustum(
-            camera->globalTransform().inverted(),
-            camera->clipSpace(),
-            camera->cullPlanesLimits());
-        renderPipeLine->setCluster(camera->clusterMaxSize());
         renderPipeLine->run(
             cameraGeometryBuffer,
-            scene->m().sceneData());
+            scene->m().sceneData(),
+            camera->globalTransform().inverted(),
+            camera->clipSpace(),
+            camera->cullPlanesLimits(),
+            camera->clusterMaxSize());
 
         //// reset fragments counter buffer
         //cameraGeometryBuffer->clearOITNodesBuffer();
@@ -544,14 +547,31 @@ void GraphicsEngine::setF()
         return;
 
     auto& renderPipeLine = m_->renderPipeLine();
-    auto clusterNodesBuffer = renderPipeLine->cameraRenderInfo()->clusterNodesBuffer();
+    auto& clusterNodesBuffer = renderPipeLine->clusterNodesBuffer();
 
-    simplex::utils::MeshPainter painter(simplex::utils::Mesh::createEmptyMesh({
-            {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
-            {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}}, }));
+    auto viewTransformDesc = renderPipeLine->cameraBuffer()->get().viewTransform;
+    auto viewTransform = utils::Transform(
+        viewTransformDesc.translationAndScale.w,
+        glm::quat(viewTransformDesc.rotation.q.w, viewTransformDesc.rotation.q.x, viewTransformDesc.rotation.q.y, viewTransformDesc.rotation.q.z),
+        glm::vec3(viewTransformDesc.translationAndScale)).inverted();
+
+    static std::weak_ptr<Node> weak;
+    if (auto group = weak.lock())
+    {
+        scene->sceneRootNode()->detach(group);
+        return;
+    }
+
+    auto group = std::make_shared<Node>("");
+    scene->sceneRootNode()->attach(group);
+    weak = group;
 
     for (size_t i = 0u; i < clusterNodesBuffer->size(); ++i)
     {
+        simplex::utils::MeshPainter painter(simplex::utils::Mesh::createEmptyMesh({
+                {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
+                {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}}, }));
+    
         auto clusterNode = clusterNodesBuffer->get(i);
         utils::BoundingBox bb({
             glm::vec3(clusterNode.boundingBoxMinPoint),
@@ -559,22 +579,26 @@ void GraphicsEngine::setF()
 
         painter.setVertexTransform(utils::Transform::makeTranslation(bb.center()));
         painter.drawCube(bb.halfSize() * 2.f);
+
+        auto boundingBox = painter.calculateBoundingBox();
+        auto mesh = std::make_shared<simplex::core::Mesh>(painter.mesh(), boundingBox);
+
+        auto material = std::make_shared<simplex::core::Material>();
+        if (clusterNode.firstLightNodeID == 0xFFFFFFFFu)
+            material->setBaseColor(glm::vec4(glm::vec3(0.f, 0.f, 1.f), .2f));
+        else
+            material->setBaseColor(glm::vec4(glm::vec3(1.f, 0.f, 0.f), .2f));
+        material->setMetalness(0.f);
+        material->setRoughness(.2f);
+
+        auto drawable = std::make_shared<simplex::core::Drawable>(mesh, material);
+
+        auto drawableNode = std::make_shared<simplex::core::DrawableNode>("");
+        drawableNode->setTransform(viewTransform);
+        drawableNode->addDrawable(drawable);
+
+        group->attach(drawableNode);
     }
-
-    auto boundingBox = painter.calculateBoundingBox();
-    auto mesh = std::make_shared<simplex::core::Mesh>(painter.mesh(), boundingBox);
-
-    auto material = std::make_shared<simplex::core::Material>();
-    material->setBaseColor(glm::vec4(glm::vec3(1.f), .2f));
-    material->setMetalness(0.f);
-    material->setRoughness(.2f);
-
-    auto drawable = std::make_shared<simplex::core::Drawable>(mesh, material);
-
-    auto drawableNode = std::make_shared<simplex::core::DrawableNode>("");
-    drawableNode->addDrawable(drawable);
-
-    scene->sceneRootNode()->attach(drawableNode);
 }
 
 }

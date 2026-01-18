@@ -1,5 +1,5 @@
 #include<line.glsl>
-#include<plane.glsl>
+#include<range.glsl>
 #include<transform.glsl>
 
 struct LineSegment
@@ -13,20 +13,19 @@ LineSegment makeLineSegment(in vec3 startPoint, in vec3 endPoint)
 	return LineSegment(startPoint, endPoint);
 }
 
-bool lineSegmentIntersectPlane(in LineSegment ls, in Plane p, out vec3 resPoint)
+vec3 lineSegmentStartPoint(in LineSegment ls)
 {
-	const vec3 dir = ls.endPoint - ls.startPoint;
-    const float dirLen = length(dir);
-    if (dirLen < EPS)
-		return false;
-    Line l = makeLine(ls.startPoint, dir);
-    float t;
-    if (!lineIntersectPlane(l, p, t))
-		return false;
-    if ((t < 0.0f) || (t > dirLen))
-		return false;
-    resPoint = linePoint(l, t);
-    return true;
+	return ls.startPoint;
+}
+
+vec3 lineSegmentEndPoint(in LineSegment ls)
+{
+	return ls.endPoint;
+}
+
+Range lineSegmentProjectOnLine(in LineSegment ls, in Line l)
+{
+	return makeRange(lineProjectOn(l, ls.startPoint), lineProjectOn(l, ls.endPoint));
 }
 
 LineSegment transformLineSegment(in Transform t, in LineSegment ls)

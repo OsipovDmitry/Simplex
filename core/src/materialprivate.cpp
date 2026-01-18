@@ -148,6 +148,7 @@ void MaterialPrivate::onChanged()
                 m_ORMSwizzleMask,
                 m_isLighted,
                 m_isShadowed,
+                m_isShadowCasted,
                 m_isDoubleSided);
 }
 

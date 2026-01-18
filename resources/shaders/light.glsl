@@ -1,4 +1,5 @@
-#include<transform.glsl>
+#include<math/transform.glsl>
+#include<descriptions.glsl>
 
 const uint PointLightTypeID = 0u;
 const uint SpotLightTypeID = 1u;
@@ -6,18 +7,11 @@ const uint DirectionalLightTypeID = 2u;
 const uint ImageBasedLightTypeID = 3u;
 const uint EmptyLightTypeID = 0xFFFFFFFFu;
 
-struct LightDescription
-{
-    Transform transform;
-    vec4 flags0;
-    vec4 flags1;
-};
-
 layout (std430) readonly buffer ssbo_lightsBuffer { LightDescription lights[]; };
 
 Transform lightTransform(in uint lightID)
 {
-	return lights[lightID].transform;
+	return makeTransform(lights[lightID].transform);
 }
 
 uint lightTypeID(in uint lightID)
@@ -45,7 +39,7 @@ vec2 spotLightRadiuses(in uint lightID)
 	return lights[lightID].flags1.xy;
 }
 
-vec2 spotLightCosAngles(in uint lightID)
+vec2 spotLightHalfAngles(in uint lightID)
 {
 	return lights[lightID].flags1.zw;
 }

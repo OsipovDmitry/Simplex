@@ -1,15 +1,9 @@
 #include<math/bounding_box.glsl>
+#include<descriptions.glsl>
 
-struct ClusterNodeDescription
-{
-	vec4 boundingBoxMinPoint;
-	vec4 boundingBoxMaxPoint;
-	uint firstLightNodeID;
-	uint padding[3u];
-};
 layout (std430) buffer ssbo_clusterNodesBuffer { ClusterNodeDescription clusterNodes[]; };
 
-ClusterNodeDescription makeClusterNode(in BoundingBox bb, in uint firstLightNodeID)
+ClusterNodeDescription makeClusterNodeDescription(in BoundingBox bb, in uint firstLightNodeID)
 {
 	ClusterNodeDescription desc;
 	desc.boundingBoxMinPoint = vec4(bb.points[0u], 0.0f);
@@ -32,7 +26,7 @@ uint clusterNodeFirstLightNodeID(in uint clusterNodeID)
 
 void clusterNodeInitialize(in uint clusterNodeID, in BoundingBox bb)
 {
-	clusterNodes[clusterNodeID] = makeClusterNode(bb, 0xFFFFFFFFu);
+	clusterNodes[clusterNodeID] = makeClusterNodeDescription(bb, 0xFFFFFFFFu);
 }
 
 uint clusterNodeSetFirstLightNodeID(in uint clusterNodeID, uint lightNodeID)

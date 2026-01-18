@@ -1,6 +1,8 @@
-layout (std430) readonly buffer ssbo_materialMapsBuffer { uvec2 materialMaps[]; };
+#include<descriptions.glsl>
 
-uvec2 materialMap(in uint materialMapID)
+layout (std430) readonly buffer ssbo_materialMapsBuffer { TextureHandle materialMapsTextureHandles[]; };
+
+TextureHandle materialMapTextureHandle(in uint materialMapID)
 {
-	return materialMaps[materialMapID];
+	return materialMapsTextureHandles[materialMapID];
 }

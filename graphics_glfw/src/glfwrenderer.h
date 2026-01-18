@@ -519,6 +519,28 @@ protected:
     core::graphics::PConstTexture m_texture;
 };
 
+class ImageHandle_4_5 : public core::graphics::IImageHandle
+{
+    NONCOPYBLE(ImageHandle_4_5)
+    CURRENT_CONTEXT_INFO
+public:
+    ImageHandle_4_5(const core::graphics::PConstImage&);
+    ~ImageHandle_4_5() override;
+
+    core::graphics::TextureHandle handle() const override;
+
+    core::graphics::PConstImage image() const override;
+
+    void makeResident() override;
+    void doneResident() override;
+
+    static std::shared_ptr<ImageHandle_4_5> create(const core::graphics::PConstImage&);
+
+protected:
+    GLuint64 m_id = 0;
+    core::graphics::PConstImage m_image;
+};
+
 class RenderBuffer_4_5 : public core::graphics::IRenderBuffer
 {
     NONCOPYBLE(RenderBuffer_4_5)
@@ -549,9 +571,9 @@ public:
     ~FrameBufferBase_4_5() override;
 
     GLuint id() const;
-    void clear();
 
     bool isComplete() const override;
+    void clear() override;
 
     std::shared_ptr<const core::graphics::ISurface> attachmentSurface(core::graphics::FrameBufferAttachment) const override;
     uint32_t attachmentMipmapLevel(core::graphics::FrameBufferAttachment) const override;
@@ -871,6 +893,7 @@ public:
     std::shared_ptr<core::graphics::ITexture> createTextureRect(const std::shared_ptr<const utils::Image>&,
                                                                 core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Count) const override;
     std::shared_ptr<core::graphics::ITextureHandle> createTextureHandle(const core::graphics::PConstTexture&) const override;
+    std::shared_ptr<core::graphics::IImageHandle> createImageHandle(const core::graphics::PConstImage&) const override;
     std::shared_ptr<core::graphics::IRenderBuffer> createRenderBuffer(uint32_t width,
                                                                       uint32_t height,
                                                                       core::graphics::PixelInternalFormat) const override;

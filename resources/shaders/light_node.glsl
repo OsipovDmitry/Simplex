@@ -1,16 +1,12 @@
-struct LightNodeDescription
-{
-	uint lightID;
-	uint nextID;
-    uint padding[2u];
-};
+#include<descriptions.glsl>
+
 layout (std430) buffer ssbo_lightNodesBuffer { LightNodeDescription lightNodes[]; };
 
-LightNodeDescription makeLightNode(in uint lightID, in uint nextID)
+LightNodeDescription makeLightNodeDescription(in uint lightID, in uint nextLightNodeID)
 {
 	LightNodeDescription desc;
 	desc.lightID = lightID;
-	desc.nextID = nextID;
+	desc.nextID = nextLightNodeID;
 	return desc;
 }
 
@@ -24,7 +20,7 @@ uint lightNodeNextID(in uint lightNodeID)
 	return lightNodes[lightNodeID].nextID;
 }
 
-void lightNodeInitialize(in uint lightNodeID, in uint lightID, in uint nextID)
+void lightNodeInitialize(in uint lightNodeID, in uint lightID, in uint nextLightNodeID)
 {
-	lightNodes[lightNodeID] = makeLightNode(lightID, nextID);
+	lightNodes[lightNodeID] = makeLightNodeDescription(lightID, nextLightNodeID);
 }

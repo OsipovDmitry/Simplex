@@ -7,7 +7,8 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 #include<mesh.glsl>
 #include<camera.glsl>
 #include<scene_info.glsl>
-#include<math/classification.glsl>
+#include<math/classifications.glsl>
+#include<math/intersections.glsl>
 
 layout (std430) buffer ssbo_opaqueCommandsBuffer {
 	DrawArraysIndirectCommand opaqueCommands[];
@@ -16,83 +17,71 @@ layout (std430) buffer ssbo_transparentCommandsBuffer {
 	DrawArraysIndirectCommand transparentCommands[];
 };
 
+void updateNearFar(inout vec2 nearFar, in vec3 v)
+{
+	const float z = -v.z;
+	nearFar[0u] = min(nearFar[0u], z);
+	nearFar[1u] = max(nearFar[1u], z);
+}
+
 void main(void)
 {
-    uint drawDataID = gl_GlobalInvocationID.x;
-    if (drawDataID < sceneInfoDrawDataCount())
+    if (all(lessThan(gl_GlobalInvocationID, uvec3(sceneInfoDrawDataCount(), 1u, 1u))))
     {
-		Transform ddTransform = drawDataTransform(drawDataID);
-		Transform ddTransformInverted = transformInverted(ddTransform);
-		
-		Frustum frustum = cameraFrustum();
-		Frustum transformedFrustum = transformFrustum(ddTransformInverted, frustum);
-	
-		uint drawableID = drawDataDrawableID(drawDataID);
-		uint meshID = drawableMeshID(drawableID);
-		BoundingBox boundingBox = meshBoundingBox(meshID);
-		
-		if (frustumClassifyBoundingBox(transformedFrustum, boundingBox) != OUTSIDE)
+		const uint drawDataID = gl_GlobalInvocationID.x;
+		const uint drawableID = drawDataDrawableID(drawDataID);
+		if (drawableID != 0xFFFFFFFFu)
 		{
-			vec3 points[BOUNDING_BOX_POINTS_COUNT + FRUSTUM_POINTS_COUNT + BOUNDING_BOX_EDGES_COUNT];
-			uint pointsCount = 0u;
+			const Transform modelViewTransform = transformMult(cameraViewTransform(), drawDataTransform(drawDataID));
+			const Frustum frustum = makeFrustum(
+				modelViewTransform,
+				cameraClipSpace(),
+				cameraCullPlaneLimits());
 			
-			for (uint i = 0u; i < BOUNDING_BOX_POINTS_COUNT; ++i)
-			{
-				const vec3 point = boundingBoxPoint(boundingBox, i);
-				if (frustumClassifyPoint(transformedFrustum, point) != OUTSIDE)
-					points[pointsCount++] = point;
-			}
+			uint meshID = drawableMeshID(drawableID);
+			BoundingBox boundingBox = meshBoundingBox(meshID);
 			
-			for (uint i = 0u; i < FRUSTUM_POINTS_COUNT; ++i)
-			{
-				const vec3 point = transformedFrustum.points[i];
-				if (boundingBoxClassifyPoint(boundingBox, point) != OUTSIDE)
-					points[pointsCount++] = point;
-			}
-			
-			for (uint i = 0u; i < BOUNDING_BOX_EDGES_COUNT; ++i)
-			{
-				LineSegment edge = boundingBoxEdge(boundingBox, i);
-				for (uint j = 0u; j < FRUSTUM_SIDE_PLANES_COUNT; ++j)
+			if (!isBoundingBoxEmpty(boundingBox) && (frustumClassifyBoundingBox(frustum, boundingBox) != OUTSIDE))
+			{	
+				vec2 nearFar = vec2(FLT_MAX, 0.0f);
+				
+				for (uint i = 0u; i < BOUNDING_BOX_EDGES_COUNT; ++i)
 				{
-					vec3 point;
-					if (lineSegmentIntersectPlane(edge, transformedFrustum.planes[j], point))
-						points[pointsCount++] = point;
+					const LineSegment edge = boundingBoxEdge(boundingBox, i);
+					const LineSegmentIntersectFrustumResult lsifr = lineSegmentIntersectFrustum(edge, frustum);
+					for (uint j = 0u; j < lsifr.count; ++j)
+						updateNearFar(nearFar, transformPoint(modelViewTransform, lsifr.p[j]));
 				}
-			}
-			
-			vec2 nearFar = vec2(FLT_MAX, 0.0f);
-			const vec4 frustumNearPlane = frustum.planes[4u]; 
-			for (uint i = 0u; i < pointsCount; ++i)
-			{
-				const float distance = distanceToPlane(frustumNearPlane, transformPoint(ddTransform, points[i]));
-				if (distance > -EPS)
+				
+				for (uint i = 0u; i < FRUSTUM_EDGES_COUNT; ++i)
 				{
-					nearFar[0u] = min(nearFar[0u], distance);
-					nearFar[1u] = max(nearFar[1u], distance);
+					const LineSegment edge = frustumEdge(frustum, i);
+					const LineSegmentIntersectBoundingBoxResult lsibbr = lineSegmentIntersectBoundingBox(edge, boundingBox);
+					for (uint j = 0u; j < lsibbr.count; ++j)
+						updateNearFar(nearFar, transformPoint(modelViewTransform, lsibbr.p[j]));
 				}
-			}
-			nearFar[0u] = max(nearFar[0u], 0.0f);
-			sceneInfoExpandZRange(nearFar);
+				
+				cameraExpandZRange(nearFar);
 
-			uint materialID = drawableMaterialID(drawableID);
-			if (isMeshTransparent(meshID) || isMaterialTransparent(materialID))
-			{
-				uint commandID = sceneInfoGenerateTransparentCommandID();
-				transparentCommands[commandID] = DrawArraysIndirectCommand(
-					meshNumElements(meshID),
-					1u,
-					meshElementsOffset(meshID),
-					drawDataID);
-			}
-			else
-			{
-				uint commandID = sceneInfoGenerateOpaqueCommandID();
-				opaqueCommands[commandID] = DrawArraysIndirectCommand(
-					meshNumElements(meshID),
-					1u,
-					meshElementsOffset(meshID),
-					drawDataID);
+				const uint materialID = drawableMaterialID(drawableID);
+				if (isMeshTransparent(meshID) || isMaterialTransparent(materialID))
+				{
+					const uint commandID = sceneInfoGenerateTransparentCommandID();
+					transparentCommands[commandID] = DrawArraysIndirectCommand(
+						meshNumElements(meshID),
+						1u,
+						meshElementsOffset(meshID),
+						drawDataID);
+				}
+				else
+				{
+					const uint commandID = sceneInfoGenerateOpaqueCommandID();
+					opaqueCommands[commandID] = DrawArraysIndirectCommand(
+						meshNumElements(meshID),
+						1u,
+						meshElementsOffset(meshID),
+						drawDataID);
+				}
 			}
 		}
     }

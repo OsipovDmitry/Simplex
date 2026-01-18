@@ -1,7 +1,7 @@
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-#include<math/bounding_box.glsl>
-#include<math/sphere.glsl>
+#include<math/classifications.glsl>
+#include<camera.glsl>
 #include<cluster_node.glsl>
 #include<light_node.glsl>
 #include<light.glsl>
@@ -9,8 +9,8 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 void addLightAsGlobal(in uint lightID)
 {
-	uint lightNodeID = sceneInfoGenerateClusterLightNodeID();
-	if (lightNodeID < sceneInfoClusterLightNodesMaxCount())
+	const uint lightNodeID = sceneInfoGenerateLightNodeID();
+	if (lightNodeID < sceneInfoLightNodesMaxCount())
 	{
 		uint nextLightNodeID = sceneInfoSetFirstGlobalLightNodeID(lightNodeID);
 		lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
@@ -19,13 +19,30 @@ void addLightAsGlobal(in uint lightID)
 
 void addPointLight(in uint lightID, in Sphere s)
 {
-	for (uint i = 0u; i < sceneInfoClusterSize(); ++i)
+	for (uint i = 0u; i < cameraClusterTotalSize(); ++i)
 	{
-		BoundingBox bb = clusterNodeBoundingBox(i);
+		const BoundingBox bb = clusterNodeBoundingBox(i);
 		if (sphereClassifyBoundingBox(s, bb) != OUTSIDE)
 		{
-			uint lightNodeID = sceneInfoGenerateClusterLightNodeID();
-			if (lightNodeID < sceneInfoClusterLightNodesMaxCount())
+			const uint lightNodeID = sceneInfoGenerateLightNodeID();
+			if (lightNodeID < sceneInfoLightNodesMaxCount())
+			{
+				uint nextLightNodeID = clusterNodeSetFirstLightNodeID(i, lightNodeID);
+				lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
+			}
+		}
+	}
+}
+
+void addSpotLight(in uint lightID, in Cone c)
+{
+	for (uint i = 0u; i < cameraClusterTotalSize(); ++i)
+	{
+		const BoundingBox bb = clusterNodeBoundingBox(i);
+		if (coneClassifyBoundingBox(c, bb) != OUTSIDE)
+		{
+			const uint lightNodeID = sceneInfoGenerateLightNodeID();
+			if (lightNodeID < sceneInfoLightNodesMaxCount())
 			{
 				uint nextLightNodeID = clusterNodeSetFirstLightNodeID(i, lightNodeID);
 				lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
@@ -36,29 +53,44 @@ void addPointLight(in uint lightID, in Sphere s)
 
 void main(void)
 {
-	int lightID = gl_GlobalInvocationID.x;
-	if (lightID < sceneInfoLightsCount())
+	if (all(lessThan(gl_GlobalInvocationID, uvec3(sceneInfoLightsCount(), 1u, 1u))))
 	{
-		uint typeID = lightTypeID(lightID);
+		const uint lightID = gl_GlobalInvocationID.x;
+	
+		const uint typeID = lightTypeID(lightID);
 		if ((typeID == DirectionalLightTypeID) || (typeID == ImageBasedLightTypeID))
 		{
 			addLightAsGlobal(lightID);
 		}
-		else if (typeID == PointLightTypeID)
+		else
 		{
-			Sphere s = transformSphere(
-				lightTransform(lightID),
-				makeSphere(vec3(0.0f), pointLightRadiuses(lightID)));
+			const Transform lightViewTransform = transformMult(cameraViewTransform(), lightTransform(lightID));
+			const Frustum frustum = makeFrustum(makeIdentityTransform(), cameraClipSpace(), cameraZRange());
 				
-			int c = sphereClassifyFrustum(s, cameraFrustum());
-			if (c == INSIDE)
-				addLightAsGlobal(lightID);
-			else if (c == INTERSECT)
-				addPointLight(lightID, s);
-		}
-		else if (typeID == SpotLightTypeID)
-		{
-			
+			if (typeID == PointLightTypeID)
+			{
+				const Sphere sphere = transformSphere(
+					lightViewTransform,
+					makeSphere(vec3(0.0f), pointLightRadiuses(lightID)[1u]));
+					
+				const int c = sphereClassifyFrustum(sphere, frustum);
+				if (c == INSIDE)
+					addLightAsGlobal(lightID);
+				else if (c == INTERSECT)
+					addPointLight(lightID, sphere);
+			}
+			else if (typeID == SpotLightTypeID)
+			{
+				const Cone cone = transformCone(
+					lightViewTransform,
+					makeCone(vec3(0.0f), vec3(0.0f, 0.0f, -1.0f), spotLightRadiuses(lightID)[1u], spotLightHalfAngles(lightID)[1u]));
+					
+				const int c = coneClassifyFrustum(cone, frustum);
+				if (c == INSIDE)
+					addLightAsGlobal(lightID);
+				else if (c == INTERSECT)
+					addSpotLight(lightID, cone);
+			}
 		}
 	}
 }

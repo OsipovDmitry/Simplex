@@ -10,6 +10,7 @@ namespace simplex
 namespace core
 {
 
+class RenderPipeLine;
 class GeometryBuffer;
 class SceneData;
 
@@ -22,11 +23,13 @@ public:
         const std::shared_ptr<graphics::RendererBase>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
-        const std::shared_ptr<GeometryBuffer>&,
+        const std::shared_ptr<const GeometryBuffer>&,
         const std::shared_ptr<const SceneData>&) = 0;
 
 protected:
-    RenderPass();
+    RenderPass(const std::weak_ptr<RenderPipeLine>&);
+
+    std::weak_ptr<RenderPipeLine> m_renderPipeLine;
 };
 
 }

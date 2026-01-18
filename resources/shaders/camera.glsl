@@ -1,31 +1,49 @@
+#include<math/clip_space.glsl>
 #include<math/frustum.glsl>
+#include<math/transform.glsl>
+#include<descriptions.glsl>
 
-struct CameraDescription
+layout (std430) buffer ssbo_cameraBuffer { CameraDescription camera; };
+
+uvec3 cameraClusterSize()
 {
-    Transform viewTransform;
-    Transform viewTransformInverted;
-    mat4x4 projectionMatrix;
-    mat4x4 projectionMatrixInverted;
-    mat4x4 viewProjectionMatrix;
-    mat4x4 viewProjectionMatrixInverted;
-    vec4 viewPosition;
-    vec4 viewXDirection;
-    vec4 viewYDirection;
-    vec4 viewZDirection;
-    vec4 frustumPoints[FRUSTUM_POINTS_COUNT];
-    vec4 frustumPlanes[FRUSTUM_PLANES_COUNT];
-};
+	return camera.clusterMaxSize.xyz;
+}
 
-layout (std430) readonly buffer ssbo_cameraBuffer { CameraDescription camera; };
+uint cameraClusterTotalSize()
+{
+	return camera.clusterMaxSize.x * camera.clusterMaxSize.y * camera.clusterMaxSize.z;
+}
 
 Transform cameraViewTransform()
 {
-	return camera.viewTransform;
+	return makeTransform(camera.viewTransform);
+}
+
+ClipSpace cameraClipSpace()
+{
+	return makeClipSpace(camera.clipSpace.type, camera.clipSpace.params);
+}
+
+vec2 cameraCullPlaneLimits()
+{
+	return camera.cullPlaneLimits;
+}
+
+void cameraExpandZRange(in vec2 nearFar)
+{
+	atomicMin(camera.ZRange[0u], floatBitsToUint(nearFar[0u]));
+	atomicMax(camera.ZRange[1u], floatBitsToUint(nearFar[1u]));
+}
+
+vec2 cameraZRange()
+{
+	return vec2(uintBitsToFloat(camera.ZRange[0u]), uintBitsToFloat(camera.ZRange[1u]));
 }
 
 Transform cameraViewTransformInverted()
 {
-	return camera.viewTransformInverted;
+	return makeTransform(camera.viewTransformInverted);
 }
 
 mat4x4 cameraProjectionMatrix()
@@ -68,18 +86,24 @@ vec3 cameraViewZDirection()
 	return camera.viewZDirection.xyz;
 }
 
-Frustum cameraFrustum()
+void cameraUpdateProjectionMatrix(in vec2 Z)
 {
-	Frustum frustum;
+	const ClipSpace cs = cameraClipSpace();
+	camera.projectionMatrix = clipSpaceProjectionMatrix(cs, Z);
+	camera.projectionMatrixInverted = inverse(camera.projectionMatrix);
+	camera.viewProjectionMatrix = camera.projectionMatrix * transformMat4x4(makeTransform(camera.viewTransform));
+	camera.viewProjectionMatrixInverted = inverse(camera.viewProjectionMatrix);
+}
+
+uint cameraClusterNodeID(in vec3 NDC_ZO)
+{
+	const vec3 texelPosVS = projectPoint(camera.projectionMatrixInverted, 2.0f * NDC_ZO - vec3(1.0f));
 	
-	frustum.viewTransform = camera.viewTransform;
-	frustum.projectionMatrix = camera.projectionMatrix;
+	const vec2 depthRange = cameraZRange();
+	const float linearDepth = (-texelPosVS.z - depthRange[0u]) / (depthRange[1u] - depthRange[0u]);
 	
-	for (uint i = 0u; i < FRUSTUM_POINTS_COUNT; ++i)
-		frustum.points[i] = camera.frustumPoints[i].xyz;
+	const uvec3 clusterSize = cameraClusterSize(); // TODO: replace the call cameraClusterSize() when cluster size is implemented as dynamic
+	const uvec3 ID = min(uvec3(vec3(clusterSize) * vec3(NDC_ZO.xy, linearDepth)), clusterSize - uvec3(1u));
 	
-	for (uint i = 0u; i < FRUSTUM_PLANES_COUNT; ++i)
-		frustum.planes[i] = camera.frustumPlanes[i];
-		
-	return frustum;
+	return ID.x + ID.y * clusterSize.x + ID.z * clusterSize.x * clusterSize.y;
 }

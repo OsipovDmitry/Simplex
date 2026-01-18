@@ -89,12 +89,12 @@ inline FrustumT<T>::FrustumT(const TransformType &viewTransform, const ClipSpace
 
     m_projectionMatrix = m_clipSpace.projectionMatrix(m_zRange);
     const auto vpMatrix = m_projectionMatrix * m_viewTransform;
-    const auto vpMatrixInverse = glm::inverse(vpMatrix);
+    const auto vpMatrixInverted = glm::inverse(vpMatrix);
 
     m_points.reserve(numPoints());
     for (size_t p = 0u; p < numPoints(); ++p)
     {
-        auto point = vpMatrixInverse * glm::vec<length() + 1u, T>(s_boundingBox.point(p), static_cast<T>(1));
+        auto point = vpMatrixInverted * glm::vec<length() + 1u, T>(s_boundingBox.point(p), static_cast<T>(1));
         m_points.insert({ p, PointType(point / point[length()]) });
     }
 
