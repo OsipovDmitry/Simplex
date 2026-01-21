@@ -3,8 +3,6 @@
 
 #include <utils/clipspace.h>
 
-#include <core/ssao.h>
-
 #include "nodeprivate.h"
 
 namespace simplex
@@ -31,8 +29,6 @@ public:
     utils::Range &cullPlanesLimits();
     glm::uvec3& clusterMaxSize();
 
-    SSAO &ssao();
-
     void resize(const glm::uvec2&);
     void updateClipSpace();
 
@@ -48,8 +44,6 @@ private:
 
     utils::Range m_cullPlanesLimits;
     glm::uvec3 m_clusterMaxSize;
-
-    SSAO m_ssao;
 };
 
 }

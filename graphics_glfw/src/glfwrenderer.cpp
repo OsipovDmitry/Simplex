@@ -166,7 +166,7 @@ core::graphics::PixelInternalFormat Conversions::GL2PixelInternalFormat(GLenum v
         { GL_DEPTH_COMPONENT32F, core::graphics::PixelInternalFormat::Depth32F },
         { GL_STENCIL_INDEX8, core::graphics::PixelInternalFormat::Stencil8 },
         { GL_DEPTH24_STENCIL8, core::graphics::PixelInternalFormat::Depth24Stencil8 },
-        { GL_DEPTH32F_STENCIL8, core::graphics::PixelInternalFormat::Dept32FStencil8 },
+        { GL_DEPTH32F_STENCIL8, core::graphics::PixelInternalFormat::Depth32FStencil8 },
     };
 
     auto it = s_table.find(value);
@@ -899,6 +899,7 @@ uint32_t VertexArray_4_5::attachVertexBuffer(std::shared_ptr<core::graphics::IBu
     auto bufferBase_4_5 = std::dynamic_pointer_cast<BufferBase_4_5>(buffer);
     if (!bufferBase_4_5)
         LOG_CRITICAL << "Buffer can't be nullptr";
+    CHECK_SHARED_CONTEXTS(this, bufferBase_4_5);
 
     auto bindingIndex = static_cast<uint32_t>(-1);
 
@@ -1008,6 +1009,7 @@ void VertexArray_4_5::attachIndexBuffer(std::shared_ptr<core::graphics::IBuffer>
     auto bufferBase_4_5 = std::dynamic_pointer_cast<BufferBase_4_5>(buffer);
     if (!bufferBase_4_5)
         LOG_CRITICAL << "Buffer can't be nullptr";
+    CHECK_SHARED_CONTEXTS(this, bufferBase_4_5);
 
     m_indexBuffer = buffer;
 
@@ -2121,6 +2123,7 @@ TextureHandle_4_5::TextureHandle_4_5(const core::graphics::PConstTexture& textur
 
     if (auto texture_4_5 = std::dynamic_pointer_cast<const TextureBase_4_5>(m_texture); texture_4_5)
     {
+        CHECK_SHARED_CONTEXTS(this, texture_4_5);
         m_id = glGetTextureHandleARB(texture_4_5->id());
     }
     else
@@ -2171,6 +2174,7 @@ ImageHandle_4_5::ImageHandle_4_5(const core::graphics::PConstImage& image)
 
     if (auto texture_4_5 = std::dynamic_pointer_cast<const TextureBase_4_5>(image->texture()); texture_4_5)
     {
+        CHECK_SHARED_CONTEXTS(this, texture_4_5);
         m_id = glGetImageHandleARB(
             texture_4_5->id(),
             image->mipmapLevel(),
@@ -2296,7 +2300,8 @@ FrameBufferBase_4_5::FrameBufferBase_4_5(GLuint id)
     for (uint32_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
         setClearColor(i, glm::vec4(.5f, .5f, 1.f, 1.f));
 
-    setClearDepthStencil(1.f, 0x00u);
+    setClearDepth(1.f);
+    setClearStencil(0x00u);
 
     setFaceCulling(false);
 
@@ -2335,16 +2340,23 @@ bool FrameBufferBase_4_5::isComplete() const
     return glCheckNamedFramebufferStatus(m_id, GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE;
 }
 
-void FrameBufferBase_4_5::clear()
+void FrameBufferBase_4_5::clear(const std::unordered_set<core::graphics::FrameBufferAttachment>& mask)
 {
     CHECK_CURRENT_CONTEXT;
-    bool depthStensilWasCleared = false;
-    for (auto attachment : m_clearMask)
+
+    for (auto attachment : mask)
     {
-        if (core::graphics::IsFrameBufferColorAttachment(attachment) && m_attachments.count(attachment))
+        if (!m_attachments.count(attachment))
+            continue;
+
+        if (core::graphics::IsFrameBufferColorAttachment(attachment))
         {
             auto drawBuffer = core::graphics::FrameBufferColorAttachmentIndex(attachment);
-            const auto &clearColor = m_clearColor[drawBuffer];
+
+            auto colorMask = m_colorMasks[drawBuffer];
+            glColorMaski(static_cast<GLuint>(drawBuffer), colorMask, colorMask, colorMask, colorMask);
+
+            const auto& clearColor = m_clearColor[drawBuffer];
             switch (clearColor.first)
             {
             case core::graphics::FrameBufferClearColorType::Single: {
@@ -2371,43 +2383,20 @@ void FrameBufferBase_4_5::clear()
             default:
                 break;
             }
-            continue;
         }
-
-        if ((attachment == core::graphics::FrameBufferAttachment::Depth) ||
-            (attachment == core::graphics::FrameBufferAttachment::DepthStencil))
+        else if (attachment == core::graphics::FrameBufferAttachment::DepthStencil)
         {
-            if (m_attachments.count(core::graphics::FrameBufferAttachment::DepthStencil))
-            {
-                if (!depthStensilWasCleared)
-                {
-                    glClearNamedFramebufferfi(m_id, GL_DEPTH_STENCIL, 0, m_clearDepth, m_clearStencil);
-                }
-                depthStensilWasCleared = true;
-            }
-            else if (m_attachments.count(core::graphics::FrameBufferAttachment::Depth))
-            {
-                glClearNamedFramebufferfv(m_id, GL_DEPTH, 0, &m_clearDepth);
-            }
-            continue;
+            glDepthMask(m_depthMask);
+            glClearNamedFramebufferfi(m_id, GL_DEPTH_STENCIL, 0, m_clearDepth, m_clearStencil);
         }
-
-        if ((attachment == core::graphics::FrameBufferAttachment::Stencil) ||
-            (attachment == core::graphics::FrameBufferAttachment::DepthStencil))
+        else if (attachment == core::graphics::FrameBufferAttachment::Depth)
         {
-            if (m_attachments.count(core::graphics::FrameBufferAttachment::DepthStencil))
-            {
-                if (!depthStensilWasCleared)
-                {
-                    glClearNamedFramebufferfi(m_id, GL_DEPTH_STENCIL, 0, m_clearDepth, m_clearStencil);
-                }
-                depthStensilWasCleared = true;
-            }
-            else if (m_attachments.count(core::graphics::FrameBufferAttachment::Stencil))
-            {
-                glClearNamedFramebufferiv(m_id, GL_STENCIL, 0, &m_clearStencil);
-            }
-            continue;
+            glDepthMask(m_depthMask);
+            glClearNamedFramebufferfv(m_id, GL_DEPTH, 0, &m_clearDepth);
+        }
+        else if (attachment == core::graphics::FrameBufferAttachment::Stencil)
+        {
+            glClearNamedFramebufferiv(m_id, GL_STENCIL, 0, &m_clearStencil);
         }
     }
 }
@@ -2487,29 +2476,22 @@ float FrameBufferBase_4_5::clearDepth() const
     return m_clearDepth;
 }
 
+void FrameBufferBase_4_5::setClearDepth(float value)
+{
+    CHECK_CURRENT_CONTEXT;
+    m_clearDepth = value;
+}
+
 int32_t FrameBufferBase_4_5::clearStencil() const
 {
     CHECK_CURRENT_CONTEXT;
     return m_clearStencil;
 }
 
-void FrameBufferBase_4_5::setClearDepthStencil(float depth, uint8_t stencil)
+void FrameBufferBase_4_5::setClearStencil(uint8_t value)
 {
     CHECK_CURRENT_CONTEXT;
-    m_clearDepth = depth;
-    m_clearStencil = stencil;
-}
-
-const std::unordered_set<core::graphics::FrameBufferAttachment> &FrameBufferBase_4_5::clearMask() const
-{
-    CHECK_CURRENT_CONTEXT;
-    return m_clearMask;
-}
-
-void FrameBufferBase_4_5::setClearMask(const std::unordered_set<core::graphics::FrameBufferAttachment> &value)
-{
-    CHECK_CURRENT_CONTEXT;
-    m_clearMask = value;
+    m_clearStencil = value;
 }
 
 bool FrameBufferBase_4_5::faceCulling() const
@@ -2843,11 +2825,13 @@ void FrameBuffer_4_5::attach(core::graphics::FrameBufferAttachment key,
 
     if (auto texture_4_5 = std::dynamic_pointer_cast<const TextureBase_4_5>(surface); texture_4_5)
     {
+        CHECK_SHARED_CONTEXTS(this, texture_4_5);
         glNamedFramebufferTexture(m_id, Conversions::FrameBufferAttachment2GL(key), texture_4_5->id(), static_cast<GLint>(level));
         m_attachments[key] = { surface, level, 0u };
     }
     else if (auto renderBuffer_4_5 = std::dynamic_pointer_cast<const RenderBuffer_4_5>(surface); renderBuffer_4_5)
     {
+        CHECK_SHARED_CONTEXTS(this, renderBuffer_4_5);
         glNamedFramebufferRenderbuffer(m_id,
                                                  Conversions::FrameBufferAttachment2GL(key),
                                                  GL_RENDERBUFFER,
@@ -2868,6 +2852,7 @@ void FrameBuffer_4_5::attachLayer(core::graphics::FrameBufferAttachment key,
 
     if (auto texture_4_5 = std::dynamic_pointer_cast<const TextureBase_4_5>(texture); texture_4_5)
     {
+        CHECK_SHARED_CONTEXTS(this, texture_4_5);
         glNamedFramebufferTextureLayer(m_id,
                                                  Conversions::FrameBufferAttachment2GL(key),
                                                  texture_4_5->id(),
@@ -2984,12 +2969,12 @@ void DefaultFrameBuffer_4_5::setClearColor(uint32_t, const glm::u32vec4&)
     CHECK_CURRENT_CONTEXT;
 }
 
-void DefaultFrameBuffer_4_5::setClearDepthStencil(float, uint8_t)
+void DefaultFrameBuffer_4_5::setClearDepth(float)
 {
     CHECK_CURRENT_CONTEXT;
 }
 
-void DefaultFrameBuffer_4_5::setClearMask(const std::unordered_set<core::graphics::FrameBufferAttachment>&)
+void DefaultFrameBuffer_4_5::setClearStencil(uint8_t)
 {
     CHECK_CURRENT_CONTEXT;
 }
@@ -4391,78 +4376,6 @@ void GLFWRenderer::multiDrawElementsIndirectCount(
         static_cast<GLsizei>(0u));
 }
 
-void GLFWRenderer::clearRenderData()
-{
-    CHECK_THIS_CONTEXT;
-    m_renderData.clear();
-}
-
-void GLFWRenderer::addRenderData(const std::shared_ptr<core::graphics::IRenderProgram> &renderProgram,
-                                          const std::shared_ptr<core::Drawable> &drawable,
-                                          const glm::mat4x4 &transform)
-{
-    CHECK_THIS_CONTEXT;
-    auto renderProgram_4_5 = std::dynamic_pointer_cast<RenderProgram_4_5>(renderProgram);
-    if (!renderProgram_4_5)
-        LOG_CRITICAL << "Render program can't be nullptr";
-
-    CHECK_RESOURCE_CONTEXT(renderProgram_4_5);
-
-    if (!drawable)
-        LOG_CRITICAL << "Drawable can't be nullptr";
-
-    m_renderData.push_back({transform, renderProgram_4_5, drawable});
-}
-
-void GLFWRenderer::render(const std::shared_ptr<core::graphics::IFrameBuffer> &frameBuffer,
-                                   const glm::uvec4 &viewport,
-                                   const std::shared_ptr<const core::StateSet>& globalStateSet)
-{
-    CHECK_THIS_CONTEXT;
-    DEFAULT_SETUP;
-
-    auto frameBuffer_4_5 = std::dynamic_pointer_cast<FrameBufferBase_4_5>(frameBuffer);
-    if (!frameBuffer_4_5)
-        LOG_CRITICAL << "Framebuffer can't be nullptr";
-    CHECK_RESOURCE_CONTEXT(frameBuffer_4_5);
-
-    frameBuffer_4_5->clear();
-
-    glViewport(static_cast<GLint>(viewport.x),
-               static_cast<GLint>(viewport.y),
-               static_cast<GLsizei>(viewport.z),
-               static_cast<GLsizei>(viewport.w));
-
-    auto mvpStateSet = std::make_shared<MVPStateSet>();
-
-    for (auto &renderData : m_renderData)
-    {
-        auto &drawable = std::get<2>(renderData);
-        auto VAOMesh = drawable->vertexArray();
-
-        mvpStateSet->setModelMatrix(std::get<0>(renderData));
-        core::StateSetList stateSetList {globalStateSet, mvpStateSet, drawable};
-
-        setupRender(viewport, std::get<1>(renderData), frameBuffer, VAOMesh->vao(), stateSetList);
-
-        for (auto &primitiveSet : VAOMesh->primitiveSets())
-        {
-            if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
-                glDrawArrays(Conversions::PrimitiveType2GL(drawArrays->primitiveType()),
-                             static_cast<GLint>(drawArrays->first()),
-                             static_cast<GLint>(drawArrays->count()));
-            else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
-                glDrawElementsBaseVertex(Conversions::PrimitiveType2GL(drawElements->primitiveType()),
-                                         static_cast<GLsizei>(drawElements->count()),
-                                         Conversions::DrawElementsIndexType2GL(drawElements->indexType()),
-                                         reinterpret_cast<const void*>(drawElements->offset()),
-                                         static_cast<GLint>(drawElements->baseVertex()));
-        }
-    }
-
-    glMemoryBarrier(GL_ALL_BARRIER_BITS);
-}
-
 bool GLFWRenderer::doMakeCurrent()
 {
     if (m_widget.expired())
@@ -4533,8 +4446,6 @@ void GLFWRenderer::setupRender(
     setupUniforms(renderProgram_4_5, stateSetList);
     setupShaderStorageBlocks(renderProgram_4_5, stateSetList);
     setupUniformBlocks(renderProgram_4_5, stateSetList);
-
-    frameBufferBase_4_5->clear();
 
     glViewport(
         static_cast<GLint>(viewport.x),

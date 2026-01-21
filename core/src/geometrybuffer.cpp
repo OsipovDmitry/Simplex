@@ -37,9 +37,9 @@ void GeometryBuffer::resize(const glm::uvec2& size, const std::shared_ptr<graphi
         graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA32UI));
     m_colorTextureHandle->makeResident();
 
-    m_depthStencilTextureHandle = graphicsRenderer->createTextureHandle(
-        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Dept32FStencil8));
-    m_depthStencilTextureHandle->makeResident();
+    m_depthTextureHandle = graphicsRenderer->createTextureHandle(
+        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Depth32F));
+    m_depthTextureHandle->makeResident();
 
     m_OITNodeIDImageHandle = graphicsRenderer->createImageHandle(
         graphics::Image::create(
@@ -56,7 +56,7 @@ void GeometryBuffer::resize(const glm::uvec2& size, const std::shared_ptr<graphi
 
     m_GBuffer = PGBuffer::element_type::create(GBufferDescription::make(
         m_colorTextureHandle->handle(),
-        m_depthStencilTextureHandle->handle(),
+        m_depthTextureHandle->handle(),
         m_OITNodeIDImageHandle->handle(),
         m_finalTextureHandle->handle(),
         m_size,
@@ -95,17 +95,28 @@ void GeometryBuffer::clear(
         { shared_from_this() });
 
     framebuffer->detachAll();
-    framebuffer->attach(graphics::FrameBufferAttachment::Color0, colorTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::DepthStencil, depthStencilTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, m_colorTextureHandle->texture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Color1, m_finalTextureHandle->texture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Depth, m_depthTextureHandle->texture());
 
-    framebuffer->setClearDepthStencil(1.f, 0x00u);
     framebuffer->setClearColor(0u, glm::uvec4(0u));
-    framebuffer->setClearMask({
-        graphics::FrameBufferAttachment::Color0,
-        core::graphics::FrameBufferAttachment::Depth,
-        core::graphics::FrameBufferAttachment::Stencil });
+    framebuffer->setClearColor(1u, glm::vec4(0.f, 0.f, 0.f, 1.f));
+    framebuffer->setClearDepth(1.f);
 
-    framebuffer->clear();
+    framebuffer->setColorMask(0u, true);
+    framebuffer->setColorMask(1u, true);
+    framebuffer->setDepthMask(true);
+
+    if (!framebuffer->isComplete())
+    {
+        LOG_CRITICAL << "Frambuffer is not complete";
+        return;
+    }
+
+    framebuffer->clear({
+        graphics::FrameBufferAttachment::Color0,
+        graphics::FrameBufferAttachment::Color1,
+        core::graphics::FrameBufferAttachment::Depth });
 }
 
 void GeometryBuffer::sortOITNodes(const std::shared_ptr<graphics::RendererBase>& graphicsRenderer) const
@@ -131,9 +142,9 @@ graphics::PConstTexture GeometryBuffer::colorTexture() const
     return m_colorTextureHandle->texture();
 }
 
-graphics::PConstTexture GeometryBuffer::depthStencilTexture() const
+graphics::PConstTexture GeometryBuffer::depthTexture() const
 {
-    return m_depthStencilTextureHandle->texture();
+    return m_depthTextureHandle->texture();
 }
 
 graphics::PConstTexture GeometryBuffer::finalTexture() const

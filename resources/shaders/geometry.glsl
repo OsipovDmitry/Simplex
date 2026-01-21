@@ -82,7 +82,7 @@ void geometryBufferSortOITNodes(in ivec2 fragCoords)
 void geometryBufferData(in ivec2 fragCoords, out uvec4 PBRData, out float depth, out uint nextOITNodeID)
 {
 	PBRData = texelFetch(usampler2DRect(GBuffer.colorTextureHandle), fragCoords);
-	depth = texelFetch(sampler2DRect(GBuffer.depthStencilTextureHandle), fragCoords).r;
+	depth = texelFetch(sampler2DRect(GBuffer.depthTextureHandle), fragCoords).r;
 	
 	layout(r32ui) uimage2DRect image = layout(r32ui) uimage2DRect(GBuffer.OITNodeIDImageHandle);
 	nextOITNodeID = imageLoad(image, fragCoords).r;

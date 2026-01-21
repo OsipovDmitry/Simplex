@@ -88,9 +88,7 @@ std::shared_ptr<RenderPipeLine> RenderPipeLine::create(
     const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
     const std::shared_ptr<graphics::IVertexArray>& vertexArray)
 {
-    auto result = std::shared_ptr<RenderPipeLine>(new RenderPipeLine(programsManager, renderer, frameBuffer, vertexArray));
-
-    const auto clear = [](
+    static const auto clear = [](
         const std::shared_ptr<graphics::RendererBase>& renderer,
         const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
         const std::shared_ptr<graphics::IVertexArray>&,
@@ -100,7 +98,7 @@ std::shared_ptr<RenderPipeLine> RenderPipeLine::create(
             geometryBuffer->clear(renderer, frameBuffer);
         };
 
-    const auto sort = [](
+    static const auto sort = [](
         const std::shared_ptr<graphics::RendererBase>& renderer,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&,
@@ -109,6 +107,8 @@ std::shared_ptr<RenderPipeLine> RenderPipeLine::create(
         {
             geometryBuffer->sortOITNodes(renderer);
         };
+
+    auto result = std::shared_ptr<RenderPipeLine>(new RenderPipeLine(programsManager, renderer, frameBuffer, vertexArray));
 
     auto& passes = result->m_passes;
     passes.push_back(std::make_shared<FrustumCullingPass>(programsManager, result));

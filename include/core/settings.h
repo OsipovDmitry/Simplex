@@ -117,7 +117,7 @@ public:
     SSAO(const rapidjson::Document::ValueType*);
     ~SSAO() override;
 
-    SSAOMode mode() const;
+    //SSAOMode mode() const;
     float viewportDenominator() const;
     float contribution() const;
     uint32_t kernelSize() const;

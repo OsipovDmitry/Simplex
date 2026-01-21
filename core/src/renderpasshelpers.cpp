@@ -12,8 +12,6 @@ namespace simplex
 namespace core
 {
 
-
-
 SimplePass::SimplePass(const std::shared_ptr<RenderPipeLine>& renderPipeLine, const RunMethod& runMethod)
     : RenderPass(renderPipeLine)
     , m_runMethod(runMethod)
@@ -134,17 +132,13 @@ void RenderDrawDataGeometryPass::run(
 
     framebuffer->detachAll();
     framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->colorTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::DepthStencil, geometryBuffer->depthStencilTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Depth, geometryBuffer->depthTexture());
 
     framebuffer->setFaceCulling(false);
     framebuffer->setColorMasks(true);
     framebuffer->setDepthTest(true);
     framebuffer->setDepthMask(true);
-    framebuffer->setStencilTest(true);
-    framebuffer->setStencilFunc(graphics::FaceType::FrontAndBack, graphics::ComparingFunc::Always, 0x01u, 0xFFu);
-    framebuffer->setStencilOperations(graphics::FaceType::FrontAndBack, { graphics::StencilOperation::Keep,
-                                                                           graphics::StencilOperation::Keep,
-                                                                           graphics::StencilOperation::Replace });
+    framebuffer->setStencilTest(false);
     framebuffer->setBlending(false);
 
     renderer->multiDrawArraysIndirectCount(
@@ -158,9 +152,7 @@ void RenderDrawDataGeometryPass::run(
         renderPipeLine->opaqueParameterBuffer());
 
     framebuffer->detachAll();
-    framebuffer->attach(graphics::FrameBufferAttachment::DepthStencil, geometryBuffer->depthStencilTexture());
-
-    framebuffer->setClearMask({});
+    framebuffer->attach(graphics::FrameBufferAttachment::Depth, geometryBuffer->depthTexture());
 
     framebuffer->setFaceCulling(false);
     framebuffer->setColorMasks(false);
@@ -275,18 +267,12 @@ void RenderBackgroundPass::run(
 {
     framebuffer->detachAll();
     framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->finalTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::DepthStencil, geometryBuffer->depthStencilTexture());
-
-    framebuffer->setClearColor(0u, glm::vec4(glm::vec3(0.f), 1.f));
-    framebuffer->setClearMask({ core::graphics::FrameBufferAttachment::Color0 });
+    framebuffer->attach(graphics::FrameBufferAttachment::Depth, geometryBuffer->depthTexture());
 
     framebuffer->setFaceCulling(false);
     framebuffer->setColorMasks(true);
     framebuffer->setDepthTest(false);
-    framebuffer->setStencilTest(true);
-    framebuffer->setStencilFunc(graphics::FaceType::FrontAndBack, graphics::ComparingFunc::Equal, 0x00, 0xFF);
-    framebuffer->setStencilOperations(graphics::FaceType::FrontAndBack,
-        { graphics::StencilOperation::Keep, graphics::StencilOperation::Keep, graphics::StencilOperation::Keep });
+    framebuffer->setStencilTest(false);
     framebuffer->setBlending(false);
 
     renderer->drawArraysIndirect(
@@ -333,8 +319,6 @@ void BlendPass::run(
 {
     framebuffer->detachAll();
     framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->finalTexture());
-
-    framebuffer->setClearMask({ });
 
     framebuffer->setFaceCulling(false);
     framebuffer->setColorMasks(true);

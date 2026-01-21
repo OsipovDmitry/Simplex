@@ -57,11 +57,6 @@ glm::uvec3& CameraNodePrivate::clusterMaxSize()
     return m_clusterMaxSize;
 }
 
-SSAO &CameraNodePrivate::ssao()
-{
-    return m_ssao;
-}
-
 void CameraNodePrivate::resize(const glm::uvec2& size)
 {
     const auto viewportSize = glm::max(glm::uvec2(1u), size);

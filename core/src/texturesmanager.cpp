@@ -778,7 +778,7 @@ inline graphics::PixelInternalFormat string2PixelInternalFormat(const std::strin
         { "Depth32F", graphics::PixelInternalFormat::Depth32F },
         { "Stencil8", graphics::PixelInternalFormat::Stencil8 },
         { "Depth24Stencil8", graphics::PixelInternalFormat::Depth24Stencil8 },
-        { "Dept32FStencil8", graphics::PixelInternalFormat::Dept32FStencil8 },
+        { "Dept32FStencil8", graphics::PixelInternalFormat::Depth32FStencil8 },
     };
 
     auto it = s_table.find(value);

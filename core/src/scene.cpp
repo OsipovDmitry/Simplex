@@ -25,12 +25,12 @@
 #include "scenerootnodeprivate.h"
 #include "scenedata.h"
 
-#define TINYGLTF_IMPLEMENTATION
-#define TINYGLTF_USE_RAPIDJSON
-#define TINYGLTF_NO_EXTERNAL_IMAGE
-#define TINYGLTF_NO_STB_IMAGE
-#define TINYGLTF_NO_STB_IMAGE_WRITE
-#include "gltf/gltf.h"
+//#define TINYGLTF_IMPLEMENTATION
+//#define TINYGLTF_USE_RAPIDJSON
+//#define TINYGLTF_NO_EXTERNAL_IMAGE
+//#define TINYGLTF_NO_STB_IMAGE
+//#define TINYGLTF_NO_STB_IMAGE_WRITE
+//#include "gltf/gltf.h"
 
 namespace simplex
 {

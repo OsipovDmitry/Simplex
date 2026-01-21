@@ -35,7 +35,7 @@ public:
     PConstOITBuffer OITBuffer() const;
 
     graphics::PConstTexture colorTexture() const;
-    graphics::PConstTexture depthStencilTexture() const;
+    graphics::PConstTexture depthTexture() const;
     graphics::PConstTexture finalTexture() const;
 
 private:
@@ -45,7 +45,7 @@ private:
     POITBuffer m_OITBuffer;
 
     graphics::PTextureHandle m_colorTextureHandle;
-    graphics::PTextureHandle m_depthStencilTextureHandle;
+    graphics::PTextureHandle m_depthTextureHandle;
     graphics::PImageHandle m_OITNodeIDImageHandle;
     graphics::PTextureHandle m_finalTextureHandle;
 

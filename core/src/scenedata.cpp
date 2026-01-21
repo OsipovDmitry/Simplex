@@ -755,7 +755,7 @@ void SceneData::onMaterialChanged(
         isShadowed,
         isShadowCasted,
         isDoubleSided,
-        isMaterialTransparent(baseColor, baseColorMap),
+        isMaterialTransparent(baseColor, baseColorMap, alphaCutoff),
         alphaCutoff));
 }
 
@@ -1146,27 +1146,33 @@ void SceneData::onLightChanged(utils::IDsGenerator::value_type ID, const LightDe
     m_lightsBuffer->set(ID, lightDescription);
 }
 
-bool SceneData::isMaterialTransparent(const glm::vec4& baseColor, const std::shared_ptr<const MaterialMap>& baseColorMap)
+bool SceneData::isMaterialTransparent(
+    const glm::vec4& baseColor,
+    const std::shared_ptr<const MaterialMap>& baseColorMap,
+    float alphaCutoff)
 {
-    if (baseColor.a < 1.f - utils::epsilon<float>()) return true;
-
-    if (baseColorMap)
+    if (alphaCutoff < utils::epsilon<float>())
     {
-        std::shared_ptr<const utils::Image> baseColorImage;
-        if (auto path = baseColorMap->filesystemPath(); !path.empty())
+        if (baseColor.a < 1.f - utils::epsilon<float>()) return true;
+
+        if (baseColorMap)
         {
-            baseColorImage = utils::ImageManager::instance().loadOrGetDescription(path);
-        }
-        else if (auto image = baseColorMap->image(); image)
-        {
-            baseColorImage = image;
+            std::shared_ptr<const utils::Image> baseColorImage;
+            if (auto path = baseColorMap->filesystemPath(); !path.empty())
+            {
+                baseColorImage = utils::ImageManager::instance().loadOrGetDescription(path);
+            }
+            else if (auto image = baseColorMap->image(); image)
+            {
+                baseColorImage = image;
+            }
+
+            if (baseColorImage && (baseColorImage->numComponents() == 4u))
+                return true;
         }
 
-        if (baseColorImage && (baseColorImage->numComponents() == 4u))
-            return true;
+        // other future conditions like opacity map
     }
-
-    // other future conditions like opacity map
 
     return false;
 }

@@ -52,18 +52,18 @@ ShadingFilter string2ShadingFilter(const std::string &value)
     return (it != s_table.end()) ? it->second : ShadingFilter::VSM;
 }
 
-SSAOMode string2SSAOMode(const std::string &value)
-{
-    static std::unordered_map<std::string, SSAOMode> s_table {
-        { "disabled", SSAOMode::Disabled },
-        { "opaque", SSAOMode::Opaque },
-        { "opaqueandtransparent", SSAOMode::OpaqueAndTransparent },
-        { "color", SSAOMode::Color }
-    };
-
-    auto it = s_table.find(value);
-    return (it != s_table.end()) ? it->second : SSAOMode::Color;
-}
+//SSAOMode string2SSAOMode(const std::string &value)
+//{
+//    static std::unordered_map<std::string, SSAOMode> s_table {
+//        { "disabled", SSAOMode::Disabled },
+//        { "opaque", SSAOMode::Opaque },
+//        { "opaqueandtransparent", SSAOMode::OpaqueAndTransparent },
+//        { "color", SSAOMode::Color }
+//    };
+//
+//    auto it = s_table.find(value);
+//    return (it != s_table.end()) ? it->second : SSAOMode::Color;
+//}
 
 }
 
@@ -285,14 +285,14 @@ SSAO::SSAO(const rapidjson::Document::ValueType *value)
 
 SSAO::~SSAO() = default;
 
-SSAOMode SSAO::mode() const
-{
-    auto modeString = readString("Mode", "color");
-    for (auto &c : modeString)
-        c = static_cast<char>(std::tolower(c));
-
-    return Conversions::string2SSAOMode(modeString);
-}
+//SSAOMode SSAO::mode() const
+//{
+//    auto modeString = readString("Mode", "color");
+//    for (auto &c : modeString)
+//        c = static_cast<char>(std::tolower(c));
+//
+//    return Conversions::string2SSAOMode(modeString);
+//}
 
 float SSAO::viewportDenominator() const
 {

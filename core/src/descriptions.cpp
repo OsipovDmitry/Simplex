@@ -72,21 +72,21 @@ CameraDescription CameraDescription::make(
 SceneInfoDescription SceneInfoDescription::make(
     uint32_t drawDataCount,
     uint32_t lightsCount,
-    uint32_t clusterLightNodesMaxCount)
+    uint32_t lightNodesMaxCount)
 {
     return {
         drawDataCount,
         lightsCount,
         0u,
         0u,
-        clusterLightNodesMaxCount,
+        lightNodesMaxCount,
         0u,
         0xFFFFFFFFu};
 }
 
 GBufferDescription GBufferDescription::make(
     graphics::TextureHandle colorTextureHandle,
-    graphics::TextureHandle depthStencilTextureHandle,
+    graphics::TextureHandle depthTextureHandle,
     graphics::ImageHandle OITIndicesImageHandle,
     graphics::TextureHandle finalTextureHandle,
     const glm::uvec2& size,
@@ -94,7 +94,7 @@ GBufferDescription GBufferDescription::make(
 {
     return {
         colorTextureHandle,
-        depthStencilTextureHandle,
+        depthTextureHandle,
         OITIndicesImageHandle,
         finalTextureHandle,
         size,

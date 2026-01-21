@@ -32,10 +32,6 @@ void main(void)
 	if (hasTexCoords && (baseColorMapID != 0xFFFFFFFFu))
 		baseColor *= toLinearRGB(texture(sampler2D(materialMapTextureHandle(baseColorMapID)), v_texCoords));
 	
-	const float alpha = baseColor.a;
-	if (alpha < materialAlphaCutoff(v_materialID))
-		discard;
-	
 	vec3 emission = materialEmission(v_materialID);
 	
 	const uint emissionMapID = materialEmissionMapID(v_materialID);
@@ -90,7 +86,7 @@ void main(void)
 				occlusion,
 				roughness,
 				metalness,
-				alpha,
+				baseColor.a,
 				normal,
 				isMaterialLighted(v_materialID),
 				isMaterialShadowed(v_materialID)),

@@ -257,7 +257,10 @@ private:
     std::shared_ptr<LightHandler> addLight();
     void onLightChanged(utils::IDsGenerator::value_type, const LightDescription&);
 
-    static bool isMaterialTransparent(const glm::vec4& baseColor, const std::shared_ptr<const MaterialMap>& baseColorMap);
+    static bool isMaterialTransparent(
+        const glm::vec4& baseColor,
+        const std::shared_ptr<const MaterialMap>& baseColorMap,
+        float alphaCutoff);
 
     VertexDataBuffer m_vertexDataBuffer;
     ElementsBuffer m_elementsBuffer;

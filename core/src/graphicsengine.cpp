@@ -535,10 +535,7 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
 
         sceneInfo.camerasInformation.push_back(cameraInfo);
     }
-
-    renderer->clearRenderData();
 }
-
 
 void GraphicsEngine::setF()
 {

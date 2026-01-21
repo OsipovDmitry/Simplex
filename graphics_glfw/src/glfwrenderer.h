@@ -33,6 +33,10 @@
     if (!core::graphics::RendererBase::areShared(shared_from_this(), resource->renderer())) \
         LOG_CRITICAL << "Resource was created in anotrher context";
 
+#define CHECK_SHARED_CONTEXTS(resource1, resource2) \
+    if (!core::graphics::RendererBase::areShared(resource1->renderer(), resource2->renderer())) \
+        LOG_CRITICAL << "Resources were created in different contexts";
+
 
 struct GLFWwindow;
 
@@ -573,7 +577,7 @@ public:
     GLuint id() const;
 
     bool isComplete() const override;
-    void clear() override;
+    void clear(const std::unordered_set<core::graphics::FrameBufferAttachment>&) override;
 
     std::shared_ptr<const core::graphics::ISurface> attachmentSurface(core::graphics::FrameBufferAttachment) const override;
     uint32_t attachmentMipmapLevel(core::graphics::FrameBufferAttachment) const override;
@@ -585,11 +589,10 @@ public:
     void setClearColor(uint32_t, const glm::u32vec4&) override;
 
     float clearDepth() const override;
-    int32_t clearStencil() const override;
-    void setClearDepthStencil(float, uint8_t) override;
+    void setClearDepth(float) override;
 
-    const std::unordered_set<core::graphics::FrameBufferAttachment> &clearMask() const override;
-    void setClearMask(const std::unordered_set<core::graphics::FrameBufferAttachment>&) override;
+    int32_t clearStencil() const override;
+    void setClearStencil(uint8_t) override;
 
     bool faceCulling() const override;
     core::graphics::FaceType cullFaceType() const override;
@@ -648,7 +651,6 @@ protected:
     std::array<core::graphics::FrameBufferClearColor, core::graphics::FrameBufferColorAttachmentsCount()> m_clearColor;
     float m_clearDepth;
     int32_t m_clearStencil;
-    std::unordered_set<core::graphics::FrameBufferAttachment> m_clearMask;
 
     core::graphics::FaceType m_cullFaceType;
     bool m_faceCulling;
@@ -713,8 +715,8 @@ public:
     void setClearColor(uint32_t, const glm::vec4&) override;
     void setClearColor(uint32_t, const glm::i32vec4&) override;
     void setClearColor(uint32_t, const glm::u32vec4&) override;
-    void setClearDepthStencil(float, uint8_t) override;
-    void setClearMask(const std::unordered_set<core::graphics::FrameBufferAttachment>&) override;
+    void setClearDepth(float) override;
+    void setClearStencil(uint8_t) override;
 
     static std::shared_ptr<DefaultFrameBuffer_4_5> create(GLuint);
 };
@@ -1071,14 +1073,6 @@ public:
         const core::graphics::PDrawElementsIndirectCommandConstBuffer&,
         const core::graphics::PConstBufferRange&) override;
 
-    void clearRenderData() override;
-    void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
-                       const std::shared_ptr<core::Drawable>&,
-                       const glm::mat4x4& = glm::mat4x4(1.f)) override;
-    void render(const std::shared_ptr<core::graphics::IFrameBuffer>&,
-                const glm::uvec4 &viewport,
-                const std::shared_ptr<const core::StateSet>&) override;
-
 protected:
     bool doMakeCurrent() override;
     bool doDoneCurrent() override;
@@ -1115,8 +1109,6 @@ private:
     void bindParameterBuffer(const core::graphics::PConstBuffer&);
 
     std::weak_ptr<GLFWWidget> m_widget;
-
-    std::deque<std::tuple<glm::mat4x4, std::shared_ptr<RenderProgram_4_5>, std::shared_ptr<core::Drawable>>> m_renderData;
     glm::uvec2 m_screenSize;
 };
 

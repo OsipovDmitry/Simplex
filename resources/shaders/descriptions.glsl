@@ -75,7 +75,7 @@ struct SceneInfoDescription
 struct GBufferDescription
 {
     TextureHandle colorTextureHandle;
-    TextureHandle depthStencilTextureHandle;
+    TextureHandle depthTextureHandle;
     ImageHandle OITNodeIDImageHandle;
     TextureHandle finalTextureHandle;
     uvec2 size;

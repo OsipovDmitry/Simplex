@@ -106,7 +106,7 @@ const uint8_t *VertexBuffer::vertex(size_t index) const
     return m_data + m_numComponents * sizeOfVertexComponentType(m_type) * index;
 }
 
-void VertexBuffer::setVertex(size_t index, const uint8_t*data)
+void VertexBuffer::setVertex(size_t index, const uint8_t* data)
 {
     std::memcpy(m_data + m_numComponents * sizeOfVertexComponentType(m_type) * index,
                 data,
@@ -162,7 +162,7 @@ std::shared_ptr<VertexBuffer> VertexBuffer::converted(uint32_t numComponents, Ve
     return result;
 }
 
-DrawElementsBuffer::DrawElementsBuffer(PrimitiveType primitiveType, uint32_t count, DrawElementsIndexType type, size_t baseVertex)
+DrawElementsBuffer::DrawElementsBuffer(PrimitiveType primitiveType, size_t count, DrawElementsIndexType type, size_t baseVertex)
     : DrawElements(primitiveType, count, type, 0, baseVertex)
     , Buffer(0u)
 {
@@ -306,15 +306,7 @@ const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer>> &Mesh::
     return m_vertexBuffers;
 }
 
-void Mesh::attachPrimitiveSet(const std::shared_ptr<DrawArrays> &primitiveSet)
-{
-    if (!primitiveSet)
-        LOG_CRITICAL << "Primitive set can't be nullptr";
-
-    m_primitiveSets.insert(primitiveSet);
-}
-
-void Mesh::attachPrimitiveSet(const std::shared_ptr<DrawElementsBuffer> &primitiveSet)
+void Mesh::attachPrimitiveSet(const std::shared_ptr<PrimitiveSet> &primitiveSet)
 {
     if (!primitiveSet)
         LOG_CRITICAL << "Primitive set can't be nullptr";

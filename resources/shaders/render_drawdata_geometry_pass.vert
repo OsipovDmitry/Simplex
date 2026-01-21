@@ -1,8 +1,9 @@
-#include<vertex_data.glsl>
-#include<draw_data.glsl>
-#include<drawable.glsl>
-#include<mesh.glsl>
+#include<bones_data.glsl>
 #include<camera.glsl>
+#include<drawable.glsl>
+#include<draw_data.glsl>
+#include<mesh.glsl>
+#include<vertex_data.glsl>
 
 flat out uint v_meshID;
 flat out uint v_materialID;

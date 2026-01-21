@@ -154,7 +154,7 @@ vec4 proccessLighting(in vec3 NDC_ZO, in uvec4 PBRData)
 }
 
 void main(void)
-{ 
+{
 	const ivec2 fragCoords = ivec2(gl_FragCoord.xy);
 	const vec2 NDC_XY_ZO = vec2(gl_FragCoord.xy) / vec2(geometryBufferSize() - uvec2(1u));
 	

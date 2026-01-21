@@ -22,6 +22,8 @@
 #include <core/shadow.h>
 #include <core/nodecollector.h>
 
+#include <loader_assimp/loader.h>
+
 #include <graphics_glfw/glfwwidget.h>
 
 struct Cone
@@ -424,7 +426,7 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     pointLightNode->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(0.f, 2.f, 0.f)));
     pointLightNode->setColor(glm::vec3(3.f));
     pointLightNode->setRadiuses(glm::vec2(2.5f, 3.f));
-    scene->sceneRootNode()->attach(pointLightNode);
+    //scene->sceneRootNode()->attach(pointLightNode);
 
     auto spotLightNode = std::make_shared<simplex::core::SpotLightNode>("");
     spotLightNode->setTransform(simplex::utils::Transform::makeLookAt(
@@ -477,6 +479,46 @@ void createSpheres()
     //    }
 }
 
+static std::shared_ptr<simplex::core::Scene> createScene2(
+    const std::string& name,
+    const std::shared_ptr<simplex::core::graphics::RendererBase>& renderer)
+{
+    renderer->makeCurrent();
+
+    auto scene = simplex::core::Scene::createEmpty(name);
+
+    auto cameraNode = std::make_shared<simplex::core::CameraNode>("");
+    scene->sceneRootNode()->attach(cameraNode);
+
+    auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
+    IBLNode->setContribution(.3f);
+    scene->sceneRootNode()->attach(IBLNode);
+    IBLNodeWeak = IBLNode;
+
+    auto pointLightNode0 = std::make_shared<simplex::core::PointLightNode>("");
+    pointLightNode0->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(-595.f, 426.f, -27.f)));
+    pointLightNode0->setColor(glm::vec3(2.f, 0.f, 0.f));
+    pointLightNode0->setRadiuses(glm::vec2(900.f, 1000.f));
+    scene->sceneRootNode()->attach(pointLightNode0);
+
+    auto pointLightNode1 = std::make_shared<simplex::core::PointLightNode>("");
+    pointLightNode1->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(-84.f, 426.f, -27.f)));
+    pointLightNode1->setColor(glm::vec3(0.f, 2.f, 0.f));
+    pointLightNode1->setRadiuses(glm::vec2(900.f, 1000.f));
+    scene->sceneRootNode()->attach(pointLightNode1);
+
+    auto pointLightNode2 = std::make_shared<simplex::core::PointLightNode>("");
+    pointLightNode2->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(420.f, 426.f, -27.f)));
+    pointLightNode2->setColor(glm::vec3(0.f, 0.f, 2.f));
+    pointLightNode2->setRadiuses(glm::vec2(900.f, 1000.f));
+    scene->sceneRootNode()->attach(pointLightNode2);
+
+    scene->sceneRootNode()->attach(simplex::loader_assimp::load("C:/res/Sponza/Sponza.gltf"));
+    //scene->sceneRootNode()->attach(simplex::loader_assimp::load("C:/Users/3520136/Downloads/sponza/sponza.obj"));
+    //scene->sceneRootNode()->attach(simplex::loader_assimp::load("C:/Users/3520136/Downloads/cat/12221_Cat_v1_l3.obj"));
+    return scene;
+}
+
 static bool isWPressed = false;
 static bool isSPressed = false;
 static bool isAPressed = false;
@@ -490,7 +532,8 @@ static bool isDownPressed = false;
 static bool isSpacePressed = false;
 static bool isLShiftPressed = false;
 static glm::vec2 cameraAngles(-0.37f, 5.5f);
-static glm::vec3 cameraPosition(-2.94f, 1.83f, 2.44f);
+//static glm::vec3 cameraPosition(-2.94f, 1.83f, 2.44f);
+static glm::vec3 cameraPosition(-2.94f, 1.83f, 1000.44f);
 
 static void keyCallback(
     simplex::core::graphics::KeyState keyState,
@@ -620,7 +663,8 @@ static void updateCallback(uint64_t time, uint32_t dt)
     if (isEPressed)
         cameraDir += cameraUpDir;
 
-    const float vel = isLShiftPressed ? .03f : .003f;
+    //const float vel = isLShiftPressed ? .03f : .003f;
+    const float vel = isLShiftPressed ? 3.f : .3f;
     if (glm::length(cameraDir) > .1f)
         cameraPosition += glm::normalize(cameraDir) * static_cast<float>(dt) * vel;
 
@@ -637,9 +681,9 @@ static void updateCallback(uint64_t time, uint32_t dt)
             scene->sceneRootNode()->acceptDown(cameraCollector);
             cameraCollector.nodes().front()->setTransform(cameraTransform);
 
-            scene->background()->setRotation(envRotation);
-            if (auto IBLNode = IBLNodeWeak.lock())
-                IBLNode->setTransform(simplex::utils::Transform::makeRotation(envRotation).inverted());
+            //scene->background()->setRotation(envRotation);
+            //if (auto IBLNode = IBLNodeWeak.lock())
+            //    IBLNode->setTransform(simplex::utils::Transform::makeRotation(envRotation).inverted());
         }
 
     //if (isSpacePressed)
@@ -673,7 +717,7 @@ int main(int argc, char* argv[])
     }
 
     auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene");
-    window->engine()->setScene(createScene("SimpleScene", window->graphicsEngine()->graphicsRenderer()));
+    window->engine()->setScene(createScene2("SimpleScene", window->graphicsEngine()->graphicsRenderer()));
     window->setKeyCallback(keyCallback);
     window->setUpdateCallback(updateCallback);
 

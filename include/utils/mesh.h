@@ -91,7 +91,7 @@ protected:
 class UTILS_SHARED_EXPORT DrawElementsBuffer : public DrawElements, public Buffer
 {
 public:
-    DrawElementsBuffer(PrimitiveType, uint32_t count, DrawElementsIndexType, size_t baseVertex);
+    DrawElementsBuffer(PrimitiveType, size_t count, DrawElementsIndexType, size_t baseVertex);
     ~DrawElementsBuffer() override;
 
     std::shared_ptr<DrawElementsBuffer> asDrawElementsBuffer() override;
@@ -125,8 +125,7 @@ public:
     void detachVertexBuffer(VertexAttribute);
     const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer>> &vertexBuffers() const;
 
-    void attachPrimitiveSet(const std::shared_ptr<DrawArrays>&);
-    void attachPrimitiveSet(const std::shared_ptr<DrawElementsBuffer>&);
+    void attachPrimitiveSet(const std::shared_ptr<PrimitiveSet>&);
     void detachPrimitiveSet(const std::shared_ptr<PrimitiveSet>&);
     const std::unordered_set<std::shared_ptr<PrimitiveSet>> &primitiveSets() const;
 

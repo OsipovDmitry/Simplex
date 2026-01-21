@@ -38,9 +38,6 @@ public:
 
     const glm::uvec3& clusterMaxSize() const;
     void setClusterMaxSize(const glm::uvec3&);
-
-    SSAO &ssao();
-    const SSAO &ssao() const;
 };
 
 }

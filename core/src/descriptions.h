@@ -91,13 +91,13 @@ struct SceneInfoDescription
     static SceneInfoDescription make(
         uint32_t drawDataCount,
         uint32_t lightsCount,
-        uint32_t clusterLightNodesMaxCount);
+        uint32_t lightNodesMaxCount);
 };
 
 struct GBufferDescription
 {
     graphics::TextureHandle colorTextureHandle;
-    graphics::TextureHandle depthStencilTextureHandle;
+    graphics::TextureHandle depthTextureHandle;
     graphics::ImageHandle OITIndicesImageeHandle;
     graphics::TextureHandle finalTextureHandle;
     glm::uvec2 size;
@@ -106,7 +106,7 @@ struct GBufferDescription
 
     static GBufferDescription make(
         graphics::TextureHandle colorTextureHandle,
-        graphics::TextureHandle depthStencilTextureHandle,
+        graphics::TextureHandle depthTextureHandle,
         graphics::ImageHandle OITIndicesImageHandle,
         graphics::TextureHandle finalTextureHandle,
         const glm::uvec2& size,

@@ -1,7 +1,6 @@
 #include <utils/logger.h>
 #include <utils/clipspace.h>
 
-#include <core/ssao.h>
 #include <core/cameranode.h>
 #include <core/settings.h>
 
@@ -113,16 +112,6 @@ const glm::uvec3& CameraNode::clusterMaxSize() const
 void CameraNode::setClusterMaxSize(const glm::uvec3& value)
 {
     m().clusterMaxSize() = value;
-}
-
-SSAO &CameraNode::ssao()
-{
-    return m().ssao();
-}
-
-const SSAO &CameraNode::ssao() const
-{
-    return const_cast<CameraNode*>(this)->ssao();
 }
 
 }

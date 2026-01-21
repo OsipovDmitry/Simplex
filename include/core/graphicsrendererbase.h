@@ -44,7 +44,7 @@ ENUMCLASS(PixelInternalFormat, uint16_t,
           RG8I, RG8UI, RG16I, RG16UI, RG32I, RG32UI,
           RGB8I, RGB8UI, RGB16I, RGB16UI, RGB32I, RGB32UI,
           RGBA8I, RGBA8UI, RGBA16I, RGBA16UI, RGBA32I, RGBA32UI,
-          Depth16, Depth24, Depth32F, Stencil8, Depth24Stencil8, Dept32FStencil8)
+          Depth16, Depth24, Depth32F, Stencil8, Depth24Stencil8, Depth32FStencil8)
 
 CORE_SHARED_EXPORT core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(
     uint32_t,
@@ -378,7 +378,7 @@ public:
     virtual ~IFrameBuffer() = default;
 
     virtual bool isComplete() const = 0;
-    virtual void clear() = 0;
+    virtual void clear(const std::unordered_set<FrameBufferAttachment>&) = 0;
     
     virtual void attach(FrameBufferAttachment, std::shared_ptr<const ISurface>, uint32_t level = 0u) = 0;
     virtual void attachLayer(FrameBufferAttachment, std::shared_ptr<const ITexture>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
@@ -394,11 +394,10 @@ public:
     virtual void setClearColor(uint32_t, const glm::u32vec4&) = 0;
 
     virtual float clearDepth() const = 0;
-    virtual int32_t clearStencil() const = 0;
-    virtual void setClearDepthStencil(float, uint8_t) = 0;
+    virtual void setClearDepth(float) = 0;
 
-    virtual const std::unordered_set<FrameBufferAttachment> &clearMask() const = 0;
-    virtual void setClearMask(const std::unordered_set<FrameBufferAttachment>&) = 0;
+    virtual int32_t clearStencil() const = 0;
+    virtual void setClearStencil(uint8_t) = 0;
 
     virtual bool faceCulling() const = 0;
     virtual FaceType cullFaceType() const = 0;
@@ -781,14 +780,6 @@ public:
         utils::DrawElementsIndexType,
         const PDrawElementsIndirectCommandConstBuffer&,
         const PConstBufferRange&) = 0;
-
-    virtual void clearRenderData() = 0;
-    virtual void addRenderData(const std::shared_ptr<core::graphics::IRenderProgram>&,
-                               const std::shared_ptr<Drawable>&,
-                               const glm::mat4x4& = glm::mat4x4(1.f)) = 0;
-    virtual void render(const std::shared_ptr<IFrameBuffer>&,
-                        const glm::uvec4 &viewport,
-                        const std::shared_ptr<const StateSet>&) = 0;
 
 protected:
     virtual bool doMakeCurrent() = 0;
