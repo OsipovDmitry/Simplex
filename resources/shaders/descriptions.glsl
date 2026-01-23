@@ -97,6 +97,7 @@ struct MeshDescription
 	vec4 boundingBoxMaxPointAndNumElements;
     uint vertexDataOffset;
     uint elementsOffset; // draw arrays is used if 0xFFFFFFFFu
+    uint bonesDataOffset;
     uint flags;
     //  0.. 1 - occlusion map swizzle
     //  2.. 3 - roughness map swizzle
@@ -108,7 +109,8 @@ struct MeshDescription
     // 10..10 - is transparent
     // 11..18 - alpha cutoff
     // 19..31 - free (13 bits)
-    uint padding[1u];
+    
+	//uint padding[0u];
 };
 
 struct MaterialDescription

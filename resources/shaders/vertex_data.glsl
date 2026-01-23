@@ -101,7 +101,7 @@ vec4 vertexDataColor(
 	return result;
 }
 
-uint elementID(in uint ID)
+uint elementsDataElementID(in uint ID)
 {
 	return elements[ID];
 }

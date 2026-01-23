@@ -127,6 +127,7 @@ struct MeshDescription
     glm::vec4 boundingBoxMaxPointAndNumElements;
     uint32_t vertexDataOffset;
     uint32_t elementsOffset; // draw arrays is used if 0xFFFFFFFFu
+    uint32_t bonesDataOffset;
     uint32_t flags;
     //  0.. 1 - position components count [0..3]
     //  2.. 3 - normal components count [0..3]
@@ -135,7 +136,8 @@ struct MeshDescription
     //  9.. 9 - tangent space flag [0 - no tangents, 1 - tangents + binormals flags]
     // 10..12 - color components count [0 - no colors, 1 - grayscale, 2 - grayscale,alpha, 3 - RGB, 4 - RGBA, 5..7 - not used]
     // 13..31 - free (19 bits)
-    uint32_t padding[1u];
+    
+    //uint32_t padding[0u];
 
     static MeshDescription make(
         const utils::BoundingBox&,
@@ -143,6 +145,7 @@ struct MeshDescription
         uint32_t numElements,
         uint32_t vertexDataOffset,
         uint32_t elementsOffset,
+        uint32_t bonesDataOffset,
         uint32_t numPositionComponents,
         uint32_t numNormalComponents,
         uint32_t numTexCoordsComponents,

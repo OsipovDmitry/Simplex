@@ -20,9 +20,11 @@ namespace core
 
 using VertexDataDescription = float;
 using ElementsDescription = uint32_t;
+using BonesDataDescription = TransformDescription;
 
 using VertexDataBuffer = std::shared_ptr<graphics::VectorBuffer<VertexDataDescription>>;
 using ElementsBuffer = std::shared_ptr<graphics::VectorBuffer<ElementsDescription>>;
+using BonesDataBuffer = std::shared_ptr<graphics::VectorBuffer<BonesDataDescription>>;
 using MeshesBuffer = std::shared_ptr<graphics::VectorBuffer<MeshDescription>>;
 using MaterialMapsBuffer = std::shared_ptr<graphics::VectorBuffer<MaterialMapDescription>>;
 using MaterialsBuffer = std::shared_ptr<graphics::VectorBuffer<MaterialDescription>>;
@@ -264,6 +266,7 @@ private:
 
     VertexDataBuffer m_vertexDataBuffer;
     ElementsBuffer m_elementsBuffer;
+    BonesDataBuffer m_bonesDataBuffer;
     MeshesBuffer m_meshesBuffer;
     MaterialMapsBuffer m_materialMapsBuffer;
     MaterialsBuffer m_materialsBuffer;

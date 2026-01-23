@@ -52,6 +52,6 @@ vec3 calculatePBR(
 
     vec3 specular = (NDF * G * F) / max((4.0f * NdotV * NdotL), 1e-3f);
 
-    return lightColor * NdotL * (kD * baseColor /*/ PI */ + specular);
+    return lightColor * NdotL * (kD * baseColor / PI + specular);
 }
 

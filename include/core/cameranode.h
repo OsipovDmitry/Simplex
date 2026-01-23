@@ -1,8 +1,8 @@
 #ifndef CORE_CAMERANODE_H
 #define CORE_CAMERANODE_H
 
+#include <utils/glm/vec3.hpp>
 #include <utils/sortedobject.h>
-#include <utils/glm/mat4x4.hpp>
 
 #include <core/node.h>
 

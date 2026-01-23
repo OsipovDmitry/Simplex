@@ -86,7 +86,7 @@ ENUMCLASS(UniformBlockID, uint16_t,
 ENUMCLASS(ShaderStorageBlockID, uint16_t,
     VertexDataBuffer,
     ElementsBuffer,
-    BonesBuffer,
+    BonesDataBuffer,
 
     MeshesBuffer,
     MaterialMapsBuffer,

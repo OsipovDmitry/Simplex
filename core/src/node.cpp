@@ -99,6 +99,26 @@ std::shared_ptr<const LightNode> Node::asLightNode() const
     return nullptr;
 }
 
+std::shared_ptr<BoneNode> Node::asBoneNode()
+{
+    return nullptr;
+}
+
+std::shared_ptr<const BoneNode> Node::asBoneNode() const
+{
+    return nullptr;
+}
+
+std::shared_ptr<SkeletalAnimatedNode> Node::asSkeletalAnimatedNode()
+{
+    return nullptr;
+}
+
+std::shared_ptr<const SkeletalAnimatedNode> Node::asSkeletalAnimatedNode() const
+{
+    return nullptr;
+}
+
 std::shared_ptr<SoundNode> Node::asSoundNode()
 {
     return nullptr;
@@ -156,7 +176,7 @@ void Node::acceptDown(NodeVisitor &nodeVisitor)
             child->acceptDown(nodeVisitor);
 }
 
-Node::Node(std::unique_ptr<NodePrivate> nodePrivate)
+Node::Node(std::unique_ptr<NodePrivate>&& nodePrivate)
     : m_(std::move(nodePrivate))
 {
 }

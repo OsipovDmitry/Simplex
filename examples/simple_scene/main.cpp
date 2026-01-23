@@ -19,8 +19,9 @@
 #include <core/spotlightnode.h>
 #include <core/mesh.h>
 #include <core/material.h>
-#include <core/shadow.h>
+#include <core/scenerepresentation.h>
 #include <core/nodecollector.h>
+#include <core/skeletalanimatednode.h>
 
 #include <loader_assimp/loader.h>
 
@@ -443,8 +444,8 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     auto directionalLightNode = std::make_shared<simplex::core::DirectionalLightNode>("");
     directionalLightNode->setTransform(simplex::utils::Transform::makeRotation(
         glm::quat(glm::normalize(glm::vec3(1.f)), glm::normalize(glm::vec3(0.f, 0.f, -1)))));
-    directionalLightNode->shadow().setMode(simplex::core::ShadingMode::Opaque);
-    directionalLightNode->shadow().setFilter(simplex::core::ShadingFilter::Point);
+    //directionalLightNode->shadow().setMode(simplex::core::ShadingMode::Opaque);
+    //directionalLightNode->shadow().setFilter(simplex::core::ShadingFilter::Point);
     //scene->sceneRootNode()->attach(directionalLightNode);
 
     return scene;
@@ -491,7 +492,7 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     scene->sceneRootNode()->attach(cameraNode);
 
     auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
-    IBLNode->setContribution(.3f);
+    IBLNode->setContribution(.5f);
     scene->sceneRootNode()->attach(IBLNode);
     IBLNodeWeak = IBLNode;
 
@@ -513,9 +514,12 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     pointLightNode2->setRadiuses(glm::vec2(900.f, 1000.f));
     scene->sceneRootNode()->attach(pointLightNode2);
 
-    scene->sceneRootNode()->attach(simplex::loader_assimp::load("C:/res/Sponza/Sponza.gltf"));
-    //scene->sceneRootNode()->attach(simplex::loader_assimp::load("C:/Users/3520136/Downloads/sponza/sponza.obj"));
-    //scene->sceneRootNode()->attach(simplex::loader_assimp::load("C:/Users/3520136/Downloads/cat/12221_Cat_v1_l3.obj"));
+    //scene->sceneRootNode()->attach(simplex::loader_assimp::load("C:/res/Sponza/Sponza.gltf"));
+    scene->sceneRootNode()->attach(simplex::loader_assimp::load("C:/Users/3520136/Downloads/sponza/sponza.obj")->generateAnimatedNode(
+        "", true, true, false, false));
+    //scene->sceneRootNode()->attach(
+    //    simplex::loader_assimp::load("C:/Users/3520136/Downloads/Fast Run/Fast Run.dae")->generateAnimatedNode(
+    //        "", true, true, false, false));
     return scene;
 }
 
@@ -532,8 +536,8 @@ static bool isDownPressed = false;
 static bool isSpacePressed = false;
 static bool isLShiftPressed = false;
 static glm::vec2 cameraAngles(-0.37f, 5.5f);
-//static glm::vec3 cameraPosition(-2.94f, 1.83f, 2.44f);
-static glm::vec3 cameraPosition(-2.94f, 1.83f, 1000.44f);
+static glm::vec3 cameraPosition(-2.94f, 1.83f, 2.44f);
+//static glm::vec3 cameraPosition(-2.94f, 1.83f, 1000.44f);
 
 static void keyCallback(
     simplex::core::graphics::KeyState keyState,

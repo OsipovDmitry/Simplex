@@ -28,8 +28,8 @@
             "DielectricSpecular": 0.04,
             "ORMSwizzleMask": [0, 0, 0],
             "BaseColor": [1.0, 1.0, 1.0, 1.0],
-            "Roughness": 1.0,
-            "Metalness": 1.0,
+            "Roughness": 0.5,
+            "Metalness": 0.0,
             "Emission": [0.0, 0.0, 0.0],
             "NormalMapScale": 1.0,
             "OcclusionMapStrngth": 1.0

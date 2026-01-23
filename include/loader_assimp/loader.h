@@ -12,7 +12,7 @@ namespace simplex
 namespace loader_assimp
 {
 
-std::shared_ptr<core::Node> LOADER_ASSIMP_GLOBAL_SHARED_EXPORT load(const std::filesystem::path&);
+std::shared_ptr<core::SceneRepresentation> LOADER_ASSIMP_GLOBAL_SHARED_EXPORT load(const std::filesystem::path&);
 
 }
 }

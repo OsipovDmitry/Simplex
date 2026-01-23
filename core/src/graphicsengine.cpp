@@ -587,6 +587,7 @@ void GraphicsEngine::setF()
             material->setBaseColor(glm::vec4(glm::vec3(1.f, 0.f, 0.f), .2f));
         material->setMetalness(0.f);
         material->setRoughness(.2f);
+        material->setIsLighted(false);
 
         auto drawable = std::make_shared<simplex::core::Drawable>(mesh, material);
 

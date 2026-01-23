@@ -489,6 +489,9 @@ void SceneData::addMeshData(
         numElements += buffer->numIndices();
     }
 
+    uint32_t bonesDataOffset = 0xFFFFFFFFu;
+    // insertion bones to m_bonesDataBuffer
+
     if (m_meshesBuffer->size() <= ID)
         m_meshesBuffer->resize(ID + 1u);
 
@@ -498,6 +501,7 @@ void SceneData::addMeshData(
         numElements,
         vertexDataOffset,
         elementsOffset,
+        bonesDataOffset,
         numPositionComponents,
         numNormalComponents,
         numTexCoordsComponents,
@@ -1113,6 +1117,7 @@ SceneData::SceneData()
 {
     m_vertexDataBuffer = VertexDataBuffer::element_type::create();
     m_elementsBuffer = ElementsBuffer::element_type::create();
+    m_bonesDataBuffer = BonesDataBuffer::element_type::create();
     m_meshesBuffer = MeshesBuffer::element_type::create();
     m_materialMapsBuffer = MaterialMapsBuffer::element_type::create();
     m_materialsBuffer = MaterialsBuffer::element_type::create();
@@ -1123,6 +1128,7 @@ SceneData::SceneData()
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::VertexDataBuffer) = graphics::BufferRange::create(m_vertexDataBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ElementsBuffer) = graphics::BufferRange::create(m_elementsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::BonesDataBuffer) = graphics::BufferRange::create(m_bonesDataBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::MeshesBuffer) = graphics::BufferRange::create(m_meshesBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::MaterialMapsBuffer) = graphics::BufferRange::create(m_materialMapsBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::MaterialsBuffer) = graphics::BufferRange::create(m_materialsBuffer->buffer());

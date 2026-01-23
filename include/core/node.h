@@ -55,6 +55,12 @@ public:
     virtual std::shared_ptr<LightNode> asLightNode();
     virtual std::shared_ptr<const LightNode> asLightNode() const;
 
+    virtual std::shared_ptr<BoneNode> asBoneNode();
+    virtual std::shared_ptr<const BoneNode> asBoneNode() const;
+
+    virtual std::shared_ptr<SkeletalAnimatedNode> asSkeletalAnimatedNode();
+    virtual std::shared_ptr<const SkeletalAnimatedNode> asSkeletalAnimatedNode() const;
+
     virtual std::shared_ptr<SoundNode> asSoundNode();
     virtual std::shared_ptr<const SoundNode> asSoundNode() const;
 
@@ -62,7 +68,7 @@ public:
     virtual std::shared_ptr<const ListenerNode> asListenerNode() const;
 
 protected:
-    Node(std::unique_ptr<NodePrivate>);
+    Node(std::unique_ptr<NodePrivate>&&);
 
     void doAttach() override final;
     void doDetach() override final;

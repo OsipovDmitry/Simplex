@@ -197,30 +197,42 @@ using DrawableComponentSet = std::set<UniformID>;
 class Background;
 class Shadow;
 class SSAO;
+enum class SSAOMode : uint16_t;
+enum class LightType : uint16_t;
+enum class ShadingMode : uint16_t;
+enum class ShadingFilter : uint16_t;
+enum class SoundState : uint16_t;
+
+class AnimationChannel;
+class Animation;
 
 class Scene;
 class Node;
 class SceneRootNode;
-enum class SSAOMode : uint16_t;
-class CameraNode;
 class DrawableNode;
-enum class LightType : uint16_t;
-enum class ShadingMode : uint16_t;
-enum class ShadingFilter : uint16_t;
+class CameraNode;
 class LightNode;
 class PointLightNode;
 class SpotLightNode;
 class DirectionalLightNode;
 class ImageBasedLightNode;
-enum class SoundState : uint16_t;
+class BoneNode;
+class SkeletalAnimatedNode;
 class SoundNode;
 class ListenerNode;
 
 class NodeVisitor;
 template <typename NodeClass> class NodeCollector;
 
+class NodeRepresentation;
+class DrawableNodeRepresentation;
+class CameraNodeRepresentation;
+class LightNodeRepresentation;
+class SceneRepresentation;
+
 class TexturesManager;
 class ProgramsManager;
+class ScenesRepresentationsManager;
 class SoundsManager;
 
 }

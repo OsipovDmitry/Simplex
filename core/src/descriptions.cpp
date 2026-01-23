@@ -108,6 +108,7 @@ MeshDescription MeshDescription::make(
     uint32_t numElements,
     uint32_t vertexDataOffset,
     uint32_t elementsOffset,
+    uint32_t bonesDataOffset,
     uint32_t numPositionComponents,
     uint32_t numNormalComponents,
     uint32_t numTexCoordsComponents,
@@ -128,6 +129,7 @@ MeshDescription MeshDescription::make(
         glm::vec4(bb.maxPoint(), glm::uintBitsToFloat(numElements)),
         vertexDataOffset,
         elementsOffset,
+        bonesDataOffset,
         flags };
 }
 

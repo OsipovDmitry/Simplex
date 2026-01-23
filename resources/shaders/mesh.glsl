@@ -30,6 +30,11 @@ uint meshElementsOffset(in uint meshID)
 	return meshes[meshID].elementsOffset;
 }
 
+uint meshBonesDataOffset(in uint meshID)
+{
+	return meshes[meshID].bonesDataOffset;
+}
+
 uint meshPositionComponentsCount(in uint meshID)
 {
 	return bitfieldExtract(meshes[meshID].flags, 0, 2);

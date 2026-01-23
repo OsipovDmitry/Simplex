@@ -25,7 +25,7 @@ void main(void)
 	
 	const uint vertexDataOffset = meshVertexDataOffset(v_meshID);
 	const uint vertexStride = meshVertexStride(v_meshID);
-	const uint vertexID = (meshElementsOffset(v_meshID) == 0xFFFFFFFFu) ? gl_VertexID : elementID(gl_VertexID);
+	const uint vertexID = (meshElementsOffset(v_meshID) == 0xFFFFFFFFu) ? gl_VertexID : elementsDataElementID(gl_VertexID);
 	uint relativeOffset = 0u;
 	
 	const uint positionComponentsCount = meshPositionComponentsCount(v_meshID);
@@ -54,7 +54,8 @@ void main(void)
 	
 	vec3 tangent = vec3(0.0f);
 	vec3 binormal = vec3(0.0f);
-	if (meshTangentFlag(v_meshID))
+	const bool hasTangent = meshTangentFlag(v_meshID);
+	if (hasTangent)
 	{
 		float binormalFlag = 0.0f;
 		vertexDataTangentAndBinormalFlag(vertexDataOffset, vertexStride, vertexID, relativeOffset, tangent, binormalFlag);
@@ -62,16 +63,37 @@ void main(void)
 		relativeOffset += 4u;
 	}
 	
-	const uint bonesCount = meshBonesCount(v_meshID);
-	for (uint i = 0u; i < bonesCount; ++i)
+	const uint bonesDataOffset = meshBonesDataOffset(v_meshID);
+	if (bonesDataOffset != 0xFFFFFFFFu)
 	{
-		uint boneID = 0u;
-		float boneWeight = 0.0f;
-		vertexDataBoneIDAndWeight(vertexDataOffset, vertexStride, vertexID, relativeOffset, i, boneID, boneWeight);
+		// TODO: make boneTransform Transform instead of mat4x4
+		mat4x4 boneTransform = mat4x4(0.0f);
 		
-		// transform "position", "normal", "tangent" and "binormal" by bone
+		const uint bonesCount = meshBonesCount(v_meshID);
+		for (uint i = 0u; i < bonesCount; ++i)
+		{
+			uint boneID = 0u;
+			float boneWeight = 0.0f;
+			vertexDataBoneIDAndWeight(vertexDataOffset, vertexStride, vertexID, relativeOffset, i, boneID, boneWeight);
+			
+			if (boneID == 0xFFFFFFFFu)
+				continue; //break;
+				
+			boneTransform += transformMat4x4(bonesDataBoneTransform(bonesDataOffset + boneID)) * boneWeight;
+		}
+		
+		mat3 boneNormalMatrix = transpose(inverse(mat3(boneTransform)));
+		
+		position = vec3(boneTransform * vec4(position, 1.0f));
+		normal = boneNormalMatrix * normal;
+		if (hasTangent)
+		{
+			tangent = boneNormalMatrix * tangent;
+			binormal = boneNormalMatrix * binormal;
+		}
+		
+		relativeOffset += 2u * bonesCount;
 	}
-	relativeOffset += 2u * bonesCount;
 	
 	const uint colorComponentsCount = meshColorComponentsCount(v_meshID);
 	vec4 color = vec4(1.0f);

@@ -178,7 +178,7 @@ const std::string &GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
     static const std::unordered_map<ShaderStorageBlockID, std::string> s_table {
         { ShaderStorageBlockID::VertexDataBuffer, "ssbo_vertexDataBuffer" },
         { ShaderStorageBlockID::ElementsBuffer, "ssbo_elementsBuffer" },
-        { ShaderStorageBlockID::BonesBuffer, "ssbo_bonesBuffer" },
+        { ShaderStorageBlockID::BonesDataBuffer, "ssbo_bonesDataBuffer" },
         { ShaderStorageBlockID::MeshesBuffer, "ssbo_meshesBuffer" },
         { ShaderStorageBlockID::MaterialMapsBuffer, "ssbo_materialMapsBuffer" },
         { ShaderStorageBlockID::MaterialsBuffer, "ssbo_materialsBuffer" },
