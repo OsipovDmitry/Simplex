@@ -1,8 +1,6 @@
 #include <core/scene.h>
 
 #include "sceneprivate.h"
-#include "scenedata.h"
-#include "backgroundprivate.h"
 
 namespace simplex
 {
@@ -12,7 +10,6 @@ namespace core
 ScenePrivate::ScenePrivate(Scene& scene, const std::string &name)
     : d_(scene)
     , m_name(name)
-    , m_sceneData(SceneData::create())
 {
 }
 
