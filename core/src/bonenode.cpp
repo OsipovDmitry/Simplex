@@ -7,8 +7,8 @@ namespace simplex
 namespace core
 {
 
-BoneNode::BoneNode(const std::string &name, uint32_t boneID, const utils::Transform& offsetTransform)
-    : Node(std::make_unique<BoneNodePrivate>(*this, name, boneID, offsetTransform))
+BoneNode::BoneNode(const std::string &name, uint32_t boneID)
+    : Node(std::make_unique<BoneNodePrivate>(*this, name, boneID))
 {
 }
 
@@ -30,12 +30,19 @@ uint32_t BoneNode::boneID()
     return m().boneID();
 }
 
-const utils::Transform& BoneNode::offsetTransform() const
+std::shared_ptr<SkeletalAnimatedNode> BoneNode::asSkeletalAnimatedNode()
 {
-    return m().offsetTransform();
+    return nullptr;
 }
 
+std::shared_ptr<const SkeletalAnimatedNode> BoneNode::asSkeletalAnimatedNode() const
+{
+    return nullptr;
+}
 
+BoneNode::BoneNode(std::unique_ptr<BoneNodePrivate>&& boneNodePrivate)
+    : Node(std::move(boneNodePrivate))
+{}
 
 }
 }

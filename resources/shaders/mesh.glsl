@@ -6,33 +6,28 @@ layout (std430) readonly buffer ssbo_meshesBuffer { MeshDescription meshes[]; };
 BoundingBox meshBoundingBox(in uint meshID)
 {
 	return makeBoundingBox(
-		meshes[meshID].boundingBoxMinPointAndNumVertexData.xyz,
-		meshes[meshID].boundingBoxMaxPointAndNumElements.xyz);
+		meshes[meshID].boundingBoxMinPointAndVerticesDataSize.xyz,
+		meshes[meshID].boundingBoxMaxPointAndElementsDataSize.xyz);
 }
 
-uint meshNumVertexData(in uint meshID)
+uint meshVerticesDataSize(in uint meshID)
 {
-	return floatBitsToUint(meshes[meshID].boundingBoxMinPointAndNumVertexData.w);
+	return floatBitsToUint(meshes[meshID].boundingBoxMinPointAndVerticesDataSize.w);
 }
 
-uint meshNumElements(in uint meshID)
+uint meshElementsDataSize(in uint meshID)
 {
-	return floatBitsToUint(meshes[meshID].boundingBoxMaxPointAndNumElements.w);
+	return floatBitsToUint(meshes[meshID].boundingBoxMaxPointAndElementsDataSize.w);
 }
 
-uint meshVertexDataOffset(in uint meshID)
+uint meshVerticesDataOffset(in uint meshID)
 {
-	return meshes[meshID].vertexDataOffset;
+	return meshes[meshID].verticesDataOffset;
 }
 
-uint meshElementsOffset(in uint meshID)
+uint meshElementsDataOffset(in uint meshID)
 {
-	return meshes[meshID].elementsOffset;
-}
-
-uint meshBonesDataOffset(in uint meshID)
-{
-	return meshes[meshID].bonesDataOffset;
+	return meshes[meshID].elementsDataOffset;
 }
 
 uint meshPositionComponentsCount(in uint meshID)

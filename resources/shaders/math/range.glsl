@@ -1,4 +1,5 @@
 #include<constants.glsl>
+#include<transform.glsl>
 
 #define Range vec2
 
@@ -10,6 +11,11 @@ Range makeRange(in float t0, in float t1)
 Range makeRange(in float t)
 {
 	return Range(t, t);
+}
+
+Range makeRange(in vec2 v)
+{
+	return Range(v[0u], v[1u]);
 }
 
 Range makeEmptyRange()
@@ -50,6 +56,16 @@ bool rangeGreaterThan(in Range r, in float t)
 bool rangeIsPointInside(in Range r, in float t)
 {
 	return (r[0u] <= t) && (t <= r[1u]);
+}
+
+Range absRange(in Range r)
+{
+	return makeRange(abs(r));
+}
+
+Range transformRange(in Transform t, in Range r)
+{
+	return makeRange(transformDistance(t, r[0u]), transformDistance(t, r[1u]));
 }
 
 

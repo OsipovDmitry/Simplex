@@ -138,6 +138,7 @@ void MaterialPrivate::onChanged()
                 m_metalness,
                 m_alphaCutoff,
                 m_maps[castFromMaterialMapTarget(MaterialMapTarget::BaseColor)],
+                m_maps[castFromMaterialMapTarget(MaterialMapTarget::Opacity)],
                 m_maps[castFromMaterialMapTarget(MaterialMapTarget::Emission)],
                 m_maps[castFromMaterialMapTarget(MaterialMapTarget::Occlusion)],
                 m_maps[castFromMaterialMapTarget(MaterialMapTarget::Roughness)],

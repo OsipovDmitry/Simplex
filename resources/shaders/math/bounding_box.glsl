@@ -93,3 +93,19 @@ bool boundingBoxIsPointInside(in BoundingBox bb, in vec3 v)
 {
 	return all(greaterThan(boundingBoxMinPoint(bb), v)) && all(greaterThan(v, boundingBoxMaxPoint(bb)));
 }
+
+BoundingBox transformBoundingBox(in Transform t, in BoundingBox bb)
+{
+	mat3 axes = mat3(1.0f);
+	for (uint i = 0u; i < 3u; ++i)
+	{
+		vec3 axis = vec3(0.0f);
+		axis[i] = 1.0f;
+		
+		axes[i] = abs(transformVector(t, axis));
+	}
+
+    const vec3 halfSize = axes * (boundingBoxHalfSize(bb) * transformDistance(t, 1.0f));
+    const vec3 center = transformPoint(t, boundingBoxCenter(bb));
+    return makeBoundingBox(center - halfSize, center + halfSize);
+}

@@ -61,7 +61,7 @@ std::shared_ptr<Scene> Scene::createEmpty(const std::string& sceneName)
 Scene::Scene(const std::string &name)
     : m_(std::make_unique<ScenePrivate>(*this, name))
 {
-    m_->sceneData() = SceneData::create();
+    m_->sceneData() = std::make_shared<SceneData>();
     m_->background() = std::make_shared<Background>();
 
     m_->sceneData()->setBackground(m_->background());

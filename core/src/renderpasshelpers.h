@@ -70,6 +70,23 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
+class CalculateBonesTransformsDataPass : public RenderPass
+{
+public:
+    CalculateBonesTransformsDataPass(const std::shared_ptr<ProgramsManager>&, const std::shared_ptr<RenderPipeLine>&);
+    ~CalculateBonesTransformsDataPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+};
+
 class RenderDrawDataGeometryPass : public RenderPass
 {
 public:

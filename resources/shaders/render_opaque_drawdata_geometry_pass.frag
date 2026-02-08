@@ -28,17 +28,32 @@ void main(void)
 	
 	const uint baseColorMapID = materialBaseColorMapID(v_materialID);
 	if (hasTexCoords && (baseColorMapID != 0xFFFFFFFFu))
-		baseColor *= toLinearRGB(texture(sampler2D(materialMapTextureHandle(baseColorMapID)), v_texCoords));
+	{
+		const TextureHandle textureHandle = materialMapTextureHandle(baseColorMapID);
+		if (!isTextureHandleEmpty(textureHandle))
+			baseColor *= toLinearRGB(texture(sampler2D(textureHandle), v_texCoords));
+	}
 	
-	const float alpha = baseColor.a;
-	if (alpha < materialAlphaCutoff(v_materialID))
+	const uint opacityMapID = materialOpacityMapID(v_materialID);
+	if (hasTexCoords && (opacityMapID != 0xFFFFFFFFu))
+	{
+		const TextureHandle textureHandle = materialMapTextureHandle(opacityMapID);
+		if (!isTextureHandleEmpty(textureHandle))
+			baseColor.a *= texture(sampler2D(textureHandle), v_texCoords).r;
+	}
+
+	if (baseColor.a < materialAlphaCutoff(v_materialID))
 		discard;
 	
 	vec3 emission = materialEmission(v_materialID);
 	
 	const uint emissionMapID = materialEmissionMapID(v_materialID);
 	if (hasTexCoords && (emissionMapID != 0xFFFFFFFFu))
-		emission *= toLinearRGB(texture(sampler2D(materialMapTextureHandle(emissionMapID)), v_texCoords).rgb);
+	{
+		const TextureHandle textureHandle = materialMapTextureHandle(emissionMapID);
+		if (!isTextureHandleEmpty(textureHandle))
+			emission *= toLinearRGB(texture(sampler2D(textureHandle), v_texCoords).rgb);
+	}
 	
 	const uvec3 ORMSwizzleMask = materialORMSwizzleMask(v_materialID);
 	
@@ -47,22 +62,32 @@ void main(void)
 	const uint occlusionMapID = materialOcclusionMapID(v_materialID);
     if (hasTexCoords && (occlusionMapID != 0xFFFFFFFFu))
 	{
-        occlusion *= texture(sampler2D(materialMapTextureHandle(occlusionMapID)), v_texCoords)[ORMSwizzleMask[0u]];
-		occlusion *= materialOcclusionMapStrength(v_materialID);
+		const TextureHandle textureHandle = materialMapTextureHandle(occlusionMapID);
+		if (!isTextureHandleEmpty(textureHandle))
+		{
+			occlusion *= texture(sampler2D(textureHandle), v_texCoords)[ORMSwizzleMask[0u]];
+			occlusion *= materialOcclusionMapStrength(v_materialID);
+		}
     }
 	
 	float roughness = materialRoughness(v_materialID);
 	
 	const uint roughnessMapID = materialRoughnessMapID(v_materialID);
 	if (hasTexCoords && (roughnessMapID != 0xFFFFFFFFu))
-		roughness *= texture(sampler2D(materialMapTextureHandle(roughnessMapID)), v_texCoords)[ORMSwizzleMask[1u]];
+	{
+		const TextureHandle textureHandle = materialMapTextureHandle(roughnessMapID);
+		if (!isTextureHandleEmpty(textureHandle))
+			roughness *= texture(sampler2D(textureHandle), v_texCoords)[ORMSwizzleMask[1u]];
+	}
 	
 	float metalness = materialMetalness(v_materialID);
 	
 	const uint metalnessMapID = materialMetalnessMapID(v_materialID);
 	if (hasTexCoords && (metalnessMapID != 0xFFFFFFFFu))
 	{
-		metalness *= texture(sampler2D(materialMapTextureHandle(metalnessMapID)), v_texCoords)[ORMSwizzleMask[2u]];
+		const TextureHandle textureHandle = materialMapTextureHandle(metalnessMapID);
+		if (!isTextureHandleEmpty(textureHandle))
+			metalness *= texture(sampler2D(textureHandle), v_texCoords)[ORMSwizzleMask[2u]];
 	}
 	
 	vec3 normal = normalize(v_normal);
@@ -70,10 +95,14 @@ void main(void)
 	const uint normalMapID = materialNormalMapID(v_materialID);
 	if (hasTexCoords && meshTangentFlag(v_meshID) && (normalMapID != 0xFFFFFFFFu))
 	{
-		vec3 localNormal = unpackNormal(texture(sampler2D(materialMapTextureHandle(normalMapID)), v_texCoords).xyz);
-		localNormal.xy *= materialNormalMapScale(v_materialID);
-		localNormal = normalize(localNormal);
-		normal = normalize(mat3(normalize(v_tangent), normalize(v_binormal), normal) * localNormal);
+		const TextureHandle textureHandle = materialMapTextureHandle(normalMapID);
+		if (!isTextureHandleEmpty(textureHandle))
+		{
+			vec3 localNormal = unpackNormal(texture(sampler2D(textureHandle), v_texCoords).xyz);
+			localNormal.xy *= materialNormalMapScale(v_materialID);
+			localNormal = normalize(localNormal);
+			normal = normalize(mat3(normalize(v_tangent), normalize(v_binormal), normal) * localNormal);
+		}
 	}
 	
 	if (!gl_FrontFacing)

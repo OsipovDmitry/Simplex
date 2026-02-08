@@ -2,10 +2,8 @@
 #define CORE_MESHPRIVATE_H
 
 #include <utils/boundingbox.h>
-#include <utils/forwarddecl.h>
 
 #include <core/forwarddecl.h>
-#include <core/material.h>
 
 namespace simplex
 {
@@ -13,7 +11,6 @@ namespace core
 {
 
 class MeshHandler;
-class SceneData;
 
 class MeshPrivate
 {

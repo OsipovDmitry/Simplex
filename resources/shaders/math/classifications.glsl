@@ -1,4 +1,5 @@
 #include<bounding_box.glsl>
+#include<cone.glsl>
 #include<constants.glsl>
 #include<frustum.glsl>
 #include<sphere.glsl>
@@ -77,17 +78,27 @@ int sphereClassifyFrustum(in Sphere s, in Frustum f)
 		return OUTSIDE;
 	
 	for (uint i = 0u; i < FRUSTUM_POINTS_COUNT; ++i)
-		if (distance(c, f.points[i]) > r)
+		if (distance(c, f.cachedPoints[i]) > r)
 			return INTERSECT;
 	
 	return INSIDE;
+}
+
+int coneClassifyBoundingBox(in Cone c, in BoundingBox bb)
+{	
+	return INTERSECT;
+}
+
+int coneClassifyFrustum(in Cone c, in Frustum f)
+{
+	return INTERSECT;
 }
 
 int frustumClassifyPoint(in Frustum f, in vec3 p)
 {
 	int result = 1;
 	for (uint i = 0u; (result != -1) && (i < FRUSTUM_PLANES_COUNT); ++i)
-		if (distanceToPlane(f.planes[i], p) < 0.0f)
+		if (distanceToPlane(f.cachedPlanes[i], p) < 0.0f)
 			result = -1;
 	return result;
 }
@@ -100,7 +111,7 @@ int frustumClassifyBoundingBox(in Frustum f, in BoundingBox bb)
 	bool inside = true;
 	for (uint i = 0u; i < FRUSTUM_PLANES_COUNT; ++i)
 	{
-		int c = planeClassifyBoundingBox(f.planes[i], bb);
+		int c = planeClassifyBoundingBox(f.cachedPlanes[i], bb);
 		if (c == IN_BACK)
 			return OUTSIDE;
 		else if (c != IN_FRONT)
@@ -114,14 +125,14 @@ int frustumClassifyBoundingBox(in Frustum f, in BoundingBox bb)
 	{
 		bool outside = true;
 		for (uint i = 0u; outside && (i < FRUSTUM_POINTS_COUNT); ++i)
-			if (f.points[i][k] >= bb.points[0u][k])
+			if (f.cachedPoints[i][k] >= bb.points[0u][k])
 				outside = false;
 		if (outside)
 			return OUTSIDE;
 			
 		outside = true;
 		for (uint i = 0u; outside && (i < FRUSTUM_POINTS_COUNT); ++i)
-			if (f.points[i][k] <= bb.points[1u][k])
+			if (f.cachedPoints[i][k] <= bb.points[1u][k])
 				outside = false;
 		if (outside)
 			return OUTSIDE;

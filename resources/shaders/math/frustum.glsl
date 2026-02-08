@@ -2,6 +2,7 @@
 #include<constants.glsl>
 #include<line_segment.glsl>
 #include<plane.glsl>
+#include<range.glsl>
 #include<transform.glsl>
 
 struct Frustum
@@ -19,10 +20,10 @@ struct Frustum
 	Plane cachedPlanes[FRUSTUM_PLANES_COUNT]; // in world space
 };
 
-Frustum makeFrustum(in Transform vt, in ClipSpace cp, in vec2 Z)
+Frustum makeFrustum(in Transform vt, in ClipSpace cs, in vec2 Z)
 {
 	const Transform vtInv = transformInverted(vt);
-	const mat4x4 pm = clipSpaceProjectionMatrix(cp, Z);
+	const mat4x4 pm = clipSpaceProjectionMatrix(cs, Z);
 	const mat4x4 pmInv = inverse(pm);
 	const mat4x4 vpm = pm * transformMat4x4(vt);
 	const mat4x4 vpmInv = inverse(vpm);
@@ -47,7 +48,7 @@ Frustum makeFrustum(in Transform vt, in ClipSpace cp, in vec2 Z)
         planes[i] = makePlane(coefs);
     }
 	
-	return Frustum(vt, cp, Z, vtInv, pm, pmInv, vpm, vpmInv, points, planes);
+	return Frustum(vt, cs, Z, vtInv, pm, pmInv, vpm, vpmInv, points, planes);
 }
 
 Transform frustumViewTransform(in Frustum f)
@@ -498,7 +499,7 @@ bool frustumIsPointInside(in Frustum f, in vec3 v)
 	return inside;
 }
 
-Frustum transformFrustum(in Frustum f, in Transform t)
-{
-	return makeFrustum(transformMult(f.viewTransform, transformInverted(t)), f.clipSpace, f.ZRange);
-}
+//Frustum transformFrustum(in Frustum f, in Transform t)
+//{
+//	return makeFrustum(transformMult(f.viewTransform, transformInverted(t)), f.clipSpace, f.ZRange);
+//}

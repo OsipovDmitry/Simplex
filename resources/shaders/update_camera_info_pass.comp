@@ -17,6 +17,6 @@ void main(void)
 		}
 		
 		cameraExpandZRange(ZRange);
-		cameraUpdateProjectionMatrix(ZRange);
+		cameraUpdateMatrices(ZRange);
 	}
 }

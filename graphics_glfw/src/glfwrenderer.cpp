@@ -23,8 +23,7 @@
 #include "mvpstateset.h"
 
 #define DEFAULT_SETUP \
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1); \
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
 namespace simplex
 {
@@ -750,38 +749,61 @@ void DynamicBuffer_4_5::insert(size_t offset, const void* data, size_t insertedS
     if (!insertedSize)
         return;
 
-    auto oldSize = size();
+    const auto oldSize = size();
+    const auto newSize = oldSize + insertedSize;
 
     if (offset > oldSize)
     {
         LOG_ERROR << "The offset of inserted data is out of range";
         return;
     }
+    
+    // the case when data is inserted to the end and it's enough memory to insert is handled separatly
+    // it's a freq-used case and no need to reallocate the memory 
+    if ((offset == oldSize) && (newSize <= capacity()))
+    {
+        if (data)
+        {
+            glNamedBufferSubData(
+                m_id,
+                oldSize,
+                insertedSize,
+                data);
+        }
+    }
+    else
+    {
+        GLuint newID;
+        glCreateBuffers(1, &newID);
+        glNamedBufferStorage(newID, newSize, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
 
-    auto newSize = oldSize + insertedSize;
+        glCopyNamedBufferSubData(
+            m_id,
+            newID,
+            0u,
+            0u,
+            static_cast<GLsizeiptr>(offset));
 
-    GLuint newID;
-    glCreateBuffers(1, &newID);
-    glNamedBufferStorage(newID, newSize, nullptr, GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
-    glCopyNamedBufferSubData(
-        m_id,
-        newID,
-        0u,
-        0u,
-        static_cast<GLsizeiptr>(offset));
-    glNamedBufferSubData(
-        newID,
-        offset,
-        insertedSize,
-        data);
-    glCopyNamedBufferSubData(
-        m_id,
-        newID,
-        static_cast<GLintptr>(offset),
-        static_cast<GLintptr>(offset + insertedSize),
-        static_cast<GLsizeiptr>(oldSize - offset));
-    glDeleteBuffers(1, &m_id);
-    m_id = newID;
+        if (data)
+        {
+            glNamedBufferSubData(
+                newID,
+                offset,
+                insertedSize,
+                data);
+        }
+
+        glCopyNamedBufferSubData(
+            m_id,
+            newID,
+            static_cast<GLintptr>(offset),
+            static_cast<GLintptr>(offset + insertedSize),
+            static_cast<GLsizeiptr>(oldSize - offset));
+
+        glDeleteBuffers(1, &m_id);
+        m_id = newID;
+    }
+
     m_size = newSize;
 }
 
@@ -1585,11 +1607,13 @@ TextureCube_4_5::TextureCube_4_5(uint32_t width, uint32_t height, core::graphics
 {
     SAVE_CURRENT_CONTEXT;
     glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_id);
-    glTextureStorage2D(m_id,
-                                 static_cast<GLsizei>(numLevels),
-                                 Conversions::PixelInternalFormat2GL(internalFormat),
-                                 static_cast<GLsizei>(width),
-                                 static_cast<GLsizei>(height));
+    glTextureStorage2D(
+        m_id,
+        static_cast<GLsizei>(numLevels),
+        Conversions::PixelInternalFormat2GL(internalFormat),
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height));
+    glTextureParameteri(m_id, GL_TEXTURE_CUBE_MAP_SEAMLESS, GL_TRUE);
 }
 
 TextureCube_4_5::~TextureCube_4_5() = default;
@@ -1684,10 +1708,6 @@ std::shared_ptr<TextureCube_4_5> TextureCube_4_5::create(const std::vector<std::
         internalFormat = core::graphics::pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(numComponents, type);
 
     auto result = createEmpty(width, height, internalFormat, numLevels);
-
-
-    //tmp
-    auto n = result->numMipmapLevels();
 
     for (uint32_t face = 0; face < static_cast<uint32_t>(images.size()); ++face)
         result->setSubImage(0u, glm::uvec3(0u, 0u, face), glm::uvec3(width, height, 1u), numComponents, type, images[face]->data());
@@ -1919,12 +1939,14 @@ TextureCubeArray_4_5::TextureCubeArray_4_5(uint32_t width, uint32_t height, uint
 {
     SAVE_CURRENT_CONTEXT;
     glCreateTextures(GL_TEXTURE_CUBE_MAP_ARRAY, 1, &m_id);
-    glTextureStorage3D(m_id,
-                                 static_cast<GLsizei>(numLevels),
-                                 Conversions::PixelInternalFormat2GL(internalFormat),
-                                 static_cast<GLsizei>(width),
-                                 static_cast<GLsizei>(height),
-                                 static_cast<GLsizei>(6u * numLayers));
+    glTextureStorage3D(
+        m_id,
+        static_cast<GLsizei>(numLevels),
+        Conversions::PixelInternalFormat2GL(internalFormat),
+        static_cast<GLsizei>(width),
+        static_cast<GLsizei>(height),
+        static_cast<GLsizei>(6u * numLayers));
+    glTextureParameteri(m_id, GL_TEXTURE_CUBE_MAP_SEAMLESS, GL_TRUE);
 }
 
 TextureCubeArray_4_5::~TextureCubeArray_4_5() = default;

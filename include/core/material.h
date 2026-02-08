@@ -46,6 +46,7 @@ private:
 
 ENUMCLASS(MaterialMapTarget, uint16_t,
     BaseColor,
+    Opacity,
     Emission,
     Occlusion,
     Roughness,

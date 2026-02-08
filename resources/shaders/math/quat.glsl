@@ -41,3 +41,25 @@ Quat quatConjugate(in Quat q)
 {
 	return Quat(-q.x, -q.y, -q.z, q.w);
 }
+
+Quat slerp(in Quat x, in Quat y, in float a)
+{
+	Quat z = y;
+
+	float cosTheta = dot(x, y);
+	if(cosTheta < 0.0f)
+	{
+		z = -y;
+		cosTheta = -cosTheta;
+	}
+
+	if(cosTheta > 1.0f - EPS)
+	{
+		return mix(x, z, a);
+	}
+	else
+	{
+		const float angle = acos(cosTheta);
+		return (sin((1.0f - a) * angle) * x + sin(a * angle) * z) / sin(angle);
+	}
+}

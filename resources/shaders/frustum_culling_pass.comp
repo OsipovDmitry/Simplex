@@ -18,7 +18,7 @@ layout (std430) buffer ssbo_transparentCommandsBuffer {
 };
 
 void updateNearFar(inout vec2 nearFar, in vec3 v)
-{
+{	
 	const float z = -v.z;
 	nearFar[0u] = min(nearFar[0u], z);
 	nearFar[1u] = max(nearFar[1u], z);
@@ -32,55 +32,62 @@ void main(void)
 		const uint drawableID = drawDataDrawableID(drawDataID);
 		if (drawableID != 0xFFFFFFFFu)
 		{
-			const Transform modelViewTransform = transformMult(cameraViewTransform(), drawDataTransform(drawDataID));
-			const Frustum frustum = makeFrustum(
-				modelViewTransform,
-				cameraClipSpace(),
-				cameraCullPlaneLimits());
-			
-			uint meshID = drawableMeshID(drawableID);
-			BoundingBox boundingBox = meshBoundingBox(meshID);
-			
-			if (!isBoundingBoxEmpty(boundingBox) && (frustumClassifyBoundingBox(frustum, boundingBox) != OUTSIDE))
-			{	
-				vec2 nearFar = vec2(FLT_MAX, 0.0f);
+			const uint meshID = drawableMeshID(drawableID);
+			if (meshID != 0xFFFFFFFFu)
+			{
+				const BoundingBox localBoundingBox = meshBoundingBox(meshID);
 				
-				for (uint i = 0u; i < BOUNDING_BOX_EDGES_COUNT; ++i)
+				if (!isBoundingBoxEmpty(localBoundingBox))
 				{
-					const LineSegment edge = boundingBoxEdge(boundingBox, i);
-					const LineSegmentIntersectFrustumResult lsifr = lineSegmentIntersectFrustum(edge, frustum);
-					for (uint j = 0u; j < lsifr.count; ++j)
-						updateNearFar(nearFar, transformPoint(modelViewTransform, lsifr.p[j]));
-				}
-				
-				for (uint i = 0u; i < FRUSTUM_EDGES_COUNT; ++i)
-				{
-					const LineSegment edge = frustumEdge(frustum, i);
-					const LineSegmentIntersectBoundingBoxResult lsibbr = lineSegmentIntersectBoundingBox(edge, boundingBox);
-					for (uint j = 0u; j < lsibbr.count; ++j)
-						updateNearFar(nearFar, transformPoint(modelViewTransform, lsibbr.p[j]));
-				}
-				
-				cameraExpandZRange(nearFar);
+					const Transform modelViewTransform = transformMult(cameraViewTransform(), drawDataTransform(drawDataID));
+					const BoundingBox boundingBox = transformBoundingBox(modelViewTransform, localBoundingBox);
+					const Frustum frustum = makeFrustum(makeIdentityTransform(), cameraClipSpace(), cameraCullPlaneLimits());
+					
+					if (frustumClassifyBoundingBox(frustum, boundingBox) != OUTSIDE)
+					{	
+						vec2 nearFar = vec2(FLT_MAX, 0.0f);
+						
+						for (uint i = 0u; i < BOUNDING_BOX_EDGES_COUNT; ++i)
+						{
+							const LineSegment edge = boundingBoxEdge(boundingBox, i);
+							const LineSegmentIntersectFrustumResult lsifr = lineSegmentIntersectFrustum(edge, frustum);
+							for (uint j = 0u; j < lsifr.count; ++j)
+								updateNearFar(nearFar, lsifr.p[j]);
+						}
+						
+						for (uint i = 0u; i < FRUSTUM_EDGES_COUNT; ++i)
+						{
+							const LineSegment edge = frustumEdge(frustum, i);
+							const LineSegmentIntersectBoundingBoxResult lsibbr = lineSegmentIntersectBoundingBox(edge, boundingBox);
+							for (uint j = 0u; j < lsibbr.count; ++j)
+								updateNearFar(nearFar, lsibbr.p[j]);
+						}
+						
+						cameraExpandZRange(nearFar);
 
-				const uint materialID = drawableMaterialID(drawableID);
-				if (isMeshTransparent(meshID) || isMaterialTransparent(materialID))
-				{
-					const uint commandID = sceneInfoGenerateTransparentCommandID();
-					transparentCommands[commandID] = DrawArraysIndirectCommand(
-						meshNumElements(meshID),
-						1u,
-						meshElementsOffset(meshID),
-						drawDataID);
-				}
-				else
-				{
-					const uint commandID = sceneInfoGenerateOpaqueCommandID();
-					opaqueCommands[commandID] = DrawArraysIndirectCommand(
-						meshNumElements(meshID),
-						1u,
-						meshElementsOffset(meshID),
-						drawDataID);
+						const uint materialID = drawableMaterialID(drawableID);
+						if (materialID != 0xFFFFFFFFu)
+						{
+							if (isMeshTransparent(meshID) || isMaterialTransparent(materialID))
+							{
+								const uint commandID = sceneInfoGenerateTransparentCommandID();
+								transparentCommands[commandID] = DrawArraysIndirectCommand(
+									meshElementsDataSize(meshID),
+									1u,
+									meshElementsDataOffset(meshID),
+									drawDataID);
+							}
+							else
+							{
+								const uint commandID = sceneInfoGenerateOpaqueCommandID();
+								opaqueCommands[commandID] = DrawArraysIndirectCommand(
+									meshElementsDataSize(meshID),
+									1u,
+									meshElementsDataOffset(meshID),
+									drawDataID);
+							}
+						}
+					}
 				}
 			}
 		}

@@ -86,7 +86,7 @@ vec3 cameraViewZDirection()
 	return camera.viewZDirection.xyz;
 }
 
-void cameraUpdateProjectionMatrix(in vec2 Z)
+void cameraUpdateMatrices(in vec2 Z)
 {
 	const ClipSpace cs = cameraClipSpace();
 	camera.projectionMatrix = clipSpaceProjectionMatrix(cs, Z);

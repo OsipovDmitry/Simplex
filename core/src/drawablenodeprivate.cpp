@@ -26,12 +26,12 @@ void DrawableNodePrivate::doAfterTransformChanged()
 
 void DrawableNodePrivate::doAttachToScene(const std::shared_ptr<Scene>& scene)
 {
-    if (auto sceneData = scene->m().sceneData())
+    if (const auto& sceneData = scene->m().sceneData())
         for (const auto& drawable : m_drawables)
             addDrawDataToSceneData(sceneData, drawable);
 }
 
-void DrawableNodePrivate::doDetachFromScene(const std::shared_ptr<Scene>& scene)
+void DrawableNodePrivate::doDetachFromScene(const std::shared_ptr<Scene>&)
 {
     for (const auto& drawable : m_drawables)
         removeDrawDataFromSceneData(drawable);

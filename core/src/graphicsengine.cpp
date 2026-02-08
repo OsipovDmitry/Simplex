@@ -168,7 +168,7 @@ std::shared_ptr<const ProgramsManager> GraphicsEngine::programsManager() const
     return const_cast<GraphicsEngine*>(this)->programsManager();
 }
 
-void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInformation& sceneInfo)
+void GraphicsEngine::update(uint64_t time, uint32_t /*dt*/, debug::SceneInformation& sceneInfo)
 {
     static const auto& settings = settings::Settings::instance();
     static const auto& debugRenderingSettings = settings.graphics().debugRendering();
@@ -240,6 +240,7 @@ void GraphicsEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInfo
 
         auto& renderPipeLine = m_->renderPipeLine();
         renderPipeLine->run(
+            time,
             cameraGeometryBuffer,
             scene->m().sceneData(),
             camera->globalTransform().inverted(),

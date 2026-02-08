@@ -1,9 +1,7 @@
 #ifndef CORE_SKELETALANIMATEDNODE_H
 #define CORE_SKELETALANIMATEDNODE_H
 
-#include <map>
-
-#include <core/node.h>
+#include <core/bonenode.h>
 
 namespace simplex
 {
@@ -11,21 +9,19 @@ namespace core
 {
 
 class SkeletalAnimatedNodePrivate;
-class CORE_SHARED_EXPORT SkeletalAnimatedNode : public Node
+class CORE_SHARED_EXPORT SkeletalAnimatedNode : public BoneNode
 {
     PRIVATE_IMPL(SkeletalAnimatedNode)
 public:
-    SkeletalAnimatedNode(const std::string&);
+    SkeletalAnimatedNode(const std::string& name, uint32_t, const std::shared_ptr<Skeleton>& skeleton);
     ~SkeletalAnimatedNode() override;
 
     std::shared_ptr<SkeletalAnimatedNode> asSkeletalAnimatedNode() override;
     std::shared_ptr<const SkeletalAnimatedNode> asSkeletalAnimatedNode() const override;
 
-    const std::map<std::string, std::shared_ptr<Animation>>& animations() const;
-    bool addAnimation(const std::shared_ptr<Animation>&);
-    bool removeAnimation(const std::string&);
+    const std::shared_ptr<Skeleton>& skeleton() const;
 
-    const std::shared_ptr<Animation> currentAnimation() const;
+    const std::string& currentAnimation() const;
     bool setCurrentAnimation(const std::string&);
 };
 

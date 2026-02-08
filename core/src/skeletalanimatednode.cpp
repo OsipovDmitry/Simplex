@@ -1,6 +1,6 @@
 #include <utils/logger.h>
 
-#include <core/animation.h>
+#include <core/skeletalanimation.h>
 #include <core/skeletalanimatednode.h>
 
 #include "skeletalanimatednodeprivate.h"
@@ -10,10 +10,10 @@ namespace simplex
 namespace core
 {
 
-SkeletalAnimatedNode::SkeletalAnimatedNode(const std::string &name)
-    : Node(std::make_unique<SkeletalAnimatedNodePrivate>(*this, name))
+SkeletalAnimatedNode::SkeletalAnimatedNode(const std::string &name, uint32_t boneID, const std::shared_ptr<Skeleton>& skeleton)
+    : BoneNode(std::make_unique<SkeletalAnimatedNodePrivate>(*this, name, boneID, skeleton))
 {
-    
+    setCurrentAnimation(/*"Take 001"*/"mixamorig_Hips");
 }
 
 SkeletalAnimatedNode::~SkeletalAnimatedNode() = default;
@@ -29,54 +29,12 @@ std::shared_ptr<const SkeletalAnimatedNode> SkeletalAnimatedNode::asSkeletalAnim
     return const_cast<SkeletalAnimatedNode*>(this)->asSkeletalAnimatedNode();
 }
 
-const std::map<std::string, std::shared_ptr<Animation>>& SkeletalAnimatedNode::animations() const
+const std::shared_ptr<Skeleton>& SkeletalAnimatedNode::skeleton() const
 {
-    return m().animations();
+    return m().skeleton();
 }
 
-bool SkeletalAnimatedNode::addAnimation(const std::shared_ptr<Animation>& value)
-{
-    if (!value)
-    {
-        LOG_ERROR << "Animation can't be nullptr";
-        return false;
-    }
-
-    auto& animations = m().animations();
-    const auto& animationName = value->name();
-
-    if (animations.count(animationName))
-    {
-        LOG_ERROR << "Skeletal animatioed node \"" << name() << "\" already has an animation \"" << animationName << "\"";
-        return false;
-    }
-
-    animations.insert({ animationName, value });
-    return true;
-}
-
-bool SkeletalAnimatedNode::removeAnimation(const std::string& value)
-{
-    auto& mPrivate = m();
-
-    auto& animations = mPrivate.animations();
-    auto animationIter = animations.find(value);
-
-    if (animationIter == animations.end())
-    {
-        LOG_ERROR << "Skeletal animatioed node \"" << name() << "\" doesn't have an animation \"" << value << "\"";
-        return false;
-    }
-
-    animations.erase(animationIter);
-
-    if (auto& currentAnimation = mPrivate.currentAnimation(); currentAnimation == animationIter->second)
-        currentAnimation = nullptr;
-
-    return true;
-}
-
-const std::shared_ptr<Animation> SkeletalAnimatedNode::currentAnimation() const
+const std::string& SkeletalAnimatedNode::currentAnimation() const
 {
     return m().currentAnimation();
 }
@@ -85,7 +43,7 @@ bool SkeletalAnimatedNode::setCurrentAnimation(const std::string& value)
 {
     auto& mPrivate = m();
 
-    auto& animations = mPrivate.animations();
+    auto& animations = mPrivate.skeleton()->animations();
     auto animationIter = animations.find(value);
 
     if (animationIter == animations.end())
@@ -94,7 +52,7 @@ bool SkeletalAnimatedNode::setCurrentAnimation(const std::string& value)
         return false;
     }
 
-    mPrivate.currentAnimation() = animationIter->second;
+    mPrivate.currentAnimation() = value;
     return true;
 }
 

@@ -1,4 +1,4 @@
-#include<bones_data.glsl>
+#include<bones_transforms_data.glsl>
 #include<camera.glsl>
 #include<drawable.glsl>
 #include<draw_data.glsl>
@@ -19,20 +19,21 @@ void main(void)
 	
 	const Transform modelTransform = drawDataTransform(drawDataID);
 	const uint drawableID = drawDataDrawableID(drawDataID);
+	const uint bonesTransformsDataOffset = drawDataBonesTransformsDataOffset(drawDataID);
 	
 	v_meshID = drawableMeshID(drawableID);
 	v_materialID = drawableMaterialID(drawableID);
 	
-	const uint vertexDataOffset = meshVertexDataOffset(v_meshID);
+	const uint verticesDataOffset = meshVerticesDataOffset(v_meshID);
 	const uint vertexStride = meshVertexStride(v_meshID);
-	const uint vertexID = (meshElementsOffset(v_meshID) == 0xFFFFFFFFu) ? gl_VertexID : elementsDataElementID(gl_VertexID);
+	const uint vertexID = (meshElementsDataOffset(v_meshID) == 0xFFFFFFFFu) ? gl_VertexID : elementsDataElementID(gl_VertexID);
 	uint relativeOffset = 0u;
 	
 	const uint positionComponentsCount = meshPositionComponentsCount(v_meshID);
 	vec3 position = vec3(0.0f);
 	if (positionComponentsCount > 0u)
 	{
-		position = vertexDataPosition(vertexDataOffset, vertexStride, vertexID, relativeOffset, positionComponentsCount);
+		position = verticesDataVertexPosition(verticesDataOffset, vertexStride, vertexID, relativeOffset, positionComponentsCount);
 		relativeOffset += positionComponentsCount;
 	}
 	
@@ -40,7 +41,7 @@ void main(void)
 	vec3 normal = vec3(0.0f);
 	if (normalComponentsCount > 0u)
 	{
-		normal = vertexDataNormal(vertexDataOffset, vertexStride, vertexID, relativeOffset, normalComponentsCount);
+		normal = verticesDataVertexNormal(verticesDataOffset, vertexStride, vertexID, relativeOffset, normalComponentsCount);
 		relativeOffset += normalComponentsCount;
 	}
 	
@@ -48,7 +49,7 @@ void main(void)
 	vec2 texCoords = vec2(0.0f);
 	if (texCoordsComponentsCount > 0u)
 	{
-		texCoords = vertexDataTexCoords(vertexDataOffset, vertexStride, vertexID, relativeOffset, texCoordsComponentsCount);
+		texCoords = verticesDataVertexTexCoords(verticesDataOffset, vertexStride, vertexID, relativeOffset, texCoordsComponentsCount);
 		relativeOffset += texCoordsComponentsCount;
 	}
 	
@@ -58,13 +59,12 @@ void main(void)
 	if (hasTangent)
 	{
 		float binormalFlag = 0.0f;
-		vertexDataTangentAndBinormalFlag(vertexDataOffset, vertexStride, vertexID, relativeOffset, tangent, binormalFlag);
+		verticesDataVertexTangentAndBinormalFlag(verticesDataOffset, vertexStride, vertexID, relativeOffset, tangent, binormalFlag);
 		binormal = normalize(cross(normal, tangent) * binormalFlag);
 		relativeOffset += 4u;
 	}
-	
-	const uint bonesDataOffset = meshBonesDataOffset(v_meshID);
-	if (bonesDataOffset != 0xFFFFFFFFu)
+
+	if (bonesTransformsDataOffset != 0xFFFFFFFFu)
 	{
 		// TODO: make boneTransform Transform instead of mat4x4
 		mat4x4 boneTransform = mat4x4(0.0f);
@@ -74,12 +74,12 @@ void main(void)
 		{
 			uint boneID = 0u;
 			float boneWeight = 0.0f;
-			vertexDataBoneIDAndWeight(vertexDataOffset, vertexStride, vertexID, relativeOffset, i, boneID, boneWeight);
+			verticesDataVertexBoneIDAndWeight(verticesDataOffset, vertexStride, vertexID, relativeOffset, i, boneID, boneWeight);
 			
 			if (boneID == 0xFFFFFFFFu)
 				continue; //break;
 				
-			boneTransform += transformMat4x4(bonesDataBoneTransform(bonesDataOffset + boneID)) * boneWeight;
+			boneTransform += transformMat4x4(bonesTransformsDataBoneTransform(bonesTransformsDataOffset, boneID)) * boneWeight;
 		}
 		
 		mat3 boneNormalMatrix = transpose(inverse(mat3(boneTransform)));
@@ -99,7 +99,7 @@ void main(void)
 	vec4 color = vec4(1.0f);
 	if (colorComponentsCount > 0u)
 	{
-		color = vertexDataColor(vertexDataOffset, vertexStride, vertexID, relativeOffset, colorComponentsCount);
+		color = verticesDataVertexColor(verticesDataOffset, vertexStride, vertexID, relativeOffset, colorComponentsCount);
 		relativeOffset += colorComponentsCount;
 	}
 	

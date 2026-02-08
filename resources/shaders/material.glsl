@@ -32,6 +32,11 @@ uint materialBaseColorMapID(in uint materialID)
 	return materials[materialID].baseColorMapID;
 }
 
+uint materialOpacityMapID(in uint materialID)
+{
+	return materials[materialID].opacityMapID;
+}
+
 uint materialEmissionMapID(in uint materialID)
 {
 	return materials[materialID].emissionMapID;

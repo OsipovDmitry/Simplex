@@ -13,6 +13,7 @@ namespace core
 RenderPipeLine::~RenderPipeLine() = default;
 
 void RenderPipeLine::run(
+    uint64_t time,
     const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
     const std::shared_ptr<const SceneData>& sceneData,
     const utils::Transform& viewTransform,
@@ -20,19 +21,23 @@ void RenderPipeLine::run(
     const utils::Range& cullPlaneLimits,
     const glm::uvec3& clusterMaxSize)
 {
-    const auto drawDataCount = sceneData->drawDataBuffer()->size();
+    const auto drawDataCount = sceneData->drawDataCount();
     m_opaqueCommandsBuffer->resize(drawDataCount);
     m_transparentCommandsBuffer->resize(drawDataCount);
+
+    const auto skeletalAnimatedDataCount = sceneData->skeletalAnimatedDataCount();
 
     const auto clusterNodesCount = glm::compMul(clusterMaxSize);
     m_clusterNodesBuffer->resize(clusterNodesCount);
 
-    const auto lightsCount = sceneData->lightsBuffer()->size();
+    const auto lightsCount = sceneData->lightsCount();
     const auto lightNodesCount = clusterNodesCount * lightsCount;
     m_lightNodesBuffer->resize(lightNodesCount);
 
     m_sceneInfoBuffer->set(SceneInfoDescription::make(
+        static_cast<uint32_t>(time),
         static_cast<uint32_t>(drawDataCount),
+        static_cast<uint32_t>(skeletalAnimatedDataCount),
         static_cast<uint32_t>(lightsCount),
         static_cast<uint32_t>(lightNodesCount)));
         
@@ -113,6 +118,7 @@ std::shared_ptr<RenderPipeLine> RenderPipeLine::create(
     auto& passes = result->m_passes;
     passes.push_back(std::make_shared<FrustumCullingPass>(programsManager, result));
     passes.push_back(std::make_shared<UpdateCameraInfoPass>(programsManager, result));
+    passes.push_back(std::make_shared<CalculateBonesTransformsDataPass>(programsManager, result));
     passes.push_back(std::make_shared<SimplePass>(result, clear));
     passes.push_back(std::make_shared<RenderDrawDataGeometryPass>(programsManager, result));
     passes.push_back(std::make_shared<SimplePass>(result, sort));

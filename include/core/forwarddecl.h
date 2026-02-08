@@ -203,8 +203,10 @@ enum class ShadingMode : uint16_t;
 enum class ShadingFilter : uint16_t;
 enum class SoundState : uint16_t;
 
-class AnimationChannel;
+struct AnimationChannel;
 class Animation;
+struct Bone;
+class Skeleton;
 
 class Scene;
 class Node;
@@ -226,6 +228,8 @@ template <typename NodeClass> class NodeCollector;
 
 class NodeRepresentation;
 class DrawableNodeRepresentation;
+class BoneNodeRepresentation;
+class RootBoneNodeRepresentation;
 class CameraNodeRepresentation;
 class LightNodeRepresentation;
 class SceneRepresentation;

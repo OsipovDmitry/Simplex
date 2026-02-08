@@ -17,7 +17,6 @@ namespace core
 
 class MaterialMapHandler;
 class MaterialHandler;
-class SceneData;
 
 class MaterialMapPrivate
 {

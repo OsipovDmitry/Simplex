@@ -353,8 +353,7 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     planeDrawableNode->addDrawable(
         std::make_shared<simplex::core::Drawable>(planeMesh, planeMaterial));
     planeDrawableNode->setTransform(
-        simplex::utils::Transform::makeRotation(glm::quat(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f))) *
-        simplex::utils::Transform::makeScale(1.f));
+        simplex::utils::Transform::makeRotation(glm::quat(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f))));
     scene->sceneRootNode()->attach(planeDrawableNode);
 
     static const size_t NumGeometries = 4u;
@@ -514,12 +513,13 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     pointLightNode2->setRadiuses(glm::vec2(900.f, 1000.f));
     scene->sceneRootNode()->attach(pointLightNode2);
 
-    //scene->sceneRootNode()->attach(simplex::loader_assimp::load("C:/res/Sponza/Sponza.gltf"));
-    scene->sceneRootNode()->attach(simplex::loader_assimp::load("C:/Users/3520136/Downloads/sponza/sponza.obj")->generateAnimatedNode(
-        "", true, true, false, false));
+    scene->sceneRootNode()->attach(
+        simplex::loader_assimp::load("C:/Users/3520136/Downloads/Hip Hop Dancing/Hip Hop Dancing.dae")->generate("", false, false));
+
     //scene->sceneRootNode()->attach(
-    //    simplex::loader_assimp::load("C:/Users/3520136/Downloads/Fast Run/Fast Run.dae")->generateAnimatedNode(
-    //        "", true, true, false, false));
+    //    simplex::loader_assimp::load("C:/Users/3520136/Downloads/cat_-_walking/scene.gltf")->generate("", false, false));
+
+
     return scene;
 }
 
@@ -535,9 +535,8 @@ static bool isUpPressed = false;
 static bool isDownPressed = false;
 static bool isSpacePressed = false;
 static bool isLShiftPressed = false;
-static glm::vec2 cameraAngles(-0.37f, 5.5f);
-static glm::vec3 cameraPosition(-2.94f, 1.83f, 2.44f);
-//static glm::vec3 cameraPosition(-2.94f, 1.83f, 1000.44f);
+static glm::vec2 cameraAngles(-0.36f, 5.92f);
+static glm::vec3 cameraPosition(-1.29f, 1.92f, 3.54f);
 
 static void keyCallback(
     simplex::core::graphics::KeyState keyState,
@@ -667,8 +666,8 @@ static void updateCallback(uint64_t time, uint32_t dt)
     if (isEPressed)
         cameraDir += cameraUpDir;
 
-    //const float vel = isLShiftPressed ? .03f : .003f;
-    const float vel = isLShiftPressed ? 3.f : .3f;
+    const float vel = isLShiftPressed ? .03f : .003f;
+    //const float vel = isLShiftPressed ? 3.f : .3f;
     if (glm::length(cameraDir) > .1f)
         cameraPosition += glm::normalize(cameraDir) * static_cast<float>(dt) * vel;
 
@@ -711,6 +710,7 @@ static void updateCallback(uint64_t time, uint32_t dt)
 
 int main(int argc, char* argv[])
 {
+
     if (!simplex::core::ApplicationBase::initialize(
         []() { return simplex::graphics_glfw::GLFWWidget::time(); },
         []() { simplex::graphics_glfw::GLFWWidget::pollEvents(); }

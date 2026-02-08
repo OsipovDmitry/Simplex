@@ -7,10 +7,9 @@ namespace simplex
 namespace core
 {
 
-BoneNodePrivate::BoneNodePrivate(BoneNode& boneNode, const std::string& name, uint32_t boneID, const utils::Transform& offsetTransform)
+BoneNodePrivate::BoneNodePrivate(BoneNode& boneNode, const std::string& name, uint32_t boneID)
     : NodePrivate(boneNode, name)
     , m_boneID(boneID)
-    , m_offsetTransform(offsetTransform)
 {
 }
 
@@ -20,13 +19,6 @@ uint32_t& BoneNodePrivate::boneID()
 {
     return m_boneID;
 }
-
-utils::Transform& BoneNodePrivate::offsetTransform()
-{
-    return m_offsetTransform;
-}
-
-
 
 }
 }

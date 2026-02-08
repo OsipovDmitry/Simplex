@@ -2,9 +2,19 @@
 
 layout (std430) buffer ssbo_sceneInfoBuffer { SceneInfoDescription sceneInfo; };
 
+uint sceneInfoTime()
+{
+	return sceneInfo.time;
+}
+
 uint sceneInfoDrawDataCount()
 {
 	return sceneInfo.drawDataCount;
+}
+
+uint sceneInfoSkeletalAnimatedDataCount()
+{
+	return sceneInfo.skeletalAnimatedDataCount;
 }
 
 uint sceneInfoLightsCount()

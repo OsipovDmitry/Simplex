@@ -1,22 +1,24 @@
 #include <utils/meshpainter.h>
 #include <utils/imagemanager.h>
 
-#include <core/scene.h>
+#include <core/background.h>
 #include <core/drawable.h>
-#include <core/material.h>
-#include <core/mesh.h>
+#include <core/graphicsengine.h>
 #include <core/graphicsrendererbase.h>
 #include <core/igraphicswidget.h>
-#include <core/graphicsengine.h>
+#include <core/material.h>
+#include <core/mesh.h>
+#include <core/scene.h>
+#include <core/skeletalanimation.h>
 #include <core/texturesmanager.h>
-#include <core/background.h>
 
-#include "scenedata.h"
-#include "sceneprivate.h"
+#include "backgroundprivate.h"
 #include "drawableprivate.h"
 #include "materialprivate.h"
 #include "meshprivate.h"
-#include "backgroundprivate.h"
+#include "scenedata.h"
+#include "sceneprivate.h"
+#include "skeletalanimationprivate.h"
 
 namespace simplex
 {
@@ -27,13 +29,13 @@ static const utils::RangeT<uint32_t> BonesCountRange{1u, 7u};
 using BonesIDsUnderlyingType = uint32_t;
 
 using VertexAttributeFormat = std::pair<utils::RangeT<uint32_t>, utils::VertexComponentType>;
-static const VertexAttributeFormat PositionFormat{ {1u, 3u}, utils::toVertexComponentType<VertexDataDescription>()};
-static const VertexAttributeFormat NormalFormat{ {1u, 3u}, utils::toVertexComponentType<VertexDataDescription>() };
-static const VertexAttributeFormat TexCoordsFormat{ {1u, 3u}, utils::toVertexComponentType<VertexDataDescription>() };
+static const VertexAttributeFormat PositionFormat{ {1u, 3u}, utils::toVertexComponentType<VerticesDataDescription>()};
+static const VertexAttributeFormat NormalFormat{ {1u, 3u}, utils::toVertexComponentType<VerticesDataDescription>() };
+static const VertexAttributeFormat TexCoordsFormat{ {1u, 3u}, utils::toVertexComponentType<VerticesDataDescription>() };
 static const VertexAttributeFormat BonesIDsFormat{ BonesCountRange, utils::toVertexComponentType<BonesIDsUnderlyingType>() };
-static const VertexAttributeFormat BonesWeightsFormat{ BonesCountRange, utils::toVertexComponentType<VertexDataDescription>() };
-static const VertexAttributeFormat TangentFormat{ {4u, 4u}, utils::toVertexComponentType<VertexDataDescription>() };
-static const VertexAttributeFormat ColorFormat{ {1u, 4u}, utils::toVertexComponentType<VertexDataDescription>() };
+static const VertexAttributeFormat BonesWeightsFormat{ BonesCountRange, utils::toVertexComponentType<VerticesDataDescription>() };
+static const VertexAttributeFormat TangentFormat{ {4u, 4u}, utils::toVertexComponentType<VerticesDataDescription>() };
+static const VertexAttributeFormat ColorFormat{ {1u, 4u}, utils::toVertexComponentType<VerticesDataDescription>() };
 
 ResourceHandler::ResourceHandler(const std::weak_ptr<SceneData>& sceneData)
     : m_sceneData(sceneData)
@@ -55,6 +57,13 @@ MeshHandler::MeshHandler(
     , m_mesh(mesh)
     , m_ID(ID)
 {}
+
+MeshHandler::MeshHandler(const std::weak_ptr<SceneData>& sceneData)
+    : ResourceHandler(sceneData)
+    , m_mesh()
+    , m_ID(utils::IDsGenerator::last())
+{
+}
 
 MeshHandler::~MeshHandler()
 {
@@ -82,6 +91,12 @@ MaterialMapHandler::MaterialMapHandler(
     , m_ID(ID)
 {}
 
+MaterialMapHandler::MaterialMapHandler(const std::weak_ptr<SceneData>& sceneData)
+    : ResourceHandler(sceneData)
+    , m_ID(utils::IDsGenerator::last())
+{
+}
+
 MaterialMapHandler::~MaterialMapHandler()
 {
     if (auto sceneData = m_sceneData.lock())
@@ -107,6 +122,12 @@ MaterialHandler::MaterialHandler(
     , m_material(material)
     , m_ID(ID)
 {}
+
+MaterialHandler::MaterialHandler(const std::weak_ptr<SceneData>& sceneData)
+    : ResourceHandler(sceneData)
+    , m_ID(utils::IDsGenerator::last())
+{
+}
 
 MaterialHandler::~MaterialHandler()
 {
@@ -135,6 +156,12 @@ DrawableHandler::DrawableHandler(
 {
 }
 
+DrawableHandler::DrawableHandler(const std::weak_ptr<SceneData>& sceneData)
+    : ResourceHandler(sceneData)
+    , m_ID(utils::IDsGenerator::last())
+{
+}
+
 DrawableHandler::~DrawableHandler()
 {
     if (auto sceneData = m_sceneData.lock())
@@ -158,6 +185,12 @@ DrawDataHandler::DrawDataHandler(const std::weak_ptr<SceneData>& sceneData, size
 {
 }
 
+DrawDataHandler::DrawDataHandler(const std::weak_ptr<SceneData>& sceneData)
+    : ResourceHandler(sceneData)
+    , m_ID(utils::IDsGenerator::last())
+{
+}
+
 DrawDataHandler::~DrawDataHandler()
 {
     if (auto sceneData = m_sceneData.lock())
@@ -177,10 +210,16 @@ BackgroundHandler::BackgroundHandler(
 {
 }
 
+BackgroundHandler::BackgroundHandler(const std::weak_ptr<SceneData>& sceneData)
+    : ResourceHandler(sceneData)
+{
+}
+
 BackgroundHandler::~BackgroundHandler()
 {
     if (auto sceneData = m_sceneData.lock())
-        sceneData->removeBackground();
+        if (auto background = m_background.lock())
+            sceneData->removeBackground(background);
 }
 
 std::weak_ptr<const Background>& BackgroundHandler::background()
@@ -205,7 +244,569 @@ size_t LightHandler::ID() const
     return m_ID;
 }
 
+SkeletonHandler::SkeletonHandler(
+    const std::weak_ptr<SceneData>& sceneData,
+    const std::weak_ptr<const Skeleton>& skeleton,
+    utils::IDsGenerator::value_type ID)
+    : ResourceHandler(sceneData)
+    , m_skeleton(skeleton)
+    , m_ID(ID)
+{
+
+}
+
+SkeletonHandler::SkeletonHandler(const std::weak_ptr<SceneData>& sceneData)
+    : ResourceHandler(sceneData)
+    , m_ID(utils::IDsGenerator::last())
+{
+}
+
+SkeletonHandler::~SkeletonHandler()
+{
+    if (auto sceneData = m_sceneData.lock())
+        if (auto skeleton = m_skeleton.lock())
+            sceneData->removeSkeleton(skeleton);
+}
+
+std::weak_ptr<const Skeleton>& SkeletonHandler::skeleton()
+{
+    return m_skeleton;
+}
+
+utils::IDsGenerator::value_type SkeletonHandler::ID() const
+{
+    return m_ID;
+}
+
+SkeletalAnimatedDataHandler::SkeletalAnimatedDataHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID)
+    : ResourceHandler(sceneData)
+    , m_ID(ID)
+{
+}
+
+SkeletalAnimatedDataHandler::SkeletalAnimatedDataHandler(const std::weak_ptr<SceneData>& sceneData)
+    : ResourceHandler(sceneData)
+    , m_ID(utils::IDsGenerator::last())
+{
+}
+
+SkeletalAnimatedDataHandler::~SkeletalAnimatedDataHandler()
+{
+    if (auto sceneData = m_sceneData.lock())
+        ;// sceneData->removeDrawData(m_ID);
+}
+
+size_t SkeletalAnimatedDataHandler::ID() const
+{
+    return m_ID;
+}
+
+SceneData::SceneData()
+{
+    m_verticesDataBuffer = VerticesDataBuffer::element_type::create();
+    m_elementsDataBuffer = ElementsDataBuffer::element_type::create();
+    m_skeletonsDataBuffer = SkeletonsDataBuffer::element_type::create();
+    m_bonesTransformsDataBuffer = BonesTransformsDataBuffer::element_type::create();
+
+    m_meshesBuffer = MeshesBuffer::element_type::create();
+    m_materialMapsBuffer = MaterialMapsBuffer::element_type::create();
+    m_materialsBuffer = MaterialsBuffer::element_type::create();
+    m_drawablesBuffer = DrawablesBuffer::element_type::create();
+    m_backgroundBuffer = BackgroundBuffer::element_type::create();
+    m_lightsBuffer = LightsBuffer::element_type::create();
+    m_skeletonsBuffer = SkeletonsBuffer::element_type::create();
+
+    m_drawDataBuffer = DrawDataBuffer::element_type::create();
+    m_skeletalAnimatedDataBuffer = SkeletalAnimatedDataBuffer::element_type::create();
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::VerticesDataBuffer) = graphics::BufferRange::create(m_verticesDataBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ElementsDataBuffer) = graphics::BufferRange::create(m_elementsDataBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SkeletonsDataBuffer) = graphics::BufferRange::create(m_skeletonsDataBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::BonesTransformsDataBuffer) = graphics::BufferRange::create(m_bonesTransformsDataBuffer->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::MeshesBuffer) = graphics::BufferRange::create(m_meshesBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::MaterialMapsBuffer) = graphics::BufferRange::create(m_materialMapsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::MaterialsBuffer) = graphics::BufferRange::create(m_materialsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::DrawablesBuffer) = graphics::BufferRange::create(m_drawablesBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::BackgroundBuffer) = graphics::BufferRange::create(m_backgroundBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::LightsBuffer) = graphics::BufferRange::create(m_lightsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SkeletonsBuffer) = graphics::BufferRange::create(m_skeletonsBuffer->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::DrawDataBuffer) = graphics::BufferRange::create(m_drawDataBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SkeletalAnimatedDataBuffer) = graphics::BufferRange::create(m_skeletalAnimatedDataBuffer->buffer());
+
+    // create screen quad mesh
+    m_screenQuadMesh = std::make_shared<Mesh>(utils::MeshPainter(utils::Mesh::createEmptyMesh({
+        {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}
+        })).drawScreenQuad().mesh(), utils::BoundingBox());
+    auto screenQuadMeshHandler = addMesh(m_screenQuadMesh);
+
+    // create screen quad commands buffer
+    auto screenQuadMeshDescription = m_meshesBuffer->get(screenQuadMeshHandler->ID());
+    m_screenQuadCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({ {
+        MeshDescription::elementsDataSize(screenQuadMeshDescription),
+        1u,
+        screenQuadMeshDescription.elementsDataOffset,
+        screenQuadMeshHandler->ID() }
+        });
+}
+
 SceneData::~SceneData() = default;
+
+SceneData::AddVerticesDataResult SceneData::addVerticesData(
+    const std::unordered_map<utils::VertexAttribute, std::shared_ptr<utils::VertexBuffer>>& verticesBuffers)
+{
+    const size_t verticesCount = verticesBuffers.empty() ? 0u : verticesBuffers.begin()->second->numVertices();
+    size_t vertexStride = 0u; // in floats
+    for (auto const& [attrib, buffer] : verticesBuffers)
+    {
+        if (buffer->numVertices() != verticesCount)
+        {
+            LOG_ERROR << "Buffers have different sizes";
+            return {};
+        }
+
+        vertexStride += buffer->numComponents();
+    }
+
+    const size_t verticesDataSize = verticesCount * vertexStride;
+    if (!verticesDataSize)
+        return {};
+
+    std::vector<VerticesDataDescription> verticesData(verticesDataSize);
+
+    size_t relativeOffset = 0u;
+    uint32_t positionComponentsCount = 0u;
+    uint32_t normalComponentsCount = 0u;
+    uint32_t texCoordsComponentsCount = 0u;
+    bool hasTangent = false;
+    uint32_t bonesCount = 0u;
+    uint32_t colorComponentsCount = 0u;
+
+    if (auto it = verticesBuffers.find(utils::VertexAttribute::Position); it != verticesBuffers.end())
+    {
+        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
+        if (!PositionFormat.first.isInside(buffer->numComponents()) ||
+            (buffer->componentType() != PositionFormat.second))
+        {
+            buffer = buffer->converted(PositionFormat.first.farValue(), PositionFormat.second);
+        }
+
+        positionComponentsCount = buffer->numComponents();
+        for (size_t v = 0u; v < verticesCount; ++v)
+        {
+            const auto* vertex = reinterpret_cast<const VerticesDataDescription*>(buffer->vertex(v));
+            for (uint32_t c = 0u; c < positionComponentsCount; ++c)
+                verticesData[vertexStride * v + relativeOffset + c] = vertex[c];
+        }
+
+        relativeOffset += positionComponentsCount;
+    }
+
+    if (auto it = verticesBuffers.find(utils::VertexAttribute::Normal); it != verticesBuffers.end())
+    {
+        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
+        if (!NormalFormat.first.isInside(buffer->numComponents()) ||
+            (buffer->componentType() != NormalFormat.second))
+        {
+            buffer = buffer->converted(NormalFormat.first.farValue(), NormalFormat.second);
+        }
+
+        normalComponentsCount = buffer->numComponents();
+        for (size_t v = 0u; v < verticesCount; ++v)
+        {
+            const auto* vertex = reinterpret_cast<const VerticesDataDescription*>(buffer->vertex(v));
+            for (uint32_t c = 0u; c < normalComponentsCount; ++c)
+                verticesData[vertexStride * v + relativeOffset + c] = vertex[c];
+        }
+
+        relativeOffset += normalComponentsCount;
+    }
+
+    if (auto it = verticesBuffers.find(utils::VertexAttribute::TexCoords); it != verticesBuffers.end())
+    {
+        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
+        if (!TexCoordsFormat.first.isInside(buffer->numComponents()) ||
+            (buffer->componentType() != TexCoordsFormat.second))
+        {
+            buffer = buffer->converted(TexCoordsFormat.first.farValue(), TexCoordsFormat.second);
+        }
+
+        texCoordsComponentsCount = buffer->numComponents();
+        for (size_t v = 0u; v < verticesCount; ++v)
+        {
+            const auto* vertex = reinterpret_cast<const VerticesDataDescription*>(buffer->vertex(v));
+            for (uint32_t c = 0u; c < texCoordsComponentsCount; ++c)
+                verticesData[vertexStride * v + relativeOffset + c] = vertex[c];
+        }
+
+        relativeOffset += texCoordsComponentsCount;
+    }
+
+    if (auto it = verticesBuffers.find(utils::VertexAttribute::Tangent);
+        (it != verticesBuffers.end()) && (normalComponentsCount > 0u))
+    {
+        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
+        if (TangentFormat.first.isInside(buffer->numComponents())) // only 4-components tangent is suitable
+        {
+            if (buffer->componentType() != TangentFormat.second)
+            {
+                buffer = buffer->converted(buffer->numComponents(), TangentFormat.second);
+            }
+
+            const size_t componentsCount = buffer->numComponents();
+            hasTangent = componentsCount != 0u;
+            for (size_t v = 0u; v < verticesCount; ++v)
+            {
+                const auto* vertex = reinterpret_cast<const VerticesDataDescription*>(buffer->vertex(v));
+                for (size_t c = 0u; c < componentsCount; ++c)
+                    verticesData[vertexStride * v + relativeOffset + c] = vertex[c];
+            }
+
+            relativeOffset += componentsCount;
+        }
+    }
+
+    if (verticesBuffers.count(utils::VertexAttribute::BonesIDs) &&
+        verticesBuffers.count(utils::VertexAttribute::BonesWeights))
+    {
+        std::shared_ptr<utils::VertexBuffer> bonesIDsBuffer = verticesBuffers.at(utils::VertexAttribute::BonesIDs);
+        std::shared_ptr<utils::VertexBuffer> bonesWeightsBuffer = verticesBuffers.at(utils::VertexAttribute::BonesWeights);
+
+        bonesCount = bonesIDsBuffer->numComponents();
+        if (bonesCount != bonesWeightsBuffer->numComponents())
+        {
+            LOG_CRITICAL << "Bones IDs and weights buffers must have equal number of components";
+            return {};
+        }
+
+        bonesCount = glm::min(bonesCount, BonesCountRange.farValue());
+
+        if (!BonesIDsFormat.first.isInside(bonesIDsBuffer->numComponents()) ||
+            (bonesIDsBuffer->componentType() != BonesIDsFormat.second))
+        {
+            bonesIDsBuffer = bonesIDsBuffer->converted(bonesCount, BonesIDsFormat.second);
+        }
+
+        if (!BonesWeightsFormat.first.isInside(bonesWeightsBuffer->numComponents()) ||
+            (bonesWeightsBuffer->componentType() != BonesWeightsFormat.second))
+        {
+            bonesWeightsBuffer =
+                bonesWeightsBuffer->converted(bonesCount, BonesWeightsFormat.second);
+        }
+
+        for (size_t v = 0u; v < verticesCount; ++v)
+        {
+            const auto* IDs = reinterpret_cast<const BonesIDsUnderlyingType*>(bonesIDsBuffer->vertex(v));
+            const auto* weights = reinterpret_cast<const VerticesDataDescription*>(bonesWeightsBuffer->vertex(v));
+            for (uint32_t c = 0u; c < bonesCount; ++c)
+            {
+                verticesData[vertexStride * v + relativeOffset + 2u * c + 0u] = glm::uintBitsToFloat(IDs[c]);
+                verticesData[vertexStride * v + relativeOffset + 2u * c + 1u] = weights[c];
+            }
+        }
+
+        relativeOffset += static_cast<size_t>(bonesCount) * 2u;
+    }
+
+    if (auto it = verticesBuffers.find(utils::VertexAttribute::Color); it != verticesBuffers.end())
+    {
+        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
+        if (!ColorFormat.first.isInside(buffer->numComponents()) ||
+            (buffer->componentType() != ColorFormat.second))
+        {
+            buffer = buffer->converted(ColorFormat.first.farValue(), ColorFormat.second);
+        }
+
+        colorComponentsCount = buffer->numComponents();
+        for (size_t v = 0u; v < verticesCount; ++v)
+        {
+            const auto* vertex = reinterpret_cast<const VerticesDataDescription*>(buffer->vertex(v));
+            for (uint32_t c = 0u; c < colorComponentsCount; ++c)
+                verticesData[vertexStride * v + relativeOffset + c] = vertex[c];
+        }
+
+        relativeOffset += colorComponentsCount;
+    }
+
+    const auto verticesDataOffset = m_verticesDataBuffer->allocate(verticesData.size(), verticesData.data());
+
+    return {
+        static_cast<uint32_t>(verticesDataOffset),
+        static_cast<uint32_t>(verticesDataSize),
+        positionComponentsCount,
+        normalComponentsCount,
+        texCoordsComponentsCount,
+        hasTangent,
+        bonesCount,
+        colorComponentsCount };
+}
+
+void SceneData::removeVerticeshData(uint32_t verticesDataOffset, uint32_t verticesDataSize)
+{
+    if ((verticesDataOffset == utils::IDsGenerator::last()) || (!verticesDataSize))
+        return;
+    
+    m_verticesDataBuffer->free(verticesDataOffset, verticesDataSize);
+}
+
+SceneData::AddElementsDataResult SceneData::addElementsData(const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>>& primitiveSets)
+{
+    static constexpr auto s_indexType = utils::toDrawElementsIndexType<ElementsDataDescription>();
+    static_assert(s_indexType != utils::DrawElementsIndexType::Count);
+
+    static constexpr auto s_primitiveType = utils::PrimitiveType::Triangles;
+
+    size_t elementsDataSize = 0u;
+    std::vector<std::shared_ptr<utils::DrawElementsBuffer>> drawElementsBuffers;
+    drawElementsBuffers.reserve(primitiveSets.size());
+
+    for (const auto& primitiveSet : primitiveSets)
+    {
+        std::shared_ptr<utils::DrawElementsBuffer> buffer;
+        if (auto drawArrays = primitiveSet->asDrawArrays())
+        {
+            buffer = drawArrays->convertToElements(s_indexType);
+        }
+        else if (auto drawElements = primitiveSet->asDrawElements())
+        {
+            buffer = drawElements->asDrawElementsBuffer();
+        }
+
+        if (!buffer)
+        {
+            LOG_ERROR << "Failed to cast to draw elemtns buffer";
+            continue;
+        }
+
+        if (buffer->indexType() != s_indexType)
+            buffer = buffer->convertedToIndexType(s_indexType);
+
+        if (buffer->primitiveType() != s_primitiveType)
+            buffer = buffer->convertedToTriangles();
+
+        if (buffer->baseVertex())
+            buffer = buffer->appliedBaseVertex();
+
+        elementsDataSize += buffer->numIndices();
+        drawElementsBuffers.push_back(buffer);
+    }
+
+    if (!elementsDataSize)
+        return {};
+
+    std::vector<ElementsDataDescription> elementsData;
+    elementsData.reserve(elementsDataSize);
+    for (const auto& drawElemetsBuffer : drawElementsBuffers)
+    {
+        const auto* data = reinterpret_cast<const ElementsDataDescription*>(drawElemetsBuffer->data());
+        elementsData.insert(elementsData.end(), data, data + drawElemetsBuffer->numIndices());
+    }
+
+    const auto elementsDataOffset = m_elementsDataBuffer->allocate(elementsDataSize, elementsData.data());
+    return { static_cast<uint32_t>(elementsDataOffset), static_cast<uint32_t>(elementsDataSize) };
+}
+
+void SceneData::removeElementsData(uint32_t elementsDataOffset, uint32_t elementsDataSize)
+{
+    if ((elementsDataOffset == utils::IDsGenerator::last()) || (!elementsDataSize))
+        return;
+    
+    m_elementsDataBuffer->free(elementsDataOffset, elementsDataSize);
+}
+
+SceneData::AddSkeletonDataResult SceneData::addSkeletonData(
+    const std::vector<Bone>& bones,
+    uint32_t rootBoneID,
+    const std::map<std::string, std::shared_ptr<Animation>>& animations)
+{
+    static const size_t s_bonesCountIndex = 0;
+    static const size_t s_rootBoneIDIndex = s_bonesCountIndex + 1u;
+    static const size_t s_animationsCountIndex = s_rootBoneIDIndex + 1u;
+
+    const size_t bonesOffsetsIndices = s_animationsCountIndex + 1u;
+    const size_t animationsOffsetsIndices = bonesOffsetsIndices + bones.size();
+
+    const size_t dataOffsetIndex = animationsOffsetsIndices + animations.size();
+
+    size_t skeletonDataSize = 0u; // in floats
+
+    skeletonDataSize += 1u; // bones count
+    skeletonDataSize += 1u; // root bone ID
+    skeletonDataSize += 1u; // animations count
+    skeletonDataSize += bones.size(); // bones offsets
+    skeletonDataSize += animations.size(); // animations offsets
+
+    for (const auto& bone : bones)
+    {
+        skeletonDataSize += 8u; // offsetTransform
+        skeletonDataSize += 8u; // transform
+        skeletonDataSize += 1u; // parentID
+        skeletonDataSize += 1u; // children count
+        skeletonDataSize += bone.childrenIDs.size(); // childrenIDs
+    }
+
+    for (const auto& [_, animation] : animations)
+    {
+        skeletonDataSize += 1u; // duration
+        skeletonDataSize += 1u; // ticksPerSecond
+        skeletonDataSize += 1u; // channels count
+        skeletonDataSize += animation->channels().size(); // channels offsets
+        for (const auto& animationChannel : animation->channels())
+        {
+            skeletonDataSize += 1u; // boneID
+            skeletonDataSize += 1u; // scale keys count
+            skeletonDataSize += 1u; // rotation keys count
+            skeletonDataSize += 1u; // translation keys count
+            skeletonDataSize += animationChannel.scaleKeys.size() * 2u; // scale keys (time + scale[1])
+            skeletonDataSize += animationChannel.rotationKeys.size() * 5u; // rotation keys (time + rotation[4])
+            skeletonDataSize += animationChannel.translationKeys.size() * 4u; // translation keys (time + translation[3])
+        }
+    }
+
+    // 3u because of the header of the description (bones count, root bone ID and animations count that in fact are empty)
+    if (skeletonDataSize == 3u)
+        return {};
+
+    std::vector<SkeletonsDataDescription> skeletonData(skeletonDataSize);
+
+    skeletonData[s_bonesCountIndex] = glm::uintBitsToFloat(static_cast<uint32_t>(bones.size()));
+    skeletonData[s_rootBoneIDIndex] = glm::uintBitsToFloat(static_cast<uint32_t>(rootBoneID));
+    skeletonData[s_animationsCountIndex] = glm::uintBitsToFloat(static_cast<uint32_t>(animations.size()));
+
+    uint32_t offset = static_cast<uint32_t>(dataOffsetIndex);
+
+    size_t boneIndex = 0u;
+    for (const auto& bone : bones)
+    {
+        skeletonData[bonesOffsetsIndices + boneIndex++] = glm::uintBitsToFloat(offset);
+
+        const auto offsetTransformDescription = TransformDescription::make(bone.offsetTransform);
+        std::memcpy(skeletonData.data() + offset, &offsetTransformDescription, sizeof(TransformDescription));
+        offset += 8u; // offsetTransform
+
+        const auto modelTransformDescription = TransformDescription::make(bone.transform);
+        std::memcpy(skeletonData.data() + offset, &modelTransformDescription, sizeof(TransformDescription));
+        offset += 8u; // transform
+
+        skeletonData[offset++] = glm::uintBitsToFloat(bone.parentID); // parentID
+
+        skeletonData[offset++] = glm::uintBitsToFloat(static_cast<uint32_t>(bone.childrenIDs.size())); // children count
+
+        for (const auto& childID : bone.childrenIDs)
+            skeletonData[offset++] = glm::uintBitsToFloat(childID); // children IDs
+    }
+
+    size_t animationIndex = 0u;
+    for (const auto& [_, animation] : animations)
+    {
+        skeletonData[animationsOffsetsIndices + animationIndex++] = glm::uintBitsToFloat(offset);
+
+        skeletonData[offset++] = glm::uintBitsToFloat(animation->duration()); // duration
+
+        skeletonData[offset++] = glm::uintBitsToFloat(animation->ticksPerSecond()); // ticksPerSecond
+
+        skeletonData[offset++] = glm::uintBitsToFloat(static_cast<uint32_t>(animation->channels().size())); // channels count
+
+        const size_t channelsOffsetIndex = offset;
+
+        size_t channelIndex = 0u;
+        for (const auto& animationChannel : animation->channels())
+        {
+            skeletonData[channelsOffsetIndex + channelIndex++] = glm::uintBitsToFloat(offset);
+
+            skeletonData[offset++] = glm::uintBitsToFloat(animationChannel.boneID); // boneID
+
+            // scale kyes count
+            skeletonData[offset++] = glm::uintBitsToFloat(static_cast<uint32_t>(animationChannel.scaleKeys.size()));
+
+            // rotation kyes count
+            skeletonData[offset++] = glm::uintBitsToFloat(static_cast<uint32_t>(animationChannel.rotationKeys.size()));
+
+            // translation kyes count
+            skeletonData[offset++] = glm::uintBitsToFloat(static_cast<uint32_t>(animationChannel.translationKeys.size()));
+
+            const auto& scaleKeys = animationChannel.scaleKeys;
+            for (size_t i = 0u; i < scaleKeys.size(); ++i)
+            {
+                const auto& key = scaleKeys[i];
+                skeletonData[offset++] = glm::uintBitsToFloat(key.first); // time
+                skeletonData[offset++] = key.second; // scale
+            }
+
+            const auto& rotationKeys = animationChannel.rotationKeys;
+            for (size_t i = 0u; i < rotationKeys.size(); ++i)
+            {
+                const auto& key = rotationKeys[i];
+                skeletonData[offset++] = glm::uintBitsToFloat(key.first); // time
+                skeletonData[offset++] = key.second.x; // r.x
+                skeletonData[offset++] = key.second.y; // r.y
+                skeletonData[offset++] = key.second.z; // r.z
+                skeletonData[offset++] = key.second.w; // r.w
+            }
+
+            const auto& translationKeys = animationChannel.translationKeys;
+            for (size_t i = 0u; i < translationKeys.size(); ++i)
+            {
+                const auto& key = translationKeys[i];
+                skeletonData[offset++] = glm::uintBitsToFloat(key.first); // time
+                skeletonData[offset++] = key.second.x; // t.x
+                skeletonData[offset++] = key.second.y; // t.y
+                skeletonData[offset++] = key.second.z; // t.z
+            }
+        }
+    }
+
+    const auto skeletonDataOffset = m_skeletonsDataBuffer->allocate(skeletonData.size(), skeletonData.data());
+    return { static_cast<uint32_t>(skeletonDataOffset), static_cast<uint32_t>(skeletonData.size()) };
+}
+
+void SceneData::removeSkeletonData(uint32_t skeletonsDataOffset, uint32_t skeletonsDataSize)
+{
+    if ((skeletonsDataOffset == utils::IDsGenerator::last()) || (!skeletonsDataSize))
+        return;
+    
+    m_skeletonsDataBuffer->free(skeletonsDataOffset, skeletonsDataSize);
+}
+
+SceneData::AddBonesTransformsDataResult SceneData::addBonesTransformsData(const std::vector<Bone>& bones)
+{
+    const auto bonesTransformsDataSize = bones.size();
+
+    if (!bonesTransformsDataSize)
+        return {};
+
+    const auto bonesTransformsDataOffset = m_bonesTransformsDataBuffer->allocate(bonesTransformsDataSize, nullptr);
+    return { static_cast<uint32_t>(bonesTransformsDataOffset), static_cast<uint32_t>(bonesTransformsDataSize) };
+}
+
+void SceneData::removeBonesTransformsData(uint32_t bonesTransformsDataOffset, uint32_t bonesTransformsDataSize)
+{
+    if ((bonesTransformsDataOffset == utils::IDsGenerator::last()) || (!bonesTransformsDataSize))
+        return;
+    
+    m_bonesTransformsDataBuffer->free(bonesTransformsDataOffset, bonesTransformsDataSize);
+}
+
+SceneData::AddTextureHandleResult SceneData::addTextureHandle(
+    uint32_t materialMapID,
+    const graphics::PConstTexture& materialMapTexture,
+    const std::shared_ptr<graphics::RendererBase>& graphicsRenderer)
+{
+    if ((materialMapID == utils::IDsGenerator::last()) || (!materialMapTexture) || (!graphicsRenderer))
+        return {};
+
+    auto textureHandle = graphicsRenderer->createTextureHandle(materialMapTexture);
+    textureHandle->makeResident();
+
+    m_textureHandles[materialMapID] = textureHandle;
+    return { textureHandle->handle() };
+}
+
+void SceneData::removeTextureHandle(uint32_t materialMapID)
+{
+    m_textureHandles[materialMapID].reset();
+}
 
 std::shared_ptr<MeshHandler> SceneData::addMesh(const std::shared_ptr<const Mesh>& mesh)
 {
@@ -213,7 +814,7 @@ std::shared_ptr<MeshHandler> SceneData::addMesh(const std::shared_ptr<const Mesh
 
     if (!mesh)
     {
-        // do nothing
+        result = std::make_shared<MeshHandler>(weak_from_this());
     }
     else
     {
@@ -230,13 +831,14 @@ std::shared_ptr<MeshHandler> SceneData::addMesh(const std::shared_ptr<const Mesh
 
         if (!result)
         {
-            bool isEmpty = mesh->mesh() == nullptr;
-
-            auto meshID = isEmpty ? utils::IDsGenerator::last() : m_meshIDsGenerator.generate();
-            result = std::make_shared<MeshHandler>(weak_from_this(), mesh, meshID);
-            meshPrivate.handlers().insert(result);
+            const auto meshID = m_meshIDsGenerator.generate();
+            m_meshesBuffer->resize(static_cast<size_t>(meshID) + 1u);
+            m_meshesBuffer->set(meshID, MeshDescription::makeEmpty());
 
             onMeshChanged(meshID, mesh->mesh(), mesh->boundingBox());
+
+            result = std::make_shared<MeshHandler>(weak_from_this(), mesh, meshID);
+            meshPrivate.handlers().insert(result);
         }
     }
 
@@ -248,12 +850,16 @@ void SceneData::removeMesh(const std::shared_ptr<const Mesh>& mesh)
     auto& meshHandlers = mesh->m().handlers();
 
     for (auto it = meshHandlers.begin(); it != meshHandlers.end(); ++it)
+    {
         if ((*it)->sceneData().lock() == shared_from_this())
         {
-            removeMeshData((*it)->ID());
-            m_meshIDsGenerator.clear((*it)->ID());
+            const auto meshID = (*it)->ID();
+            onMeshChanged(meshID, nullptr, utils::BoundingBox::empty());
+            m_meshIDsGenerator.clear(meshID);
+            meshHandlers.erase(it);
             break;
         }
+    }
 }
 
 void SceneData::onMeshChanged(
@@ -261,283 +867,31 @@ void SceneData::onMeshChanged(
     const std::shared_ptr<const utils::Mesh>& mesh,
     const utils::BoundingBox& bb)
 {
-    removeMeshData(ID);
-    addMeshData(ID, mesh, bb);
-}
+    const auto meshDescription = m_meshesBuffer->get(ID);
+    removeVerticeshData(meshDescription.verticesDataOffset, MeshDescription::verticesDataSize(meshDescription));
+    removeElementsData(meshDescription.elementsDataOffset, MeshDescription::elementsDataSize(meshDescription));
 
-void SceneData::addMeshData(
-    utils::IDsGenerator::value_type ID,
-    const std::shared_ptr<const utils::Mesh>& mesh,
-    const utils::BoundingBox& bb)
-{
-    if (!mesh)
-        return;
+    AddVerticesDataResult addVerticesDataResult;
+    AddElementsDataResult addElementsDataResult;
 
-    const auto& vertexBuffers = mesh->vertexBuffers();
-
-    const size_t numVertices = vertexBuffers.empty() ? 0u : vertexBuffers.begin()->second->numVertices();
-    size_t vertexStride = 0u; // in floats
-    for (auto const& [attrib, buffer] : vertexBuffers)
+    if (mesh)
     {
-        if (buffer->numVertices() != numVertices)
-        {
-            LOG_CRITICAL << "Buffers have different size";
-            return;
-        }
-
-        vertexStride += buffer->numComponents();
+        addVerticesDataResult = addVerticesData(mesh->vertexBuffers());
+        addElementsDataResult = addElementsData(mesh->primitiveSets());
     }
-
-    const uint32_t numVertexData = numVertices * vertexStride;
-    std::vector<VertexDataDescription> vertexData(numVertexData, static_cast<VertexDataDescription>(0));
-
-    size_t relativeOffset = 0u;
-    uint32_t numPositionComponents = 0u;
-    uint32_t numNormalComponents = 0u;
-    uint32_t numTexCoordsComponents = 0u;
-    bool hasTangent = false;
-    uint32_t numBones = 0u;
-    uint32_t numColorComponents = 0u;
-
-    if (auto it = vertexBuffers.find(utils::VertexAttribute::Position); it != vertexBuffers.end())
-    {
-        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
-        if (!PositionFormat.first.isInside(buffer->numComponents()) ||
-            (buffer->componentType() != PositionFormat.second))
-        {
-            buffer = buffer->converted(PositionFormat.first.farValue(), PositionFormat.second);
-        }
-
-        numPositionComponents = buffer->numComponents();
-        for (size_t v = 0u; v < numVertices; ++v)
-        {
-            const auto* vertex = reinterpret_cast<const VertexDataDescription*>(buffer->vertex(v));
-            for (uint32_t c = 0u; c < numPositionComponents; ++c)
-                vertexData[vertexStride * v + relativeOffset + c] = vertex[c];
-        }
-
-        relativeOffset += numPositionComponents;
-    }
-
-    if (auto it = vertexBuffers.find(utils::VertexAttribute::Normal); it != vertexBuffers.end())
-    {
-        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
-        if (!NormalFormat.first.isInside(buffer->numComponents()) ||
-            (buffer->componentType() != NormalFormat.second))
-        {
-            buffer = buffer->converted(NormalFormat.first.farValue(), NormalFormat.second);
-        }
-
-        numNormalComponents = buffer->numComponents();
-        for (size_t v = 0u; v < numVertices; ++v)
-        {
-            const auto* vertex = reinterpret_cast<const VertexDataDescription*>(buffer->vertex(v));
-            for (uint32_t c = 0u; c < numNormalComponents; ++c)
-                vertexData[vertexStride * v + relativeOffset + c] = vertex[c];
-        }
-
-        relativeOffset += numNormalComponents;
-    }
-
-    if (auto it = vertexBuffers.find(utils::VertexAttribute::TexCoords); it != vertexBuffers.end())
-    {
-        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
-        if (!TexCoordsFormat.first.isInside(buffer->numComponents()) ||
-            (buffer->componentType() != TexCoordsFormat.second))
-        {
-            buffer = buffer->converted(TexCoordsFormat.first.farValue(), TexCoordsFormat.second);
-        }
-
-        numTexCoordsComponents = buffer->numComponents();
-        for (size_t v = 0u; v < numVertices; ++v)
-        {
-            const auto* vertex = reinterpret_cast<const VertexDataDescription*>(buffer->vertex(v));
-            for (uint32_t c = 0u; c < numTexCoordsComponents; ++c)
-                vertexData[vertexStride * v + relativeOffset + c] = vertex[c];
-        }
-
-        relativeOffset += numTexCoordsComponents;
-    }
-
-    if (auto it = vertexBuffers.find(utils::VertexAttribute::Tangent);
-        (it != vertexBuffers.end()) && (numNormalComponents > 0u))
-    {
-        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
-        if (TangentFormat.first.isInside(buffer->numComponents())) // only 4-components tangent is suitable
-        {
-            if (buffer->componentType() != TangentFormat.second)
-            {
-                buffer = buffer->converted(buffer->numComponents(), TangentFormat.second);
-            }
-
-            const size_t numComponents = buffer->numComponents();
-            hasTangent = numComponents != 0u;
-            for (size_t v = 0u; v < numVertices; ++v)
-            {
-                const auto* vertex = reinterpret_cast<const VertexDataDescription*>(buffer->vertex(v));
-                for (size_t c = 0u; c < numComponents; ++c)
-                    vertexData[vertexStride * v + relativeOffset + c] = vertex[c];
-            }
-
-            relativeOffset += numComponents;
-        }
-    }
-
-    if (vertexBuffers.count(utils::VertexAttribute::BonesIDs) &&
-        vertexBuffers.count(utils::VertexAttribute::BonesWeights))
-    {
-        std::shared_ptr<utils::VertexBuffer> bonesIDsBuffer = vertexBuffers.at(utils::VertexAttribute::BonesIDs);
-        std::shared_ptr<utils::VertexBuffer> bonesWeightsBuffer = vertexBuffers.at(utils::VertexAttribute::BonesWeights);
-
-        numBones = bonesIDsBuffer->numComponents();
-        if (numBones != bonesWeightsBuffer->numComponents())
-        {
-            LOG_CRITICAL << "Bones IDs and weights buffers must have equal number of components";
-            return;
-        }
-
-        numBones = glm::min(numBones, BonesCountRange.farValue());
-
-        if (!BonesIDsFormat.first.isInside(bonesIDsBuffer->numComponents()) ||
-            (bonesIDsBuffer->componentType() != BonesIDsFormat.second))
-        {
-            bonesIDsBuffer = bonesIDsBuffer->converted(numBones, BonesIDsFormat.second);
-        }
-
-        if (!BonesWeightsFormat.first.isInside(bonesWeightsBuffer->numComponents()) ||
-            (bonesWeightsBuffer->componentType() != BonesWeightsFormat.second))
-        {
-            bonesWeightsBuffer =
-                bonesWeightsBuffer->converted(numBones, BonesWeightsFormat.second);
-        }
-
-        for (size_t v = 0u; v < numVertices; ++v)
-        {
-            const auto* IDs = reinterpret_cast<const BonesIDsUnderlyingType*>(bonesIDsBuffer->vertex(v));
-            const auto* weights = reinterpret_cast<const VertexDataDescription*>(bonesWeightsBuffer->vertex(v));
-            for (uint32_t c = 0u; c < numBones; ++c)
-            {
-                vertexData[vertexStride * v + relativeOffset + 2u * c + 0u] = glm::uintBitsToFloat(IDs[c]);
-                vertexData[vertexStride * v + relativeOffset + 2u * c + 1u] = weights[c];
-            }
-        }
-
-        relativeOffset += 2u * numBones;
-    }
-
-    if (auto it = vertexBuffers.find(utils::VertexAttribute::Color); it != vertexBuffers.end())
-    {
-        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
-        if (!ColorFormat.first.isInside(buffer->numComponents()) ||
-            (buffer->componentType() != ColorFormat.second))
-        {
-            buffer = buffer->converted(ColorFormat.first.farValue(), ColorFormat.second);
-        }
-
-        numColorComponents = buffer->numComponents();
-        for (size_t v = 0u; v < numVertices; ++v)
-        {
-            const auto* vertex = reinterpret_cast<const VertexDataDescription*>(buffer->vertex(v));
-            for (uint32_t c = 0u; c < numColorComponents; ++c)
-                vertexData[vertexStride * v + relativeOffset + c] = vertex[c];
-        }
-
-        relativeOffset += numColorComponents;
-    }
-
-    uint32_t vertexDataOffset = m_vertexDataBuffer->size();
-    m_vertexDataBuffer->insert(vertexDataOffset, vertexData.data(), vertexData.size());
-
-    static constexpr auto s_indexType = utils::toDrawElementsIndexType<ElementsDescription>();
-    static_assert(s_indexType != utils::DrawElementsIndexType::Count);
-
-    static constexpr auto s_primitiveType = utils::PrimitiveType::Triangles;
-
-    uint32_t elementsOffset = m_elementsBuffer->size();
-    uint32_t numElements = 0u;
-
-    for (const auto& primitiveSet : mesh->primitiveSets())
-    {
-        std::shared_ptr<utils::DrawElementsBuffer> buffer;
-        if (auto drawArrays = primitiveSet->asDrawArrays())
-        {
-            buffer = drawArrays->convertToElements(s_indexType);
-        }
-        else if (auto drawElements = primitiveSet->asDrawElements())
-        {
-            buffer = drawElements->asDrawElementsBuffer();
-        }
-
-        if (!buffer)
-        {
-            LOG_WARNING << "Failed to cast to draw elemtns buffer";
-            continue;
-        }
-
-        if (buffer->indexType() != s_indexType)
-            buffer = buffer->convertedToIndexType(s_indexType);
-
-        if (buffer->primitiveType() != s_primitiveType)
-            buffer = buffer->convertedToTriangles();
-
-        if (buffer->baseVertex())
-            buffer = buffer->appliedBaseVertex();
-
-        m_elementsBuffer->insert(
-            m_elementsBuffer->size(), reinterpret_cast<ElementsDescription*>(buffer->data()), buffer->numIndices());
-
-        numElements += buffer->numIndices();
-    }
-
-    uint32_t bonesDataOffset = 0xFFFFFFFFu;
-    // insertion bones to m_bonesDataBuffer
-
-    if (m_meshesBuffer->size() <= ID)
-        m_meshesBuffer->resize(ID + 1u);
 
     m_meshesBuffer->set(ID, MeshDescription::make(
         bb,
-        numVertexData,
-        numElements,
-        vertexDataOffset,
-        elementsOffset,
-        bonesDataOffset,
-        numPositionComponents,
-        numNormalComponents,
-        numTexCoordsComponents,
-        numBones,
-        hasTangent,
-        numColorComponents));
-}
-
-void SceneData::removeMeshData(utils::IDsGenerator::value_type ID)
-{
-    if (m_meshesBuffer->size() <= ID)
-        return;
-
-    auto description = m_meshesBuffer->get(ID);
-    const auto& vertexDataOffset = description.vertexDataOffset;
-    auto numVertexData = MeshDescription::numVertexData(description);
-    const auto& elementsOffset = description.elementsOffset;
-    auto numElements = MeshDescription::numElements(description);
-
-    for (size_t i = 0u; i < m_meshesBuffer->size(); ++i)
-    {
-        auto meshDescription = m_meshesBuffer->get(i);
-
-        if (meshDescription.vertexDataOffset >= vertexDataOffset)
-            meshDescription.vertexDataOffset -= numVertexData;
-
-        if (meshDescription.elementsOffset >= elementsOffset)
-            meshDescription.elementsOffset -= numElements;
-
-        m_meshesBuffer->set(i, meshDescription);
-    }
-
-    m_vertexDataBuffer->erase(vertexDataOffset, numVertexData);
-    m_elementsBuffer->erase(elementsOffset, numElements);
-
-    m_meshesBuffer->erase(ID, 1u);
+        addVerticesDataResult.verticesDataSize,
+        addElementsDataResult.elementsDataSize,
+        addVerticesDataResult.verticesDataOffset,
+        addElementsDataResult.elementsDataOffset,
+        addVerticesDataResult.positionComponentsCount,
+        addVerticesDataResult.normalComponentsCount,
+        addVerticesDataResult.texCoordsComponentsCount,
+        addVerticesDataResult.bonesCount,
+        addVerticesDataResult.hasTangent,
+        addVerticesDataResult.colorComponentsCount));
 }
 
 std::shared_ptr<MaterialMapHandler> SceneData::addMaterialMap(const std::shared_ptr<const MaterialMap>& materialMap)
@@ -546,11 +900,7 @@ std::shared_ptr<MaterialMapHandler> SceneData::addMaterialMap(const std::shared_
 
     if (!materialMap)
     {
-        // do nothing
-    }
-    else if (materialMap->isEmpty())
-    {
-        // do nothing
+        result = std::make_shared<MaterialMapHandler>(weak_from_this());
     }
     else
     {
@@ -567,13 +917,16 @@ std::shared_ptr<MaterialMapHandler> SceneData::addMaterialMap(const std::shared_
 
         if (!result)
         {
-            bool isEmpty = materialMap->isEmpty();
-            auto materialMapID = isEmpty ? utils::IDsGenerator::last() : m_materialMapIDsGenerator.generate();
+            const auto materialMapID = m_materialMapIDsGenerator.generate();
+            m_materialMapsBuffer->resize(static_cast<size_t>(materialMapID) + 1u);
+            m_materialMapsBuffer->set(materialMapID, MaterialMapDescription::makeEmpty());
+            m_textureHandles.resize(static_cast<size_t>(materialMapID) + 1u);
+            m_textureHandles[materialMapID] = nullptr;
+
+            onMaterialMapChanged(materialMapID, materialMap->filesystemPath(), materialMap->image());
 
             result = std::make_shared<MaterialMapHandler>(weak_from_this(), materialMap, materialMapID);
             materialMapPrivate.handlers().insert(result);
-
-            onMaterialMapChanged(materialMapID, materialMap->filesystemPath(), materialMap->image());
         }
     }
 
@@ -585,13 +938,16 @@ void SceneData::removeMaterialMap(const std::shared_ptr<const MaterialMap>& mate
     auto& materialMapHandlers = materialMap->m().handlers();
 
     for (auto it = materialMapHandlers.begin(); it != materialMapHandlers.end(); ++it)
+    {
         if ((*it)->sceneData().lock() == shared_from_this())
         {
-            m_materialMapIDsGenerator.clear((*it)->ID());
-            m_textureHandles[(*it)->ID()].reset();
+            const auto materialMapID = (*it)->ID();
+            onMaterialMapChanged(materialMapID, std::filesystem::path(), nullptr);
+            m_materialMapIDsGenerator.clear(materialMapID);
             materialMapHandlers.erase(it);
             break;
         }
+    }
 }
 
 void SceneData::onMaterialMapChanged(
@@ -599,9 +955,6 @@ void SceneData::onMaterialMapChanged(
     const std::filesystem::path& path,
     const std::shared_ptr<const utils::Image>& image)
 {
-    if (ID == utils::IDsGenerator::last())
-        return;
-
     auto graphicsRenderer = graphics::RendererBase::current();
     if (!graphicsRenderer)
     {
@@ -630,26 +983,17 @@ void SceneData::onMaterialMapChanged(
         return;
     }
 
+    removeTextureHandle(ID);
+
     graphics::PTexture texture;
     if (!path.empty())
         texture = texturesManager->loadOrGetTexture(path);
     else if (image)
         texture = texturesManager->loadOrGetTexture(image);
 
-    if (!texture)
-    {
-        LOG_CRITICAL << "Failed to load texture";
-        return;
-    }
-
-    graphics::PTextureHandle textureHandle = graphicsRenderer->createTextureHandle(texture);
-    textureHandle->makeResident();
-
-    if (m_materialMapsBuffer->size() <= ID) m_materialMapsBuffer->resize(ID + 1u);
-    m_materialMapsBuffer->set(ID, MaterialMapDescription::make(textureHandle->handle()));
-
-    if (m_textureHandles.size() <= ID) m_textureHandles.resize(ID + 1u);
-    m_textureHandles[ID] = textureHandle;
+    m_materialMapsBuffer->set(
+        ID,
+        MaterialMapDescription::make(addTextureHandle(ID, texture, graphicsRenderer).handle));
 }
 
 std::shared_ptr<MaterialHandler> SceneData::addMaterial(const std::shared_ptr<const Material>& material)
@@ -658,7 +1002,7 @@ std::shared_ptr<MaterialHandler> SceneData::addMaterial(const std::shared_ptr<co
 
     if (!material)
     {
-        // do nothing
+        result = std::make_shared<MaterialHandler>(weak_from_this());
     }
     else
     {
@@ -675,17 +1019,19 @@ std::shared_ptr<MaterialHandler> SceneData::addMaterial(const std::shared_ptr<co
 
         if (!result)
         {
-            result = std::make_shared<MaterialHandler>(weak_from_this(), material, m_materialIDsGenerator.generate());
-            materialPrivate.handlers().insert(result);
+            const auto materialID = m_materialIDsGenerator.generate();
+            m_materialsBuffer->resize(static_cast<size_t>(materialID) + 1u);
+            m_materialsBuffer->set(materialID, MaterialDescription::makeEmpty());
 
             onMaterialChanged(
-                result->ID(),
+                materialID,
                 material->baseColor(),
                 material->emission(),
                 material->roughness(),
                 material->metalness(),
                 material->alphaCutoff(),
                 material->materialMap(MaterialMapTarget::BaseColor),
+                material->materialMap(MaterialMapTarget::Opacity),
                 material->materialMap(MaterialMapTarget::Emission),
                 material->materialMap(MaterialMapTarget::Occlusion),
                 material->materialMap(MaterialMapTarget::Roughness),
@@ -698,6 +1044,9 @@ std::shared_ptr<MaterialHandler> SceneData::addMaterial(const std::shared_ptr<co
                 material->isShadowed(),
                 material->isShadowCasted(),
                 material->isDoubleSided());
+
+            result = std::make_shared<MaterialHandler>(weak_from_this(), material, materialID);
+            materialPrivate.handlers().insert(result);
         }
     }
 
@@ -711,7 +1060,29 @@ void SceneData::removeMaterial(const std::shared_ptr<const Material>& material)
     for (auto it = materialHandlers.begin(); it != materialHandlers.end(); ++it)
         if ((*it)->sceneData().lock() == shared_from_this())
         {
-            m_materialIDsGenerator.clear((*it)->ID());
+            const auto materialID = (*it)->ID();
+            onMaterialChanged(
+                materialID,
+                glm::vec4(),
+                glm::vec3(),
+                0.f,
+                0.f,
+                0.f,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                0.f,
+                0.f,
+                glm::u32vec3(),
+                false,
+                false,
+                false,
+                false);
+            m_materialIDsGenerator.clear(materialID);
             materialHandlers.erase(it);
             break;
         }
@@ -725,6 +1096,7 @@ void SceneData::onMaterialChanged(
     float metalness,
     float alphaCutoff,
     const std::shared_ptr<const MaterialMap>& baseColorMap,
+    const std::shared_ptr<const MaterialMap>& opacityMap,
     const std::shared_ptr<const MaterialMap>& emissionMap,
     const std::shared_ptr<const MaterialMap>& occlusionMap,
     const std::shared_ptr<const MaterialMap>& roughnessMap,
@@ -738,18 +1110,16 @@ void SceneData::onMaterialChanged(
     bool isShadowCasted,
     bool isDoubleSided)
 {
-    if (m_materialsBuffer->size() <= ID)
-        m_materialsBuffer->resize(ID + 1u);
-
     m_materialsBuffer->set(ID, MaterialDescription::make(
         baseColor,
-        glm::vec4(emission, 1.f),
-        baseColorMap ? addMaterialMap(baseColorMap)->ID() : utils::IDsGenerator::last(),
-        emissionMap ? addMaterialMap(emissionMap)->ID() : utils::IDsGenerator::last(),
-        occlusionMap ? addMaterialMap(occlusionMap)->ID() : utils::IDsGenerator::last(),
-        roughnessMap ? addMaterialMap(roughnessMap)->ID() : utils::IDsGenerator::last(),
-        metalnessMap ? addMaterialMap(metalnessMap)->ID() : utils::IDsGenerator::last(),
-        normalMap ? addMaterialMap(normalMap)->ID() : utils::IDsGenerator::last(),
+        emission,
+        addMaterialMap(baseColorMap)->ID(),
+        addMaterialMap(opacityMap)->ID(),
+        addMaterialMap(emissionMap)->ID(),
+        addMaterialMap(occlusionMap)->ID(),
+        addMaterialMap(roughnessMap)->ID(),
+        addMaterialMap(metalnessMap)->ID(),
+        addMaterialMap(normalMap)->ID(),
         roughness,
         metalness,
         occlusionMapStrength,
@@ -759,7 +1129,7 @@ void SceneData::onMaterialChanged(
         isShadowed,
         isShadowCasted,
         isDoubleSided,
-        isMaterialTransparent(baseColor, baseColorMap, alphaCutoff),
+        isMaterialTransparent(baseColor, baseColorMap, opacityMap, alphaCutoff),
         alphaCutoff));
 }
 
@@ -769,7 +1139,7 @@ std::shared_ptr<DrawableHandler> SceneData::addDrawable(const std::shared_ptr<co
 
     if (!drawable)
     {
-        // do nothing
+        result = std::make_shared<DrawableHandler>(weak_from_this());
     }
     else
     {
@@ -786,10 +1156,14 @@ std::shared_ptr<DrawableHandler> SceneData::addDrawable(const std::shared_ptr<co
 
         if (!result)
         {
-            result = std::make_shared<DrawableHandler>(weak_from_this(), drawable, m_drawableIDsGenerator.generate());
-            drawablePrivate.handlers().insert(result);
+            auto drawableID = m_drawableIDsGenerator.generate();
+            m_drawablesBuffer->resize(static_cast<size_t>(drawableID) + 1u);
+            m_drawablesBuffer->set(drawableID, DrawableDescription::makeEmpty());
 
-            onDrawableChanged(result->ID(), drawable->mesh(), drawable->material());
+            onDrawableChanged(drawableID, drawable->mesh(), drawable->material());
+
+            result = std::make_shared<DrawableHandler>(weak_from_this(), drawable, drawableID);
+            drawablePrivate.handlers().insert(result);
         }
     }
 
@@ -801,12 +1175,17 @@ void SceneData::removeDrawable(const std::shared_ptr<const Drawable>& drawable)
     auto& drawableHandlers = drawable->m().handlers();
 
     for (auto it = drawableHandlers.begin(); it != drawableHandlers.end(); ++it)
+    {
         if ((*it)->sceneData().lock() == shared_from_this())
         {
-            m_drawableIDsGenerator.clear((*it)->ID());
+            const auto drawableID = (*it)->ID();
+            onDrawableChanged(drawableID, nullptr, nullptr);
+            m_drawableIDsGenerator.clear(drawableID);
             drawableHandlers.erase(it);
             break;
+
         }
+    }
 }
 
 void SceneData::onDrawableChanged(
@@ -814,81 +1193,39 @@ void SceneData::onDrawableChanged(
     const std::shared_ptr<const Mesh>& mesh,
     const std::shared_ptr<const Material>& material)
 {
-    if (m_drawablesBuffer->size() <= ID)
-        m_drawablesBuffer->resize(ID + 1u);
-
     m_drawablesBuffer->set(ID, DrawableDescription::make(
         addMesh(mesh)->ID(),
         addMaterial(material)->ID()));
 }
 
-std::shared_ptr<DrawDataHandler> SceneData::addDrawData(
-    const std::shared_ptr<const Drawable>& drawable,
-    const utils::Transform& transform)
-{
-    if (!drawable)
-    {
-        LOG_CRITICAL << "Failed to add draw data";
-        return nullptr;
-    }
-
-    const auto ID = m_drawDataIDsGenerator.generate();
-    auto result = std::make_shared<DrawDataHandler>(weak_from_this(), ID);
-
-    onDrawDataChanged(ID, drawable, transform);
-
-    return result;
-}
-
-void SceneData::removeDrawData(utils::IDsGenerator::value_type ID)
-{
-    m_drawDataBuffer->set(ID, DrawDataDescription::makeEmpty());
-    m_drawDataIDsGenerator.clear(ID);
-}
-
-void SceneData::onDrawDataChanged(
-    utils::IDsGenerator::value_type ID,
-    const std::shared_ptr<const Drawable>& drawable,
-    const utils::Transform& transform)
-{
-    if (!drawable)
-    {
-        LOG_CRITICAL << "Drawable can't be nullptr";
-        return;
-    }
-
-    if (m_drawDataBuffer->size() <= ID)
-        m_drawDataBuffer->resize(ID + 1u);
-
-    m_drawDataBuffer->set(ID, DrawDataDescription::make(transform, addDrawable(drawable)->ID()));
-}
-
 void SceneData::setBackground(const std::shared_ptr<const Background>& background)
 {
-    removeBackground();
+    auto backgroundHandler = std::make_shared<BackgroundHandler>(weak_from_this());
+    m_backgroundBuffer->set(BackgroundDescription::makeEmpty());
 
-    if (!background)
+    if (background)
     {
-        LOG_CRITICAL << "Failed to add background";
-        return;
+        onBackgroundChanged(
+            background->environmentMap(),
+            background->rotation(),
+            background->environmentColor(),
+            background->blurPower());
+
+        backgroundHandler = std::make_shared<BackgroundHandler>(weak_from_this(), background);
     }
 
-    auto handler = std::make_shared<BackgroundHandler>(weak_from_this(), background);
-    background->m().handler() = handler;
+    background->m().handler() = backgroundHandler;
 
-    m_backgroundHandler = handler;
-
-    onBackgroundChanged(background->environmentMap(), background->rotation(), background->environmentColor(), background->blurPower());
 }
 
-void SceneData::removeBackground()
+void SceneData::removeBackground(const std::shared_ptr<const Background>& background)
 {
-    if (auto handler = m_backgroundHandler.lock())
-        if (auto background = handler->background().lock())
-            background->m().handler().reset();
-
-    m_backgroundHandler.reset();
-    m_backgroundBuffer->set(BackgroundDescription::makeEmpty());
+    auto& backgroundHandler = background->m().handler();
+    if (backgroundHandler && (backgroundHandler->sceneData().lock() == shared_from_this()))
+    {
+        onBackgroundChanged(nullptr, glm::quat(), glm::vec3(), 0.f);
+        backgroundHandler.reset();
+    }
 }
 
 void SceneData::onBackgroundChanged(
@@ -990,100 +1327,196 @@ void SceneData::onImageBasedLightChanged(utils::IDsGenerator::value_type ID,
         contribution));
 }
 
-void SceneData::removeLight(utils::IDsGenerator::value_type ID)
+void SceneData::removeLight(utils::IDsGenerator::value_type lightID)
 {
-    m_lightsBuffer->set(ID, LightDescription::makeEmpty());
-    m_lightIDsGenerator.clear(ID);
+    onLightChanged(lightID, LightDescription::makeEmpty());
+    m_lightIDsGenerator.clear(lightID);
 }
 
-VertexDataBuffer& SceneData::vertexDataBuffer()
+std::shared_ptr<SkeletonHandler> SceneData::addSkeleton(const std::shared_ptr<const Skeleton>& skeleton)
 {
-    return m_vertexDataBuffer;
+    std::shared_ptr<SkeletonHandler> result;
+
+    if (!skeleton)
+    {
+        result = std::make_shared<SkeletonHandler>(weak_from_this());
+    }
+    else
+    {
+        auto& skeletonPrivate = skeleton->m();
+
+        for (const auto& skeletonHandler : skeletonPrivate.handlers())
+        {
+            if (skeletonHandler->sceneData().lock() == shared_from_this())
+            {
+                result = skeletonHandler;
+                break;
+            }
+        }
+
+        if (!result)
+        {
+            const auto skeletonID = m_skeletonIDsGenerator.generate();
+            m_skeletonsBuffer->resize(static_cast<size_t>(skeletonID) + 1u);
+            m_skeletonsBuffer->set(skeletonID, SkeletonDescription::makeEmpty());
+
+            onSkeletonChanged(skeletonID, skeleton->bones(), skeleton->rootBoneID(), skeleton->animations());
+
+            result = std::make_shared<SkeletonHandler>(weak_from_this(), skeleton, skeletonID);
+            skeletonPrivate.handlers().insert(result);
+        }
+    }
+
+    return result;
 }
 
-const VertexDataBuffer& SceneData::vertexDataBuffer() const
+void SceneData::removeSkeleton(const std::shared_ptr<const Skeleton>& skeleton)
 {
-    return const_cast<SceneData*>(this)->vertexDataBuffer();
+    auto& skeletonHandlers = skeleton->m().handlers();
+
+    for (auto it = skeletonHandlers.begin(); it != skeletonHandlers.end(); ++it)
+    {
+        if ((*it)->sceneData().lock() == shared_from_this())
+        {
+            const auto skeletonID = (*it)->ID();
+            onSkeletonChanged(
+                skeletonID,
+                std::vector<Bone>(),
+                utils::IDsGenerator::last(),
+                std::map<std::string, std::shared_ptr<Animation>>());
+            m_skeletonIDsGenerator.clear(skeletonID);
+            break;
+        }
+    }
 }
 
-ElementsBuffer& SceneData::elementsBuffer()
+void SceneData::onSkeletonChanged(
+    utils::IDsGenerator::value_type ID,
+    const std::vector<Bone>& bones,
+    uint32_t rootBoneID,
+    const std::map<std::string, std::shared_ptr<Animation>>& animations)
 {
-    return m_elementsBuffer;
+    const auto skeletonDescription = m_skeletonsBuffer->get(ID);
+    removeSkeletonData(skeletonDescription.dataOffset, skeletonDescription.dataSize);
+
+    const auto addSkeletonDataResult = addSkeletonData(bones, rootBoneID, animations);
+    m_skeletonsBuffer->set(
+        ID,
+        SkeletonDescription::make(addSkeletonDataResult.skeletonsDataOffset, addSkeletonDataResult.skeletonsDataSize));
 }
 
-const ElementsBuffer& SceneData::elementsBuffer() const
+std::shared_ptr<DrawDataHandler> SceneData::addDrawData(
+    const std::shared_ptr<const Drawable>& drawable,
+    const utils::Transform& transform)
 {
-    return const_cast<SceneData*>(this)->elementsBuffer();
+    std::shared_ptr<DrawDataHandler> result;
+
+    if (!drawable)
+    {
+        result = std::make_shared<DrawDataHandler>(weak_from_this());
+    }
+    else
+    {
+        const auto drawDataID = m_drawDataIDsGenerator.generate();
+        m_drawDataBuffer->resize(static_cast<size_t>(drawDataID) + 1u);
+        m_drawDataBuffer->set(drawDataID, DrawDataDescription::makeEmpty());
+
+        onDrawDataChanged(drawDataID, drawable, transform);
+
+        result = std::make_shared<DrawDataHandler>(weak_from_this(), drawDataID);
+    }
+
+    return result;
 }
 
-MeshesBuffer& SceneData::meshesBuffer()
+void SceneData::removeDrawData(utils::IDsGenerator::value_type ID)
 {
-    return m_meshesBuffer;
+    onDrawDataChanged(ID, nullptr, utils::Transform::makeIdentity());
+    m_drawDataIDsGenerator.clear(ID);
 }
 
-const MeshesBuffer& SceneData::meshesBuffer() const
+void SceneData::onDrawDataChanged(
+    utils::IDsGenerator::value_type ID,
+    const std::shared_ptr<const Drawable>& drawable,
+    const utils::Transform& transform)
 {
-    return const_cast<SceneData*>(this)->meshesBuffer();
+    m_drawDataBuffer->set(ID, DrawDataDescription::make(transform, addDrawable(drawable)->ID()));
 }
 
-MaterialMapsBuffer& SceneData::materialMapsBuffer()
+std::shared_ptr<SkeletalAnimatedDataHandler> SceneData::addSkeletalAnimatedData(
+    const std::shared_ptr<Skeleton>& skeleton,
+    const std::string& currentAnimation)
 {
-    return m_materialMapsBuffer;
+    std::shared_ptr<SkeletalAnimatedDataHandler> result;
+
+    if (!skeleton)
+    {
+        result = std::make_shared<SkeletalAnimatedDataHandler>(weak_from_this());
+    }
+    else
+    {
+        const auto skeletalAnimatedDataID = m_skeletalAnimatedDataIDsGenerator.generate();
+        m_skeletalAnimatedDataBuffer->resize(static_cast<size_t>(skeletalAnimatedDataID) + 1u);
+        m_skeletalAnimatedDataBuffer->set(skeletalAnimatedDataID, SkeletalAnimatedDataDescription::makeEmpty());
+
+        onSkeletalAnimatedDataChanged(skeletalAnimatedDataID, skeleton, currentAnimation);
+
+        result = std::make_shared<SkeletalAnimatedDataHandler>(weak_from_this(), skeletalAnimatedDataID);
+    }
+
+    return result;
 }
 
-const MaterialMapsBuffer& SceneData::materialMapsBuffer() const
+void SceneData::removeSkeletalAnimatedData(utils::IDsGenerator::value_type skeletalAnimatedDataID)
 {
-    return const_cast<SceneData*>(this)->materialMapsBuffer();
+    onSkeletalAnimatedDataChanged(skeletalAnimatedDataID, nullptr, std::string());
+    m_skeletalAnimatedDataIDsGenerator.clear(skeletalAnimatedDataID);
 }
 
-MaterialsBuffer& SceneData::materialsBuffer()
+void SceneData::onSkeletalAnimatedDataChanged(
+    utils::IDsGenerator::value_type skeletalAnimatedDataID,
+    const std::shared_ptr<Skeleton>& skeleton,
+    const std::string& currentAnimation)
 {
-    return m_materialsBuffer;
+    const auto skeletalAnimatedDataDescription = m_skeletalAnimatedDataBuffer->get(skeletalAnimatedDataID);
+    removeBonesTransformsData(
+        skeletalAnimatedDataDescription.bonesTransfromsDataOffset,
+        skeletalAnimatedDataDescription.bonesTransfromsDataSize);
+
+    AddBonesTransformsDataResult addBonesTransformsDataResult;
+    auto currentAnimationID = utils::IDsGenerator::last();
+
+    if (skeleton)
+    {
+        addBonesTransformsDataResult = addBonesTransformsData(skeleton->bones());
+
+        const auto& animations = skeleton->animations();
+        if (auto currentAnimationIter = animations.find(currentAnimation); currentAnimationIter != animations.end())
+            currentAnimationID = std::distance(animations.begin(), currentAnimationIter);
+    }
+
+    m_skeletalAnimatedDataBuffer->set(
+        skeletalAnimatedDataID,
+        SkeletalAnimatedDataDescription::make(
+            addSkeleton(skeleton)->ID(),
+            currentAnimationID,
+            addBonesTransformsDataResult.bonesTransformsDataOffset,
+            addBonesTransformsDataResult.bonesTransformsDataSize));
 }
 
-const MaterialsBuffer& SceneData::materialsBuffer() const
+size_t SceneData::drawDataCount() const
 {
-    return const_cast<SceneData*>(this)->materialsBuffer();
+    return m_drawDataBuffer->size();
 }
 
-DrawablesBuffer& SceneData::drawablesBuffer()
+size_t SceneData::skeletalAnimatedDataCount() const
 {
-    return m_drawablesBuffer;
+    return m_skeletalAnimatedDataBuffer->size();
 }
 
-const DrawablesBuffer& SceneData::drawablesBuffer() const
+size_t SceneData::lightsCount() const
 {
-    return const_cast<SceneData*>(this)->drawablesBuffer();
-}
-
-DrawDataBuffer& SceneData::drawDataBuffer()
-{
-    return m_drawDataBuffer;
-}
-
-const DrawDataBuffer& SceneData::drawDataBuffer() const
-{
-    return const_cast<SceneData*>(this)->drawDataBuffer();
-}
-
-BackgroundBuffer& SceneData::backgroundBuffer()
-{
-    return m_backgroundBuffer;
-}
-
-const BackgroundBuffer& SceneData::backgroundBuffer() const
-{
-    return const_cast<SceneData*>(this)->backgroundBuffer();
-}
-
-LightsBuffer& SceneData::lightsBuffer()
-{
-    return m_lightsBuffer;
-}
-
-const LightsBuffer& SceneData::lightsBuffer() const
-{
-    return const_cast<SceneData*>(this)->lightsBuffer();
+    return m_lightsBuffer->size();
 }
 
 graphics::PDrawArraysIndirectCommandsConstBuffer SceneData::screenQuadCommandsBuffer() const
@@ -1091,75 +1524,32 @@ graphics::PDrawArraysIndirectCommandsConstBuffer SceneData::screenQuadCommandsBu
     return m_screenQuadCommandsBuffer;
 }
 
-std::shared_ptr<SceneData> SceneData::create()
-{
-    auto result = std::shared_ptr<SceneData>(new SceneData);
-
-    // create screen quad mesh
-    result->m_screenQuadMesh = std::make_shared<Mesh>(utils::MeshPainter(utils::Mesh::createEmptyMesh({
-        {utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}
-        })).drawScreenQuad().mesh(), utils::BoundingBox());
-    auto screenQuadMeshHandler = result->addMesh(result->m_screenQuadMesh);
-
-    // create screen quad commands buffer
-    auto screenQuadMeshDescription = result->meshesBuffer()->get(screenQuadMeshHandler->ID());
-    result->m_screenQuadCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({{
-        MeshDescription::numElements(screenQuadMeshDescription),
-        1u,
-        screenQuadMeshDescription.elementsOffset,
-        screenQuadMeshHandler->ID() }
-    });
-
-    return result;
-}
-
-SceneData::SceneData()
-{
-    m_vertexDataBuffer = VertexDataBuffer::element_type::create();
-    m_elementsBuffer = ElementsBuffer::element_type::create();
-    m_bonesDataBuffer = BonesDataBuffer::element_type::create();
-    m_meshesBuffer = MeshesBuffer::element_type::create();
-    m_materialMapsBuffer = MaterialMapsBuffer::element_type::create();
-    m_materialsBuffer = MaterialsBuffer::element_type::create();
-    m_drawablesBuffer = DrawablesBuffer::element_type::create();
-    m_drawDataBuffer = DrawDataBuffer::element_type::create();
-    m_backgroundBuffer = BackgroundBuffer::element_type::create();
-    m_lightsBuffer = LightsBuffer::element_type::create();
-
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::VertexDataBuffer) = graphics::BufferRange::create(m_vertexDataBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ElementsBuffer) = graphics::BufferRange::create(m_elementsBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::BonesDataBuffer) = graphics::BufferRange::create(m_bonesDataBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::MeshesBuffer) = graphics::BufferRange::create(m_meshesBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::MaterialMapsBuffer) = graphics::BufferRange::create(m_materialMapsBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::MaterialsBuffer) = graphics::BufferRange::create(m_materialsBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::DrawablesBuffer) = graphics::BufferRange::create(m_drawablesBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::DrawDataBuffer) = graphics::BufferRange::create(m_drawDataBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::BackgroundBuffer) = graphics::BufferRange::create(m_backgroundBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::LightsBuffer) = graphics::BufferRange::create(m_lightsBuffer->buffer());
-}
-
 std::shared_ptr<LightHandler> SceneData::addLight()
 {
-    const auto ID = m_lightIDsGenerator.generate();
-    return std::make_shared<LightHandler>(weak_from_this(), ID);
+    const auto lightID = m_lightIDsGenerator.generate();
+    m_lightsBuffer->resize(static_cast<size_t>(lightID) + 1u);
+    m_lightsBuffer->set(lightID, LightDescription::makeEmpty());
+    return std::make_shared<LightHandler>(weak_from_this(), lightID);
 }
 
 void SceneData::onLightChanged(utils::IDsGenerator::value_type ID, const LightDescription& lightDescription)
 {
-    if (m_lightsBuffer->size() <= ID)
-        m_lightsBuffer->resize(ID + 1u);
-
     m_lightsBuffer->set(ID, lightDescription);
 }
 
 bool SceneData::isMaterialTransparent(
     const glm::vec4& baseColor,
     const std::shared_ptr<const MaterialMap>& baseColorMap,
+    const std::shared_ptr<const MaterialMap>& opacityMap,
     float alphaCutoff)
 {
     if (alphaCutoff < utils::epsilon<float>())
     {
-        if (baseColor.a < 1.f - utils::epsilon<float>()) return true;
+        if (baseColor.a < 1.f - utils::epsilon<float>())
+            return true;
+
+        if (opacityMap)
+            return true;
 
         if (baseColorMap)
         {
@@ -1176,8 +1566,6 @@ bool SceneData::isMaterialTransparent(
             if (baseColorImage && (baseColorImage->numComponents() == 4u))
                 return true;
         }
-
-        // other future conditions like opacity map
     }
 
     return false;

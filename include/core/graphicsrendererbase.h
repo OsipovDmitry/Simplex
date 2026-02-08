@@ -939,16 +939,27 @@ public:
     void resize(size_t count) { m_buffer->resize(count * sizeofT()); }
 
     void pushBack(const value_type& value) { insert(size(), &value, 1u); }
-    void set(size_t index, const value_type& value)
+
+    void set(size_t index, const value_type* value, size_t count)
     {
+        if (!value || !count)
+            return;
+
         if (index >= size())
             LOG_CRITICAL << "Index is out of range";
+        if (index + count > size())
+            LOG_CRITICAL << "Count is out of range";
 
         auto mapData = m_buffer->map(
             IBuffer::MapAccess::WriteOnly,
             index * sizeofT(),
-            sizeofT());
-        *reinterpret_cast<value_type*>(mapData->get()) = value;
+            count * sizeofT());
+        std::memcpy(mapData->get(), value, count * sizeofT());
+    }
+    void set(size_t index, std::initializer_list<value_type> l) { set(index, l.begin(), l.size()); }
+    void set(size_t index, const value_type& value)
+    {
+        set(index, &value, 1u);
     }
     value_type get(size_t index) const
     {

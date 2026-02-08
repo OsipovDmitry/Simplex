@@ -71,17 +71,25 @@ vec4 proccessLighting(in vec3 NDC_ZO, in uvec4 PBRData)
 					const uint specularMapID = imageBasedLightSpecularMapID(lightID);
 					if ((BRDFLutMapID != 0xFFFFFFFFu) && (diffuseMapID != 0xFFFFFFFFu) && (specularMapID != 0xFFFFFFFFu))
 					{
-						attenuation = imageBasedLightContribution(lightID);
-						light = calculateIBL(
-							sampler2D(materialMapTextureHandle(BRDFLutMapID)),
-							samplerCube(materialMapTextureHandle(diffuseMapID)),
-							samplerCube(materialMapTextureHandle(specularMapID)),
-							baseColor,
-							metalness,
-							roughness,
-							F0,
-							N,
-							V);
+						const TextureHandle BRDFLutMapTextureHandle = materialMapTextureHandle(BRDFLutMapID);
+						const TextureHandle diffuseMapTextureHandle = materialMapTextureHandle(diffuseMapID);
+						const TextureHandle specularMapTextureHandle = materialMapTextureHandle(specularMapID);
+						if (!isTextureHandleEmpty(BRDFLutMapTextureHandle) &&
+							!isTextureHandleEmpty(diffuseMapTextureHandle) &&
+							!isTextureHandleEmpty(specularMapTextureHandle))
+						{
+							attenuation = imageBasedLightContribution(lightID);
+							light = calculateIBL(
+								sampler2D(BRDFLutMapTextureHandle),
+								samplerCube(diffuseMapTextureHandle),
+								samplerCube(specularMapTextureHandle),
+								baseColor,
+								metalness,
+								roughness,
+								F0,
+								N,
+								V);
+						}
 					}
 				}
 				else

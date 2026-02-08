@@ -109,16 +109,6 @@ std::shared_ptr<const BoneNode> Node::asBoneNode() const
     return nullptr;
 }
 
-std::shared_ptr<SkeletalAnimatedNode> Node::asSkeletalAnimatedNode()
-{
-    return nullptr;
-}
-
-std::shared_ptr<const SkeletalAnimatedNode> Node::asSkeletalAnimatedNode() const
-{
-    return nullptr;
-}
-
 std::shared_ptr<SoundNode> Node::asSoundNode()
 {
     return nullptr;

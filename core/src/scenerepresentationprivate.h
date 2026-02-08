@@ -45,6 +45,39 @@ private:
     std::vector<size_t> m_drawablesIDs;
 };
 
+class BoneNodeRepresentationPrivate : public NodeRepresentationPrivate
+{
+public:
+    BoneNodeRepresentationPrivate(
+        const std::string&,
+        const utils::Transform&,
+        const std::vector<size_t>&,
+        uint32_t);
+    ~BoneNodeRepresentationPrivate() override;
+
+    uint32_t& boneID();
+
+private:
+    uint32_t m_boneID;
+};
+
+class RootBoneNodeRepresentationPrivate : public BoneNodeRepresentationPrivate
+{
+public:
+    RootBoneNodeRepresentationPrivate(
+        const std::string&,
+        const utils::Transform&,
+        const std::vector<size_t>&,
+        uint32_t,
+        uint32_t);
+    ~RootBoneNodeRepresentationPrivate() override;
+
+    uint32_t& skeletonID();
+
+private:
+    uint32_t m_skeletonID;
+};
+
 class CameraNodeRepresentationPrivate : public NodeRepresentationPrivate
 {
 public:
@@ -64,28 +97,40 @@ private:
     utils::Range m_cullPlaneLimits;
 };
 
+class LightNodeRepresentationPrivate : public NodeRepresentationPrivate
+{
+public:
+    LightNodeRepresentationPrivate(
+        const std::string&,
+        const utils::Transform&,
+        const std::vector<size_t>&);
+    ~LightNodeRepresentationPrivate() override;
+
+private:
+};
+
 class SceneRepresentationPrivate
 {
 public:
     SceneRepresentationPrivate(
         const std::string&,
         const std::vector<std::shared_ptr<Drawable>>&,
+        const std::vector<std::shared_ptr<Skeleton>>&,
         const std::vector<std::shared_ptr<NodeRepresentation>>&,
-        const std::vector<std::shared_ptr<Animation>>&,
         size_t);
     ~SceneRepresentationPrivate();
 
     std::string& name();
     std::vector<std::shared_ptr<Drawable>>& drawables();
+    std::vector<std::shared_ptr<Skeleton>>& skeletons();
     std::vector<std::shared_ptr<NodeRepresentation>>& nodesRepresentations();
-    std::vector<std::shared_ptr<Animation>>& animations();
     size_t& rootNodeID();
 
 private:
     std::string m_name;
     std::vector<std::shared_ptr<Drawable>> m_drawables;
+    std::vector<std::shared_ptr<Skeleton>> m_skeletons;
     std::vector<std::shared_ptr<NodeRepresentation>> m_nodesRepresentations;
-    std::vector<std::shared_ptr<Animation>> m_animations;
     size_t m_rootNodeID;
 };
 

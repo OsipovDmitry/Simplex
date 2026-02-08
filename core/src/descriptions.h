@@ -46,14 +46,14 @@ struct CameraDescription
     glm::vec2 cullPlaneLimits;
     glm::uvec2 ZRange; // uvec2 for atomic operations
     TransformDescription viewTransformInverted;
-    glm::mat4x4 projectionMatrix;
-    glm::mat4x4 projectionMatrixInverted;
-    glm::mat4x4 viewProjectionMatrix;
-    glm::mat4x4 viewProjectionMatrixInverted;
     glm::vec4 viewPosition;
     glm::vec4 viewXDirection;
     glm::vec4 viewYDirection;
     glm::vec4 viewZDirection;
+    glm::mat4x4 projectionMatrix;
+    glm::mat4x4 projectionMatrixInverted;
+    glm::mat4x4 viewProjectionMatrix;
+    glm::mat4x4 viewProjectionMatrixInverted;
 
     static CameraDescription make(
         const glm::uvec3& clusterMaxSize,
@@ -79,17 +79,22 @@ struct LightNodeDescription
 
 struct SceneInfoDescription
 {
+    uint32_t time;
     uint32_t drawDataCount;
+    uint32_t skeletalAnimatedDataCount;
     uint32_t lightsCount;
     uint32_t opaqueCommandsCount;
     uint32_t transparentCommandsCount;
     uint32_t lightNodesMaxCount;
     uint32_t lightNodesCount;
     uint32_t firstGlobalLightNodeID;
-    uint32_t padding[1u];
+    
+    uint32_t padding[3u];
 
     static SceneInfoDescription make(
+        uint32_t time,
         uint32_t drawDataCount,
+        uint32_t skeletalAnimatedDataCount,
         uint32_t lightsCount,
         uint32_t lightNodesMaxCount);
 };
@@ -123,11 +128,10 @@ struct OITNodeDescription
 
 struct MeshDescription
 {
-    glm::vec4 boundingBoxMinPointAndNumVertexData;
-    glm::vec4 boundingBoxMaxPointAndNumElements;
-    uint32_t vertexDataOffset;
-    uint32_t elementsOffset; // draw arrays is used if 0xFFFFFFFFu
-    uint32_t bonesDataOffset;
+    glm::vec4 boundingBoxMinPointAndVerticesDataSize;
+    glm::vec4 boundingBoxMaxPointAndElementsDataSize;
+    uint32_t verticesDataOffset;
+    uint32_t elementsDataOffset; // draw arrays is used if 0xFFFFFFFFu
     uint32_t flags;
     //  0.. 1 - position components count [0..3]
     //  2.. 3 - normal components count [0..3]
@@ -137,29 +141,30 @@ struct MeshDescription
     // 10..12 - color components count [0 - no colors, 1 - grayscale, 2 - grayscale,alpha, 3 - RGB, 4 - RGBA, 5..7 - not used]
     // 13..31 - free (19 bits)
     
-    //uint32_t padding[0u];
+    uint32_t padding[1u];
 
+    static MeshDescription makeEmpty();
     static MeshDescription make(
         const utils::BoundingBox&,
-        uint32_t numVertexData,
-        uint32_t numElements,
-        uint32_t vertexDataOffset,
-        uint32_t elementsOffset,
-        uint32_t bonesDataOffset,
+        uint32_t verticesDataSize,
+        uint32_t elementsDataSize,
+        uint32_t verticesDataOffset,
+        uint32_t elementsDataOffset,
         uint32_t numPositionComponents,
         uint32_t numNormalComponents,
         uint32_t numTexCoordsComponents,
         uint32_t numBones,
         bool hasTangent,
         uint32_t numColorComponents);
-    static uint32_t numVertexData(const MeshDescription&);
-    static uint32_t numElements(const MeshDescription&);
+    static uint32_t verticesDataSize(const MeshDescription&);
+    static uint32_t elementsDataSize(const MeshDescription&);
 };
 
 struct MaterialMapDescription
 {
     graphics::TextureHandle textureHandle;
 
+    static MaterialMapDescription makeEmpty();
     static MaterialMapDescription make(graphics::TextureHandle);
 };
 
@@ -168,6 +173,7 @@ struct MaterialDescription
     glm::vec4 baseColor;
     glm::vec4 emission;
     uint32_t baseColorMapID;
+    uint32_t opacityMapID;
     uint32_t emissionMapID;
     uint32_t occlusionMapID;
     uint32_t roughnessMapID;
@@ -185,11 +191,14 @@ struct MaterialDescription
     // 10..10 - is transparent
     // 11..18 - alpha cutoff
     // 19..31 - free (13 bits)
+    uint32_t padding[3u];
 
+    static MaterialDescription makeEmpty();
     static MaterialDescription make(
         const glm::vec4& baseColor,
-        const glm::vec4& emission,
+        const glm::vec3& emission,
         uint32_t baseColorMapID,
+        uint32_t opacityMapID,
         uint32_t emissionMapID,
         uint32_t occlusionMapID,
         uint32_t roughnessMapID,
@@ -214,10 +223,10 @@ struct DrawableDescription
     uint32_t materialID;
     uint32_t padding[2u];
 
+    static DrawableDescription makeEmpty();
     static DrawableDescription make(uint32_t meshID, uint32_t materialID);
 };
 
-struct DrawDataBufferReservedData { uint32_t count; uint32_t padding[3u]; };
 struct DrawDataDescription
 {
     TransformDescription transform;
@@ -243,7 +252,6 @@ struct BackgroundDescription
         uint32_t environmentMapID);
 };
 
-struct LightBufferReservedData { uint32_t count; uint32_t padding[3u]; };
 struct LightDescription
 {
     TransformDescription transform;
@@ -255,6 +263,34 @@ struct LightDescription
     static LightDescription makeSpot(const utils::Transform&, const glm::vec3&, const glm::vec2&, const glm::vec2&);
     static LightDescription makeDirectional(const utils::Transform&, const glm::vec3&);
     static LightDescription makeImageBased(const utils::Transform&, uint32_t, uint32_t, uint32_t, float);
+};
+
+struct SkeletonDescription
+{
+    uint32_t dataOffset;
+    uint32_t dataSize;
+
+    uint32_t padding[2u];
+
+    static SkeletonDescription makeEmpty();
+    static SkeletonDescription make(uint32_t dataOffset, uint32_t dataSize);
+};
+
+struct SkeletalAnimatedDataDescription
+{
+    uint32_t skeletonID;
+    uint32_t currentAnimationID;
+    uint32_t bonesTransfromsDataOffset;
+    uint32_t bonesTransfromsDataSize;
+
+    //uint32_t padding[0u];
+
+    static SkeletalAnimatedDataDescription makeEmpty();
+    static SkeletalAnimatedDataDescription make(
+        uint32_t skeletonID,
+        uint32_t currentAnimationID,
+        uint32_t bonesTransfromsDataOffset,
+        uint32_t bonesTransfromsDataSize);
 };
 
 }

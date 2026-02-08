@@ -59,23 +59,27 @@ CameraDescription CameraDescription::make(
         glm::vec2(cullPlaneLimits.nearValue(), cullPlaneLimits.farValue()),
         glm::uvec2(glm::floatBitsToUint(FLT_MAX), glm::floatBitsToUint(0.f)),
         TransformDescription::make(viewTransformInverted),
-        projectionMatrix,
-        glm::inverse(projectionMatrix),
-        viewProjectionMatrix,
-        glm::inverse(viewProjectionMatrix),
         glm::vec4(viewTransformInverted.transformPoint(glm::vec3(0.f)), 1.f),
         glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(1.f, 0.f, 0.f))), 0.f),
         glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(0.f, 1.f, 0.f))), 0.f),
-        glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(0.f, 0.f, 1.f))), 0.f) };
+        glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(0.f, 0.f, 1.f))), 0.f),
+        projectionMatrix,
+        glm::inverse(projectionMatrix),
+        viewProjectionMatrix,
+        glm::inverse(viewProjectionMatrix) };
 }
 
 SceneInfoDescription SceneInfoDescription::make(
+    uint32_t time,
     uint32_t drawDataCount,
+    uint32_t skeletalAnimatedDataCount,
     uint32_t lightsCount,
     uint32_t lightNodesMaxCount)
 {
     return {
+        time,
         drawDataCount,
+        skeletalAnimatedDataCount,
         lightsCount,
         0u,
         0u,
@@ -102,13 +106,28 @@ GBufferDescription GBufferDescription::make(
         0u };
 }
 
+MeshDescription MeshDescription::makeEmpty()
+{
+    return make(
+        utils::BoundingBox::empty(),
+        0u,
+        0u,
+        utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(),
+        0u,
+        0u,
+        0u,
+        0u,
+        false,
+        0u);
+}
+
 MeshDescription MeshDescription::make(
     const utils::BoundingBox& bb,
-    uint32_t numVertexData,
-    uint32_t numElements,
-    uint32_t vertexDataOffset,
-    uint32_t elementsOffset,
-    uint32_t bonesDataOffset,
+    uint32_t verticesDataSize,
+    uint32_t elementsDataSize,
+    uint32_t verticesDataOffset,
+    uint32_t elementsDataOffset,
     uint32_t numPositionComponents,
     uint32_t numNormalComponents,
     uint32_t numTexCoordsComponents,
@@ -125,22 +144,26 @@ MeshDescription MeshDescription::make(
     flags |= (numColorComponents & 0x7u) << 10u;
 
     return {
-        glm::vec4(bb.minPoint(), glm::uintBitsToFloat(numVertexData)),
-        glm::vec4(bb.maxPoint(), glm::uintBitsToFloat(numElements)),
-        vertexDataOffset,
-        elementsOffset,
-        bonesDataOffset,
+        glm::vec4(bb.minPoint(), glm::uintBitsToFloat(verticesDataSize)),
+        glm::vec4(bb.maxPoint(), glm::uintBitsToFloat(elementsDataSize)),
+        verticesDataOffset,
+        elementsDataOffset,
         flags };
 }
 
-uint32_t MeshDescription::numVertexData(const MeshDescription& desc)
+uint32_t MeshDescription::verticesDataSize(const MeshDescription& desc)
 {
-    return glm::floatBitsToUint(desc.boundingBoxMinPointAndNumVertexData.w);
+    return glm::floatBitsToUint(desc.boundingBoxMinPointAndVerticesDataSize.w);
 }
 
-uint32_t MeshDescription::numElements(const MeshDescription& desc)
+uint32_t MeshDescription::elementsDataSize(const MeshDescription& desc)
 {
-    return glm::floatBitsToUint(desc.boundingBoxMaxPointAndNumElements.w);
+    return glm::floatBitsToUint(desc.boundingBoxMaxPointAndElementsDataSize.w);
+}
+
+MaterialMapDescription MaterialMapDescription::makeEmpty()
+{
+    return make(utils::IDsGeneratorT<graphics::TextureHandle>::last());
 }
 
 MaterialMapDescription MaterialMapDescription::make(graphics::TextureHandle textureHandle)
@@ -148,10 +171,36 @@ MaterialMapDescription MaterialMapDescription::make(graphics::TextureHandle text
     return { textureHandle };
 }
 
+MaterialDescription MaterialDescription::makeEmpty()
+{
+    return make(
+        glm::vec4(),
+        glm::vec3(),
+        utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(),
+        0.f,
+        0.f,
+        0.f,
+        0.f,
+        glm::u32vec3(),
+        false,
+        false,
+        false,
+        false,
+        false,
+        0.f);
+}
+
 MaterialDescription MaterialDescription::make(
     const glm::vec4& baseColor,
-    const glm::vec4& emission,
+    const glm::vec3& emission,
     uint32_t baseColorMapID,
+    uint32_t opacityMapID,
     uint32_t emissionMapID,
     uint32_t occlusionMapID,
     uint32_t roughnessMapID,
@@ -188,8 +237,9 @@ MaterialDescription MaterialDescription::make(
     
     return {
         baseColor,
-        emission,
+        glm::vec4(emission, 1.f),
         baseColorMapID,
+        opacityMapID,
         emissionMapID,
         occlusionMapID,
         roughnessMapID,
@@ -197,6 +247,11 @@ MaterialDescription MaterialDescription::make(
         normalMapID,
         flags0,
         flags1 };
+}
+
+DrawableDescription DrawableDescription::makeEmpty()
+{
+    return make(utils::IDsGenerator::last(), utils::IDsGenerator::last());
 }
 
 DrawableDescription DrawableDescription::make(uint32_t meshID, uint32_t materialID)
@@ -284,6 +339,30 @@ LightDescription LightDescription::makeImageBased(
             glm::uintBitsToFloat(diffuseMapID),
             glm::uintBitsToFloat(specularMapID),
             contribution) };
+}
+
+SkeletonDescription SkeletonDescription::makeEmpty()
+{
+    return make(utils::IDsGenerator::last(), 0u);
+}
+
+SkeletonDescription SkeletonDescription::make(uint32_t dataOffset, uint32_t dataSize)
+{
+    return { dataOffset, dataSize };
+}
+
+SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::makeEmpty()
+{
+    return make(utils::IDsGenerator::last(), utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0u);
+}
+
+SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::make(
+    uint32_t skeletonID,
+    uint32_t currentAnimationID,
+    uint32_t bonesTransfromsDataOffset,
+    uint32_t bonesTransfromsDataSize)
+{
+    return { skeletonID, currentAnimationID, bonesTransfromsDataOffset, bonesTransfromsDataSize };
 }
 
 }

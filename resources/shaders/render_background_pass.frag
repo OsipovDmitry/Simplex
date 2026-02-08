@@ -15,8 +15,12 @@ void main(void)
 	uint environmentMapID = backgroundEnvironmentMapID();
 	if (environmentMapID != 0xFFFFFFFFu)
 	{
-		float blurPower = backgroundBlurPower();
-		color *= textureLod(samplerCube(materialMapTextureHandle(environmentMapID)), v_texCoords, blurPower).rgb;
+		const TextureHandle textureHandle = materialMapTextureHandle(environmentMapID);
+		if (!isTextureHandleEmpty(textureHandle))
+		{
+			float blurPower = backgroundBlurPower();
+			color *= textureLod(samplerCube(textureHandle), v_texCoords, blurPower).rgb;
+		}
 	}
 	
     o_fragColor0 = vec4(color, 1.0f);

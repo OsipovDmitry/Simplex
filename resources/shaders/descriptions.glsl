@@ -9,11 +9,23 @@ Quat makeQuat(in QuatDescription desc)
 	return desc;
 }
 
+QuatDescription makeQuatDescription(in Quat q)
+{
+	return q;
+}
+
 struct TransformDescription
 {
     QuatDescription rotation;
     vec4 translationAndScale;
 };
+
+TransformDescription makeTransformDescription(in Transform t)
+{
+	return TransformDescription(
+		makeQuatDescription(t.rotation),
+		vec4(t.translation, t.scale));
+}
 
 Transform makeTransform(in TransformDescription desc)
 {
@@ -35,14 +47,14 @@ struct CameraDescription
     vec2 cullPlaneLimits;
     uvec2 ZRange; // uvec2 for atomic operations
     TransformDescription viewTransformInverted;
-    mat4x4 projectionMatrix;
-    mat4x4 projectionMatrixInverted;
-    mat4x4 viewProjectionMatrix;
-    mat4x4 viewProjectionMatrixInverted;
     vec4 viewPosition;
     vec4 viewXDirection;
     vec4 viewYDirection;
     vec4 viewZDirection;
+    mat4x4 projectionMatrix;
+    mat4x4 projectionMatrixInverted;
+    mat4x4 viewProjectionMatrix;
+    mat4x4 viewProjectionMatrixInverted;
 };
 
 struct ClusterNodeDescription
@@ -62,14 +74,16 @@ struct LightNodeDescription
 
 struct SceneInfoDescription
 {
+    uint time;
     uint drawDataCount;
+    uint skeletalAnimatedDataCount;
     uint lightsCount;
     uint opaqueCommandsCount;
     uint transparentCommandsCount;
 	uint lightNodesMaxCount;
 	uint lightNodesCount;
     uint firstGlobalLightNodeID;
-    uint padding[1u];
+    uint padding[3u];
 };
 
 struct GBufferDescription
@@ -93,11 +107,10 @@ struct OITNodeDescription
 
 struct MeshDescription
 {
-	vec4 boundingBoxMinPointAndNumVertexData;
-	vec4 boundingBoxMaxPointAndNumElements;
-    uint vertexDataOffset;
-    uint elementsOffset; // draw arrays is used if 0xFFFFFFFFu
-    uint bonesDataOffset;
+	vec4 boundingBoxMinPointAndVerticesDataSize;
+	vec4 boundingBoxMaxPointAndElementsDataSize;
+    uint verticesDataOffset;
+    uint elementsDataOffset; // draw arrays is used if 0xFFFFFFFFu
     uint flags;
     //  0.. 1 - occlusion map swizzle
     //  2.. 3 - roughness map swizzle
@@ -110,7 +123,7 @@ struct MeshDescription
     // 11..18 - alpha cutoff
     // 19..31 - free (13 bits)
     
-	//uint padding[0u];
+	uint padding[1u];
 };
 
 struct MaterialDescription
@@ -118,6 +131,7 @@ struct MaterialDescription
     vec4 baseColor;
     vec4 emission;
     uint baseColorMapID;
+    uint opacityMapID;
     uint emissionMapID;
     uint occlusionMapID;
     uint roughnessMapID;
@@ -134,6 +148,8 @@ struct MaterialDescription
     //  9.. 9 - is double sided
     // 10..17 - alpha cutoff
     // 18..31 - free (14 bits)
+	
+	uint padding[3u];
 };
 
 struct DrawableDescription
@@ -141,13 +157,6 @@ struct DrawableDescription
     uint meshID;
     uint materialID;
 	uint padding[2u];
-};
-
-struct DrawDataDescription
-{
-	TransformDescription transform;
-	uint drawableID;
-	uint padding[3u];
 };
 
 struct BackgroundDescription
@@ -163,4 +172,28 @@ struct LightDescription
     TransformDescription transform;
     vec4 flags0;
     vec4 flags1;
+};
+
+struct SkeletonDescription
+{
+    uint dataOffset;
+    uint dataSize;
+    uint padding[2u];
+};
+
+struct DrawDataDescription
+{
+	TransformDescription transform;
+	uint drawableID;
+	uint padding[3u];
+};
+
+struct SkeletalAnimatedDataDescription
+{
+    uint skeletonID;
+    uint currentAnimationID;
+    uint bonesTransfromsDataOffset;
+    uint bonesTransfromsDataSize;
+
+    //uint padding[0u];
 };

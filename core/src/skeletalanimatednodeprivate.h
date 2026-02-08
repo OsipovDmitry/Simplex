@@ -1,26 +1,36 @@
 #ifndef CORE_SKELETALANIMATEDNODEPRIVATE_H
 #define CORE_SKELETALANIMATEDNODEPRIVATE_H
 
-#include "nodeprivate.h"
+#include "bonenodeprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-class SkeletalAnimatedNodePrivate : public NodePrivate
+class SceneData;
+class SkeletalAnimatedDataHandler;
+
+class SkeletalAnimatedNodePrivate : public BoneNodePrivate
 {
 public:
-    SkeletalAnimatedNodePrivate(SkeletalAnimatedNode&, const std::string&);
+    SkeletalAnimatedNodePrivate(SkeletalAnimatedNode&, const std::string&, uint32_t, const std::shared_ptr<Skeleton>&);
     ~SkeletalAnimatedNodePrivate() override;
 
-    std::map<std::string, std::shared_ptr<Animation>>& animations();
-    std::shared_ptr<Animation>& currentAnimation();
+    void doAttachToScene(const std::shared_ptr<Scene>&) override;
+    void doDetachFromScene(const std::shared_ptr<Scene>&) override;
+
+    std::shared_ptr<Skeleton>& skeleton();
+    std::string& currentAnimation();
+
+    std::shared_ptr<SkeletalAnimatedDataHandler>& handler();
+    void onChanged();
 
 private:
-    std::map<std::string, std::shared_ptr<Animation>> m_animations;
-    std::shared_ptr<Animation> m_currentAnimation;
+    std::shared_ptr<Skeleton> m_skeleton;
+    std::string m_currentAnimation;
 
+    std::shared_ptr<SkeletalAnimatedDataHandler> m_handler;
 };
 
 }

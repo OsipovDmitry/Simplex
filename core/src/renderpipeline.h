@@ -29,6 +29,7 @@ public:
     ~RenderPipeLine();
 
     void run(
+        uint64_t time,
         const std::shared_ptr<const GeometryBuffer>&,
         const std::shared_ptr<const SceneData>&,
         const utils::Transform&,

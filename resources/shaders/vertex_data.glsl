@@ -1,8 +1,8 @@
-layout (std430) readonly buffer ssbo_vertexDataBuffer { float vertexData[]; };
-layout (std430) readonly buffer ssbo_elementsBuffer { uint elements[]; };
+layout (std430) readonly buffer ssbo_verticesDataBuffer { float verticesData[]; };
+layout (std430) readonly buffer ssbo_elementsDataBuffer { uint elementsData[]; };
 
-vec3 vertexDataPosition(
-	in uint vertexDataOffset,
+vec3 verticesDataVertexPosition(
+	in uint verticesDataOffset,
 	in uint vertexStride,
 	in uint vertexID,
 	in uint relativeOffset,
@@ -10,12 +10,12 @@ vec3 vertexDataPosition(
 {
 	vec3 result = vec3(0.0f);
 	for (uint i = 0u; i < min(3u, numComponents); ++i)
-		result[i] = vertexData[vertexDataOffset + vertexStride * vertexID + relativeOffset + i];
+		result[i] = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + i];
 	return result;
 }
 
-vec3 vertexDataNormal(
-	in uint vertexDataOffset,
+vec3 verticesDataVertexNormal(
+	in uint verticesDataOffset,
 	in uint vertexStride,
 	in uint vertexID,
 	in uint relativeOffset,
@@ -23,12 +23,12 @@ vec3 vertexDataNormal(
 {
 	vec3 result = vec3(0.0f);
 	for (uint i = 0u; i < min(3u, numComponents); ++i)
-		result[i] = vertexData[vertexDataOffset + vertexStride * vertexID + relativeOffset + i];
+		result[i] = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + i];
 	return normalize(result);
 }
 
-vec2 vertexDataTexCoords(
-	in uint vertexDataOffset,
+vec2 verticesDataVertexTexCoords(
+	in uint verticesDataOffset,
 	in uint vertexStride,
 	in uint vertexID,
 	in uint relativeOffset,
@@ -36,12 +36,12 @@ vec2 vertexDataTexCoords(
 {
 	vec2 result = vec2(0.0f);
 	for (uint i = 0u; i < min(2u, numComponents); ++i)
-		result[i] = vertexData[vertexDataOffset + vertexStride * vertexID + relativeOffset + i];
+		result[i] = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + i];
 	return result;
 }
 
-void vertexDataBoneIDAndWeight(
-	in uint vertexDataOffset,
+void verticesDataVertexBoneIDAndWeight(
+	in uint verticesDataOffset,
 	in uint vertexStride,
 	in uint vertexID,
 	in uint relativeOffset,
@@ -49,12 +49,12 @@ void vertexDataBoneIDAndWeight(
 	out uint boneID,
 	out float boneWeight)
 {
-	boneID = floatBitsToUint(vertexData[vertexDataOffset + vertexStride * vertexID + relativeOffset + 2u * boneIndex + 0u]);
-	boneWeight = vertexData[vertexDataOffset + vertexStride * vertexID + relativeOffset + 2u * boneIndex + 1u];
+	boneID = floatBitsToUint(verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 2u * boneIndex + 0u]);
+	boneWeight = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 2u * boneIndex + 1u];
 }
 
-void vertexDataTangentAndBinormalFlag(
-	in uint vertexDataOffset,
+void verticesDataVertexTangentAndBinormalFlag(
+	in uint verticesDataOffset,
 	in uint vertexStride,
 	in uint vertexID,
 	in uint relativeOffset,
@@ -62,13 +62,13 @@ void vertexDataTangentAndBinormalFlag(
 	out float binormalFlag)
 {
 	for (uint i = 0u; i < 3u; ++i)
-		tangent[i] = vertexData[vertexDataOffset + vertexStride * vertexID + relativeOffset + i];
+		tangent[i] = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + i];
 	normalize(tangent);
-	binormalFlag = vertexData[vertexDataOffset + vertexStride * vertexID + relativeOffset + 3u];
+	binormalFlag = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 3u];
 }
 
-vec4 vertexDataColor(
-	in uint vertexDataOffset,
+vec4 verticesDataVertexColor(
+	in uint verticesDataOffset,
 	in uint vertexStride,
 	in uint vertexID,
 	in uint relativeOffset,
@@ -79,20 +79,20 @@ vec4 vertexDataColor(
 	{
 	case 1u:
 	{
-		result.rgb = vec3(vertexData[vertexDataOffset + vertexStride * vertexID + relativeOffset + 0u]);
+		result.rgb = vec3(verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 0u]);
 		break;
 	}
 	case 2u:
 	{
-		result.rgb = vec3(vertexData[vertexDataOffset + vertexStride * vertexID + relativeOffset + 0u]);
-		result.a = vertexData[vertexDataOffset + vertexStride * vertexID + relativeOffset + 1u];
+		result.rgb = vec3(verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 0u]);
+		result.a = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 1u];
 		break;
 	}
 	case 3u:
 	case 4u:
 	{
 		for (uint i = 0u; i < numComponents; ++i)
-			result[i] = vertexData[vertexDataOffset + vertexStride * vertexID + relativeOffset + i];
+			result[i] = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + i];
 		break;
 	}
 	default:
@@ -103,5 +103,5 @@ vec4 vertexDataColor(
 
 uint elementsDataElementID(in uint ID)
 {
-	return elements[ID];
+	return elementsData[ID];
 }

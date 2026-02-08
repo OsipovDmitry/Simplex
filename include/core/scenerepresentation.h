@@ -30,6 +30,7 @@ public:
 
     virtual std::shared_ptr<const NodeRepresentation> asNodeRepresentation() const;
     virtual std::shared_ptr<const DrawableNodeRepresentation> asDrawableNodeRepresentation() const;
+    virtual std::shared_ptr<const BoneNodeRepresentation> asBoneNodeRepresentation() const;
     virtual std::shared_ptr<const CameraNodeRepresentation> asCameraNodeRepresentation() const;
     virtual std::shared_ptr<const LightNodeRepresentation> asLightNodeRepresentation() const;
 
@@ -51,7 +52,43 @@ public:
         const std::vector<size_t>& drawablesIDs);
     ~DrawableNodeRepresentation() override;
 
-    virtual std::shared_ptr<const DrawableNodeRepresentation> asDrawableNodeRepresentation() const;
+    std::shared_ptr<const DrawableNodeRepresentation> asDrawableNodeRepresentation() const override;
+};
+
+class BoneNodeRepresentationPrivate;
+class CORE_SHARED_EXPORT BoneNodeRepresentation : public NodeRepresentation
+{
+    PRIVATE_IMPL(BoneNodeRepresentation)
+public:
+    BoneNodeRepresentation(
+        const std::string& name,
+        const utils::Transform& transform,
+        const std::vector<size_t>& childrenIDs,
+        uint32_t boneID);
+    ~BoneNodeRepresentation() override;
+
+    std::shared_ptr<const BoneNodeRepresentation> asBoneNodeRepresentation() const override;
+
+    virtual std::shared_ptr<const RootBoneNodeRepresentation> asRootBoneNodeRepresentation() const;
+
+protected:
+    BoneNodeRepresentation(std::unique_ptr<BoneNodeRepresentationPrivate>&&);
+};
+
+class RootBoneNodeRepresentationPrivate;
+class CORE_SHARED_EXPORT RootBoneNodeRepresentation : public BoneNodeRepresentation
+{
+    PRIVATE_IMPL(RootBoneNodeRepresentation)
+public:
+    RootBoneNodeRepresentation(
+        const std::string& name,
+        const utils::Transform& transform,
+        const std::vector<size_t>& childrenIDs,
+        uint32_t skeletonID,
+        uint32_t boneID);
+    ~RootBoneNodeRepresentation() override;
+
+    std::shared_ptr<const RootBoneNodeRepresentation> asRootBoneNodeRepresentation() const override;
 };
 
 class CameraNodeRepresentationPrivate;
@@ -67,7 +104,21 @@ public:
         const utils::Range& cullPlaneLimits);
     ~CameraNodeRepresentation() override;
 
-    virtual std::shared_ptr<const CameraNodeRepresentation> asCameraNodeRepresentation() const;
+    std::shared_ptr<const CameraNodeRepresentation> asCameraNodeRepresentation() const override;
+};
+
+class LightNodeRepresentationPrivate;
+class CORE_SHARED_EXPORT LightNodeRepresentation : public NodeRepresentation
+{
+    PRIVATE_IMPL(LightNodeRepresentation)
+public:
+    LightNodeRepresentation(
+        const std::string& name,
+        const utils::Transform& transform,
+        const std::vector<size_t>& childrenIDs);
+    ~LightNodeRepresentation() override;
+
+    std::shared_ptr<const LightNodeRepresentation> asLightNodeRepresentation() const override;
 };
 
 class SceneRepresentationPrivate;
@@ -78,17 +129,15 @@ public:
     SceneRepresentation(
         const std::string& name,
         const std::vector<std::shared_ptr<Drawable>>& drawables,
+        const std::vector<std::shared_ptr<Skeleton>>& skeletons,
         const std::vector<std::shared_ptr<NodeRepresentation>>& nodesRepresentations,
-        const std::vector<std::shared_ptr<Animation>>& animations,
         size_t rootNodeID);
     ~SceneRepresentation() override;
 
     const std::string& name() const override;
 
-    std::shared_ptr<SkeletalAnimatedNode> generateAnimatedNode(
+    std::shared_ptr<Node> generate(
         const std::string& name,
-        bool insertDrawables,
-        bool insertAnimations,
         bool insertCameras,
         bool insertLights) const;
 

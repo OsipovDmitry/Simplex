@@ -58,9 +58,6 @@ public:
     virtual std::shared_ptr<BoneNode> asBoneNode();
     virtual std::shared_ptr<const BoneNode> asBoneNode() const;
 
-    virtual std::shared_ptr<SkeletalAnimatedNode> asSkeletalAnimatedNode();
-    virtual std::shared_ptr<const SkeletalAnimatedNode> asSkeletalAnimatedNode() const;
-
     virtual std::shared_ptr<SoundNode> asSoundNode();
     virtual std::shared_ptr<const SoundNode> asSoundNode() const;
 

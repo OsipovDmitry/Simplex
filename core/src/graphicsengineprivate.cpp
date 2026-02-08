@@ -176,25 +176,33 @@ const std::string &GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
 {
     static const std::string s_undefinedId = "";
     static const std::unordered_map<ShaderStorageBlockID, std::string> s_table {
-        { ShaderStorageBlockID::VertexDataBuffer, "ssbo_vertexDataBuffer" },
-        { ShaderStorageBlockID::ElementsBuffer, "ssbo_elementsBuffer" },
-        { ShaderStorageBlockID::BonesDataBuffer, "ssbo_bonesDataBuffer" },
+        { ShaderStorageBlockID::VerticesDataBuffer, "ssbo_verticesDataBuffer" },
+        { ShaderStorageBlockID::ElementsDataBuffer, "ssbo_elementsDataBuffer" },
+        { ShaderStorageBlockID::SkeletonsDataBuffer, "ssbo_skeletonsDataBuffer" },
+        { ShaderStorageBlockID::BonesTransformsDataBuffer, "ssbo_bonesTransformsDataBuffer" },
+
         { ShaderStorageBlockID::MeshesBuffer, "ssbo_meshesBuffer" },
         { ShaderStorageBlockID::MaterialMapsBuffer, "ssbo_materialMapsBuffer" },
         { ShaderStorageBlockID::MaterialsBuffer, "ssbo_materialsBuffer" },
         { ShaderStorageBlockID::DrawablesBuffer, "ssbo_drawablesBuffer" },
-        { ShaderStorageBlockID::DrawDataBuffer, "ssbo_drawDataBuffer" },
         { ShaderStorageBlockID::BackgroundBuffer, "ssbo_backgroundBuffer" },
         { ShaderStorageBlockID::LightsBuffer, "ssbo_lightsBuffer" },
+        { ShaderStorageBlockID::SkeletonsBuffer, "ssbo_skeletonsBuffer" },
+
+        { ShaderStorageBlockID::DrawDataBuffer, "ssbo_drawDataBuffer" },
+        { ShaderStorageBlockID::SkeletalAnimatedDataBuffer, "ssbo_skeletalAnimatedDataBuffer" },
+
         { ShaderStorageBlockID::CommandsBuffer, "ssbo_commandsBuffer" },
         { ShaderStorageBlockID::OpaqueCommandsBuffer, "ssbo_opaqueCommandsBuffer" },
         { ShaderStorageBlockID::TransparentCommandsBuffer, "ssbo_transparentCommandsBuffer" },
+
         { ShaderStorageBlockID::CameraBuffer, "ssbo_cameraBuffer" },
         { ShaderStorageBlockID::ClusterNodesBuffer, "ssbo_clusterNodesBuffer" },
         { ShaderStorageBlockID::LightNodesBuffer, "ssbo_lightNodesBuffer" },
         { ShaderStorageBlockID::SceneInfoBuffer, "ssbo_sceneInfoBuffer" },
         { ShaderStorageBlockID::GBuffer, "ssbo_GBuffer" },
         { ShaderStorageBlockID::OITNodesBuffer, "ssbo_OITNodesBuffer" },
+
         { ShaderStorageBlockID::LayeredShadowMatrices, "ssbo_layeredShadowMatricesBuffer" },
         { ShaderStorageBlockID::SSAOKernel, "ssbo_SSAOKernelBuffer" },
         { ShaderStorageBlockID::BlurKernel, "ssbo_blurKernelBuffer" }

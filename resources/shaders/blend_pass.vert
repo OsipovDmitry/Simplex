@@ -4,16 +4,16 @@
 void main(void)
 {
 	uint meshID = gl_BaseInstance;
-	uint vertexDataOffset = meshVertexDataOffset(meshID);
+	uint verticesDataOffset = meshVerticesDataOffset(meshID);
 	uint vertexStride = meshVertexStride(meshID);
-	uint vertexID = (meshElementsOffset(meshID) == 0xFFFFFFFFu) ? gl_VertexID : elementsDataElementID(gl_VertexID);
+	uint vertexID = (meshElementsDataOffset(meshID) == 0xFFFFFFFFu) ? gl_VertexID : elementsDataElementID(gl_VertexID);
 	uint relativeOffset = 0u;
 	
 	vec3 position = vec3(0.0f);
 	uint positionComponentsCount = meshPositionComponentsCount(meshID);
 	if (positionComponentsCount > 0u)
 	{
-		position = vertexDataPosition(vertexDataOffset, vertexStride, vertexID, relativeOffset, positionComponentsCount);
+		position = verticesDataVertexPosition(verticesDataOffset, vertexStride, vertexID, relativeOffset, positionComponentsCount);
 		relativeOffset += positionComponentsCount;
 	}
 	

@@ -1,0 +1,86 @@
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#include<bones_transforms_data.glsl>
+#include<scene_info.glsl>
+#include<skeletal_animated_data.glsl>
+#include<skeletons.glsl>
+
+struct BoneInfo
+{
+	Transform parentBoneTransform;
+	uint boneID;
+};
+
+const uint MaxBones = 256u;
+BoneInfo bonesInfo[MaxBones];
+uint bonesStartIndex = 0u;
+uint bonesEndIndex = 0u;
+
+void putBoneToQueue(in uint boneID, in Transform parentBoneTransform)
+{
+	if (boneID != 0xFFFFFFFFu)
+	{
+		bonesInfo[bonesEndIndex] = BoneInfo(parentBoneTransform, boneID);
+		bonesEndIndex = (bonesEndIndex + 1u) % MaxBones;
+	}
+}
+
+void getBoneFromQueue(out uint boneID, out Transform parentBoneTransform)
+{
+	boneID = bonesInfo[bonesStartIndex].boneID;
+	parentBoneTransform = bonesInfo[bonesStartIndex].parentBoneTransform;
+	bonesStartIndex = (bonesStartIndex + 1u) % MaxBones;
+}
+
+bool hasBonesInQueue()
+{
+	return bonesStartIndex != bonesEndIndex;
+}
+
+void main(void)
+{
+    if (all(lessThan(gl_GlobalInvocationID, uvec3(sceneInfoSkeletalAnimatedDataCount(), 1u, 1u))))
+    {
+		const uint time = sceneInfoTime();
+		
+		const uint skeletalAnimatedDataID = gl_GlobalInvocationID.x;
+		const uint bonesTransformsDataOffset = skeletalAnimatedDataBonesTransfromsDataOffset(skeletalAnimatedDataID);
+		const uint skeletonID = skeletalAnimatedDataSkeletonID(skeletalAnimatedDataID);
+		if (skeletonID != 0xFFFFFFFFu)
+		{
+			const uint animationID = skeletalAnimatedDataCurrentAnimationID(skeletalAnimatedDataID);
+			
+			const uint rootBoneID = skeletonRootBoneID(skeletonID);
+			const Transform rootBoneTransformInverted = transformInverted(skeletonBoneTransform(skeletonID, rootBoneID));
+			
+			putBoneToQueue(rootBoneID, rootBoneTransformInverted);
+			while (hasBonesInQueue())
+			{
+				uint boneID;
+				Transform parentBoneTransform;
+				getBoneFromQueue(boneID, parentBoneTransform);
+				
+				Transform boneTransform = skeletonBoneTransform(skeletonID, boneID);
+				
+				if (animationID != 0xFFFFFFFFu)
+				{
+					const uint channelIndex = skeletonAnimationFindChannelIndexForBoneID(skeletonID, animationID, boneID);
+					if (channelIndex != 0xFFFFFFFFu)
+					{
+						//boneTransform = skeletonAnimationCalculateChannelTransform(skeletonID, animationID, channelIndex, time);
+					}
+				}
+				
+				const Transform globalBoneTransform = transformMult(parentBoneTransform, boneTransform);
+				bonesTransformsDataSetBoneTransform(
+					bonesTransformsDataOffset,
+					boneID,
+					transformMult(globalBoneTransform, skeletonBoneOffsetTransform(skeletonID, boneID)));
+				
+				const uint childrenCount = skeletonBoneChildrenCount(skeletonID, boneID);
+				for (uint childIndex = 0u; childIndex < childrenCount; ++childIndex)
+					putBoneToQueue(skeletonBoneChildID(skeletonID, boneID, childIndex), globalBoneTransform);
+			}
+		}
+    }
+}

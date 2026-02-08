@@ -60,7 +60,7 @@ void FrustumCullingPass::run(
     const std::shared_ptr<const SceneData>& sceneData)
 {
     renderer->compute(
-        glm::uvec3(static_cast<uint32_t>(sceneData->drawDataBuffer()->size()), 1u, 1u),
+        glm::uvec3(static_cast<uint32_t>(sceneData->drawDataCount()), 1u, 1u),
         m_program,
         { sceneData, shared_from_this()});
 }
@@ -89,6 +89,32 @@ void UpdateCameraInfoPass::run(
         glm::uvec3(1u),
         m_program,
         { shared_from_this() });
+}
+
+CalculateBonesTransformsDataPass::CalculateBonesTransformsDataPass(
+    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    m_program = programsManager->loadOrGetComputeProgram(resources::CalculateBonesTransformsDataPassComputeShaderPath, {});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SceneInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->sceneInfoBuffer()->buffer());
+}
+
+CalculateBonesTransformsDataPass::~CalculateBonesTransformsDataPass() = default;
+
+void CalculateBonesTransformsDataPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>&,
+    const std::shared_ptr<graphics::IVertexArray>&,
+    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>& sceneData)
+{
+    renderer->compute(
+        glm::uvec3(static_cast<uint32_t>(sceneData->skeletalAnimatedDataCount()), 1u, 1u),
+        m_program,
+        { sceneData, shared_from_this() });
 }
 
 RenderDrawDataGeometryPass::RenderDrawDataGeometryPass(
@@ -237,9 +263,8 @@ void ClusterLightPass::run(
     const std::shared_ptr<const GeometryBuffer>&,
     const std::shared_ptr<const SceneData>& sceneData)
 {
-    const auto lightsCount = sceneData->lightsBuffer()->size();
     renderer->compute(
-        glm::uvec3(static_cast<uint32_t>(lightsCount), 1u, 1u),
+        glm::uvec3(static_cast<uint32_t>(sceneData->lightsCount()), 1u, 1u),
         m_program,
         { sceneData, shared_from_this()});
 }

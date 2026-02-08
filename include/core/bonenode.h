@@ -13,14 +13,19 @@ class CORE_SHARED_EXPORT BoneNode : public Node
 {
     PRIVATE_IMPL(BoneNode)
 public:
-    BoneNode(const std::string&, uint32_t, const utils::Transform&);
+    BoneNode(const std::string&, uint32_t);
     ~BoneNode() override;
 
     std::shared_ptr<BoneNode> asBoneNode() override;
     std::shared_ptr<const BoneNode> asBoneNode() const override;
 
     uint32_t boneID();
-    const utils::Transform& offsetTransform() const;
+
+    virtual std::shared_ptr<SkeletalAnimatedNode> asSkeletalAnimatedNode();
+    virtual std::shared_ptr<const SkeletalAnimatedNode> asSkeletalAnimatedNode() const;
+
+protected:
+    BoneNode(std::unique_ptr<BoneNodePrivate>&&);
 };
 
 }
