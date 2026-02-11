@@ -11,6 +11,9 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb/stb_image_write.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
+
 #include "imageimpl.h"
 
 namespace simplex
@@ -26,6 +29,23 @@ size_t sizeOfPixelComponentType(PixelComponentType value)
         sizeof(uint16_t)
     };
     return s_table[castFromPixelComponentType(value)];
+}
+
+Image::Image(uint32_t width, uint32_t height, uint32_t numComponents)
+    : m_width(width)
+    , m_height(height)
+    , m_numComponents(numComponents)
+    , m_componentType(PixelComponentType::Count)
+    , m_data(nullptr)
+{
+    if (!m_width)
+        LOG_CRITICAL << "Width can't be 0";
+
+    if (!m_height)
+        LOG_CRITICAL << "Height can't be 0";
+
+    if ((m_numComponents < 1) || (m_numComponents > 4))
+        LOG_CRITICAL << "Num components must be in [1..4]";
 }
 
 Image::Image(uint32_t width, uint32_t height, uint32_t numComponents, PixelComponentType componentType, const uint8_t* data)
@@ -171,64 +191,119 @@ std::shared_ptr<Image> Image::converted(
     return result;
 }
 
-bool Image::saveToFile(const std::filesystem::path &filename) const
+std::shared_ptr<Image> Image::loadFromFile(const std::filesystem::path& fileName)
 {
-    const auto filenameUtf8 = filename.string();
-    auto extension = fileExtension(filename);
+    const auto absoluteFileName = std::filesystem::canonical(fileName);
+
+    int w, h, n;
+    uint8_t* d;
+    PixelComponentType t;
+
+    const auto filenameUTF8 = absoluteFileName.string();
+    if (stbi_is_hdr(filenameUTF8.c_str()))
+    {
+        d = reinterpret_cast<uint8_t*>(stbi_loadf(filenameUTF8.c_str(), &w, &h, &n, 0));
+        t = PixelComponentType::Single;
+    }
+    else if (stbi_is_16_bit(filenameUTF8.c_str()))
+    {
+        d = reinterpret_cast<uint8_t*>(stbi_load_16(filenameUTF8.c_str(), &w, &h, &n, 0));
+        t = PixelComponentType::Uint16;
+    }
+    else
+    {
+        d = reinterpret_cast<uint8_t*>(stbi_load(filenameUTF8.c_str(), &w, &h, &n, 0));
+        t = PixelComponentType::Uint8;
+    }
+
+    if (!d)
+        return nullptr;
+
+    return std::make_shared<Image>(
+        static_cast<uint32_t>(w),
+        static_cast<uint32_t>(h),
+        static_cast<uint32_t>(n),
+        t,
+        d);
+}
+
+std::shared_ptr<Image> Image::loadDescriptionFromFile(const std::filesystem::path& fileName)
+{
+    const auto absoluteFileName = std::filesystem::canonical(fileName);
+
+    int w, h, n;
+    const auto fileNameUtf8 = absoluteFileName.string();
+
+    if (!stbi_info(fileNameUtf8.c_str(), &w, &h, &n))
+    {
+        return nullptr;
+    }
+
+    return std::make_shared<Image>(
+        static_cast<uint32_t>(w),
+        static_cast<uint32_t>(h),
+        static_cast<uint32_t>(n));
+}
+
+bool Image::saveToFile(const std::filesystem::path &fileName) const
+{
+    const auto fileNameUTF8 = fileName.string();
+    const auto extension = fileExtension(fileName);
 
     bool result = true;
 
     if (extension == L".png")
-        result = stbi_write_png(filenameUtf8.c_str(),
-                                static_cast<int>(width()),
-                                static_cast<int>(height()),
-                                static_cast<int>(numComponents()),
-                                data(),
-                                static_cast<int>(width() * numComponents() * sizeOfPixelComponentType(type())));
+    {
+        result = stbi_write_png(fileNameUTF8.c_str(),
+            static_cast<int>(width()),
+            static_cast<int>(height()),
+            static_cast<int>(numComponents()),
+            data(),
+            static_cast<int>(width() * numComponents() * sizeOfPixelComponentType(type())));
+    }
     else if (extension == L".bmp")
-        result = stbi_write_bmp(filenameUtf8.c_str(),
-                                static_cast<int>(width()),
-                                static_cast<int>(height()),
-                                static_cast<int>(numComponents()),
-                                data());
+    {
+        result = stbi_write_bmp(fileNameUTF8.c_str(),
+            static_cast<int>(width()),
+            static_cast<int>(height()),
+            static_cast<int>(numComponents()),
+            data());
+    }
     else if (extension == L".tga")
-        result = stbi_write_tga(filenameUtf8.c_str(),
-                                static_cast<int>(width()),
-                                static_cast<int>(height()),
-                                static_cast<int>(numComponents()),
-                                data());
+    {
+        result = stbi_write_tga(fileNameUTF8.c_str(),
+            static_cast<int>(width()),
+            static_cast<int>(height()),
+            static_cast<int>(numComponents()),
+            data());
+    }
     else if (extension == L".jpg" || extension == L".jpeg")
-        result = stbi_write_jpg(filenameUtf8.c_str(),
-                                static_cast<int>(width()),
-                                static_cast<int>(height()),
-                                static_cast<int>(numComponents()),
-                                data(),
-                                100);
+    {
+        result = stbi_write_jpg(fileNameUTF8.c_str(),
+            static_cast<int>(width()),
+            static_cast<int>(height()),
+            static_cast<int>(numComponents()),
+            data(),
+            100);
+    }
     else if (extension == L".hdr")
-        result = stbi_write_hdr(filenameUtf8.c_str(),
-                                static_cast<int>(width()),
-                                static_cast<int>(height()),
-                                static_cast<int>(numComponents()),
-                                reinterpret_cast<const float*>(data()));
+    {
+        result = stbi_write_hdr(fileNameUTF8.c_str(),
+            static_cast<int>(width()),
+            static_cast<int>(height()),
+            static_cast<int>(numComponents()),
+            reinterpret_cast<const float*>(data()));
+    }
     else
     {
-        LOG_ERROR << "Unsupported format <\"" << extension << "\"";
+        LOG_ERROR << "Unsupported image format <\"" << extension << "\"";
         return false;
     }
 
     if (!result)
-        LOG_ERROR << "Failed to save image " << filename;
+        LOG_ERROR << "Failed to save image " << fileName;
 
     return result;
-}
-
-Image::Image()
-    : m_width(0u)
-    , m_height(0u)
-    , m_numComponents(0u)
-    , m_componentType(PixelComponentType::Count)
-    , m_data(nullptr)
-{
 }
 
 }

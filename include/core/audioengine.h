@@ -27,17 +27,13 @@ public:
     std::shared_ptr<IRenderer> renderer() override final;
     std::shared_ptr<const IRenderer> renderer() const override final;
 
-    std::shared_ptr<Scene> scene() override final;
-    std::shared_ptr<const Scene> scene() const override final;
-    void setScene(const std::shared_ptr<Scene>&) override final;
-
     std::shared_ptr<audio::RendererBase> audioRenderer();
     std::shared_ptr<const audio::RendererBase> audioRenderer() const;
 
-    std::shared_ptr<SoundsManager> soundsManager();
-    std::shared_ptr<const SoundsManager> soundsManager() const;
+    std::shared_ptr<SoundsLoader> soundsLoader();
+    std::shared_ptr<const SoundsLoader> soundsLoader() const;
 
-    void update(uint64_t time, uint32_t dt, debug::SceneInformation&);
+    void update(const std::shared_ptr<Scene>& scene, uint64_t time, uint32_t dt);
 
 private:
     std::unique_ptr<AudioEnginePrivate> m_;

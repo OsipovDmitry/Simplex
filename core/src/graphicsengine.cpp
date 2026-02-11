@@ -4,8 +4,9 @@
 #include <utils/meshpainter.h>
 
 #include <core/graphicsengine.h>
-#include <core/texturesmanager.h>
-#include <core/programsmanager.h>
+#include <core/texturesloader.h>
+#include <core/programsloader.h>
+#include <core/scenesloader.h>
 #include <core/graphicsrendererbase.h>
 #include <core/scene.h>
 #include <core/scenerootnode.h>
@@ -91,14 +92,15 @@ GraphicsEngine::GraphicsEngine(const std::string &name, const std::shared_ptr<gr
         else
             LOG_ERROR << "Shader storage block name has not been set for ID = " << i;
 
-    m_->programsManager() = std::make_shared<ProgramsManager>(renderer);
-    m_->texturesManager() = std::make_shared<TexturesManager>(renderer);
+    m_->programsLoader() = std::make_shared<ProgramsLoader>(name + "ProgramsLoader", renderer);
+    m_->texturesLoader() = std::make_shared<TexturesLoader>(name + "TexturesLoader", renderer);
+    m_->scenesLoader() = std::make_shared<ScenesLoader>(name + "ScenesLoader");
 
     m_->frameBuffer() = renderer->createFrameBuffer();
     m_->vertexArray() = renderer->createVertexArray();
     m_->geometryBuffer() = std::make_shared<GeometryBuffer>(glm::uvec2(0u));
 
-    m_->renderPipeLine() = RenderPipeLine::create(m_->programsManager(), renderer, m_->frameBuffer(), m_->vertexArray());
+    m_->renderPipeLine() = RenderPipeLine::create(m_->programsLoader(), renderer, m_->frameBuffer(), m_->vertexArray());
 
     LOG_INFO << "Engine \"" << GraphicsEngine::name() << "\" has been created";
 }
@@ -123,21 +125,6 @@ std::shared_ptr<const IRenderer> GraphicsEngine::renderer() const
     return graphicsRenderer();
 }
 
-std::shared_ptr<core::Scene> GraphicsEngine::scene()
-{
-    return m_->scene();
-}
-
-std::shared_ptr<const core::Scene> GraphicsEngine::scene() const
-{
-    return const_cast<GraphicsEngine*>(this)->scene();
-}
-
-void GraphicsEngine::setScene(const std::shared_ptr<core::Scene>& value)
-{
-    m_->scene() = value;
-}
-
 std::shared_ptr<graphics::RendererBase> GraphicsEngine::graphicsRenderer()
 {
     return m_->renderer();
@@ -148,41 +135,40 @@ std::shared_ptr<const graphics::RendererBase> GraphicsEngine::graphicsRenderer()
     return const_cast<GraphicsEngine*>(this)->graphicsRenderer();
 }
 
-std::shared_ptr<TexturesManager> GraphicsEngine::texturesManager()
+std::shared_ptr<TexturesLoader> GraphicsEngine::texturesLoader()
 {
-    return m_->texturesManager();
+    return m_->texturesLoader();
 }
 
-std::shared_ptr<const TexturesManager> GraphicsEngine::texturesManager() const
+std::shared_ptr<const TexturesLoader> GraphicsEngine::texturesLoader() const
 {
-    return const_cast<GraphicsEngine*>(this)->texturesManager();
+    return const_cast<GraphicsEngine*>(this)->texturesLoader();
 }
 
-std::shared_ptr<ProgramsManager> GraphicsEngine::programsManager()
+std::shared_ptr<ProgramsLoader> GraphicsEngine::programsLoader()
 {
-    return m_->programsManager();
+    return m_->programsLoader();
 }
 
-std::shared_ptr<const ProgramsManager> GraphicsEngine::programsManager() const
+std::shared_ptr<const ProgramsLoader> GraphicsEngine::programsLoader() const
 {
-    return const_cast<GraphicsEngine*>(this)->programsManager();
+    return const_cast<GraphicsEngine*>(this)->programsLoader();
 }
 
-void GraphicsEngine::update(uint64_t time, uint32_t /*dt*/, debug::SceneInformation& sceneInfo)
+std::shared_ptr<ScenesLoader> GraphicsEngine::scenesLoader()
+{
+    return m_->scenesLoader();
+}
+
+std::shared_ptr<const ScenesLoader> GraphicsEngine::scenesLoader() const
+{
+    return const_cast<GraphicsEngine*>(this)->scenesLoader();
+}
+
+void GraphicsEngine::update(const std::shared_ptr<Scene>& scene, uint64_t time, uint32_t /*dt*/)
 {
     static const auto& settings = settings::Settings::instance();
-    static const auto& debugRenderingSettings = settings.graphics().debugRendering();
-    static const auto nodeLocalBoundingBoxFlag = debugRenderingSettings.nodeBoundingBox().isEnabled();
-    static const auto visualDrawableNodeLocalBoundingBoxFlag = debugRenderingSettings.drawableNodeLocalBoundingBox().isEnabled();
-    static const auto visualDrawableBoundingBoxFlag = debugRenderingSettings.drawableBoundingBox().isEnabled();
-    static const auto lightNodeAreaBoundingBoxFlag = debugRenderingSettings.lightNodeAreaBoundingBox().isEnabled();
-    static const auto debugRender =
-        nodeLocalBoundingBoxFlag ||
-        visualDrawableNodeLocalBoundingBoxFlag ||
-        visualDrawableBoundingBoxFlag ||
-        lightNodeAreaBoundingBoxFlag;
 
-    auto scene = GraphicsEngine::scene();
     if (!scene)
         return;
 
@@ -193,7 +179,7 @@ void GraphicsEngine::update(uint64_t time, uint32_t /*dt*/, debug::SceneInformat
         return;
     }
 
-    auto programsManager = GraphicsEngine::programsManager();
+    auto programsManager = GraphicsEngine::programsLoader();
     if (!programsManager)
     {
         LOG_CRITICAL << "Programs manager can't be nullptr";
@@ -225,9 +211,6 @@ void GraphicsEngine::update(uint64_t time, uint32_t /*dt*/, debug::SceneInformat
     for (const auto& camera : cameraNodeCollector.nodes())
     {
         auto& cameraPrivate = camera->m();
-
-        debug::CameraInformation cameraInfo;
-        cameraInfo.cameraName = camera->name();
 
         if (!camera->isRenderingEnabled())
             continue;
@@ -533,70 +516,6 @@ void GraphicsEngine::update(uint64_t time, uint32_t /*dt*/, debug::SceneInformat
             glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
             glm::uvec4(0u, 0u, screenSize),
             true, false, false, false);
-
-        sceneInfo.camerasInformation.push_back(cameraInfo);
-    }
-}
-
-void GraphicsEngine::setF()
-{
-    auto scene = GraphicsEngine::scene();
-    if (!scene)
-        return;
-
-    auto& renderPipeLine = m_->renderPipeLine();
-    auto& clusterNodesBuffer = renderPipeLine->clusterNodesBuffer();
-
-    auto viewTransformDesc = renderPipeLine->cameraBuffer()->get().viewTransform;
-    auto viewTransform = utils::Transform(
-        viewTransformDesc.translationAndScale.w,
-        glm::quat(viewTransformDesc.rotation.q.w, viewTransformDesc.rotation.q.x, viewTransformDesc.rotation.q.y, viewTransformDesc.rotation.q.z),
-        glm::vec3(viewTransformDesc.translationAndScale)).inverted();
-
-    static std::weak_ptr<Node> weak;
-    if (auto group = weak.lock())
-    {
-        scene->sceneRootNode()->detach(group);
-        return;
-    }
-
-    auto group = std::make_shared<Node>("");
-    scene->sceneRootNode()->attach(group);
-    weak = group;
-
-    for (size_t i = 0u; i < clusterNodesBuffer->size(); ++i)
-    {
-        simplex::utils::MeshPainter painter(simplex::utils::Mesh::createEmptyMesh({
-                {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
-                {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}}, }));
-    
-        auto clusterNode = clusterNodesBuffer->get(i);
-        utils::BoundingBox bb({
-            glm::vec3(clusterNode.boundingBoxMinPoint),
-            glm::vec3(clusterNode.boundingBoxMaxPoint) });
-
-        painter.setVertexTransform(utils::Transform::makeTranslation(bb.center()));
-        painter.drawCube(bb.halfSize() * 2.f);
-
-        auto boundingBox = painter.calculateBoundingBox();
-        auto mesh = std::make_shared<simplex::core::Mesh>(painter.mesh(), boundingBox);
-
-        auto material = std::make_shared<simplex::core::Material>();
-        if (clusterNode.firstLightNodeID == 0xFFFFFFFFu)
-            material->setBaseColor(glm::vec4(glm::vec3(0.f, 0.f, 1.f), .2f));
-        else
-            material->setBaseColor(glm::vec4(glm::vec3(1.f, 0.f, 0.f), .2f));
-        material->setMetalness(0.f);
-        material->setRoughness(.2f);
-        material->setIsLighted(false);
-
-        auto drawable = std::make_shared<simplex::core::Drawable>(mesh, material);
-
-        auto drawableNode = std::make_shared<simplex::core::DrawableNode>("");
-        drawableNode->setTransform(viewTransform);
-        drawableNode->addDrawable(drawable);
-
-        group->attach(drawableNode);
     }
 }
 

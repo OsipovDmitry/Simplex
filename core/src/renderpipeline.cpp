@@ -88,7 +88,7 @@ graphics::PBufferRange& RenderPipeLine::transparentParameterBuffer()
 }
 
 std::shared_ptr<RenderPipeLine> RenderPipeLine::create(
-    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
     const std::shared_ptr<graphics::IVertexArray>& vertexArray)
@@ -131,7 +131,7 @@ std::shared_ptr<RenderPipeLine> RenderPipeLine::create(
 }
 
 RenderPipeLine::RenderPipeLine(
-    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
     const std::shared_ptr<graphics::IVertexArray>& vertexArray)

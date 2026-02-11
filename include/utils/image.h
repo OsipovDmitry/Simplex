@@ -20,6 +20,7 @@ class UTILS_SHARED_EXPORT Image final
 {
     NONCOPYBLE(Image)
 public:
+    Image(uint32_t, uint32_t, uint32_t);
     Image(uint32_t, uint32_t, uint32_t, PixelComponentType, const uint8_t* = nullptr);
     ~Image();
 
@@ -38,18 +39,16 @@ public:
     void convert(uint32_t, uint32_t, uint32_t, PixelComponentType);
     std::shared_ptr<Image> converted(uint32_t, uint32_t, uint32_t, PixelComponentType) const;
 
+    static std::shared_ptr<Image> loadFromFile(const std::filesystem::path&);
+    static std::shared_ptr<Image> loadDescriptionFromFile(const std::filesystem::path&);
     bool saveToFile(const std::filesystem::path&) const;
 
 private:
-    Image();
-
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_numComponents;
     PixelComponentType m_componentType;
     uint8_t *m_data;
-
-    friend class ImageManager;
 };
 
 }

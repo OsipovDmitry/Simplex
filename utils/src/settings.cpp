@@ -288,7 +288,7 @@ Settings::Settings(const std::filesystem::path &path)
     , m_document()
     , m_path(path)
 {
-    auto absoluteFilename = std::filesystem::absolute(m_path);
+    auto absoluteFilename = std::filesystem::canonical(m_path);
 
     if (auto settingsFile = TextFile::loadFromFile(absoluteFilename); settingsFile)
         m_document.Parse(settingsFile->data().c_str());

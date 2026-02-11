@@ -30,7 +30,7 @@ public:
 
     bool isInitialized() const override;
 
-    void update(uint64_t time, uint32_t dt, core::debug::SceneInformation&) override;
+    void update(const std::shared_ptr<core::Scene>&, uint64_t time, uint32_t dt) override;
 
     std::shared_ptr<core::IEngine> engine() override;
     std::shared_ptr<const core::IEngine> engine() const override;

@@ -33,6 +33,10 @@
     if (shared_from_this() != resource->renderer()) \
         LOG_CRITICAL << "Resource was created in anotrher context";
 
+#define CHECK_EQUAL_CONTEXTS(resource1, resource2) \
+    if (resource1->renderer() != resource2->renderer()) \
+        LOG_CRITICAL << "Resources were created in different contexts";
+
 namespace simplex
 {
 namespace audio_openal

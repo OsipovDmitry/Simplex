@@ -20,14 +20,9 @@ std::shared_ptr<audio::RendererBase> &AudioEnginePrivate::renderer()
     return m_renderer;
 }
 
-std::shared_ptr<SoundsManager> &AudioEnginePrivate::soundsManager()
+std::shared_ptr<SoundsLoader> &AudioEnginePrivate::soundsLoader()
 {
-    return m_soundsManager;
-}
-
-std::shared_ptr<Scene>& AudioEnginePrivate::scene()
-{
-    return m_scene;
+    return m_soundsLoader;
 }
 
 }

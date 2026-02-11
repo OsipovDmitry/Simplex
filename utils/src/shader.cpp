@@ -108,7 +108,7 @@ std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filena
         return result;
     };
 
-    auto absoluteFilename = std::filesystem::absolute(filename);
+    auto absoluteFilename = std::filesystem::canonical(filename);
 
     auto shaderFile = TextFile::loadFromFile(absoluteFilename);
     if (!shaderFile)

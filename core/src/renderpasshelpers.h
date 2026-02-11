@@ -39,7 +39,7 @@ private:
 class FrustumCullingPass : public RenderPass
 {
 public:
-    FrustumCullingPass(const std::shared_ptr<ProgramsManager>&, const std::shared_ptr<RenderPipeLine>&);
+    FrustumCullingPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
     ~FrustumCullingPass() override;
 
     void run(
@@ -56,7 +56,7 @@ private:
 class UpdateCameraInfoPass : public RenderPass
 {
 public:
-    UpdateCameraInfoPass(const std::shared_ptr<ProgramsManager>&, const std::shared_ptr<RenderPipeLine>&);
+    UpdateCameraInfoPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
     ~UpdateCameraInfoPass() override;
 
     void run(
@@ -73,7 +73,7 @@ private:
 class CalculateBonesTransformsDataPass : public RenderPass
 {
 public:
-    CalculateBonesTransformsDataPass(const std::shared_ptr<ProgramsManager>&, const std::shared_ptr<RenderPipeLine>&);
+    CalculateBonesTransformsDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
     ~CalculateBonesTransformsDataPass() override;
 
     void run(
@@ -90,7 +90,7 @@ private:
 class RenderDrawDataGeometryPass : public RenderPass
 {
 public:
-    RenderDrawDataGeometryPass(const std::shared_ptr<ProgramsManager>&, const std::shared_ptr<RenderPipeLine>&);
+    RenderDrawDataGeometryPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
     ~RenderDrawDataGeometryPass() override;
 
     void run(
@@ -108,7 +108,7 @@ private:
 class BuildClusterPass : public RenderPass
 {
 public:
-    BuildClusterPass(const std::shared_ptr<ProgramsManager>&, const std::shared_ptr<RenderPipeLine>&);
+    BuildClusterPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
     ~BuildClusterPass() override;
 
     void run(
@@ -125,7 +125,7 @@ private:
 class ClusterLightPass : public RenderPass
 {
 public:
-    ClusterLightPass(const std::shared_ptr<ProgramsManager>&, const std::shared_ptr<RenderPipeLine>&);
+    ClusterLightPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
     ~ClusterLightPass() override;
 
     void run(
@@ -142,7 +142,7 @@ private:
 class RenderBackgroundPass : public RenderPass
 {
 public:
-    RenderBackgroundPass(const std::shared_ptr<ProgramsManager>&, const std::shared_ptr<RenderPipeLine>&);
+    RenderBackgroundPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
     ~RenderBackgroundPass() override;
 
     void run(
@@ -159,7 +159,7 @@ private:
 class BlendPass : public RenderPass
 {
 public:
-    BlendPass(const std::shared_ptr<ProgramsManager>&, const std::shared_ptr<RenderPipeLine>&);
+    BlendPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
     ~BlendPass() override;
 
     void run(

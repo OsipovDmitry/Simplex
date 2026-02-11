@@ -28,6 +28,8 @@ public:
     ApplicationTimeCallback& timeCallback();
     ApplicationPollEventsCallback& pollEventsCallback();
 
+    std::shared_ptr<Scene>& scene();
+
     static std::unique_ptr<ApplicationBase> &instance();
 
 private:
@@ -43,6 +45,8 @@ private:
 
     ApplicationTimeCallback m_timeCallback;
     ApplicationPollEventsCallback m_pollEventsCallback;
+
+    std::shared_ptr<Scene> m_scene;
 
     static std::unique_ptr<ApplicationBase> s_instance;
 };

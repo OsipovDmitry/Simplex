@@ -1459,7 +1459,7 @@ std::shared_ptr<Texture2D_4_5> Texture2D_4_5::createEmpty(uint32_t width,
     if (internalFormat == core::graphics::PixelInternalFormat::Count)
         LOG_CRITICAL << "Undefined pixel internal format";
 
-    auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec2(width, height)));
+    const auto numMipmapLevels = static_cast<uint32_t>(glm::levels(glm::uvec2(width, height)));
     if (numLevels == 0u)
         numLevels = numMipmapLevels;
     numLevels = glm::min(numLevels, numMipmapLevels);

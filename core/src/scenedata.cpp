@@ -1,5 +1,4 @@
 #include <utils/meshpainter.h>
-#include <utils/imagemanager.h>
 
 #include <core/background.h>
 #include <core/drawable.h>
@@ -10,7 +9,7 @@
 #include <core/mesh.h>
 #include <core/scene.h>
 #include <core/skeletalanimation.h>
-#include <core/texturesmanager.h>
+#include <core/texturesloader.h>
 
 #include "backgroundprivate.h"
 #include "drawableprivate.h"
@@ -976,7 +975,7 @@ void SceneData::onMaterialMapChanged(
         return;
     }
 
-    auto texturesManager = graphicsEngine->texturesManager();
+    auto texturesManager = graphicsEngine->texturesLoader();
     if (!texturesManager)
     {
         LOG_CRITICAL << "Textures manager can't be nullptr";
@@ -987,9 +986,9 @@ void SceneData::onMaterialMapChanged(
 
     graphics::PTexture texture;
     if (!path.empty())
-        texture = texturesManager->loadOrGetTexture(path);
+        texture = texturesManager->loadOrGet(path);
     else if (image)
-        texture = texturesManager->loadOrGetTexture(image);
+        texture = texturesManager->loadOrGet(image);
 
     m_materialMapsBuffer->set(
         ID,
@@ -1556,7 +1555,7 @@ bool SceneData::isMaterialTransparent(
             std::shared_ptr<const utils::Image> baseColorImage;
             if (auto path = baseColorMap->filesystemPath(); !path.empty())
             {
-                baseColorImage = utils::ImageManager::instance().loadOrGetDescription(path);
+                baseColorImage = utils::Image::loadDescriptionFromFile(path);
             }
             else if (auto image = baseColorMap->image(); image)
             {

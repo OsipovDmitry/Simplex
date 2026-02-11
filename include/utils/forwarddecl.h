@@ -1,11 +1,11 @@
 #ifndef UTILS_FORWARDDECL_H
 #define UTILS_FORWARDDECL_H
 
-#include <cstdint>
 #include <array>
-#include <unordered_set>
-#include <unordered_map>
+#include <cstdint>
+#include <map>
 #include <string>
+#include <unordered_set>
 
 #include <utils/glm/detail/qualifier.hpp>
 
@@ -40,7 +40,7 @@ class Mesh;
 class AbstractPainter;
 class MeshPainter;
 
-using ShaderDefines = std::unordered_map<std::string, std::string>;
+using ShaderDefines = std::map<std::string, std::string>;
 class Shader;
 
 class TextFile;

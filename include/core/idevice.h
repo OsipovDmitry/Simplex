@@ -16,7 +16,7 @@ public:
     
     virtual bool isInitialized() const = 0;
 
-    virtual void update(uint64_t time, uint32_t dt, debug::SceneInformation&) = 0;
+    virtual void update(const std::shared_ptr<Scene>&, uint64_t time, uint32_t dt) = 0;
 
     virtual std::shared_ptr<IEngine> engine() = 0;
     virtual std::shared_ptr<const IEngine> engine() const = 0;

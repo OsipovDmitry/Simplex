@@ -16,10 +16,6 @@ public:
 
     virtual std::shared_ptr<IRenderer> renderer() = 0;
     virtual std::shared_ptr<const IRenderer> renderer() const = 0;
-
-    virtual std::shared_ptr<Scene> scene() = 0;
-    virtual std::shared_ptr<const Scene> scene() const = 0;
-    virtual void setScene(const std::shared_ptr<Scene>&) = 0;
 };
 
 }

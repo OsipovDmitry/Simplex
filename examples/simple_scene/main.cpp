@@ -20,10 +20,11 @@
 #include <core/mesh.h>
 #include <core/material.h>
 #include <core/scenerepresentation.h>
+#include <core/scenesloader.h>
 #include <core/nodecollector.h>
 #include <core/skeletalanimatednode.h>
 
-#include <loader_assimp/loader.h>
+#include <scenes_loader_assimp/scenesloaderassimp.h>
 
 #include <graphics_glfw/glfwwidget.h>
 
@@ -481,6 +482,7 @@ void createSpheres()
 
 static std::shared_ptr<simplex::core::Scene> createScene2(
     const std::string& name,
+    const std::shared_ptr<simplex::core::ScenesLoader>& scenesLoader,
     const std::shared_ptr<simplex::core::graphics::RendererBase>& renderer)
 {
     renderer->makeCurrent();
@@ -513,8 +515,8 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     pointLightNode2->setRadiuses(glm::vec2(900.f, 1000.f));
     scene->sceneRootNode()->attach(pointLightNode2);
 
-    scene->sceneRootNode()->attach(
-        simplex::loader_assimp::load("C:/Users/3520136/Downloads/Hip Hop Dancing/Hip Hop Dancing.dae")->generate("", false, false));
+    auto sceneRepresentation = scenesLoader->loadOrGet("C:/Users/3520136/Downloads/Hip Hop Dancing/Hip Hop Dancing.dae");
+    scene->sceneRootNode()->attach(sceneRepresentation->generate("", false, false));
 
     //scene->sceneRootNode()->attach(
     //    simplex::loader_assimp::load("C:/Users/3520136/Downloads/cat_-_walking/scene.gltf")->generate("", false, false));
@@ -607,7 +609,6 @@ static void keyCallback(
             if (auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene"))
                 if (auto graphicsEngine = window->graphicsEngine())
                 {
-                    graphicsEngine->setF();
                     isSpacePressed = true;
                 }
         }
@@ -679,7 +680,7 @@ static void updateCallback(uint64_t time, uint32_t dt)
     if (auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene"))
         if (auto graphicsEngine = window->graphicsEngine())
         {
-            auto scene = graphicsEngine->scene();
+            auto scene = simplex::core::ApplicationBase::instance().scene();
             simplex::core::NodeCollector<simplex::core::CameraNode> cameraCollector;
             scene->sceneRootNode()->acceptDown(cameraCollector);
             cameraCollector.nodes().front()->setTransform(cameraTransform);
@@ -708,9 +709,13 @@ static void updateCallback(uint64_t time, uint32_t dt)
     //}
 }
 
+static void closeCallback()
+{
+    simplex::core::ApplicationBase::instance().setScene(nullptr);
+}
+
 int main(int argc, char* argv[])
 {
-
     if (!simplex::core::ApplicationBase::initialize(
         []() { return simplex::graphics_glfw::GLFWWidget::time(); },
         []() { simplex::graphics_glfw::GLFWWidget::pollEvents(); }
@@ -721,13 +726,15 @@ int main(int argc, char* argv[])
     }
 
     auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene");
-    window->engine()->setScene(createScene2("SimpleScene", window->graphicsEngine()->graphicsRenderer()));
     window->setKeyCallback(keyCallback);
     window->setUpdateCallback(updateCallback);
+    window->setCloseCallback(closeCallback);
 
-    createSpheres();
+     window->graphicsEngine()->scenesLoader()->registerLoader(std::make_shared<simplex::scenes_loader_assimp::AssimpScenesLoader>());
 
     auto& app = simplex::core::ApplicationBase::instance();
+    app.setScene(createScene2("SimpleScene", window->graphicsEngine()->scenesLoader(), window->graphicsEngine()->graphicsRenderer()));
+
     app.registerDevice(window);
     app.run();
     app.unregisterDevice(window);

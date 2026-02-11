@@ -10,18 +10,17 @@
 #include <utils/mesh.h>
 #include <utils/logger.h>
 
-#include <core/scenerepresentation.h>
 #include <core/skeletalanimation.h>
 #include <core/drawable.h>
 #include <core/material.h>
 #include <core/mesh.h>
 
-#include <loader_assimp/loader.h>
+#include <scenes_loader_assimp/scenesloaderassimp.h>
 
 namespace simplex
 {
 
-namespace loader_assimp
+namespace scenes_loader_assimp
 {
 
 struct aiStringHash
@@ -693,9 +692,14 @@ static size_t toNodeRepresentation(
     return nodeRepresentationID;
 }
 
-std::shared_ptr<core::SceneRepresentation> LOADER_ASSIMP_GLOBAL_SHARED_EXPORT load(const std::filesystem::path& filename)
+AssimpScenesLoader::AssimpScenesLoader()
+    : core::LoaderBase<core::SceneRepresentation>("AssimpScenesLoader")
+{}
+
+AssimpScenesLoader::~AssimpScenesLoader() = default;
+
+std::shared_ptr<core::SceneRepresentation> AssimpScenesLoader::loadResource(const std::filesystem::path& absoluteFileName) const
 {
-    const auto absoluteFileName = std::filesystem::absolute(filename);
     const auto absoluteDir = absoluteFileName.parent_path();
 
     Assimp::Importer importer;
@@ -704,10 +708,7 @@ std::shared_ptr<core::SceneRepresentation> LOADER_ASSIMP_GLOBAL_SHARED_EXPORT lo
         aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_FlipUVs | aiProcess_GenBoundingBoxes);
 
     if (!assimpScene)
-    {
-        LOG_ERROR << "Can't open scene file " << filename;
         return nullptr;
-    }
 
     std::vector<std::shared_ptr<core::Material>> materials;
     if (assimpScene->HasMaterials())

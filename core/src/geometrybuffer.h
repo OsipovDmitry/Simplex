@@ -25,7 +25,7 @@ public:
     const glm::uvec2& size() const;
     void resize(const glm::uvec2&, const std::shared_ptr<graphics::RendererBase>&);
 
-    void initialize(const std::shared_ptr<ProgramsManager>&);
+    void initialize(const std::shared_ptr<ProgramsLoader>&);
     void clear(
         const std::shared_ptr<graphics::RendererBase>&,
         const std::shared_ptr<graphics::IFrameBuffer>&) const;

@@ -14,7 +14,7 @@ namespace core
 {
 
 class GeometryBuffer;
-class ProgramsManager;
+class ProgramsLoader;
 class RenderPass;
 class SceneData;
 
@@ -47,14 +47,14 @@ public:
     graphics::PBufferRange& transparentParameterBuffer();
 
     static std::shared_ptr<RenderPipeLine> create(
-        const std::shared_ptr<ProgramsManager>&,
+        const std::shared_ptr<ProgramsLoader>&,
         const std::shared_ptr<graphics::RendererBase>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&);
 
 private:
     RenderPipeLine(
-        const std::shared_ptr<ProgramsManager>&,
+        const std::shared_ptr<ProgramsLoader>&,
         const std::shared_ptr<graphics::RendererBase>&,
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&);

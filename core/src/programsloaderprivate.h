@@ -1,5 +1,5 @@
-#ifndef CORE_PROGRAMSMANAGERPRIVATE_H
-#define CORE_PROGRAMSMANAGERPRIVATE_H
+#ifndef CORE_PROGRAMSLOADERPRIVATE_H
+#define CORE_PROGRAMSLOADERPRIVATE_H
 
 #include <memory>
 #include <unordered_map>
@@ -12,11 +12,11 @@ namespace simplex
 namespace core
 {
 
-class ProgramsManagerPrivate
+class ProgramsLoaderPrivate
 {
 public:
-    ProgramsManagerPrivate(const std::shared_ptr<graphics::RendererBase>&);
-    ~ProgramsManagerPrivate();
+    ProgramsLoaderPrivate(const std::shared_ptr<graphics::RendererBase>&);
+    ~ProgramsLoaderPrivate();
 
     std::shared_ptr<graphics::RendererBase> &renderer();
     std::unordered_map<std::string, std::shared_ptr<graphics::IProgram>> &resources();
@@ -29,4 +29,4 @@ private:
 }
 }
 
-#endif // CORE_PROGRAMSMANAGERPRIVATE_H
+#endif // CORE_PROGRAMSLOADERPRIVATE_H

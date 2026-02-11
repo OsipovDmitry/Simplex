@@ -86,9 +86,6 @@ void ApplicationBase::run()
         m_->lastUpdateTime() = 0u;
     }
 
-    auto &debugInfo = m_->debugInformation();
-    debugInfo.scenesInformation.clear();
-
     while (!m_->isStopped() && hasDevices)
     {
         auto time = m_->timeCallback()() - m_->startTime();
@@ -108,23 +105,20 @@ void ApplicationBase::run()
 
         hasDevices = false;
 
-        for (auto& device : m_->devices())
+        if (const auto& scene = m_->scene())
         {
-            if (!device->isInitialized())
-                continue;
-            
-            hasDevices = true;
+            for (auto& device : m_->devices())
+            {
+                if (!device->isInitialized())
+                    continue;
 
-            debug::SceneInformation sceneInfo;
-            sceneInfo.sceneName = device->name();
-            debugInfo.scenesInformation.push_back(sceneInfo);
-
-            device->update(time, dt, sceneInfo);
+                hasDevices = true;
+                device->update(scene, time, dt);
+            }
         }
 
         if (auto& pollEvents = m_->pollEventsCallback())
             pollEvents();
-        
     }
 }
 
@@ -173,6 +167,21 @@ void ApplicationBase::shutDown()
     auto& devices = m_->devices();
     while (!devices.empty())
         unregisterDevice(devices.front());
+}
+
+std::shared_ptr<core::Scene> ApplicationBase::scene()
+{
+    return m_->scene();
+}
+
+std::shared_ptr<const core::Scene> ApplicationBase::scene() const
+{
+    return const_cast<ApplicationBase*>(this)->scene();
+}
+
+void ApplicationBase::setScene(const std::shared_ptr<core::Scene>& value)
+{
+    m_->scene() = value;
 }
 
 //void ApplicationBase::update(uint64_t time, uint32_t dt)

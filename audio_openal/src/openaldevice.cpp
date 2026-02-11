@@ -33,9 +33,9 @@ bool OpenALDevice::isInitialized() const
     return m_->device() != nullptr;
 }
 
-void OpenALDevice::update(uint64_t time, uint32_t dt, core::debug::SceneInformation& sceneInfo)
+void OpenALDevice::update(const std::shared_ptr<core::Scene>& scene, uint64_t time, uint32_t dt)
 {
-    m_->engine()->update(time, dt, sceneInfo);
+    m_->engine()->update(scene, time, dt);
 }
 
 std::shared_ptr<core::IEngine> OpenALDevice::engine()

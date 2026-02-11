@@ -556,12 +556,12 @@ bool GLFWWidget::isInitialized() const
     return m_->window() != nullptr;
 }
 
-void GLFWWidget::update(uint64_t time, uint32_t dt, core::debug::SceneInformation& sceneInfo)
+void GLFWWidget::update(const std::shared_ptr<core::Scene>& scene, uint64_t time, uint32_t dt)
 {
     if (auto &callback = m_->updateCallback())
         callback(time, dt);
 
-    m_->engine()->update(time, dt, sceneInfo);
+    m_->engine()->update(scene, time, dt);
 
     glfwSwapBuffers(m_->window());
 }

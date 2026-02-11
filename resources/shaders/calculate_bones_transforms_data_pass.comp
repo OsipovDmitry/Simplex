@@ -67,7 +67,7 @@ void main(void)
 					const uint channelIndex = skeletonAnimationFindChannelIndexForBoneID(skeletonID, animationID, boneID);
 					if (channelIndex != 0xFFFFFFFFu)
 					{
-						//boneTransform = skeletonAnimationCalculateChannelTransform(skeletonID, animationID, channelIndex, time);
+						boneTransform = skeletonAnimationCalculateChannelTransform(skeletonID, animationID, channelIndex, time);
 					}
 				}
 				

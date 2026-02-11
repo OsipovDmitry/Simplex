@@ -70,6 +70,11 @@ ApplicationPollEventsCallback& ApplicationBasePrivate::pollEventsCallback()
     return m_pollEventsCallback;
 }
 
+std::shared_ptr<Scene>& ApplicationBasePrivate::scene()
+{
+    return m_scene;
+}
+
 std::unique_ptr<ApplicationBase>& ApplicationBasePrivate::instance()
 {
     return s_instance;

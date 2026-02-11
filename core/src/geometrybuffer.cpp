@@ -1,7 +1,7 @@
 #include <utils/glm/common.hpp>
 
 #include <core/graphicsrendererbase.h>
-#include <core/programsmanager.h>
+#include <core/programsloader.h>
 #include <core/settings.h>
 
 #include "geometrybuffer.h"
@@ -69,7 +69,7 @@ void GeometryBuffer::resize(const glm::uvec2& size, const std::shared_ptr<graphi
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::OITNodesBuffer) = graphics::BufferRange::create(m_OITBuffer->buffer());
 }
 
-void GeometryBuffer::initialize(const std::shared_ptr<ProgramsManager>& programsManager)
+void GeometryBuffer::initialize(const std::shared_ptr<ProgramsLoader>& programsManager)
 {
     if (m_isInitialized)
         return;

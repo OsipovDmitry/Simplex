@@ -20,10 +20,9 @@ public:
     std::string& name();
 
     std::shared_ptr<graphics::RendererBase> &renderer();
-    std::shared_ptr<TexturesManager> &texturesManager();
-    std::shared_ptr<ProgramsManager> &programsManager();
-
-    std::shared_ptr<Scene>& scene();
+    std::shared_ptr<TexturesLoader> &texturesLoader();
+    std::shared_ptr<ProgramsLoader> &programsLoader();
+    std::shared_ptr<ScenesLoader>& scenesLoader();
 
     std::shared_ptr<RenderPipeLine> &renderPipeLine();
 
@@ -41,10 +40,9 @@ private:
     std::string m_name;
 
     std::shared_ptr<graphics::RendererBase> m_renderer;
-    std::shared_ptr<TexturesManager> m_texturesManager;
-    std::shared_ptr<ProgramsManager> m_programsManager;
-
-    std::shared_ptr<Scene> m_scene;
+    std::shared_ptr<TexturesLoader> m_texturesLoader;
+    std::shared_ptr<ProgramsLoader> m_programsLoader;
+    std::shared_ptr<ScenesLoader> m_scenesLoader;
 
     std::shared_ptr<RenderPipeLine> m_renderPipeLine;
 

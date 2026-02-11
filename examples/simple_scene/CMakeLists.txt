@@ -6,4 +6,4 @@ include_directories("../../include")
 
 add_executable(simple_scene ${SOURCES})
 
-target_link_libraries(simple_scene loader_assimp graphics_glfw)
+target_link_libraries(simple_scene scenes_loader_assimp graphics_glfw)

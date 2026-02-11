@@ -25,19 +25,19 @@ std::shared_ptr<graphics::RendererBase> &GraphicsEnginePrivate::renderer()
     return m_renderer;
 }
 
-std::shared_ptr<TexturesManager> &GraphicsEnginePrivate::texturesManager()
+std::shared_ptr<TexturesLoader> &GraphicsEnginePrivate::texturesLoader()
 {
-    return m_texturesManager;
+    return m_texturesLoader;
 }
 
-std::shared_ptr<ProgramsManager> &GraphicsEnginePrivate::programsManager()
+std::shared_ptr<ProgramsLoader> &GraphicsEnginePrivate::programsLoader()
 {
-    return m_programsManager;
+    return m_programsLoader;
 }
 
-std::shared_ptr<Scene>& GraphicsEnginePrivate::scene()
+std::shared_ptr<ScenesLoader>& GraphicsEnginePrivate::scenesLoader()
 {
-    return m_scene;
+    return m_scenesLoader;
 }
 
 std::shared_ptr<RenderPipeLine>& GraphicsEnginePrivate::renderPipeLine()

@@ -234,10 +234,10 @@ class CameraNodeRepresentation;
 class LightNodeRepresentation;
 class SceneRepresentation;
 
-class TexturesManager;
-class ProgramsManager;
-class ScenesRepresentationsManager;
-class SoundsManager;
+class TexturesLoader;
+class ProgramsLoader;
+class ScenesLoader;
+class SoundsLoader;
 
 }
 }

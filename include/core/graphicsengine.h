@@ -27,22 +27,19 @@ public:
     std::shared_ptr<IRenderer> renderer() override final;
     std::shared_ptr<const IRenderer> renderer() const override final;
 
-    std::shared_ptr<Scene> scene() override final;
-    std::shared_ptr<const Scene> scene() const override final;
-    void setScene(const std::shared_ptr<Scene>&) override final;
-
     std::shared_ptr<graphics::RendererBase> graphicsRenderer();
     std::shared_ptr<const graphics::RendererBase> graphicsRenderer() const;
 
-    std::shared_ptr<TexturesManager> texturesManager();
-    std::shared_ptr<const TexturesManager> texturesManager() const;
+    std::shared_ptr<TexturesLoader> texturesLoader();
+    std::shared_ptr<const TexturesLoader> texturesLoader() const;
 
-    std::shared_ptr<ProgramsManager> programsManager();
-    std::shared_ptr<const ProgramsManager> programsManager() const;
+    std::shared_ptr<ProgramsLoader> programsLoader();
+    std::shared_ptr<const ProgramsLoader> programsLoader() const;
 
-    void update(uint64_t time, uint32_t dt, debug::SceneInformation&);
+    std::shared_ptr<ScenesLoader> scenesLoader();
+    std::shared_ptr<const ScenesLoader> scenesLoader() const;
 
-    void setF();
+    void update(const std::shared_ptr<Scene>& scene, uint64_t time, uint32_t dt);
 
 private:
     std::unique_ptr<GraphicsEnginePrivate> m_;

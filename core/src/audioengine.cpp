@@ -8,7 +8,7 @@
 #include <core/audioengine.h>
 #include <core/listenernode.h>
 #include <core/soundnode.h>
-#include <core/soundsmanager.h>
+#include <core/soundsloader.h>
 
 #include "audioengineprivate.h"
 
@@ -26,7 +26,7 @@ AudioEngine::AudioEngine(const std::string &name, std::shared_ptr<audio::Rendere
     auto& mPrivate = m();
 
     mPrivate.renderer() = renderer;
-    mPrivate.soundsManager() = std::make_shared<SoundsManager>(renderer);
+    mPrivate.soundsLoader() = std::make_shared<SoundsLoader>(name + "SoundsLoader", renderer);
 
     LOG_INFO << "Engine \"" << AudioEngine::name() << "\" has been created";
 }
@@ -51,21 +51,6 @@ std::shared_ptr<const IRenderer> AudioEngine::renderer() const
     return audioRenderer();
 }
 
-std::shared_ptr<core::Scene> AudioEngine::scene()
-{
-    return m_->scene();
-}
-
-std::shared_ptr<const core::Scene> AudioEngine::scene() const
-{
-    return const_cast<AudioEngine*>(this)->scene();
-}
-
-void AudioEngine::setScene(const std::shared_ptr<core::Scene>& value)
-{
-    m_->scene() = value;
-}
-
 std::shared_ptr<audio::RendererBase> AudioEngine::audioRenderer()
 {
     return m_->renderer();
@@ -76,25 +61,22 @@ std::shared_ptr<const audio::RendererBase> AudioEngine::audioRenderer() const
     return const_cast<AudioEngine*>(this)->audioRenderer();
 }
 
-std::shared_ptr<SoundsManager> AudioEngine::soundsManager()
+std::shared_ptr<SoundsLoader> AudioEngine::soundsLoader()
 {
-    return m_->soundsManager();
+    return m_->soundsLoader();
 }
 
-std::shared_ptr<const SoundsManager> AudioEngine::soundsManager() const
+std::shared_ptr<const SoundsLoader> AudioEngine::soundsLoader() const
 {
-    return const_cast<AudioEngine*>(this)->soundsManager();
+    return const_cast<AudioEngine*>(this)->soundsLoader();
 }
 
-void AudioEngine::update(uint64_t /*time*/, uint32_t /*dt*/, debug::SceneInformation&)
+void AudioEngine::update(const std::shared_ptr<Scene>& scene, uint64_t /*time*/, uint32_t /*dt*/)
 {
     static const auto s_localDirection = glm::vec3(0.f, 0.f, -1.f);
 
-    auto scene = AudioEngine::scene();
     if (!scene)
-    {
         return;
-    }
 
     auto& renderer = m_->renderer();
     if (!renderer)

@@ -3,7 +3,7 @@
 
 #include <core/settings.h>
 #include <core/uniform.h>
-#include <core/programsmanager.h>
+#include <core/programsloader.h>
 
 #include "blur.h"
 
@@ -62,7 +62,7 @@ void Blur::setSourceMap(const graphics::PConstTexture &map, uint32_t level, bool
 }
 
 graphics::PConstTexture Blur::run(const std::shared_ptr<graphics::RendererBase> &graphicsRenderer,
-                                  const std::shared_ptr<ProgramsManager> &programsManager)
+                                  const std::shared_ptr<ProgramsLoader> &programsManager)
 {
     if (!kernelBuffer())
     {

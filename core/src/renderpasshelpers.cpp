@@ -1,4 +1,4 @@
-#include <core/programsmanager.h>
+#include <core/programsloader.h>
 #include <core/graphicsrendererbase.h>
 #include <core/uniform.h>
 
@@ -31,7 +31,7 @@ void SimplePass::run(
 }
 
 FrustumCullingPass::FrustumCullingPass(
-    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
@@ -66,7 +66,7 @@ void FrustumCullingPass::run(
 }
 
 UpdateCameraInfoPass::UpdateCameraInfoPass(
-    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
@@ -92,7 +92,7 @@ void UpdateCameraInfoPass::run(
 }
 
 CalculateBonesTransformsDataPass::CalculateBonesTransformsDataPass(
-    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
@@ -118,7 +118,7 @@ void CalculateBonesTransformsDataPass::run(
 }
 
 RenderDrawDataGeometryPass::RenderDrawDataGeometryPass(
-    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 
@@ -199,7 +199,7 @@ void RenderDrawDataGeometryPass::run(
 }
 
 BuildClusterPass::BuildClusterPass(
-    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
@@ -235,7 +235,7 @@ void BuildClusterPass::run(
 }
 
 ClusterLightPass::ClusterLightPass(
-    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
@@ -270,7 +270,7 @@ void ClusterLightPass::run(
 }
 
 RenderBackgroundPass::RenderBackgroundPass(
-    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
@@ -311,7 +311,7 @@ void RenderBackgroundPass::run(
 }
 
 BlendPass::BlendPass(
-    const std::shared_ptr<ProgramsManager>& programsManager,
+    const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {

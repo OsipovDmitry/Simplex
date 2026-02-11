@@ -227,7 +227,10 @@ void Source_1_1::setBuffer(const std::shared_ptr<core::audio::IBuffer> &value)
 
     ALint bufferId = 0u;
     if (m_buffer)
+    {
+        CHECK_EQUAL_CONTEXTS(this, m_buffer);
         bufferId = static_cast<ALint>(m_buffer->id());
+    }
 
     alSourcei(m_id, AL_BUFFER, bufferId);
 }
