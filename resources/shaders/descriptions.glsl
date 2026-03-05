@@ -78,12 +78,13 @@ struct SceneInfoDescription
     uint drawDataCount;
     uint skeletalAnimatedDataCount;
     uint lightsCount;
+    uint skeletalAnimatedDataToUpdateCount;
     uint opaqueCommandsCount;
     uint transparentCommandsCount;
 	uint lightNodesMaxCount;
 	uint lightNodesCount;
     uint firstGlobalLightNodeID;
-    uint padding[3u];
+    uint padding[2u];
 };
 
 struct GBufferDescription
@@ -185,7 +186,8 @@ struct DrawDataDescription
 {
 	TransformDescription transform;
 	uint drawableID;
-	uint padding[3u];
+    uint skeletalAnimatedDataID;
+	uint padding[2u];
 };
 
 struct SkeletalAnimatedDataDescription
@@ -194,6 +196,14 @@ struct SkeletalAnimatedDataDescription
     uint currentAnimationID;
     uint bonesTransfromsDataOffset;
     uint bonesTransfromsDataSize;
+    uint lastUpdateTime;
 
-    //uint padding[0u];
+    uint padding[3u];
+};
+
+struct SkeletalAnimatedDataToUpdateDescription
+{
+    uint skeletalAnimatedDataID;
+
+    uint padding[3u];
 };

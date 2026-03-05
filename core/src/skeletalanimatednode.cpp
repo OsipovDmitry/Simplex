@@ -1,7 +1,7 @@
 #include <utils/logger.h>
 
-#include <core/skeletalanimation.h>
 #include <core/skeletalanimatednode.h>
+#include <core/skeletalanimation.h>
 
 #include "skeletalanimatednodeprivate.h"
 
@@ -10,10 +10,9 @@ namespace simplex
 namespace core
 {
 
-SkeletalAnimatedNode::SkeletalAnimatedNode(const std::string &name, uint32_t boneID, const std::shared_ptr<Skeleton>& skeleton)
-    : BoneNode(std::make_unique<SkeletalAnimatedNodePrivate>(*this, name, boneID, skeleton))
+SkeletalAnimatedNode::SkeletalAnimatedNode(const std::string& name, const std::shared_ptr<Skeleton>& skeleton)
+    : Node(std::make_unique<SkeletalAnimatedNodePrivate>(*this, name, skeleton))
 {
-    setCurrentAnimation(/*"Take 001"*/"mixamorig_Hips");
 }
 
 SkeletalAnimatedNode::~SkeletalAnimatedNode() = default;
@@ -53,9 +52,9 @@ bool SkeletalAnimatedNode::setCurrentAnimation(const std::string& value)
     }
 
     mPrivate.currentAnimation() = value;
+    mPrivate.onChanged();
     return true;
 }
 
-
-}
-}
+} // namespace core
+} // namespace simplex

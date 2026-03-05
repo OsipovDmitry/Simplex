@@ -39,7 +39,7 @@ private:
     std::unique_ptr<AudioEnginePrivate> m_;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_AUDIOENGINE_H

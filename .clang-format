@@ -1,0 +1,85 @@
+---
+# clang-format docs:https://releases.llvm.org/11.0.0/tools/clang/docs/ClangFormatStyleOptions.html
+# dump default values: clang-format -style=microsoft -dump-config > clang-format-default-ms
+
+# general settings (rarely changed)
+#Language: Cpp
+Standard: c++17
+BasedOnStyle: Microsoft
+ColumnLimit: 130
+
+# arrays in JSON
+BreakArrays: false
+
+# brace position
+BraceWrapping:
+  BeforeLambdaBody: true
+  BeforeWhile: true
+  AfterCaseLabel: true
+
+# indentation
+IndentCaseLabels: true
+
+# alignment
+PointerAlignment: Left
+AccessModifierOffset: -4
+AlignAfterOpenBracket: AlwaysBreak
+ContinuationIndentWidth: 4
+PenaltyExcessCharacter: 100
+
+# parameters reflow
+BreakConstructorInitializers: BeforeComma
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllConstructorInitializersOnNextLine: false
+BinPackArguments: true
+BinPackParameters: false
+AlwaysBreakTemplateDeclarations: true
+QualifierAlignment: Left
+
+# sorting
+SortIncludes: CaseSensitive
+IncludeBlocks: Regroup
+IncludeCategories:
+  # std library  (Headers in <> without extensions)
+  - Regex: '<([A-Za-z0-9\Q/-_\E])+>'
+    Priority: 1
+    CaseSensitive: true
+
+  # thirdparty
+  - Regex: "^<(draco/|Q|CGAL/|emscripten|zipper/|stb/|osg/|google/protobuf/|xtensor/|zlib|xtensor/|sqlite/|embree|Eigen/|dcmtk/|3dxware/|continuable/|vtk|boost/|asio/|spdlog/|nlohmann/|o3dgc/|sqlite/|gtest/|assimp/)"
+    CaseSensitive: true
+    Priority: 101
+
+  # local relative includes
+  - Regex: '^".*'
+    Priority: 100
+    CaseSensitive: true
+
+  # utils module
+  - Regex: "^<utils/.*"
+    Priority: 2
+    CaseSensitive: true
+
+  # core module
+  - Regex: "^<core/.*"
+    Priority: 3
+    CaseSensitive: true
+
+  # other modules
+  - Regex: "^<.*"
+    Priority: 4
+    CaseSensitive: true
+
+
+IncludeIsMainSourceRegex: "(\\.inl)$"
+SortUsingDeclarations: false
+
+# fixing issues
+FixNamespaceComments: true
+
+# short blocks single line vs multiple lines
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLambdasOnASingleLine: Inline

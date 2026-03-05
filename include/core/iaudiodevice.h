@@ -19,8 +19,8 @@ public:
     virtual std::shared_ptr<const AudioEngine> audioEngine() const = 0;
 };
 
-}
-}
-}
+} // namespace audio
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_IAUDIODEVICE_H

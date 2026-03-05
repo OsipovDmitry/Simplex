@@ -29,7 +29,7 @@ private:
     std::unique_ptr<TexturesLoaderPrivate> m_;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_TEXTURESLOADER_H

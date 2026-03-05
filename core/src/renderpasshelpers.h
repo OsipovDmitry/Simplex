@@ -53,6 +53,23 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
+class CollectSkeletalAnimatedDataToUpdatePass : public RenderPass
+{
+public:
+    CollectSkeletalAnimatedDataToUpdatePass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~CollectSkeletalAnimatedDataToUpdatePass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+};
+
 class UpdateCameraInfoPass : public RenderPass
 {
 public:
@@ -177,8 +194,7 @@ private:
     CameraBuffer m_cameraBuffer;
 };
 
-
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_RENDERPASSHELPERS_H

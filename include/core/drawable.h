@@ -30,10 +30,9 @@ public:
 
 private:
     std::unique_ptr<DrawablePrivate> m_;
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_DRAWABLE_H

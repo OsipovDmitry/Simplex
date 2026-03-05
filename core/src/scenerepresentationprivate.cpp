@@ -1,6 +1,6 @@
-#include <core/scenerepresentation.h>
-
 #include "scenerepresentationprivate.h"
+
+#include <core/scenerepresentation.h>
 
 namespace simplex
 {
@@ -51,41 +51,6 @@ const std::vector<size_t>& DrawableNodeRepresentationPrivate::drawablesIDs()
     return m_drawablesIDs;
 }
 
-BoneNodeRepresentationPrivate::BoneNodeRepresentationPrivate(
-    const std::string& name,
-    const utils::Transform& transform,
-    const std::vector<size_t>& childrenIDs,
-    uint32_t boneID)
-    : NodeRepresentationPrivate(name, transform, childrenIDs)
-    , m_boneID(boneID)
-{
-}
-
-BoneNodeRepresentationPrivate::~BoneNodeRepresentationPrivate() = default;
-
-uint32_t& BoneNodeRepresentationPrivate::boneID()
-{
-    return m_boneID;
-}
-
-RootBoneNodeRepresentationPrivate::RootBoneNodeRepresentationPrivate(
-    const std::string& name,
-    const utils::Transform& transform,
-    const std::vector<size_t>& childrenIDs,
-    uint32_t boneID,
-    uint32_t skeletonID)
-    : BoneNodeRepresentationPrivate(name, transform, childrenIDs, boneID)
-    , m_skeletonID(skeletonID)
-{
-}
-
-RootBoneNodeRepresentationPrivate::~RootBoneNodeRepresentationPrivate() = default;
-
-uint32_t& RootBoneNodeRepresentationPrivate::skeletonID()
-{
-    return m_skeletonID;
-}
-
 CameraNodeRepresentationPrivate::CameraNodeRepresentationPrivate(
     const std::string& name,
     const utils::Transform& transform,
@@ -123,12 +88,12 @@ LightNodeRepresentationPrivate::~LightNodeRepresentationPrivate() = default;
 SceneRepresentationPrivate::SceneRepresentationPrivate(
     const std::string& name,
     const std::vector<std::shared_ptr<Drawable>>& drawables,
-    const std::vector<std::shared_ptr<Skeleton>>& skeletons,
+    const std::shared_ptr<Skeleton>& skeleton,
     const std::vector<std::shared_ptr<NodeRepresentation>>& nodesRepresentations,
     size_t rootNodeID)
     : m_name(name)
     , m_drawables(drawables)
-    , m_skeletons(skeletons)
+    , m_skeleton(skeleton)
     , m_nodesRepresentations(nodesRepresentations)
     , m_rootNodeID(rootNodeID)
 {
@@ -146,9 +111,9 @@ std::vector<std::shared_ptr<Drawable>>& SceneRepresentationPrivate::drawables()
     return m_drawables;
 }
 
-std::vector<std::shared_ptr<Skeleton>>& SceneRepresentationPrivate::skeletons()
+std::shared_ptr<Skeleton>& SceneRepresentationPrivate::skeleton()
 {
-    return m_skeletons;
+    return m_skeleton;
 }
 
 std::vector<std::shared_ptr<NodeRepresentation>>& SceneRepresentationPrivate::nodesRepresentations()
@@ -161,5 +126,5 @@ size_t& SceneRepresentationPrivate::rootNodeID()
     return m_rootNodeID;
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

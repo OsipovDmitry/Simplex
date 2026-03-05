@@ -1,20 +1,18 @@
 #ifndef CORE_SOUNDNODE_H
 #define CORE_SOUNDNODE_H
 
-#include <utils/pimpl.h>
 #include <utils/enumclass.h>
+#include <utils/pimpl.h>
 
 #include <core/forwarddecl.h>
 #include <core/node.h>
-
 
 namespace simplex
 {
 namespace core
 {
 
-ENUMCLASS(SoundState, uint16_t,
-          Play, Pause, Stop)
+ENUMCLASS(SoundState, uint16_t, Play, Pause, Stop)
 
 class SoundNodePrivate;
 class CORE_SHARED_EXPORT SoundNode : public Node
@@ -32,10 +30,9 @@ public:
 
     SoundState state() const;
     void setState(SoundState);
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_SOUNDNODE_H

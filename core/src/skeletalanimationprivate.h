@@ -32,27 +32,24 @@ private:
 class SkeletonPrivate
 {
 public:
-    SkeletonPrivate(
-        const std::vector<Bone>&,
-        uint32_t rootBoneID,
-        const std::map<std::string, std::shared_ptr<Animation>>&);
+    SkeletonPrivate(const std::vector<Bone>&, const std::map<std::string, std::shared_ptr<Animation>>&);
     ~SkeletonPrivate();
 
     std::vector<Bone>& bones();
-    uint32_t& rootBoneID();
     std::map<std::string, std::shared_ptr<Animation>>& animations();
+    uint32_t& rootBoneID();
 
     std::set<std::shared_ptr<SkeletonHandler>>& handlers();
     void onChanged();
 
 private:
     std::vector<Bone> m_bones;
-    uint32_t m_rootBoneID;
     std::map<std::string, std::shared_ptr<Animation>> m_animations;
+    uint32_t m_rootBoneID;
     std::set<std::shared_ptr<SkeletonHandler>> m_handlers;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_SKELETALANIMATIONPRIVATE_H

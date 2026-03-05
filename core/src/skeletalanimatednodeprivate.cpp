@@ -1,9 +1,10 @@
+#include "skeletalanimatednodeprivate.h"
+
 #include <core/scene.h>
 #include <core/skeletalanimatednode.h>
 
 #include "scenedata.h"
 #include "sceneprivate.h"
-#include "skeletalanimatednodeprivate.h"
 
 namespace simplex
 {
@@ -11,11 +12,10 @@ namespace core
 {
 
 SkeletalAnimatedNodePrivate::SkeletalAnimatedNodePrivate(
-    SkeletalAnimatedNode &skeletalAnimatedNode,
-    const std::string &name,
-    uint32_t boneID,
+    SkeletalAnimatedNode& skeletalAnimatedNode,
+    const std::string& name,
     const std::shared_ptr<Skeleton>& skeleton)
-    : BoneNodePrivate(skeletalAnimatedNode, name, boneID)
+    : NodePrivate(skeletalAnimatedNode, name)
     , m_skeleton(skeleton)
 {
 }
@@ -55,8 +55,7 @@ void SkeletalAnimatedNodePrivate::onChanged()
         if (auto sceneData = m_handler->sceneData().lock())
             sceneData->onSkeletalAnimatedDataChanged(m_handler->ID(), m_skeleton, m_currentAnimation);
     }
-
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

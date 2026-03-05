@@ -1,21 +1,29 @@
-#include <core/graphicsrendererbase.h>
-#include <core/drawablenode.h>
-#include <core/drawable.h>
-#include <core/scene.h>
-#include <core/mesh.h>
-
 #include "drawablenodeprivate.h"
-#include "sceneprivate.h"
+
+#include <core/drawable.h>
+#include <core/drawablenode.h>
+#include <core/graphicsrendererbase.h>
+#include <core/mesh.h>
+#include <core/scene.h>
+#include <core/skeletalanimatednode.h>
+
 #include "scenedata.h"
+#include "sceneprivate.h"
+#include "skeletalanimatednodeprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-DrawableNodePrivate::DrawableNodePrivate(DrawableNode &drawableNode, const std::string &name)
+DrawableNodePrivate::DrawableNodePrivate(
+    DrawableNode& drawableNode,
+    const std::string& name,
+    const std::weak_ptr<SkeletalAnimatedNode>& skeletalAnimatedNode)
     : NodePrivate(drawableNode, name)
-{}
+    , m_skeletalAnimatedNode(skeletalAnimatedNode)
+{
+}
 
 DrawableNodePrivate::~DrawableNodePrivate() = default;
 
@@ -52,9 +60,9 @@ void DrawableNodePrivate::addDrawDataToSceneData(
         LOG_ERROR << "Drawable can't be nullptr";
         return;
     }
-    
-    auto handler = sceneData->addDrawData(drawable, d().globalTransform());
-    m_handlers.insert({ drawable, handler });
+
+    auto handler = sceneData->addDrawData(drawable, d().globalTransform(), skeletalAnimatedDataID(sceneData));
+    m_handlers.insert({drawable, handler});
 }
 
 void DrawableNodePrivate::removeDrawDataFromSceneData(const std::shared_ptr<const Drawable>& drawable)
@@ -83,13 +91,18 @@ void DrawableNodePrivate::changeDrawDataInSceneData()
     for (const auto& handler : m_handlers)
     {
         if (auto sceneData = handler.second->sceneData().lock())
-            sceneData->onDrawDataChanged(handler.second->ID(), handler.first, globalTranform);
+            sceneData->onDrawDataChanged(handler.second->ID(), handler.first, globalTranform, skeletalAnimatedDataID(sceneData));
     }
 }
 
-std::unordered_set<std::shared_ptr<Drawable>> &DrawableNodePrivate::drawables()
+std::unordered_set<std::shared_ptr<Drawable>>& DrawableNodePrivate::drawables()
 {
     return m_drawables;
+}
+
+std::weak_ptr<SkeletalAnimatedNode>& DrawableNodePrivate::skeletalAnimatedNode()
+{
+    return m_skeletalAnimatedNode;
 }
 
 std::unordered_map<std::shared_ptr<const Drawable>, std::shared_ptr<DrawDataHandler>>& DrawableNodePrivate::handlers()
@@ -97,5 +110,14 @@ std::unordered_map<std::shared_ptr<const Drawable>, std::shared_ptr<DrawDataHand
     return m_handlers;
 }
 
+utils::IDsGenerator::value_type DrawableNodePrivate::skeletalAnimatedDataID(const std::shared_ptr<SceneData>& sceneData) const
+{
+    if (auto skeletalAnimatedNode = m_skeletalAnimatedNode.lock())
+        if (auto& skeletalAnimatedDataHandler = skeletalAnimatedNode->m().handler())
+            if (sceneData == skeletalAnimatedDataHandler->sceneData().lock()) return skeletalAnimatedDataHandler->ID();
+
+    return utils::IDsGenerator::last();
 }
-}
+
+} // namespace core
+} // namespace simplex

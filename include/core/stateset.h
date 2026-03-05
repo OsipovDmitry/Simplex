@@ -1,8 +1,8 @@
 #ifndef CORE_STATESET_H
 #define CORE_STATESET_H
 
-#include <utils/noncopyble.h>
 #include <utils/enumclass.h>
+#include <utils/noncopyble.h>
 #include <utils/pimpl.h>
 
 #include <core/coreglobal.h>
@@ -13,77 +13,80 @@ namespace simplex
 namespace core
 {
 
-ENUMCLASS(UniformID, uint16_t,
-          ViewportSize,
-          ModelMatrix,
-          NormalMatrix,
-          NormalMatrixInverse,
-          ViewMatrix,
-          ViewMatrixInverse,
-          ProjectionMatrix,
-          ProjectionMatrixInverse,
-          ViewProjectionMatrix,
-          ViewProjectionMatrixInverse,
-          ModelPosition,
-          ModelXDirection,
-          ModelYDirection,
-          ModelZDirection,
-          ViewPosition,
-          ViewXDirection,
-          ViewYDirection,
-          ViewZDirection,
-          BackgroundColorMap,
-          BackgroundColor,
-          BackgroundRoughness,
-          GBufferColorMap0,
-          GBufferColorMap1,
-          GBufferColorMap2,
-          GBufferDepthMap,
-          OITIndicesMap,
-          GBufferFinalMap,
-          SSAOMap,
-          SSAOContribution,
-          SSAONoiseMap,
-          SSAORadius,
-          AlphaCutoff,
-          IsLightedFlag,
-          IsShadowedFlag,
-          ORMSwizzleMask,
-          BaseColor,
-          BaseColorMap,
-          Metalness,
-          MetalnessMap,
-          Roughness,
-          RoughnessMap,
-          NormalMap,
-          NormalMapScale,
-          OcclusionMap,
-          OcclusionMapStrength,
-          Emission,
-          EmissionMap,
-          LightDielecticSpecular,
-          LightColor,
-          LightRadiuses,
-          LightCosHalfAngles,
-          IBLBRDFLutMap,
-          IBLDiffuseMap,
-          IBLSpecularMap,
-          IBLContribution,
-          ShadowDepthMap,
-          ShadowColorMap,
-          ShadowViewMatrix,
-          ShadowProjectionMatrix,
-          ShadowDepthBias,
-          SourceImage,
-          DestinationImage,
-          BlurPassIndex,
-          BlurSourceDepthMap,
-          BlurMaxDepthDifference)
+ENUMCLASS(
+    UniformID,
+    uint16_t,
+    ViewportSize,
+    ModelMatrix,
+    NormalMatrix,
+    NormalMatrixInverse,
+    ViewMatrix,
+    ViewMatrixInverse,
+    ProjectionMatrix,
+    ProjectionMatrixInverse,
+    ViewProjectionMatrix,
+    ViewProjectionMatrixInverse,
+    ModelPosition,
+    ModelXDirection,
+    ModelYDirection,
+    ModelZDirection,
+    ViewPosition,
+    ViewXDirection,
+    ViewYDirection,
+    ViewZDirection,
+    BackgroundColorMap,
+    BackgroundColor,
+    BackgroundRoughness,
+    GBufferColorMap0,
+    GBufferColorMap1,
+    GBufferColorMap2,
+    GBufferDepthMap,
+    OITIndicesMap,
+    GBufferFinalMap,
+    SSAOMap,
+    SSAOContribution,
+    SSAONoiseMap,
+    SSAORadius,
+    AlphaCutoff,
+    IsLightedFlag,
+    IsShadowedFlag,
+    ORMSwizzleMask,
+    BaseColor,
+    BaseColorMap,
+    Metalness,
+    MetalnessMap,
+    Roughness,
+    RoughnessMap,
+    NormalMap,
+    NormalMapScale,
+    OcclusionMap,
+    OcclusionMapStrength,
+    Emission,
+    EmissionMap,
+    LightDielecticSpecular,
+    LightColor,
+    LightRadiuses,
+    LightCosHalfAngles,
+    IBLBRDFLutMap,
+    IBLDiffuseMap,
+    IBLSpecularMap,
+    IBLContribution,
+    ShadowDepthMap,
+    ShadowColorMap,
+    ShadowViewMatrix,
+    ShadowProjectionMatrix,
+    ShadowDepthBias,
+    SourceImage,
+    DestinationImage,
+    BlurPassIndex,
+    BlurSourceDepthMap,
+    BlurMaxDepthDifference)
 
-ENUMCLASS(UniformBlockID, uint16_t,
-    None)
+ENUMCLASS(UniformBlockID, uint16_t, None)
 
-ENUMCLASS(ShaderStorageBlockID, uint16_t,
+ENUMCLASS(
+    ShaderStorageBlockID,
+    uint16_t,
     VerticesDataBuffer,
     ElementsDataBuffer,
     SkeletonsDataBuffer,
@@ -100,7 +103,9 @@ ENUMCLASS(ShaderStorageBlockID, uint16_t,
     DrawDataBuffer,
     SkeletalAnimatedDataBuffer,
 
-    CommandsBuffer,
+    SkeletalAnimatedDataToUpdateBuffer,
+
+    SkeletalAnimatedDataToUpdateCommandBuffer,
     OpaqueCommandsBuffer,
     TransparentCommandsBuffer,
 
@@ -124,16 +129,16 @@ public:
     StateSet();
     virtual ~StateSet();
 
-    const UniformCollection &uniformCollection() const;
+    const UniformCollection& uniformCollection() const;
     PConstAbstractUniform uniform(UniformID) const;
     PAbstractUniform uniform(UniformID);
-    PAbstractUniform &getOrCreateUniform(UniformID);
+    PAbstractUniform& getOrCreateUniform(UniformID);
     void removeUniform(UniformID);
 
-    const UserUniformCollection &userUniformCollection() const;
+    const UserUniformCollection& userUniformCollection() const;
     PConstAbstractUniform userUniform(const std::string&) const;
     PAbstractUniform userUniform(const std::string&);
-    PAbstractUniform &getOrCreateUserUniform(const std::string&);
+    PAbstractUniform& getOrCreateUserUniform(const std::string&);
     void removeUserUniform(const std::string&);
 
     const UniformBlockCollection& uniformBlockCollection() const;
@@ -141,9 +146,9 @@ public:
     graphics::PConstBufferRange& getOrCreateUniformBlock(UniformBlockID);
     void removeUniformBlock(UniformBlockID);
 
-    const ShaderStorageBlockCollection &shaderStorageBlockCollection() const;
+    const ShaderStorageBlockCollection& shaderStorageBlockCollection() const;
     graphics::PConstBufferRange shaderStorageBlock(ShaderStorageBlockID) const;
-    graphics::PConstBufferRange &getOrCreateShaderStorageBlock(ShaderStorageBlockID);
+    graphics::PConstBufferRange& getOrCreateShaderStorageBlock(ShaderStorageBlockID);
     void removeShaderStorageBlock(ShaderStorageBlockID);
 
 protected:
@@ -152,7 +157,7 @@ protected:
     std::unique_ptr<StateSetPrivate> m_;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_STATESET_H

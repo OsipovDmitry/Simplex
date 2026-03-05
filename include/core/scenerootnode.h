@@ -28,10 +28,9 @@ protected:
     SceneRootNode(const std::string&);
 
     friend class Scene;
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_SCENEROOTNODE_H

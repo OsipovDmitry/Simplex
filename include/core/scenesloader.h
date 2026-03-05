@@ -1,6 +1,7 @@
 #ifndef CORE_SCENESLOADER_H
 #define CORE_SCENESLOADER_H
 
+#include <core/coreglobal.h>
 #include <core/forwarddecl.h>
 #include <core/resourceloader.h>
 
@@ -21,7 +22,7 @@ private:
     std::unique_ptr<ScenesLoaderPrivate> m_;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_SCENESLOADER_H

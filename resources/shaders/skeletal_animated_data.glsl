@@ -18,3 +18,13 @@ uint skeletalAnimatedDataBonesTransfromsDataOffset(in uint skeletalAnimatedDataI
 {
 	return skeletalAnimatedData[skeletalAnimatedDataID].bonesTransfromsDataOffset;
 }
+
+uint skeletalAnimatedDataLastUpdateTime(in uint skeletalAnimatedDataID)
+{
+	return skeletalAnimatedData[skeletalAnimatedDataID].lastUpdateTime;
+}
+
+uint skeletalAnimatedDataSetLastUpdateTime(in uint skeletalAnimatedDataID, in uint lastUpdateTime)
+{
+	return atomicExchange(skeletalAnimatedData[skeletalAnimatedDataID].lastUpdateTime, lastUpdateTime);
+}

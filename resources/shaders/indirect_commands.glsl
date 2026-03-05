@@ -1,3 +1,10 @@
+struct DispatchIndirectCommand
+{
+    uint numGroupsX;
+    uint numGroupsY;
+    uint numGroupsZ;
+};
+
 struct DrawArraysIndirectCommand
 {
     uint count;

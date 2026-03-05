@@ -3,9 +3,9 @@
 
 #include <memory>
 
+#include <utils/forwarddecl.h>
 #include <utils/noncopyble.h>
 #include <utils/pimpl.h>
-#include <utils/forwarddecl.h>
 
 #include <core/coreglobal.h>
 
@@ -31,10 +31,9 @@ public:
 
 private:
     std::unique_ptr<MeshPrivate> m_;
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_MESH_H

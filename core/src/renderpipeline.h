@@ -22,6 +22,7 @@ using SceneInfoBuffer = std::shared_ptr<graphics::StructBuffer<SceneInfoDescript
 using CameraBuffer = std::shared_ptr<graphics::StructBuffer<CameraDescription>>;
 using ClusterNodesBuffer = std::shared_ptr<graphics::VectorBuffer<ClusterNodeDescription>>;
 using LightNodesBuffer = std::shared_ptr<graphics::VectorBuffer<LightNodeDescription>>;
+using SkeletalAnimatedDataToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<SkeletalAnimatedDataToUpdateDescription>>;
 
 class RenderPipeLine
 {
@@ -41,6 +42,8 @@ public:
     CameraBuffer& cameraBuffer();
     ClusterNodesBuffer& clusterNodesBuffer();
     LightNodesBuffer& lightNodesBuffer();
+    SkeletalAnimatedDataToUpdateBuffer& skeletalAnimatedDataToUpdateBuffer();
+    graphics::PDispatchComputeIndirectCommandBuffer& skeletalAnimatedDataToUpdateCommandBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& opaqueCommandsBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& transparentCommandsBuffer();
     graphics::PBufferRange& opaqueParameterBuffer();
@@ -63,6 +66,8 @@ private:
     CameraBuffer m_cameraBuffer;
     ClusterNodesBuffer m_clusterNodesBuffer;
     LightNodesBuffer m_lightNodesBuffer;
+    SkeletalAnimatedDataToUpdateBuffer m_skeletalAnimatedDataToUpdateBuffer;
+    graphics::PDispatchComputeIndirectCommandBuffer m_skeletalAnimatedDataToUpdateCommandBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_opaqueCommandsBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_transparentCommandsBuffer;
     graphics::PBufferRange m_opaqueParameterBuffer;
@@ -75,7 +80,7 @@ private:
     std::vector<std::shared_ptr<RenderPass>> m_passes;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_RENDERPIPELINE_H

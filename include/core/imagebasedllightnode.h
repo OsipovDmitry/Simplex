@@ -33,10 +33,9 @@ public:
 
     float contribution() const;
     void setContribution(float);
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_IBLLIGHTNODE_H

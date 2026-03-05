@@ -21,11 +21,11 @@ public:
     std::shared_ptr<DirectionalLightNode> asDirectionalLightNode() override;
     std::shared_ptr<const DirectionalLightNode> asDirectionalLightNode() const override;
 
-    const glm::vec3 &color() const;
+    const glm::vec3& color() const;
     void setColor(const glm::vec3&);
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_DIRECTIONALLIGHTNODE_H

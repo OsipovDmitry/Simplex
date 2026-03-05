@@ -22,6 +22,16 @@ uint sceneInfoLightsCount()
 	return sceneInfo.lightsCount;
 }
 
+uint sceneInfoSkeletalAnimatedDataToUpdateCount()
+{
+	return sceneInfo.skeletalAnimatedDataToUpdateCount;
+}
+
+uint sceneInfoGenerateSkeletalAnimatedDataToUpdateID()
+{
+	return atomicAdd(sceneInfo.skeletalAnimatedDataToUpdateCount, 1u);
+}
+
 uint sceneInfoGenerateOpaqueCommandID()
 {
 	return atomicAdd(sceneInfo.opaqueCommandsCount, 1u);

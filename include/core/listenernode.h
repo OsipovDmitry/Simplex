@@ -1,10 +1,10 @@
 #ifndef CORE_LISTENERNODE_H
 #define CORE_LISTENERNODE_H
+
 #include <utils/pimpl.h>
 
 #include <core/forwarddecl.h>
 #include <core/node.h>
-
 
 namespace simplex
 {
@@ -28,7 +28,7 @@ protected:
     friend class Scene;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_LISTENERNODE_H

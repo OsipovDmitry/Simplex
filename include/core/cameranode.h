@@ -29,18 +29,18 @@ public:
     void useDefaultFramebuffer();
     void useSeparateFramebuffer(const glm::uvec2&);
 
-    const utils::ClipSpace &clipSpace() const;
+    const utils::ClipSpace& clipSpace() const;
     void setOrthoClipSpace(float height);
     void setPerspectiveClipSpace(float fovY);
 
-    const utils::Range &cullPlanesLimits() const;
+    const utils::Range& cullPlanesLimits() const;
     void setCullPlanesLimits(const utils::Range&);
 
     const glm::uvec3& clusterMaxSize() const;
     void setClusterMaxSize(const glm::uvec3&);
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_CAMERANODE_H

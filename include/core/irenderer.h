@@ -11,13 +11,13 @@ namespace core
 class IRenderer : public INamedObject
 {
 public:
-    ~IRenderer() override = default;;
+    ~IRenderer() override = default;
 
     virtual bool makeCurrent() = 0;
     virtual bool doneCurrent() = 0;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_IRENDERER_H

@@ -3,22 +3,21 @@
 
 #include <memory>
 #include <string>
-#include <vector>
-#include <unordered_set>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
-#include <utils/glm/vec2.hpp>
-#include <utils/glm/vec3.hpp>
-#include <utils/glm/vec4.hpp>
+#include <utils/enumclass.h>
+#include <utils/forwarddecl.h>
 #include <utils/glm/mat2x2.hpp>
 #include <utils/glm/mat3x3.hpp>
 #include <utils/glm/mat4x4.hpp>
+#include <utils/glm/vec2.hpp>
+#include <utils/glm/vec3.hpp>
+#include <utils/glm/vec4.hpp>
 #include <utils/image.h>
-#include <utils/mesh.h>
 #include <utils/logger.h>
-
-#include <utils/forwarddecl.h>
-#include <utils/enumclass.h>
+#include <utils/mesh.h>
 
 #include <core/coreglobal.h>
 #include <core/forwarddecl.h>
@@ -31,120 +30,146 @@ namespace core
 namespace graphics
 {
 
-ENUMCLASS(PixelInternalFormat, uint16_t,
-          R8, R8_SNORM, R16, R16_SNORM,
-          RG8, RG8_SNORM, RG16, RG16_SNORM,
-          R3_G3_B2, RGB4, RGB5, RGB8, RGB8_SNORM, RGB10, RGB12, RGB16, RGB16_SNORM, RGBA2,
-          RGBA4, RGB5_A1, RGBA8, RGBA8_SNORM, RGB10_A2, RGB10_A2UI, RGBA12, RGBA16, RGBA16_SNORM,
-          SRGB8, SRGB8_ALPHA8,
-          R16F, RG16F, RGB16F, RGBA16F,
-          R32F, RG32F, RGB32F, RGBA32F,
-          R11F_G11F_B10F, RGB9_E5,
-          R8I, R8UI, R16I, R16UI, R32I, R32UI,
-          RG8I, RG8UI, RG16I, RG16UI, RG32I, RG32UI,
-          RGB8I, RGB8UI, RGB16I, RGB16UI, RGB32I, RGB32UI,
-          RGBA8I, RGBA8UI, RGBA16I, RGBA16UI, RGBA32I, RGBA32UI,
-          Depth16, Depth24, Depth32F, Stencil8, Depth24Stencil8, Depth32FStencil8)
+ENUMCLASS(
+    PixelInternalFormat,
+    uint16_t,
+    R8,
+    R8_SNORM,
+    R16,
+    R16_SNORM,
+    RG8,
+    RG8_SNORM,
+    RG16,
+    RG16_SNORM,
+    R3_G3_B2,
+    RGB4,
+    RGB5,
+    RGB8,
+    RGB8_SNORM,
+    RGB10,
+    RGB12,
+    RGB16,
+    RGB16_SNORM,
+    RGBA2,
+    RGBA4,
+    RGB5_A1,
+    RGBA8,
+    RGBA8_SNORM,
+    RGB10_A2,
+    RGB10_A2UI,
+    RGBA12,
+    RGBA16,
+    RGBA16_SNORM,
+    SRGB8,
+    SRGB8_ALPHA8,
+    R16F,
+    RG16F,
+    RGB16F,
+    RGBA16F,
+    R32F,
+    RG32F,
+    RGB32F,
+    RGBA32F,
+    R11F_G11F_B10F,
+    RGB9_E5,
+    R8I,
+    R8UI,
+    R16I,
+    R16UI,
+    R32I,
+    R32UI,
+    RG8I,
+    RG8UI,
+    RG16I,
+    RG16UI,
+    RG32I,
+    RG32UI,
+    RGB8I,
+    RGB8UI,
+    RGB16I,
+    RGB16UI,
+    RGB32I,
+    RGB32UI,
+    RGBA8I,
+    RGBA8UI,
+    RGBA16I,
+    RGBA16UI,
+    RGBA32I,
+    RGBA32UI,
+    Depth16,
+    Depth24,
+    Depth32F,
+    Stencil8,
+    Depth24Stencil8,
+    Depth32FStencil8)
 
 CORE_SHARED_EXPORT core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(
     uint32_t,
     utils::PixelComponentType);
 
-ENUMCLASS(TextureType, uint16_t,
-          Type1D,
-          Type2D,
-          Type3D,
-          TypeCube,
-          Type1DArray,
-          Type2DArray,
-          TypeCubeArray,
-          TypeRect)
+ENUMCLASS(TextureType, uint16_t, Type1D, Type2D, Type3D, TypeCube, Type1DArray, Type2DArray, TypeCubeArray, TypeRect)
 
-ENUMCLASS(TextureWrapMode, uint16_t,
-          ClampToEdge,
-          ClampToBorder,
-          MirroredRepeat,
-          Repeat,
-          MirrorClampToEdge)
+ENUMCLASS(TextureWrapMode, uint16_t, ClampToEdge, ClampToBorder, MirroredRepeat, Repeat, MirrorClampToEdge)
 
-ENUMCLASS(TextureFilterMode, uint16_t,
-          Point,
-          Linear,
-          Bilinear,
-          Trilinear)
+ENUMCLASS(TextureFilterMode, uint16_t, Point, Linear, Bilinear, Trilinear)
 
-ENUMCLASS(TextureSwizzle, uint16_t,
-          Red,
-          Green,
-          Blue,
-          Alpha,
-          Zero,
-          One)
+ENUMCLASS(TextureSwizzle, uint16_t, Red, Green, Blue, Alpha, Zero, One)
 
-ENUMCLASS(FrameBufferAttachment, uint16_t,
-          Color0,
-          Color1,
-          Color2,
-          Color3,
-          Depth,
-          Stencil,
-          DepthStencil)
+ENUMCLASS(FrameBufferAttachment, uint16_t, Color0, Color1, Color2, Color3, Depth, Stencil, DepthStencil)
 
-union FrameBufferClearColorValue
-{
+union FrameBufferClearColorValue {
     glm::vec4 floatColor;
     glm::i32vec4 intColor;
     glm::u32vec4 uintColor;
 };
 
-ENUMCLASS(FrameBufferClearColorType, uint16_t,
-          Single,
-          Int32,
-          Uint32)
+ENUMCLASS(FrameBufferClearColorType, uint16_t, Single, Int32, Uint32)
 
 using FrameBufferClearColor = std::pair<FrameBufferClearColorType, FrameBufferClearColorValue>;
 
-ENUMCLASS(UniformType, uint16_t,
-          Bool,
-          Single,
-          SingleVec2,
-          SingleVec3,
-          SingleVec4,
-          SingleMat2,
-          SingleMat3,
-          SingleMat4,
-          Double,
-          DoubleVec2,
-          DoubleVec3,
-          DoubleVec4,
-          DoubleMat2,
-          DoubleMat3,
-          DoubleMat4,
-          Int32,
-          Int32Vec2,
-          Int32Vec3,
-          Int32Vec4,
-          Uint32,
-          Uint32Vec2,
-          Uint32Vec3,
-          Uint32Vec4,
-          Sampler1D,
-          Sampler2D,
-          Sampler3D,
-          SamplerCube,
-          Sampler1DArray,
-          Sampler2DArray,
-          SamplerCubeArray,
-          SamplerRect,
-          Image1D,
-          Image2D,
-          Image3D,
-          ImageCube,
-          Image1DArray,
-          Image2DArray,
-          ImageCubeArray,
-          ImageRect,
-          AtomicCounterUint)
+ENUMCLASS(
+    UniformType,
+    uint16_t,
+    Bool,
+    Single,
+    SingleVec2,
+    SingleVec3,
+    SingleVec4,
+    SingleMat2,
+    SingleMat3,
+    SingleMat4,
+    Double,
+    DoubleVec2,
+    DoubleVec3,
+    DoubleVec4,
+    DoubleMat2,
+    DoubleMat3,
+    DoubleMat4,
+    Int32,
+    Int32Vec2,
+    Int32Vec3,
+    Int32Vec4,
+    Uint32,
+    Uint32Vec2,
+    Uint32Vec3,
+    Uint32Vec4,
+    Sampler1D,
+    Sampler2D,
+    Sampler3D,
+    SamplerCube,
+    Sampler1DArray,
+    Sampler2DArray,
+    SamplerCubeArray,
+    SamplerRect,
+    Image1D,
+    Image2D,
+    Image3D,
+    ImageCube,
+    Image1DArray,
+    Image2DArray,
+    ImageCubeArray,
+    ImageRect,
+    AtomicCounterUint)
 
 struct AttributeInfo
 {
@@ -173,7 +198,7 @@ struct UniformInfo
 struct BufferVariableInfo
 {
     uint16_t index;
-    //VariableType type;
+    // VariableType type;
     uint16_t arraySize;
     uint16_t offset;
     uint16_t arrayStride;
@@ -196,37 +221,50 @@ struct ShaderStorageBlockInfo
     std::vector<BufferVariableInfo> variables;
 };
 
-ENUMCLASS(FaceType, uint16_t,
-          Front, Back, FrontAndBack)
+ENUMCLASS(FaceType, uint16_t, Front, Back, FrontAndBack)
 
-ENUMCLASS(ComparingFunc, uint16_t,
-          Never, Less, Equal, LessOrEqual, Greater, NotEqual, GreatOrEqual, Always)
+ENUMCLASS(ComparingFunc, uint16_t, Never, Less, Equal, LessOrEqual, Greater, NotEqual, GreatOrEqual, Always)
 
-ENUMCLASS(StencilOperation, uint16_t,
-          Keep, Zero, Replace, Increment, IncrementWrap, Decrement, DecrementWrap, Invert)
+ENUMCLASS(StencilOperation, uint16_t, Keep, Zero, Replace, Increment, IncrementWrap, Decrement, DecrementWrap, Invert)
 
-ENUMCLASS(BlendEquation, uint16_t,
-          Add, Sub, InvSub, Min, Max)
+ENUMCLASS(BlendEquation, uint16_t, Add, Sub, InvSub, Min, Max)
 
-ENUMCLASS(BlendFactor, uint16_t,
-          Zero, One,
-          SrcColor, OneMinusSrcColor, DstColor, OneMinusDstColor,
-          SrcAlpha, OneMinusSrcAlpha, DstAlpha, OneMinusDstAlpha,
-          ConstColot, OneMinusConstColor, ConstAlpha, OneMinusConstAlpha)
+ENUMCLASS(
+    BlendFactor,
+    uint16_t,
+    Zero,
+    One,
+    SrcColor,
+    OneMinusSrcColor,
+    DstColor,
+    OneMinusDstColor,
+    SrcAlpha,
+    OneMinusSrcAlpha,
+    DstAlpha,
+    OneMinusDstAlpha,
+    ConstColot,
+    OneMinusConstColor,
+    ConstAlpha,
+    OneMinusConstAlpha)
 
-static constexpr FrameBufferAttachment FrameBufferColorAttachment(uint16_t i) {
+static constexpr FrameBufferAttachment FrameBufferColorAttachment(uint16_t i)
+{
     return castToFrameBufferAttachment(castFromFrameBufferAttachment(FrameBufferAttachment::Color0) + i);
 }
 
-static constexpr uint16_t FrameBufferColorAttachmentIndex(FrameBufferAttachment a) {
+static constexpr uint16_t FrameBufferColorAttachmentIndex(FrameBufferAttachment a)
+{
     return castFromFrameBufferAttachment(a) - castFromFrameBufferAttachment(FrameBufferAttachment::Color0);
 }
 
-static constexpr uint16_t FrameBufferColorAttachmentsCount() {
-    return FrameBufferColorAttachmentIndex(FrameBufferAttachment::Depth) - FrameBufferColorAttachmentIndex(FrameBufferAttachment::Color0);
+static constexpr uint16_t FrameBufferColorAttachmentsCount()
+{
+    return FrameBufferColorAttachmentIndex(FrameBufferAttachment::Depth) -
+           FrameBufferColorAttachmentIndex(FrameBufferAttachment::Color0);
 }
 
-static constexpr bool IsFrameBufferColorAttachment(FrameBufferAttachment a) {
+static constexpr bool IsFrameBufferColorAttachment(FrameBufferAttachment a)
+{
     return FrameBufferColorAttachmentIndex(a) < FrameBufferColorAttachmentsCount();
 }
 
@@ -238,7 +276,8 @@ public:
     virtual bool isEmpty() const = 0;
     virtual size_t size() const = 0;
 
-    class MappedData {
+    class MappedData
+    {
     public:
         virtual ~MappedData() = default; // mapped data has to be unmapped in destructor's implementation
         virtual uint8_t* get() = 0;
@@ -279,11 +318,12 @@ public:
     virtual size_t vertexBufferOffset(uint32_t bindingIndex) const = 0;
     virtual size_t vertexBufferStride(uint32_t bindingIndex) const = 0;
 
-    virtual void declareVertexAttribute(utils::VertexAttribute,
-                                        uint32_t bindingIndex,
-                                        uint32_t numComponents,
-                                        utils::VertexComponentType type,
-                                        uint32_t relativeOffset) = 0;
+    virtual void declareVertexAttribute(
+        utils::VertexAttribute,
+        uint32_t bindingIndex,
+        uint32_t numComponents,
+        utils::VertexComponentType type,
+        uint32_t relativeOffset) = 0;
     virtual void undeclareVertexAttribute(utils::VertexAttribute) = 0;
     virtual uint32_t vertexAttributeBindingIndex(utils::VertexAttribute) const = 0;
     virtual uint32_t vertexAttributeNumComponents(utils::VertexAttribute) const = 0;
@@ -315,20 +355,22 @@ public:
     virtual uint32_t numMipmapLevels() const = 0;
     virtual uint32_t numFaces() const = 0;
 
-    virtual void setSubImage(uint32_t level,
-                             const glm::uvec3 &offset,
-                             const glm::uvec3 &size,
-                             uint32_t numComponents,
-                             utils::PixelComponentType type,
-                             const void *data) = 0;
+    virtual void setSubImage(
+        uint32_t level,
+        const glm::uvec3& offset,
+        const glm::uvec3& size,
+        uint32_t numComponents,
+        utils::PixelComponentType type,
+        const void* data) = 0;
 
-    virtual void subImage(uint32_t level,
-                          const glm::uvec3 &offset,
-                          const glm::uvec3 &size,
-                          uint32_t numComponents,
-                          utils::PixelComponentType type,
-                          size_t bufSize,
-                          void *data) const = 0;
+    virtual void subImage(
+        uint32_t level,
+        const glm::uvec3& offset,
+        const glm::uvec3& size,
+        uint32_t numComponents,
+        utils::PixelComponentType type,
+        size_t bufSize,
+        void* data) const = 0;
 
     virtual void generateMipmaps() = 0;
     virtual void setBorderColor(const glm::vec4&) = 0;
@@ -338,7 +380,6 @@ public:
 
     virtual PTexture copyEmpty() const = 0;
     virtual PTexture copy() const = 0;
-
 };
 
 class ITextureHandle
@@ -379,7 +420,7 @@ public:
 
     virtual bool isComplete() const = 0;
     virtual void clear(const std::unordered_set<FrameBufferAttachment>&) = 0;
-    
+
     virtual void attach(FrameBufferAttachment, std::shared_ptr<const ISurface>, uint32_t level = 0u) = 0;
     virtual void attachLayer(FrameBufferAttachment, std::shared_ptr<const ITexture>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
     virtual void detach(FrameBufferAttachment) = 0;
@@ -388,7 +429,7 @@ public:
     virtual uint32_t attachmentMipmapLevel(FrameBufferAttachment) const = 0;
     virtual uint32_t attachmentLayer(FrameBufferAttachment) const = 0;
 
-    virtual const FrameBufferClearColor &clearColor(uint32_t) const = 0;
+    virtual const FrameBufferClearColor& clearColor(uint32_t) const = 0;
     virtual void setClearColor(uint32_t, const glm::vec4&) = 0;
     virtual void setClearColor(uint32_t, const glm::i32vec4&) = 0;
     virtual void setClearColor(uint32_t, const glm::u32vec4&) = 0;
@@ -419,7 +460,7 @@ public:
     virtual uint8_t stencilReferenceValue(FaceType) const = 0;
     virtual uint8_t stencilMaskValue(FaceType) const = 0;
     virtual void setStencilFunc(FaceType, ComparingFunc, uint8_t ref, uint8_t mask) = 0;
-    virtual const StencilOperations &stencilOperations(FaceType) const = 0;
+    virtual const StencilOperations& stencilOperations(FaceType) const = 0;
     virtual void setStencilOperations(FaceType, const StencilOperations&) = 0;
 
     virtual bool blending() const = 0;
@@ -431,7 +472,12 @@ public:
     virtual BlendFactor blendAlphaSourceFactor(uint32_t) const = 0;
     virtual BlendFactor blendColorDestinationFactor(uint32_t) const = 0;
     virtual BlendFactor blendAlphaDestinationFactor(uint32_t) const = 0;
-    virtual void setBlendFactor(uint32_t, BlendFactor srcColor, BlendFactor dstColor, BlendFactor srcAlpha, BlendFactor dstAlpha) = 0;
+    virtual void setBlendFactor(
+        uint32_t,
+        BlendFactor srcColor,
+        BlendFactor dstColor,
+        BlendFactor srcAlpha,
+        BlendFactor dstAlpha) = 0;
     virtual glm::vec3 blendConstantColor() const = 0;
     virtual void setBlendConstantColor(const glm::vec3&) = 0;
     virtual float blendConstantAlpha() const = 0;
@@ -443,11 +489,11 @@ class IProgram
 public:
     virtual ~IProgram() = default;
 
-    //virtual int32_t uniformLocationByName(const std::string&) const = 0;
+    // virtual int32_t uniformLocationByName(const std::string&) const = 0;
 
-    virtual const std::vector<UniformInfo> &uniformsInfo() const = 0;
+    virtual const std::vector<UniformInfo>& uniformsInfo() const = 0;
     virtual const std::vector<UniformBlockInfo>& uniformBlocksInfo() const = 0;
-    virtual const std::vector<ShaderStorageBlockInfo> &shaderStorageBlocksInfo() const = 0;
+    virtual const std::vector<ShaderStorageBlockInfo>& shaderStorageBlocksInfo() const = 0;
 
     virtual std::string uniformNameByIndex(uint16_t) const = 0;
     virtual std::string bufferVariableNameByIndex(uint16_t) const = 0;
@@ -461,8 +507,8 @@ public:
 class IRenderProgram : public virtual IProgram
 {
 public:
-    //virtual int32_t attributeLocationByName(const std::string&) const = 0;
-    virtual const std::vector<AttributeInfo> &attributesInfo() const = 0;
+    // virtual int32_t attributeLocationByName(const std::string&) const = 0;
+    virtual const std::vector<AttributeInfo>& attributesInfo() const = 0;
     virtual std::string attributeNameByIndex(uint16_t) const = 0;
 
     virtual const std::vector<OutputInfo>& outputsInfo() const = 0;
@@ -473,6 +519,13 @@ class IComputeProgram : public virtual IProgram
 {
 public:
     virtual glm::uvec3 workGroupSize() const = 0;
+};
+
+struct DispatchIndirectCommand
+{
+    uint32_t numGroupsX;
+    uint32_t numGroupsY;
+    uint32_t numGroupsZ;
 };
 
 struct DrawArraysIndirectCommand
@@ -488,7 +541,7 @@ struct DrawElementsIndirectCommand
     uint32_t count;
     uint32_t instanceCount;
     uint32_t firstIndex;
-    int32_t  baseVertex;
+    int32_t baseVertex;
     uint32_t baseInstance;
 };
 
@@ -529,96 +582,112 @@ public:
     virtual std::shared_ptr<IGraphicsWidget> widget() = 0;
     virtual std::shared_ptr<const IGraphicsWidget> widget() const = 0;
 
-    virtual void blitFrameBuffer(std::shared_ptr<const IFrameBuffer> src,
-                                 std::shared_ptr<IFrameBuffer> dst,
-                                 const glm::uvec4 &srcViewport,
-                                 const glm::uvec4 &dstViewport,
-                                 bool colorMsk, bool depthMask, bool stencilMask,
-                                 bool linearFilter = false) = 0;
+    virtual void blitFrameBuffer(
+        std::shared_ptr<const IFrameBuffer> src,
+        std::shared_ptr<IFrameBuffer> dst,
+        const glm::uvec4& srcViewport,
+        const glm::uvec4& dstViewport,
+        bool colorMsk,
+        bool depthMask,
+        bool stencilMask,
+        bool linearFilter = false) = 0;
 
-    virtual std::shared_ptr<IStaticBuffer> createStaticBuffer(size_t size = 0u, const void *data = nullptr) const = 0;
+    virtual std::shared_ptr<IStaticBuffer> createStaticBuffer(size_t size = 0u, const void* data = nullptr) const = 0;
     virtual std::shared_ptr<IDynamicBuffer> createDynamicBuffer(size_t size = 0u, const void* data = nullptr) const = 0;
     virtual std::shared_ptr<IVertexArray> createVertexArray() const = 0;
-    virtual std::shared_ptr<ITexture> createTexture1DEmpty(uint32_t width,
-                                                           PixelInternalFormat,
-                                                           uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture1D(const std::shared_ptr<const utils::Image>&,
-                                                      PixelInternalFormat = PixelInternalFormat::Count,
-                                                      uint32_t numLevels = 0,
-                                                      bool genMipmaps = true) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture2DEmpty(uint32_t width,
-                                                           uint32_t height,
-                                                           PixelInternalFormat,
-                                                           uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture2D(const std::shared_ptr<const utils::Image>&,
-                                                      PixelInternalFormat = PixelInternalFormat::Count,
-                                                      uint32_t numLevels = 0,
-                                                      bool genMipmaps = true) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture3DEmpty(uint32_t width,
-                                                           uint32_t height,
-                                                           uint32_t depth,
-                                                           PixelInternalFormat,
-                                                           uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture3D(const std::vector<std::shared_ptr<const utils::Image>>&,
-                                                      PixelInternalFormat = PixelInternalFormat::Count,
-                                                      uint32_t numLevels = 0,
-                                                      bool genMipmaps = true) const = 0;
-    virtual std::shared_ptr<ITexture> createTextureCubeEmpty(uint32_t width,
-                                                             uint32_t height,
-                                                             PixelInternalFormat,
-                                                             uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTextureCube(const std::vector<std::shared_ptr<const utils::Image>>&,
-                                                        PixelInternalFormat = PixelInternalFormat::Count,
-                                                        uint32_t numLevels = 0,
-                                                        bool genMipmaps = true) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture1DArrayEmpty(uint32_t width,
-                                                                uint32_t numLayers,
-                                                                PixelInternalFormat,
-                                                                uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture1DArray(const std::vector<std::shared_ptr<const utils::Image>>&,
-                                                           PixelInternalFormat = PixelInternalFormat::Count,
-                                                           uint32_t numLevels = 0,
-                                                           bool genMipmaps = true) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture2DArrayEmpty(uint32_t width,
-                                                                uint32_t height,
-                                                                uint32_t numLayers,
-                                                                PixelInternalFormat,
-                                                                uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTexture2DArray(const std::vector<std::shared_ptr<const utils::Image>>&,
-                                                           PixelInternalFormat = PixelInternalFormat::Count,
-                                                           uint32_t numLevels = 0,
-                                                           bool genMipmaps = true) const = 0;
-    virtual std::shared_ptr<ITexture> createTextureCubeArrayEmpty(uint32_t width,
-                                                                  uint32_t height,
-                                                                  uint32_t numLayers,
-                                                                  PixelInternalFormat,
-                                                                  uint32_t numLevels = 1) const = 0;
-    virtual std::shared_ptr<ITexture> createTextureCubeArray(const std::vector<std::vector<std::shared_ptr<const utils::Image>>>&, //[layer][face]
-                                                             PixelInternalFormat = PixelInternalFormat::Count,
-                                                             uint32_t numLevels = 0,
-                                                             bool genMipmaps = true) const = 0;
-    virtual std::shared_ptr<ITexture> createTextureRectEmpty(uint32_t width,
-                                                             uint32_t height,
-                                                             core::graphics::PixelInternalFormat) const = 0;
-    virtual std::shared_ptr<ITexture> createTextureRect(const std::shared_ptr<const utils::Image>&,
-                                                        core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Count) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture1DEmpty(uint32_t width, PixelInternalFormat, uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture1D(
+        const std::shared_ptr<const utils::Image>&,
+        PixelInternalFormat = PixelInternalFormat::Count,
+        uint32_t numLevels = 0,
+        bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture2DEmpty(
+        uint32_t width,
+        uint32_t height,
+        PixelInternalFormat,
+        uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture2D(
+        const std::shared_ptr<const utils::Image>&,
+        PixelInternalFormat = PixelInternalFormat::Count,
+        uint32_t numLevels = 0,
+        bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture3DEmpty(
+        uint32_t width,
+        uint32_t height,
+        uint32_t depth,
+        PixelInternalFormat,
+        uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture3D(
+        const std::vector<std::shared_ptr<const utils::Image>>&,
+        PixelInternalFormat = PixelInternalFormat::Count,
+        uint32_t numLevels = 0,
+        bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureCubeEmpty(
+        uint32_t width,
+        uint32_t height,
+        PixelInternalFormat,
+        uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureCube(
+        const std::vector<std::shared_ptr<const utils::Image>>&,
+        PixelInternalFormat = PixelInternalFormat::Count,
+        uint32_t numLevels = 0,
+        bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture1DArrayEmpty(
+        uint32_t width,
+        uint32_t numLayers,
+        PixelInternalFormat,
+        uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture1DArray(
+        const std::vector<std::shared_ptr<const utils::Image>>&,
+        PixelInternalFormat = PixelInternalFormat::Count,
+        uint32_t numLevels = 0,
+        bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture2DArrayEmpty(
+        uint32_t width,
+        uint32_t height,
+        uint32_t numLayers,
+        PixelInternalFormat,
+        uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTexture2DArray(
+        const std::vector<std::shared_ptr<const utils::Image>>&,
+        PixelInternalFormat = PixelInternalFormat::Count,
+        uint32_t numLevels = 0,
+        bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureCubeArrayEmpty(
+        uint32_t width,
+        uint32_t height,
+        uint32_t numLayers,
+        PixelInternalFormat,
+        uint32_t numLevels = 1) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureCubeArray(
+        const std::vector<std::vector<std::shared_ptr<const utils::Image>>>&, //[layer][face]
+        PixelInternalFormat = PixelInternalFormat::Count,
+        uint32_t numLevels = 0,
+        bool genMipmaps = true) const = 0;
+    virtual std::shared_ptr<ITexture> createTextureRectEmpty(uint32_t width, uint32_t height, core::graphics::PixelInternalFormat)
+        const = 0;
+    virtual std::shared_ptr<ITexture> createTextureRect(
+        const std::shared_ptr<const utils::Image>&,
+        core::graphics::PixelInternalFormat = core::graphics::PixelInternalFormat::Count) const = 0;
     virtual std::shared_ptr<ITextureHandle> createTextureHandle(const PConstTexture&) const = 0;
     virtual std::shared_ptr<IImageHandle> createImageHandle(const PConstImage&) const = 0;
-    virtual std::shared_ptr<IRenderBuffer> createRenderBuffer(uint32_t width,
-                                                              uint32_t height,
-                                                              PixelInternalFormat) const = 0;
+    virtual std::shared_ptr<IRenderBuffer> createRenderBuffer(uint32_t width, uint32_t height, PixelInternalFormat) const = 0;
     virtual std::shared_ptr<IFrameBuffer> createFrameBuffer() const = 0;
-    virtual std::shared_ptr<IRenderProgram> createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
-                                                                const std::shared_ptr<utils::Shader> &fragmentShader) const = 0;
-    virtual std::shared_ptr<IRenderProgram> createRenderProgram(const std::shared_ptr<utils::Shader> &vertexShader,
-                                                                const std::shared_ptr<utils::Shader> &geometryShader,
-                                                                const std::shared_ptr<utils::Shader> &fragmentShader) const = 0;
-    virtual std::shared_ptr<IComputeProgram> createComputeProgram(const std::shared_ptr<utils::Shader> &computeShader) const = 0;
+    virtual std::shared_ptr<IRenderProgram> createRenderProgram(
+        const std::shared_ptr<utils::Shader>& vertexShader,
+        const std::shared_ptr<utils::Shader>& fragmentShader) const = 0;
+    virtual std::shared_ptr<IRenderProgram> createRenderProgram(
+        const std::shared_ptr<utils::Shader>& vertexShader,
+        const std::shared_ptr<utils::Shader>& geometryShader,
+        const std::shared_ptr<utils::Shader>& fragmentShader) const = 0;
+    virtual std::shared_ptr<IComputeProgram> createComputeProgram(const std::shared_ptr<utils::Shader>& computeShader) const = 0;
 
-    virtual void compute(
-        const glm::uvec3&,
+    virtual void compute(const glm::uvec3&, const std::shared_ptr<IComputeProgram>&, const StateSetList&) = 0;
+
+    virtual void computeIndirect(
         const std::shared_ptr<IComputeProgram>&,
-        const StateSetList&) = 0;
+        const StateSetList&,
+        const PDispatchComputeIndirectCommandConstBuffer&) = 0;
 
     virtual void drawArrays(
         const glm::uvec4&,
@@ -846,9 +915,8 @@ public:
     void removePrimitiveSet(const std::shared_ptr<utils::PrimitiveSet>&);
     const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>>& primitiveSets() const;
 
-    static std::shared_ptr<VAOMesh> create(
-        const std::shared_ptr<const utils::Mesh>& = nullptr,
-        bool uniteVertexBuffers = true);
+    static std::shared_ptr<VAOMesh> create(const std::shared_ptr<const utils::Mesh>& = nullptr, bool uniteVertexBuffers = true);
+
 private:
     VAOMesh(const std::shared_ptr<IVertexArray>&);
 
@@ -868,10 +936,7 @@ public:
 
     std::shared_ptr<const IStaticBuffer> buffer() const { return m_buffer; }
 
-    value_type get() const
-    {
-        return *reinterpret_cast<value_type*>(m_buffer->map(IBuffer::MapAccess::ReadOnly)->get());
-    }
+    value_type get() const { return *reinterpret_cast<value_type*>(m_buffer->map(IBuffer::MapAccess::ReadOnly)->get()); }
 
     template <typename FieldType>
     FieldType getField(size_t offset) const
@@ -932,8 +997,10 @@ public:
     void shrinkToFit() { m_buffer->shrinkToFit(); }
 
     void clear() { resize(0u); }
-    void insert(size_t index, const value_type* data, size_t count) {
-        m_buffer->insert(index * sizeofT(), data, count * sizeofT()); }
+    void insert(size_t index, const value_type* data, size_t count)
+    {
+        m_buffer->insert(index * sizeofT(), data, count * sizeofT());
+    }
     void insert(size_t index, std::initializer_list<value_type> l) { insert(index, l.begin(), l.size()); }
     void erase(size_t index, size_t count) { m_buffer->erase(index * sizeofT(), count * sizeofT()); }
     void resize(size_t count) { m_buffer->resize(count * sizeofT()); }
@@ -942,34 +1009,21 @@ public:
 
     void set(size_t index, const value_type* value, size_t count)
     {
-        if (!value || !count)
-            return;
+        if (!value || !count) return;
 
-        if (index >= size())
-            LOG_CRITICAL << "Index is out of range";
-        if (index + count > size())
-            LOG_CRITICAL << "Count is out of range";
+        if (index >= size()) LOG_CRITICAL << "Index is out of range";
+        if (index + count > size()) LOG_CRITICAL << "Count is out of range";
 
-        auto mapData = m_buffer->map(
-            IBuffer::MapAccess::WriteOnly,
-            index * sizeofT(),
-            count * sizeofT());
+        auto mapData = m_buffer->map(IBuffer::MapAccess::WriteOnly, index * sizeofT(), count * sizeofT());
         std::memcpy(mapData->get(), value, count * sizeofT());
     }
     void set(size_t index, std::initializer_list<value_type> l) { set(index, l.begin(), l.size()); }
-    void set(size_t index, const value_type& value)
-    {
-        set(index, &value, 1u);
-    }
+    void set(size_t index, const value_type& value) { set(index, &value, 1u); }
     value_type get(size_t index) const
     {
-        if (index >= size())
-            LOG_CRITICAL << "Index is out of range";
+        if (index >= size()) LOG_CRITICAL << "Index is out of range";
 
-        auto mapData = m_buffer->map(
-            IBuffer::MapAccess::ReadOnly,
-            index * sizeofT(),
-            sizeofT());
+        auto mapData = m_buffer->map(IBuffer::MapAccess::ReadOnly, index * sizeofT(), sizeofT());
 
         return *reinterpret_cast<value_type*>(mapData->get());
     }
@@ -983,8 +1037,8 @@ public:
             return nullptr;
         }
 
-        return std::shared_ptr<VectorBuffer<value_type>>(new VectorBuffer<value_type>(
-            currentContext->createDynamicBuffer(), l.begin(), l.size()));
+        return std::shared_ptr<VectorBuffer<value_type>>(
+            new VectorBuffer<value_type>(currentContext->createDynamicBuffer(), l.begin(), l.size()));
     }
 
 private:
@@ -1000,40 +1054,40 @@ private:
 
 inline UniformType IProgram::uniformTypeByTextureType(TextureType textureType)
 {
-    static const std::unordered_map<TextureType, UniformType> s_table {
-            { TextureType::Type1D, UniformType::Sampler1D },
-            { TextureType::Type2D, UniformType::Sampler2D },
-            { TextureType::Type3D, UniformType::Sampler3D },
-            { TextureType::TypeCube, UniformType::SamplerCube },
-            { TextureType::Type1DArray, UniformType::Sampler1DArray },
-            { TextureType::Type2DArray, UniformType::Sampler2DArray },
-            { TextureType::TypeCubeArray, UniformType::SamplerCubeArray },
-            { TextureType::TypeRect, UniformType::SamplerRect },
-        };
+    static const std::unordered_map<TextureType, UniformType> s_table{
+        {TextureType::Type1D, UniformType::Sampler1D},
+        {TextureType::Type2D, UniformType::Sampler2D},
+        {TextureType::Type3D, UniformType::Sampler3D},
+        {TextureType::TypeCube, UniformType::SamplerCube},
+        {TextureType::Type1DArray, UniformType::Sampler1DArray},
+        {TextureType::Type2DArray, UniformType::Sampler2DArray},
+        {TextureType::TypeCubeArray, UniformType::SamplerCubeArray},
+        {TextureType::TypeRect, UniformType::SamplerRect},
+    };
 
-        auto it = s_table.find(textureType);
-        return (it == s_table.end()) ? UniformType::Count : it->second;
+    auto it = s_table.find(textureType);
+    return (it == s_table.end()) ? UniformType::Count : it->second;
 }
 
 inline UniformType IProgram::uniformTypeByImageTextureType(TextureType textureType)
 {
-    static const std::unordered_map<TextureType, UniformType> s_table {
-            { TextureType::Type1D, UniformType::Image1D },
-            { TextureType::Type2D, UniformType::Image2D },
-            { TextureType::Type3D, UniformType::Image3D },
-            { TextureType::TypeCube, UniformType::ImageCube },
-            { TextureType::Type1DArray, UniformType::Image1DArray },
-            { TextureType::Type2DArray, UniformType::Image2DArray },
-            { TextureType::TypeCubeArray, UniformType::ImageCubeArray },
-            { TextureType::TypeRect, UniformType::ImageRect },
-        };
+    static const std::unordered_map<TextureType, UniformType> s_table{
+        {TextureType::Type1D, UniformType::Image1D},
+        {TextureType::Type2D, UniformType::Image2D},
+        {TextureType::Type3D, UniformType::Image3D},
+        {TextureType::TypeCube, UniformType::ImageCube},
+        {TextureType::Type1DArray, UniformType::Image1DArray},
+        {TextureType::Type2DArray, UniformType::Image2DArray},
+        {TextureType::TypeCubeArray, UniformType::ImageCubeArray},
+        {TextureType::TypeRect, UniformType::ImageRect},
+    };
 
-        auto it = s_table.find(textureType);
-        return (it == s_table.end()) ? UniformType::Count : it->second;
+    auto it = s_table.find(textureType);
+    return (it == s_table.end()) ? UniformType::Count : it->second;
 }
 
-}
-}
-}
+} // namespace graphics
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_IGRAPHICSRENDERER_H

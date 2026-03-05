@@ -20,10 +20,7 @@ class CORE_SHARED_EXPORT NodeRepresentation : public INamedObject, public std::e
     NONCOPYBLE(NodeRepresentation)
     PRIVATE_IMPL(NodeRepresentation)
 public:
-    NodeRepresentation(
-        const std::string& name,
-        const utils::Transform& transform,
-        const std::vector<size_t>& childrenIDs);
+    NodeRepresentation(const std::string& name, const utils::Transform& transform, const std::vector<size_t>& childrenIDs);
     ~NodeRepresentation() override;
 
     const std::string& name() const override;
@@ -55,42 +52,6 @@ public:
     std::shared_ptr<const DrawableNodeRepresentation> asDrawableNodeRepresentation() const override;
 };
 
-class BoneNodeRepresentationPrivate;
-class CORE_SHARED_EXPORT BoneNodeRepresentation : public NodeRepresentation
-{
-    PRIVATE_IMPL(BoneNodeRepresentation)
-public:
-    BoneNodeRepresentation(
-        const std::string& name,
-        const utils::Transform& transform,
-        const std::vector<size_t>& childrenIDs,
-        uint32_t boneID);
-    ~BoneNodeRepresentation() override;
-
-    std::shared_ptr<const BoneNodeRepresentation> asBoneNodeRepresentation() const override;
-
-    virtual std::shared_ptr<const RootBoneNodeRepresentation> asRootBoneNodeRepresentation() const;
-
-protected:
-    BoneNodeRepresentation(std::unique_ptr<BoneNodeRepresentationPrivate>&&);
-};
-
-class RootBoneNodeRepresentationPrivate;
-class CORE_SHARED_EXPORT RootBoneNodeRepresentation : public BoneNodeRepresentation
-{
-    PRIVATE_IMPL(RootBoneNodeRepresentation)
-public:
-    RootBoneNodeRepresentation(
-        const std::string& name,
-        const utils::Transform& transform,
-        const std::vector<size_t>& childrenIDs,
-        uint32_t skeletonID,
-        uint32_t boneID);
-    ~RootBoneNodeRepresentation() override;
-
-    std::shared_ptr<const RootBoneNodeRepresentation> asRootBoneNodeRepresentation() const override;
-};
-
 class CameraNodeRepresentationPrivate;
 class CORE_SHARED_EXPORT CameraNodeRepresentation : public NodeRepresentation
 {
@@ -112,41 +73,34 @@ class CORE_SHARED_EXPORT LightNodeRepresentation : public NodeRepresentation
 {
     PRIVATE_IMPL(LightNodeRepresentation)
 public:
-    LightNodeRepresentation(
-        const std::string& name,
-        const utils::Transform& transform,
-        const std::vector<size_t>& childrenIDs);
+    LightNodeRepresentation(const std::string& name, const utils::Transform& transform, const std::vector<size_t>& childrenIDs);
     ~LightNodeRepresentation() override;
 
     std::shared_ptr<const LightNodeRepresentation> asLightNodeRepresentation() const override;
 };
 
 class SceneRepresentationPrivate;
-class CORE_SHARED_EXPORT SceneRepresentation final : public INamedObject 
+class CORE_SHARED_EXPORT SceneRepresentation final : public INamedObject
 {
     NONCOPYBLE(SceneRepresentation)
 public:
     SceneRepresentation(
         const std::string& name,
         const std::vector<std::shared_ptr<Drawable>>& drawables,
-        const std::vector<std::shared_ptr<Skeleton>>& skeletons,
+        const std::shared_ptr<Skeleton>& skeleton,
         const std::vector<std::shared_ptr<NodeRepresentation>>& nodesRepresentations,
         size_t rootNodeID);
     ~SceneRepresentation() override;
 
     const std::string& name() const override;
 
-    std::shared_ptr<Node> generate(
-        const std::string& name,
-        bool insertCameras,
-        bool insertLights) const;
+    std::shared_ptr<SkeletalAnimatedNode> generate(const std::string& name, bool insertCameras, bool insertLights) const;
 
 private:
     std::unique_ptr<SceneRepresentationPrivate> m_;
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_SCENEREPRESENTATION_H

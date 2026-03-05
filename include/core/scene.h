@@ -1,9 +1,9 @@
 #ifndef CORE_SCENE_H
 #define CORE_SCENE_H
 
+#include <filesystem>
 #include <memory>
 #include <unordered_set>
-#include <filesystem>
 
 #include <utils/noncopyble.h>
 #include <utils/pimpl.h>
@@ -25,7 +25,7 @@ class CORE_SHARED_EXPORT Scene : public std::enable_shared_from_this<Scene>, pub
 public:
     ~Scene() override;
 
-    const std::string &name() const override;
+    const std::string& name() const override;
 
     std::shared_ptr<SceneRootNode> sceneRootNode();
     std::shared_ptr<const SceneRootNode> sceneRootNode() const;
@@ -35,7 +35,7 @@ public:
 
     std::shared_ptr<Background> background();
     std::shared_ptr<const Background> background() const;
-    
+
     static std::shared_ptr<Scene> createEmpty(const std::string&);
 
 private:
@@ -44,7 +44,7 @@ private:
     std::unique_ptr<ScenePrivate> m_;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_SCENE_H

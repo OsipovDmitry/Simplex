@@ -1,13 +1,13 @@
 #ifndef CORE_IGRAPHICSWIDGET_H
 #define CORE_IGRAPHICSWIDGET_H
 
-#include <core/idevice.h>
-#include <core/forwarddecl.h>
-
-#include <utils/forwarddecl.h>
-#include <utils/weakptrlist.h>
 #include <utils/enumclass.h>
+#include <utils/forwarddecl.h>
 #include <utils/glm/vec2.hpp>
+#include <utils/weakptrlist.h>
+
+#include <core/forwarddecl.h>
+#include <core/idevice.h>
 
 namespace simplex
 {
@@ -18,7 +18,9 @@ namespace graphics
 
 ENUMCLASS(KeyState, uint16_t, Pressed, Released, Repeated)
 
-ENUMCLASS(KeyCode, uint16_t,
+ENUMCLASS(
+    KeyCode,
+    uint16_t,
     Space,
     Apostrophe,
     Comma,
@@ -146,7 +148,19 @@ ENUMCLASS(MouseButtonState, uint16_t, Pressed, Released)
 
 ENUMCLASS(MouseButton, uint16_t, Left, Right, Middle)
 
-ENUMCLASS(MouseStandardCursor, uint16_t, Arrow, IBeam, CrossHair, Hand, ResizeEW, ResizeNS, ResizeNWSE, ResizeNESW, ResizeAll, NotAllowed)
+ENUMCLASS(
+    MouseStandardCursor,
+    uint16_t,
+    Arrow,
+    IBeam,
+    CrossHair,
+    Hand,
+    ResizeEW,
+    ResizeNS,
+    ResizeNWSE,
+    ResizeNESW,
+    ResizeAll,
+    NotAllowed)
 
 using ShareGroup = utils::WeakPtrList<IGraphicsWidget>;
 
@@ -191,7 +205,7 @@ public:
     virtual void hideMouseCursor() = 0;
 
     virtual void setMouseStandardCursor(MouseStandardCursor) = 0;
-    virtual void setMouseCursor(const std::shared_ptr<utils::Image>&, const glm::uvec2 &hotPoint) = 0;
+    virtual void setMouseCursor(const std::shared_ptr<utils::Image>&, const glm::uvec2& hotPoint) = 0;
 
     virtual bool isMouseCursorInside() const = 0;
 
@@ -222,11 +236,10 @@ public:
 
     virtual MouseScrollCallback mouseScrollCallback() const = 0;
     virtual void setMouseScrollCallback(MouseScrollCallback) = 0;
-
 };
 
-}
-}
-}
+} // namespace graphics
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_IGRAPHICSWIDGET_H

@@ -4,9 +4,9 @@
 #include <deque>
 #include <map>
 
+#include <utils/glm/mat4x4.hpp>
 #include <utils/glm/vec3.hpp>
 #include <utils/glm/vec4.hpp>
-#include <utils/glm/mat4x4.hpp>
 #include <utils/idgenerator.h>
 
 #include <core/forwarddecl.h>
@@ -19,21 +19,23 @@ namespace simplex
 namespace core
 {
 
-template<typename T>
+template <typename T>
 class DataStore
 {
 public:
     using value_type = T;
 
-    DataStore() : m_vectorBuffer(graphics::VectorBuffer<value_type>::create()) {}
+    DataStore()
+        : m_vectorBuffer(graphics::VectorBuffer<value_type>::create())
+    {
+    }
     ~DataStore() {}
 
     size_t allocate(size_t count, const value_type* data)
     {
         auto result = std::numeric_limits<size_t>::max();
 
-        if (!count)
-            return result;
+        if (!count) return result;
 
         if (auto it = findFreeBlock(count); it != m_freeBlocks.end())
         {
@@ -41,8 +43,7 @@ public:
             m_vectorBuffer->set(result, data, count);
 
             it->second -= count;
-            if (it->second == 0u)
-                m_freeBlocks.erase(it);
+            if (it->second == 0u) m_freeBlocks.erase(it);
         }
         else
         {
@@ -57,8 +58,7 @@ public:
 
     void free(size_t index, size_t count)
     {
-        if (!count)
-            return;
+        if (!count) return;
 
         if (index >= m_vectorBuffer->size())
         {
@@ -69,9 +69,8 @@ public:
             LOG_CRITICAL << "Count is out of range";
         }
 
-        auto insertionResult = m_freeBlocks.insert({ index, count });
-        if (!insertionResult.second)
-            LOG_CRITICAL << "Free blocks already have the memory with equal offset";
+        auto insertionResult = m_freeBlocks.insert({index, count});
+        if (!insertionResult.second) LOG_CRITICAL << "Free blocks already have the memory with equal offset";
 
         auto& iter = insertionResult.first;
 
@@ -114,6 +113,9 @@ public:
 
     static std::shared_ptr<DataStore<value_type>> create() { return std::make_shared<DataStore<value_type>>(); }
 
+    // tmp
+    std::shared_ptr<graphics::VectorBuffer<value_type>> vectorBuffer() const { return m_vectorBuffer; }
+
 private:
     std::shared_ptr<graphics::VectorBuffer<value_type>> m_vectorBuffer;
     std::map<size_t, size_t> m_freeBlocks;
@@ -125,8 +127,7 @@ private:
 
         for (auto it = m_freeBlocks.begin(); (it != m_freeBlocks.end()) && sizeDiff; ++it)
         {
-            if (it->second < count)
-                continue;
+            if (it->second < count) continue;
 
             if (const auto diff = it->second - count; diff < sizeDiff)
             {
@@ -181,7 +182,7 @@ public:
     MeshHandler(const std::weak_ptr<SceneData>&);
     ~MeshHandler() override;
 
-    std::weak_ptr<const Mesh> &mesh();
+    std::weak_ptr<const Mesh>& mesh();
     utils::IDsGenerator::value_type ID() const;
 
 private:
@@ -196,8 +197,8 @@ public:
     MaterialMapHandler(const std::weak_ptr<SceneData>&);
     ~MaterialMapHandler() override;
 
-    std::weak_ptr<const MaterialMap> &materialMap();
-    utils::IDsGenerator::value_type &ID();
+    std::weak_ptr<const MaterialMap>& materialMap();
+    utils::IDsGenerator::value_type& ID();
 
 private:
     std::weak_ptr<const MaterialMap> m_materialMap;
@@ -226,7 +227,7 @@ public:
     DrawableHandler(const std::weak_ptr<SceneData>&);
     ~DrawableHandler() override;
 
-    std::weak_ptr<const Drawable> &drawable();
+    std::weak_ptr<const Drawable>& drawable();
     utils::IDsGenerator::value_type ID() const;
 
 private:
@@ -254,7 +255,7 @@ public:
     BackgroundHandler(const std::weak_ptr<SceneData>&);
     ~BackgroundHandler() override;
 
-    std::weak_ptr<const Background> &background();
+    std::weak_ptr<const Background>& background();
 
 private:
     std::weak_ptr<const Background> m_background;
@@ -351,7 +352,10 @@ public:
     {
         graphics::TextureHandle handle = utils::IDsGeneratorT<graphics::TextureHandle>::last();
     };
-    AddTextureHandleResult addTextureHandle(uint32_t, const graphics::PConstTexture&, const std::shared_ptr<graphics::RendererBase>&);
+    AddTextureHandleResult addTextureHandle(
+        uint32_t,
+        const graphics::PConstTexture&,
+        const std::shared_ptr<graphics::RendererBase>&);
     void removeTextureHandle(uint32_t);
 
     std::shared_ptr<MeshHandler> addMesh(const std::shared_ptr<const Mesh>&);
@@ -360,7 +364,10 @@ public:
 
     std::shared_ptr<MaterialMapHandler> addMaterialMap(const std::shared_ptr<const MaterialMap>&);
     void removeMaterialMap(const std::shared_ptr<const MaterialMap>&);
-    void onMaterialMapChanged(utils::IDsGenerator::value_type, const std::filesystem::path&, const std::shared_ptr<const utils::Image>&);
+    void onMaterialMapChanged(
+        utils::IDsGenerator::value_type,
+        const std::filesystem::path&,
+        const std::shared_ptr<const utils::Image>&);
 
     std::shared_ptr<MaterialHandler> addMaterial(const std::shared_ptr<const Material>&);
     void removeMaterial(const std::shared_ptr<const Material>&);
@@ -388,24 +395,19 @@ public:
 
     std::shared_ptr<DrawableHandler> addDrawable(const std::shared_ptr<const Drawable>&);
     void removeDrawable(const std::shared_ptr<const Drawable>&);
-    void onDrawableChanged(utils::IDsGenerator::value_type, const std::shared_ptr<const Mesh>&, const std::shared_ptr<const Material>&);
+    void onDrawableChanged(
+        utils::IDsGenerator::value_type,
+        const std::shared_ptr<const Mesh>&,
+        const std::shared_ptr<const Material>&);
 
     void setBackground(const std::shared_ptr<const Background>&);
     void removeBackground(const std::shared_ptr<const Background>&);
     void onBackgroundChanged(const std::shared_ptr<const MaterialMap>&, const glm::quat&, const glm::vec3&, float);
 
     std::shared_ptr<LightHandler> addPointLight(const utils::Transform&, const glm::vec3&, const glm::vec2&);
-    void onPointLightChanged(
-        utils::IDsGenerator::value_type,
-        const utils::Transform&,
-        const glm::vec3&,
-        const glm::vec2&);
+    void onPointLightChanged(utils::IDsGenerator::value_type, const utils::Transform&, const glm::vec3&, const glm::vec2&);
 
-    std::shared_ptr<LightHandler> addSpotLight(
-        const utils::Transform&,
-        const glm::vec3&,
-        const glm::vec2&,
-        const glm::vec2&);
+    std::shared_ptr<LightHandler> addSpotLight(const utils::Transform&, const glm::vec3&, const glm::vec2&, const glm::vec2&);
     void onSpotLightChanged(
         utils::IDsGenerator::value_type,
         const utils::Transform&,
@@ -414,10 +416,7 @@ public:
         const glm::vec2&);
 
     std::shared_ptr<LightHandler> addDirectionalLight(const utils::Transform&, const glm::vec3&);
-    void onDirectionalLightChanged(
-        utils::IDsGenerator::value_type,
-        const utils::Transform&,
-        const glm::vec3&);
+    void onDirectionalLightChanged(utils::IDsGenerator::value_type, const utils::Transform&, const glm::vec3&);
 
     std::shared_ptr<LightHandler> addImageBasedLight(
         const utils::Transform&,
@@ -443,9 +442,16 @@ public:
         uint32_t,
         const std::map<std::string, std::shared_ptr<Animation>>&);
 
-    std::shared_ptr<DrawDataHandler> addDrawData(const std::shared_ptr<const Drawable>&, const utils::Transform&);
+    std::shared_ptr<DrawDataHandler> addDrawData(
+        const std::shared_ptr<const Drawable>&,
+        const utils::Transform&,
+        utils::IDsGenerator::value_type);
     void removeDrawData(utils::IDsGenerator::value_type);
-    void onDrawDataChanged(utils::IDsGenerator::value_type, const std::shared_ptr<const Drawable>&, const utils::Transform&);
+    void onDrawDataChanged(
+        utils::IDsGenerator::value_type,
+        const std::shared_ptr<const Drawable>&,
+        const utils::Transform&,
+        utils::IDsGenerator::value_type);
 
     std::shared_ptr<SkeletalAnimatedDataHandler> addSkeletalAnimatedData(const std::shared_ptr<Skeleton>&, const std::string&);
     void removeSkeletalAnimatedData(utils::IDsGenerator::value_type);
@@ -502,7 +508,7 @@ private:
     std::shared_ptr<Mesh> m_directionalLightAreaMesh;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_SCENEDATA_H

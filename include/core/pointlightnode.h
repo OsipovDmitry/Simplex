@@ -22,15 +22,14 @@ public:
     std::shared_ptr<PointLightNode> asPointLightNode() override;
     std::shared_ptr<const PointLightNode> asPointLightNode() const override;
 
-    const glm::vec3 &color() const;
+    const glm::vec3& color() const;
     void setColor(const glm::vec3&);
 
-    const glm::vec2 &radiuses() const;
+    const glm::vec2& radiuses() const;
     void setRadiuses(const glm::vec2&);
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_POINTLIGHTNODE_H

@@ -3,6 +3,7 @@
 #include<drawable.glsl>
 #include<draw_data.glsl>
 #include<mesh.glsl>
+#include<skeletal_animated_data.glsl>
 #include<vertex_data.glsl>
 
 flat out uint v_meshID;
@@ -19,7 +20,11 @@ void main(void)
 	
 	const Transform modelTransform = drawDataTransform(drawDataID);
 	const uint drawableID = drawDataDrawableID(drawDataID);
-	const uint bonesTransformsDataOffset = drawDataBonesTransformsDataOffset(drawDataID);
+	const uint skeletalAnimatedDataID = drawDataSkeletalAnimatedDataID(drawDataID);
+	
+	uint bonesTransformsDataOffset = 0xFFFFFFFFu;
+	if (skeletalAnimatedDataID != 0xFFFFFFFFu)
+		bonesTransformsDataOffset = skeletalAnimatedDataBonesTransfromsDataOffset(skeletalAnimatedDataID);
 	
 	v_meshID = drawableMeshID(drawableID);
 	v_materialID = drawableMaterialID(drawableID);

@@ -20,8 +20,8 @@ public:
     Scene(const rapidjson::Document::ValueType*);
     ~Scene() override;
 
-    const std::string &sceneRootNodeName() const;
-    const std::string &listenerNodeName() const;
+    const std::string& sceneRootNodeName() const;
+    const std::string& listenerNodeName() const;
 };
 
 class CORE_SHARED_EXPORT Application : public utils::SettingsComponent
@@ -30,8 +30,8 @@ public:
     Application(const rapidjson::Document::ValueType*);
     ~Application() override;
 
-    const std::string &name() const;
-    const Scene &scene() const;
+    const std::string& name() const;
+    const Scene& scene() const;
 };
 
 class CORE_SHARED_EXPORT ClipSpace : public utils::SettingsComponent
@@ -51,7 +51,7 @@ public:
     Camera(const rapidjson::Document::ValueType*);
     ~Camera() override;
 
-    const ClipSpace &clipSpace() const;
+    const ClipSpace& clipSpace() const;
     const glm::u32vec3& clusterMaxSize() const;
 };
 
@@ -61,7 +61,7 @@ public:
     Background(const rapidjson::Document::ValueType*);
     ~Background() override;
 
-    const glm::vec3 &environmentColor() const;
+    const glm::vec3& environmentColor() const;
     float blurPower() const;
 };
 
@@ -71,7 +71,7 @@ public:
     Flat(const rapidjson::Document::ValueType*);
     ~Flat() override;
 
-    const glm::vec4 &color() const;
+    const glm::vec4& color() const;
 };
 
 class CORE_SHARED_EXPORT PBR : public utils::SettingsComponent
@@ -81,13 +81,13 @@ public:
     ~PBR() override;
 
     float dielectricSpecular() const;
-    const glm::u32vec3 &ORMSwizzleMask() const;
-    const glm::vec4 &baseColor() const;
+    const glm::u32vec3& ORMSwizzleMask() const;
+    const glm::vec4& baseColor() const;
     float roughness() const;
     float metalness() const;
     float normalMapScale() const;
     float occlusionMapStrength() const;
-    const glm::vec3 &emission() const;
+    const glm::vec3& emission() const;
 };
 
 class CORE_SHARED_EXPORT IBL : public utils::SettingsComponent
@@ -117,7 +117,7 @@ public:
     SSAO(const rapidjson::Document::ValueType*);
     ~SSAO() override;
 
-    //SSAOMode mode() const;
+    // SSAOMode mode() const;
     float viewportDenominator() const;
     float contribution() const;
     uint32_t kernelSize() const;
@@ -151,7 +151,7 @@ public:
     ~NodeBoundingBox() override;
 
     bool isEnabled() const;
-    const glm::vec4 &color() const;
+    const glm::vec4& color() const;
 };
 
 class CORE_SHARED_EXPORT DrawableNodeLocalBoundingBox : public utils::SettingsComponent
@@ -161,7 +161,7 @@ public:
     ~DrawableNodeLocalBoundingBox() override;
 
     bool isEnabled() const;
-    const glm::vec4 &color() const;
+    const glm::vec4& color() const;
 };
 
 class CORE_SHARED_EXPORT DrawableBoundingBox : public utils::SettingsComponent
@@ -171,7 +171,7 @@ public:
     ~DrawableBoundingBox() override;
 
     bool isEnabled() const;
-    const glm::vec4 &color() const;
+    const glm::vec4& color() const;
 };
 
 class CORE_SHARED_EXPORT LightNodeAreaBoundingBox : public utils::SettingsComponent
@@ -181,7 +181,7 @@ public:
     ~LightNodeAreaBoundingBox() override;
 
     bool isEnabled() const;
-    const glm::vec4 &color() const;
+    const glm::vec4& color() const;
 };
 
 class CORE_SHARED_EXPORT DebugRendering : public utils::SettingsComponent
@@ -190,10 +190,10 @@ public:
     DebugRendering(const rapidjson::Document::ValueType*);
     ~DebugRendering() override;
 
-    const NodeBoundingBox &nodeBoundingBox() const;
-    const DrawableNodeLocalBoundingBox &drawableNodeLocalBoundingBox() const;
-    const DrawableBoundingBox &drawableBoundingBox() const;
-    const LightNodeAreaBoundingBox &lightNodeAreaBoundingBox() const;
+    const NodeBoundingBox& nodeBoundingBox() const;
+    const DrawableNodeLocalBoundingBox& drawableNodeLocalBoundingBox() const;
+    const DrawableBoundingBox& drawableBoundingBox() const;
+    const LightNodeAreaBoundingBox& lightNodeAreaBoundingBox() const;
 };
 
 class CORE_SHARED_EXPORT Graphics : public utils::SettingsComponent
@@ -202,17 +202,17 @@ public:
     Graphics(const rapidjson::Document::ValueType*);
     ~Graphics() override;
 
-    const utils::Range &cullPlaneLimits() const;
-    const Camera &camera() const;
-    const Background &background() const;
-    const Flat &flat() const;
-    const PBR &pbr() const;
-    const IBL &ibl() const;
-    const Shadow &shadow() const;
-    const SSAO &ssao() const;
-    const Blur &blur() const;
+    const utils::Range& cullPlaneLimits() const;
+    const Camera& camera() const;
+    const Background& background() const;
+    const Flat& flat() const;
+    const PBR& pbr() const;
+    const IBL& ibl() const;
+    const Shadow& shadow() const;
+    const SSAO& ssao() const;
+    const Blur& blur() const;
     const OIT& oit() const;
-    const DebugRendering &debugRendering() const;
+    const DebugRendering& debugRendering() const;
 };
 
 class CORE_SHARED_EXPORT Source : public utils::SettingsComponent
@@ -245,8 +245,8 @@ public:
     Audio(const rapidjson::Document::ValueType*);
     ~Audio() override;
 
-    const Source &source() const;
-    const Listener &listener() const;
+    const Source& source() const;
+    const Listener& listener() const;
 };
 
 class CORE_SHARED_EXPORT Physics : public utils::SettingsComponent
@@ -262,13 +262,13 @@ class CORE_SHARED_EXPORT Settings : public utils::Settings
 public:
     ~Settings() override;
 
-    const Application &application() const;
-    const Graphics &graphics() const;
-    const Audio &audio() const;
-    const Physics &physics() const;
+    const Application& application() const;
+    const Graphics& graphics() const;
+    const Audio& audio() const;
+    const Physics& physics() const;
 
     static void setPath(const std::filesystem::path&);
-    static const Settings &instance();
+    static const Settings& instance();
 
 protected:
     Settings(const std::filesystem::path&);
@@ -277,8 +277,8 @@ private:
     std::unique_ptr<SettingsPrivate> m_;
 };
 
-}
-}
-}
+} // namespace settings
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_SETTINGS_H

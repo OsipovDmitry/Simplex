@@ -1,11 +1,11 @@
+#include "descriptions.h"
+
 #include <utils/boundingbox.h>
 #include <utils/clipspace.h>
 #include <utils/idgenerator.h>
 #include <utils/transform.h>
 
 #include <core/lightnode.h>
-
-#include "descriptions.h"
 
 namespace simplex
 {
@@ -20,7 +20,7 @@ static const uint32_t EmptyLightTypeID = std::numeric_limits<uint32_t>::max();
 
 QuatDescription QuatDescription::make(const glm::quat& value)
 {
-    return { glm::vec4(value.x, value.y, value.z, value.w) };
+    return {glm::vec4(value.x, value.y, value.z, value.w)};
 }
 
 TransformDescription TransformDescription::makeEmpty()
@@ -30,16 +30,12 @@ TransformDescription TransformDescription::makeEmpty()
 
 TransformDescription TransformDescription::make(const utils::Transform& value)
 {
-    return {
-        QuatDescription::make(value.rotation),
-        glm::vec4(value.translation, value.scale) };
+    return {QuatDescription::make(value.rotation), glm::vec4(value.translation, value.scale)};
 }
 
 ClipSpaceDescription ClipSpaceDescription::make(const utils::ClipSpace& clipSpace)
 {
-    return {
-        clipSpace.params(),
-        utils::castFromClipSpaceType(clipSpace.type()) };
+    return {clipSpace.params(), utils::castFromClipSpaceType(clipSpace.type())};
 }
 
 CameraDescription CameraDescription::make(
@@ -66,7 +62,7 @@ CameraDescription CameraDescription::make(
         projectionMatrix,
         glm::inverse(projectionMatrix),
         viewProjectionMatrix,
-        glm::inverse(viewProjectionMatrix) };
+        glm::inverse(viewProjectionMatrix)};
 }
 
 SceneInfoDescription SceneInfoDescription::make(
@@ -76,16 +72,7 @@ SceneInfoDescription SceneInfoDescription::make(
     uint32_t lightsCount,
     uint32_t lightNodesMaxCount)
 {
-    return {
-        time,
-        drawDataCount,
-        skeletalAnimatedDataCount,
-        lightsCount,
-        0u,
-        0u,
-        lightNodesMaxCount,
-        0u,
-        0xFFFFFFFFu};
+    return {time, drawDataCount, skeletalAnimatedDataCount, lightsCount, 0u, 0u, 0u, lightNodesMaxCount, 0u, 0xFFFFFFFFu};
 }
 
 GBufferDescription GBufferDescription::make(
@@ -96,30 +83,13 @@ GBufferDescription GBufferDescription::make(
     const glm::uvec2& size,
     uint32_t OITNodesMaxCount)
 {
-    return {
-        colorTextureHandle,
-        depthTextureHandle,
-        OITIndicesImageHandle,
-        finalTextureHandle,
-        size,
-        OITNodesMaxCount,
-        0u };
+    return {colorTextureHandle, depthTextureHandle, OITIndicesImageHandle, finalTextureHandle, size, OITNodesMaxCount, 0u};
 }
 
 MeshDescription MeshDescription::makeEmpty()
 {
     return make(
-        utils::BoundingBox::empty(),
-        0u,
-        0u,
-        utils::IDsGenerator::last(),
-        utils::IDsGenerator::last(),
-        0u,
-        0u,
-        0u,
-        0u,
-        false,
-        0u);
+        utils::BoundingBox::empty(), 0u, 0u, utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0u, 0u, 0u, 0u, false, 0u);
 }
 
 MeshDescription MeshDescription::make(
@@ -145,10 +115,7 @@ MeshDescription MeshDescription::make(
 
     return {
         glm::vec4(bb.minPoint(), glm::uintBitsToFloat(verticesDataSize)),
-        glm::vec4(bb.maxPoint(), glm::uintBitsToFloat(elementsDataSize)),
-        verticesDataOffset,
-        elementsDataOffset,
-        flags };
+        glm::vec4(bb.maxPoint(), glm::uintBitsToFloat(elementsDataSize)), verticesDataOffset, elementsDataOffset, flags};
 }
 
 uint32_t MeshDescription::verticesDataSize(const MeshDescription& desc)
@@ -168,32 +135,15 @@ MaterialMapDescription MaterialMapDescription::makeEmpty()
 
 MaterialMapDescription MaterialMapDescription::make(graphics::TextureHandle textureHandle)
 {
-    return { textureHandle };
+    return {textureHandle};
 }
 
 MaterialDescription MaterialDescription::makeEmpty()
 {
     return make(
-        glm::vec4(),
-        glm::vec3(),
-        utils::IDsGenerator::last(),
-        utils::IDsGenerator::last(),
-        utils::IDsGenerator::last(),
-        utils::IDsGenerator::last(),
-        utils::IDsGenerator::last(),
-        utils::IDsGenerator::last(),
-        utils::IDsGenerator::last(),
-        0.f,
-        0.f,
-        0.f,
-        0.f,
-        glm::u32vec3(),
-        false,
-        false,
-        false,
-        false,
-        false,
-        0.f);
+        glm::vec4(), glm::vec3(), utils::IDsGenerator::last(), utils::IDsGenerator::last(), utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(), utils::IDsGenerator::last(), utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0.f,
+        0.f, 0.f, 0.f, glm::u32vec3(), false, false, false, false, false, 0.f);
 }
 
 MaterialDescription MaterialDescription::make(
@@ -234,19 +184,9 @@ MaterialDescription MaterialDescription::make(
     flags1 |= ((isDoubleSided ? 1u : 0u) & 0x1u) << 9u;
     flags1 |= ((isTransparent ? 1u : 0u) & 0x1u) << 10u;
     flags1 |= (static_cast<uint32_t>(glm::clamp(alphaCutoff, 0.f, 1.f) * 255.f) & 0xFF) << 11u;
-    
-    return {
-        baseColor,
-        glm::vec4(emission, 1.f),
-        baseColorMapID,
-        opacityMapID,
-        emissionMapID,
-        occlusionMapID,
-        roughnessMapID,
-        metalnessMapID,
-        normalMapID,
-        flags0,
-        flags1 };
+
+    return {baseColor,      glm::vec4(emission, 1.f), baseColorMapID, opacityMapID, emissionMapID, occlusionMapID,
+            roughnessMapID, metalnessMapID,           normalMapID,    flags0,       flags1};
 }
 
 DrawableDescription DrawableDescription::makeEmpty()
@@ -256,17 +196,20 @@ DrawableDescription DrawableDescription::makeEmpty()
 
 DrawableDescription DrawableDescription::make(uint32_t meshID, uint32_t materialID)
 {
-    return { meshID, materialID };
+    return {meshID, materialID};
 }
 
 DrawDataDescription DrawDataDescription::makeEmpty()
 {
-    return { TransformDescription::makeEmpty(), utils::IDsGenerator::last() };
+    return {TransformDescription::makeEmpty(), utils::IDsGenerator::last(), utils::IDsGenerator::last()};
 }
 
-DrawDataDescription DrawDataDescription::make(const utils::Transform& transform, uint32_t drawableID)
+DrawDataDescription DrawDataDescription::make(
+    const utils::Transform& transform,
+    uint32_t drawableID,
+    uint32_t skeletalAnimatedDataID)
 {
-    return { TransformDescription::make(transform), drawableID };
+    return {TransformDescription::make(transform), drawableID, skeletalAnimatedDataID};
 }
 
 BackgroundDescription BackgroundDescription::makeEmpty()
@@ -280,26 +223,21 @@ BackgroundDescription BackgroundDescription::make(
     float blurPower,
     uint32_t environmentMapID)
 {
-    return { QuatDescription::make(rotation), glm::vec4(environmentColor, blurPower), environmentMapID };
+    return {QuatDescription::make(rotation), glm::vec4(environmentColor, blurPower), environmentMapID};
 }
 
 LightDescription LightDescription::makeEmpty()
 {
     return {
         TransformDescription::make(utils::Transform::makeIdentity()),
-        glm::vec4(glm::vec3(0.f), glm::uintBitsToFloat(EmptyLightTypeID)),
-        glm::vec4(0.f) };
+        glm::vec4(glm::vec3(0.f), glm::uintBitsToFloat(EmptyLightTypeID)), glm::vec4(0.f)};
 }
 
-LightDescription LightDescription::makePoint(
-    const utils::Transform& transform,
-    const glm::vec3& color,
-    const glm::vec2& radiuses)
+LightDescription LightDescription::makePoint(const utils::Transform& transform, const glm::vec3& color, const glm::vec2& radiuses)
 {
     return {
-        TransformDescription::make(transform),
-        glm::vec4(color, glm::uintBitsToFloat(PointLightTypeID)),
-        glm::vec4(radiuses, 0.f, 0.f) };
+        TransformDescription::make(transform), glm::vec4(color, glm::uintBitsToFloat(PointLightTypeID)),
+        glm::vec4(radiuses, 0.f, 0.f)};
 }
 
 LightDescription LightDescription::makeSpot(
@@ -309,19 +247,14 @@ LightDescription LightDescription::makeSpot(
     const glm::vec2& halfAngles)
 {
     return {
-        TransformDescription::make(transform),
-        glm::vec4(color, glm::uintBitsToFloat(SpotLightTypeID)),
-        glm::vec4(radiuses, halfAngles) };
+        TransformDescription::make(transform), glm::vec4(color, glm::uintBitsToFloat(SpotLightTypeID)),
+        glm::vec4(radiuses, halfAngles)};
 }
 
-LightDescription LightDescription::makeDirectional(
-    const utils::Transform& transform,
-    const glm::vec3& color)
+LightDescription LightDescription::makeDirectional(const utils::Transform& transform, const glm::vec3& color)
 {
     return {
-        TransformDescription::make(transform),
-        glm::vec4(color, glm::uintBitsToFloat(DirectionalLightTypeID)),
-        glm::vec4(0.f) };
+        TransformDescription::make(transform), glm::vec4(color, glm::uintBitsToFloat(DirectionalLightTypeID)), glm::vec4(0.f)};
 }
 
 LightDescription LightDescription::makeImageBased(
@@ -332,13 +265,10 @@ LightDescription LightDescription::makeImageBased(
     float contribution)
 {
     return {
-        TransformDescription::make(transform),
-        glm::vec4(glm::vec3(), glm::uintBitsToFloat(ImageBasedLightTypeID)),
+        TransformDescription::make(transform), glm::vec4(glm::vec3(), glm::uintBitsToFloat(ImageBasedLightTypeID)),
         glm::vec4(
-            glm::uintBitsToFloat(BRDFLutMapID),
-            glm::uintBitsToFloat(diffuseMapID),
-            glm::uintBitsToFloat(specularMapID),
-            contribution) };
+            glm::uintBitsToFloat(BRDFLutMapID), glm::uintBitsToFloat(diffuseMapID), glm::uintBitsToFloat(specularMapID),
+            contribution)};
 }
 
 SkeletonDescription SkeletonDescription::makeEmpty()
@@ -348,22 +278,23 @@ SkeletonDescription SkeletonDescription::makeEmpty()
 
 SkeletonDescription SkeletonDescription::make(uint32_t dataOffset, uint32_t dataSize)
 {
-    return { dataOffset, dataSize };
+    return {dataOffset, dataSize};
 }
 
 SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::makeEmpty()
 {
-    return make(utils::IDsGenerator::last(), utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0u);
+    return make(utils::IDsGenerator::last(), utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0u, 0u);
 }
 
 SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::make(
     uint32_t skeletonID,
     uint32_t currentAnimationID,
     uint32_t bonesTransfromsDataOffset,
-    uint32_t bonesTransfromsDataSize)
+    uint32_t bonesTransfromsDataSize,
+    uint32_t lastUpdateTime)
 {
-    return { skeletonID, currentAnimationID, bonesTransfromsDataOffset, bonesTransfromsDataSize };
+    return {skeletonID, currentAnimationID, bonesTransfromsDataOffset, bonesTransfromsDataSize, lastUpdateTime};
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

@@ -15,7 +15,7 @@ public:
     virtual const std::string& name() const = 0;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // INAMEDOBJECT_H

@@ -1,21 +1,24 @@
 #include <unordered_map>
 
-#include <assimp/GltfMaterial.h>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-
 #include <utils/boundingbox.h>
 #include <utils/clipspace.h>
-#include <utils/mesh.h>
 #include <utils/logger.h>
+#include <utils/mesh.h>
 
-#include <core/skeletalanimation.h>
 #include <core/drawable.h>
 #include <core/material.h>
 #include <core/mesh.h>
+#include <core/skeletalanimation.h>
 
 #include <scenes_loader_assimp/scenesloaderassimp.h>
+
+#include <assimp/GltfMaterial.h>
+#include <assimp/Importer.hpp>
+#include <assimp/postprocess.h>
+#include <assimp/scene.h>
+
+// tmp
+#include <iostream>
 
 namespace simplex
 {
@@ -74,7 +77,7 @@ static utils::BoundingBox toBoundingBox(const aiAABB& value)
     return utils::BoundingBox::fromMinMax(toVec3(value.mMin), toVec3(value.mMax));
 }
 
-template<uint32_t Dim, typename TReal>
+template <uint32_t Dim, typename TReal>
 static std::shared_ptr<utils::VertexBuffer> toVertexBuffer(size_t verticesCount, const void* data)
 {
     auto vertexBuffer = std::make_shared<utils::VertexBuffer>(verticesCount, Dim, utils::toVertexComponentType<TReal>());
@@ -82,7 +85,7 @@ static std::shared_ptr<utils::VertexBuffer> toVertexBuffer(size_t verticesCount,
     return vertexBuffer;
 }
 
-template<typename TReal>
+template <typename TReal>
 static std::shared_ptr<utils::VertexBuffer> toVertexBuffer(size_t verticesCount, const aiVector3t<TReal>* data)
 {
     return toVertexBuffer<3u, TReal>(verticesCount, reinterpret_cast<const void*>(data));
@@ -98,10 +101,25 @@ static utils::PrimitiveType toPrimitiveType(aiPrimitiveType assimpPrimitiveType)
     utils::PrimitiveType result = utils::PrimitiveType::Count;
     switch (assimpPrimitiveType)
     {
-    case aiPrimitiveType_POINT: { result = utils::PrimitiveType::Points; break; }
-    case aiPrimitiveType_LINE: { result = utils::PrimitiveType::Lines; break; }
-    case aiPrimitiveType_TRIANGLE: { result = utils::PrimitiveType::Triangles; break; }
-    default: { break; }
+        case aiPrimitiveType_POINT:
+        {
+            result = utils::PrimitiveType::Points;
+            break;
+        }
+        case aiPrimitiveType_LINE:
+        {
+            result = utils::PrimitiveType::Lines;
+            break;
+        }
+        case aiPrimitiveType_TRIANGLE:
+        {
+            result = utils::PrimitiveType::Triangles;
+            break;
+        }
+        default:
+        {
+            break;
+        }
     }
     return result;
 }
@@ -111,10 +129,25 @@ static uint32_t toPrimitiveIndicesCount(aiPrimitiveType assimpPrimitiveType)
     uint32_t result = 0u;
     switch (assimpPrimitiveType)
     {
-    case aiPrimitiveType_POINT: { result = 1u; break; }
-    case aiPrimitiveType_LINE: { result = 2u; break; }
-    case aiPrimitiveType_TRIANGLE: { result = 3u; break; }
-    default: { break; }
+        case aiPrimitiveType_POINT:
+        {
+            result = 1u;
+            break;
+        }
+        case aiPrimitiveType_LINE:
+        {
+            result = 2u;
+            break;
+        }
+        case aiPrimitiveType_TRIANGLE:
+        {
+            result = 3u;
+            break;
+        }
+        default:
+        {
+            break;
+        }
     }
     return result;
 }
@@ -127,10 +160,7 @@ static std::shared_ptr<utils::DrawElementsBuffer> toDrawElementsBuffer(
     const auto primitiveTypeIndicesCount = toPrimitiveIndicesCount(assimpPrimitiveType);
 
     auto drawElementsBuffer = std::make_shared<utils::DrawElementsBuffer>(
-        toPrimitiveType(assimpPrimitiveType),
-        primitiveTypeIndicesCount * facesCount,
-        s_drawElementsIndexType,
-        0u);
+        toPrimitiveType(assimpPrimitiveType), primitiveTypeIndicesCount * facesCount, s_drawElementsIndexType, 0u);
 
     const auto faceSize = primitiveTypeIndicesCount * utils::DrawElements::indexSize(s_drawElementsIndexType);
     for (size_t i = 0u; i < facesCount; ++i)
@@ -139,14 +169,9 @@ static std::shared_ptr<utils::DrawElementsBuffer> toDrawElementsBuffer(
     return drawElementsBuffer;
 }
 
-static std::shared_ptr<utils::DrawArrays> toDrawArrays(
-    aiPrimitiveType assimpPrimitiveType,
-    size_t verticesCount)
+static std::shared_ptr<utils::DrawArrays> toDrawArrays(aiPrimitiveType assimpPrimitiveType, size_t verticesCount)
 {
-    return std::make_shared<utils::DrawArrays>(
-        toPrimitiveType(assimpPrimitiveType),
-        0u,
-        verticesCount);
+    return std::make_shared<utils::DrawArrays>(toPrimitiveType(assimpPrimitiveType), 0u, verticesCount);
 }
 
 static std::shared_ptr<core::Drawable> toDrawable(
@@ -157,7 +182,8 @@ static std::shared_ptr<core::Drawable> toDrawable(
     auto mesh = std::make_shared<utils::Mesh>();
 
     if (assimpMesh->HasPositions())
-        mesh->attachVertexBuffer(utils::VertexAttribute::Position, toVertexBuffer(assimpMesh->mNumVertices, assimpMesh->mVertices));
+        mesh->attachVertexBuffer(
+            utils::VertexAttribute::Position, toVertexBuffer(assimpMesh->mNumVertices, assimpMesh->mVertices));
 
     if (assimpMesh->HasNormals())
     {
@@ -165,14 +191,13 @@ static std::shared_ptr<core::Drawable> toDrawable(
 
         if (assimpMesh->HasTangentsAndBitangents())
         {
-            auto vertexBuffer = std::make_shared<utils::VertexBuffer>(assimpMesh->mNumVertices, 4u, utils::toVertexComponentType<ai_real>());
+            auto vertexBuffer =
+                std::make_shared<utils::VertexBuffer>(assimpMesh->mNumVertices, 4u, utils::toVertexComponentType<ai_real>());
             for (size_t i = 0u; i < assimpMesh->mNumVertices; ++i)
             {
-                std::array<ai_real, 4u> tangent {
-                    assimpMesh->mTangents[i][0u],
-                    assimpMesh->mTangents[i][1u],
-                    assimpMesh->mTangents[i][2u],
-                    static_cast<ai_real>(1.0) };
+                std::array<ai_real, 4u> tangent{
+                    assimpMesh->mTangents[i][0u], assimpMesh->mTangents[i][1u], assimpMesh->mTangents[i][2u],
+                    static_cast<ai_real>(1.0)};
                 if ((assimpMesh->mNormals[i] ^ assimpMesh->mTangents[i]) * assimpMesh->mBitangents[i] < static_cast<ai_real>(0.0))
                     tangent[3u] = static_cast<ai_real>(-1.0);
                 vertexBuffer->setVertex(i, reinterpret_cast<const uint8_t*>(tangent.data()));
@@ -182,7 +207,8 @@ static std::shared_ptr<core::Drawable> toDrawable(
     }
 
     if (assimpMesh->HasTextureCoords(0u))
-        mesh->attachVertexBuffer(utils::VertexAttribute::TexCoords, toVertexBuffer(assimpMesh->mNumVertices, assimpMesh->mTextureCoords[0u]));
+        mesh->attachVertexBuffer(
+            utils::VertexAttribute::TexCoords, toVertexBuffer(assimpMesh->mNumVertices, assimpMesh->mTextureCoords[0u]));
 
     if (assimpMesh->HasBones())
     {
@@ -190,13 +216,9 @@ static std::shared_ptr<core::Drawable> toDrawable(
         static_assert(s_boneComponentsCount > 0u);
 
         auto bonesIDsBuffer = std::make_shared<utils::VertexBuffer>(
-            assimpMesh->mNumVertices,
-            s_boneComponentsCount,
-            utils::VertexComponentType::Uint32);
+            assimpMesh->mNumVertices, s_boneComponentsCount, utils::VertexComponentType::Uint32);
         auto bonesWeightsBuffer = std::make_shared<utils::VertexBuffer>(
-            assimpMesh->mNumVertices,
-            s_boneComponentsCount,
-            utils::toVertexComponentType<ai_real>());
+            assimpMesh->mNumVertices, s_boneComponentsCount, utils::toVertexComponentType<ai_real>());
 
         auto* bonesIDsBufferData = reinterpret_cast<uint32_t*>(bonesIDsBuffer->data());
         auto* bonesWeightsBufferData = reinterpret_cast<ai_real*>(bonesWeightsBuffer->data());
@@ -220,8 +242,7 @@ static std::shared_ptr<core::Drawable> toDrawable(
                 while ((boneID < s_boneComponentsCount) && (vertexBonesWeights[boneID] > assimpWeight.mWeight))
                     ++boneID;
 
-                if (boneID >= s_boneComponentsCount)
-                    continue;
+                if (boneID >= s_boneComponentsCount) continue;
 
                 for (uint32_t t = s_boneComponentsCount - 1u; t > boneID; --t)
                 {
@@ -254,8 +275,8 @@ static std::shared_ptr<core::Drawable> toDrawable(
     }
 
     if (assimpMesh->HasVertexColors(0u))
-        mesh->attachVertexBuffer(utils::VertexAttribute::Color, toVertexBuffer(assimpMesh->mNumVertices, assimpMesh->mColors[0u]));
-
+        mesh->attachVertexBuffer(
+            utils::VertexAttribute::Color, toVertexBuffer(assimpMesh->mNumVertices, assimpMesh->mColors[0u]));
 
     // All of faces have the same primitive type becuse of aiProcess_SortByPType flag during loading the scene
     const auto primitiveType = static_cast<aiPrimitiveType>(assimpMesh->mPrimitiveTypes);
@@ -265,21 +286,15 @@ static std::shared_ptr<core::Drawable> toDrawable(
         // assimpMesh->mPrimitiveTypes didn't have an unique aiPrimitiveType for some case
         const_cast<aiPrimitiveType>(primitiveType) = AI_PRIMITIVE_TYPE_FOR_N_INDICES(assimpMesh->mFaces[0u].mNumIndices);
 
-        mesh->attachPrimitiveSet(toDrawElementsBuffer(
-            primitiveType,
-            assimpMesh->mNumFaces,
-            assimpMesh->mFaces));
+        mesh->attachPrimitiveSet(toDrawElementsBuffer(primitiveType, assimpMesh->mNumFaces, assimpMesh->mFaces));
     }
     else
     {
-        mesh->attachPrimitiveSet(toDrawArrays(
-            primitiveType,
-            assimpMesh->mNumVertices));
+        mesh->attachPrimitiveSet(toDrawArrays(primitiveType, assimpMesh->mNumVertices));
     }
 
     return std::make_shared<core::Drawable>(
-        std::make_shared<core::Mesh>(mesh, toBoundingBox(assimpMesh->mAABB)),
-        materials[assimpMesh->mMaterialIndex]);
+        std::make_shared<core::Mesh>(mesh, toBoundingBox(assimpMesh->mAABB)), materials[assimpMesh->mMaterialIndex]);
 }
 
 template <typename T>
@@ -309,8 +324,7 @@ static std::shared_ptr<core::MaterialMap> toMaterialMap(
         {
             aiString path;
             for (uint32_t i = 0; i < count; ++i)
-                if (assimpMaterial->GetTexture(*type, i, &path) == aiReturn_SUCCESS)
-                    break;
+                if (assimpMaterial->GetTexture(*type, i, &path) == aiReturn_SUCCESS) break;
             materialMap = std::make_shared<simplex::core::MaterialMap>(absoluteDir / toString(path));
         }
     }
@@ -320,74 +334,69 @@ static std::shared_ptr<core::MaterialMap> toMaterialMap(
 
 static std::shared_ptr<core::Material> toMaterial(const aiMaterial* assimpMaterial, const std::filesystem::path& absoluteDir)
 {
-    if (!assimpMaterial)
-        return nullptr;
+    if (!assimpMaterial) return nullptr;
 
     auto material = std::make_shared<core::Material>();
 
-    if (bool materialValue; toMaterialValue(assimpMaterial, { {AI_MATKEY_TWOSIDED} }, materialValue) == aiReturn_SUCCESS)
+    if (bool materialValue; toMaterialValue(assimpMaterial, {{AI_MATKEY_TWOSIDED}}, materialValue) == aiReturn_SUCCESS)
         material->setDoubleSided(materialValue);
 
     glm::vec4 baseColor(1.f);
-    if (aiColor4D materialValue; toMaterialValue(assimpMaterial, { {AI_MATKEY_BASE_COLOR}, {AI_MATKEY_COLOR_DIFFUSE} }, baseColor) == aiReturn_SUCCESS)
+    if (aiColor4D materialValue;
+        toMaterialValue(assimpMaterial, {{AI_MATKEY_BASE_COLOR}, {AI_MATKEY_COLOR_DIFFUSE}}, baseColor) == aiReturn_SUCCESS)
         baseColor = toVec4(materialValue);
-    if (float materialValue; toMaterialValue(assimpMaterial, { {AI_MATKEY_OPACITY} }, materialValue) == aiReturn_SUCCESS)
+    if (float materialValue; toMaterialValue(assimpMaterial, {{AI_MATKEY_OPACITY}}, materialValue) == aiReturn_SUCCESS)
         baseColor.a *= materialValue;
     material->setBaseColor(baseColor);
 
-    if (aiColor3D materialValue; toMaterialValue(assimpMaterial, { {AI_MATKEY_COLOR_EMISSIVE} }, materialValue) == aiReturn_SUCCESS)
+    if (aiColor3D materialValue; toMaterialValue(assimpMaterial, {{AI_MATKEY_COLOR_EMISSIVE}}, materialValue) == aiReturn_SUCCESS)
         material->setEmission(toVec3(materialValue));
 
     if (float materialValue; toMaterialValue(
-        assimpMaterial,
-        {
-            {AI_MATKEY_GLTF_TEXTURE_STRENGTH(aiTextureType_AMBIENT_OCCLUSION, 0u)},
-            {AI_MATKEY_GLTF_TEXTURE_STRENGTH(aiTextureType_LIGHTMAP, 0u)}
-        },
-        materialValue) == aiReturn_SUCCESS)
+                                 assimpMaterial,
+                                 {{AI_MATKEY_GLTF_TEXTURE_STRENGTH(aiTextureType_AMBIENT_OCCLUSION, 0u)},
+                                  {AI_MATKEY_GLTF_TEXTURE_STRENGTH(aiTextureType_LIGHTMAP, 0u)}},
+                                 materialValue) == aiReturn_SUCCESS)
         material->setOcclusionMapStrength(materialValue);
 
-    if (float materialValue; toMaterialValue(assimpMaterial, { {AI_MATKEY_ROUGHNESS_FACTOR} }, materialValue) == aiReturn_SUCCESS)
+    if (float materialValue; toMaterialValue(assimpMaterial, {{AI_MATKEY_ROUGHNESS_FACTOR}}, materialValue) == aiReturn_SUCCESS)
         material->setRoughness(materialValue);
 
-    if (float materialValue; toMaterialValue(assimpMaterial, { {AI_MATKEY_METALLIC_FACTOR} }, materialValue) == aiReturn_SUCCESS)
+    if (float materialValue; toMaterialValue(assimpMaterial, {{AI_MATKEY_METALLIC_FACTOR}}, materialValue) == aiReturn_SUCCESS)
         material->setMetalness(materialValue);
 
-    if (float materialValue; toMaterialValue(
-        assimpMaterial,
-        {
-            {AI_MATKEY_GLTF_TEXTURE_SCALE(aiTextureType_NORMALS, 0u)},
-            {AI_MATKEY_BUMPSCALING}
-        },
-        materialValue) == aiReturn_SUCCESS)
+    if (float materialValue;
+        toMaterialValue(
+            assimpMaterial, {{AI_MATKEY_GLTF_TEXTURE_SCALE(aiTextureType_NORMALS, 0u)}, {AI_MATKEY_BUMPSCALING}},
+            materialValue) == aiReturn_SUCCESS)
         material->setNormalMapScale(materialValue);
 
-
-    if (aiString materialValue; toMaterialValue(assimpMaterial, { {AI_MATKEY_GLTF_ALPHAMODE} }, materialValue) == aiReturn_SUCCESS)
+    if (aiString materialValue; toMaterialValue(assimpMaterial, {{AI_MATKEY_GLTF_ALPHAMODE}}, materialValue) == aiReturn_SUCCESS)
     {
         if (materialValue == aiString("MASK"))
         {
-            if (float materialValue; toMaterialValue(assimpMaterial, { {AI_MATKEY_GLTF_ALPHACUTOFF} }, materialValue) == aiReturn_SUCCESS)
+            if (float materialValue;
+                toMaterialValue(assimpMaterial, {{AI_MATKEY_GLTF_ALPHACUTOFF}}, materialValue) == aiReturn_SUCCESS)
                 material->setAlphaCutoff(materialValue);
         }
     }
 
-    if (auto materialMap = toMaterialMap(assimpMaterial, { aiTextureType_NORMALS }, absoluteDir))
+    if (auto materialMap = toMaterialMap(assimpMaterial, {aiTextureType_NORMALS}, absoluteDir))
         material->setMaterialMap(core::MaterialMapTarget::Normal, materialMap);
 
-    if (auto materialMap = toMaterialMap(assimpMaterial, { aiTextureType_OPACITY }, absoluteDir))
+    if (auto materialMap = toMaterialMap(assimpMaterial, {aiTextureType_OPACITY}, absoluteDir))
         material->setMaterialMap(core::MaterialMapTarget::Opacity, materialMap);
 
-    if (auto materialMap = toMaterialMap(assimpMaterial, { aiTextureType_HEIGHT }, absoluteDir))
-        ;// material->setMaterialMap(core::MaterialMapTarget::Height, materialMap);
+    if (auto materialMap = toMaterialMap(assimpMaterial, {aiTextureType_HEIGHT}, absoluteDir))
+        ; // material->setMaterialMap(core::MaterialMapTarget::Height, materialMap);
 
-    if (auto materialMap = toMaterialMap(assimpMaterial, { aiTextureType_EMISSION_COLOR, aiTextureType_EMISSIVE }, absoluteDir))
+    if (auto materialMap = toMaterialMap(assimpMaterial, {aiTextureType_EMISSION_COLOR, aiTextureType_EMISSIVE}, absoluteDir))
         material->setMaterialMap(core::MaterialMapTarget::Emission, materialMap);
 
-    if (auto materialMap = toMaterialMap(assimpMaterial, { aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE }, absoluteDir))
+    if (auto materialMap = toMaterialMap(assimpMaterial, {aiTextureType_BASE_COLOR, aiTextureType_DIFFUSE}, absoluteDir))
         material->setMaterialMap(core::MaterialMapTarget::BaseColor, materialMap);
 
-    if (auto materialMap = toMaterialMap(assimpMaterial, { aiTextureType_GLTF_METALLIC_ROUGHNESS }, absoluteDir))
+    if (auto materialMap = toMaterialMap(assimpMaterial, {aiTextureType_GLTF_METALLIC_ROUGHNESS}, absoluteDir))
     {
         material->setORMSwizzleMask(glm::u32vec3(0u, 1u, 2u));
         material->setMaterialMap(core::MaterialMapTarget::Occlusion, materialMap);
@@ -396,13 +405,14 @@ static std::shared_ptr<core::Material> toMaterial(const aiMaterial* assimpMateri
     }
     else
     {
-        if (auto materialMap = toMaterialMap(assimpMaterial, { aiTextureType_AMBIENT_OCCLUSION, aiTextureType_LIGHTMAP }, absoluteDir))
+        if (auto materialMap =
+                toMaterialMap(assimpMaterial, {aiTextureType_AMBIENT_OCCLUSION, aiTextureType_LIGHTMAP}, absoluteDir))
             material->setMaterialMap(core::MaterialMapTarget::Occlusion, materialMap);
 
-        if (auto materialMap = toMaterialMap(assimpMaterial, { aiTextureType_DIFFUSE_ROUGHNESS }, absoluteDir))
+        if (auto materialMap = toMaterialMap(assimpMaterial, {aiTextureType_DIFFUSE_ROUGHNESS}, absoluteDir))
             material->setMaterialMap(core::MaterialMapTarget::Roughness, materialMap);
 
-        if (auto materialMap = toMaterialMap(assimpMaterial, { aiTextureType_METALNESS }, absoluteDir))
+        if (auto materialMap = toMaterialMap(assimpMaterial, {aiTextureType_METALNESS}, absoluteDir))
             material->setMaterialMap(core::MaterialMapTarget::Metalness, materialMap);
     }
 
@@ -417,25 +427,19 @@ static core::AnimationChannel toAnimationChannel(
     for (size_t i = 0u; i < assimpNodeAnim->mNumScalingKeys; ++i)
         scaleKeys[i] = {
             static_cast<uint32_t>(assimpNodeAnim->mScalingKeys[i].mTime + 0.5),
-            static_cast<float>(assimpNodeAnim->mScalingKeys[i].mValue.x) };
+            static_cast<float>(assimpNodeAnim->mScalingKeys[i].mValue.x)};
 
     std::vector<std::pair<uint32_t, glm::quat>> rotationKeys(assimpNodeAnim->mNumRotationKeys);
     for (size_t i = 0u; i < assimpNodeAnim->mNumRotationKeys; ++i)
         rotationKeys[i] = {
-            static_cast<uint32_t>(assimpNodeAnim->mRotationKeys[i].mTime + 0.5),
-            toQuat(assimpNodeAnim->mRotationKeys[i].mValue) };
+            static_cast<uint32_t>(assimpNodeAnim->mRotationKeys[i].mTime + 0.5), toQuat(assimpNodeAnim->mRotationKeys[i].mValue)};
 
     std::vector<std::pair<uint32_t, glm::vec3>> translationKeys(assimpNodeAnim->mNumPositionKeys);
     for (size_t i = 0u; i < assimpNodeAnim->mNumPositionKeys; ++i)
         translationKeys[i] = {
-            static_cast<uint32_t>(assimpNodeAnim->mPositionKeys[i].mTime + 0.5),
-            toVec3(assimpNodeAnim->mPositionKeys[i].mValue) };
+            static_cast<uint32_t>(assimpNodeAnim->mPositionKeys[i].mTime + 0.5), toVec3(assimpNodeAnim->mPositionKeys[i].mValue)};
 
-    return {
-        assimpBonesIDs.at(assimpNodeAnim->mNodeName),
-        scaleKeys,
-        rotationKeys,
-        translationKeys };
+    return {assimpBonesIDs.at(assimpNodeAnim->mNodeName), scaleKeys, rotationKeys, translationKeys};
 }
 
 static std::shared_ptr<core::Animation> toAnimation(
@@ -450,39 +454,33 @@ static std::shared_ptr<core::Animation> toAnimation(
     }
 
     const auto duration = static_cast<uint32_t>(assimpAnimation->mDuration + .5);
-    const auto ticksPerSecond = static_cast<uint32_t>(assimpAnimation->mTicksPerSecond > 0. ?
-        assimpAnimation->mTicksPerSecond + .5 :
-        25.);
+    const auto ticksPerSecond =
+        static_cast<uint32_t>(assimpAnimation->mTicksPerSecond > 0. ? assimpAnimation->mTicksPerSecond + .5 : 25.);
 
     return std::make_shared<core::Animation>(duration, ticksPerSecond, animationChannels);
 }
 
-static auto assimpFindParentBoneNode = [](
-    const aiNode* assimpBoneNode,
-    const std::unordered_map<aiString, const aiNode*, aiStringHash>& assimpBoneNodes)
+static auto assimpFindParentBoneNode =
+    [](const aiNode* assimpBoneNode, const std::unordered_map<aiString, const aiNode*, aiStringHash>& assimpBoneNodes)
 {
     const aiNode* result = nullptr;
 
-    for (const auto* assimpParentNode = assimpBoneNode->mParent;
-        !result && assimpParentNode;
-        assimpParentNode = assimpParentNode->mParent)
+    for (const auto* assimpParentNode = assimpBoneNode->mParent; !result && assimpParentNode;
+         assimpParentNode = assimpParentNode->mParent)
     {
-        if (auto it = assimpBoneNodes.find(assimpParentNode->mName); it != assimpBoneNodes.end())
-            result = it->second;
+        if (auto it = assimpBoneNodes.find(assimpParentNode->mName); it != assimpBoneNodes.end()) result = it->second;
     }
 
     return result;
 };
 
-static auto assimpFindRootBoneNode = [](
-    const aiNode* assimpBoneNode,
-    const std::unordered_map<aiString, const aiNode*, aiStringHash>& assimpBoneNodes)
+static auto assimpFindRootBoneNode =
+    [](const aiNode* assimpBoneNode, const std::unordered_map<aiString, const aiNode*, aiStringHash>& assimpBoneNodes)
 {
     const aiNode* result = nullptr;
 
-    for (const auto* assimpParentBoneNode = assimpBoneNode;
-        assimpParentBoneNode;
-        assimpParentBoneNode = assimpFindParentBoneNode(result, assimpBoneNodes))
+    for (const auto* assimpParentBoneNode = assimpBoneNode; assimpParentBoneNode;
+         assimpParentBoneNode = assimpFindParentBoneNode(result, assimpBoneNodes))
     {
         result = assimpParentBoneNode;
     }
@@ -490,91 +488,51 @@ static auto assimpFindRootBoneNode = [](
     return result;
 };
 
-static std::vector<std::shared_ptr<core::Skeleton>> toSkeletons(
+static std::shared_ptr<core::Skeleton> toSkeleton(
     const aiScene* assimpScene,
     const std::unordered_map<aiString, const aiNode*, aiStringHash>& assimpBoneNodes,
-    std::unordered_map<aiString, uint32_t, aiStringHash>& assimpBonesIDs,
-    std::unordered_map<aiString, uint32_t, aiStringHash>& assimpSkeletonsIDs)
+    std::unordered_map<aiString, uint32_t, aiStringHash>& assimpBonesIDs)
 {
     static auto assimpBoneTransform = [](const aiNode* assimpBoneNode, const aiNode* assimpParentBoneNode)
     {
         utils::Transform result;
-        for (const auto* assimpParentNode = assimpBoneNode;
-            assimpParentNode && (assimpParentNode != assimpParentBoneNode);
-            assimpParentNode = assimpParentNode->mParent)
-            result = result * toTransform(assimpParentNode->mTransformation);
+        for (const auto* assimpParentNode = assimpBoneNode; assimpParentNode && (assimpParentNode != assimpParentBoneNode);
+             assimpParentNode = assimpParentNode->mParent)
+            result = toTransform(assimpParentNode->mTransformation) * result;
         return result;
     };
 
-    static auto assimpFindBoneID = [](
-        auto& self,
-        const aiScene* assimpScene,
-        const aiNode* assimpBoneNode,
-        const std::unordered_map<aiString, const aiNode*, aiStringHash>& assimpBoneNodes,
-        std::unordered_map<aiString, uint32_t, aiStringHash>& assimpBonesIDs,
-        std::vector<core::Bone>& bones)
+    static auto assimpFindBoneID = [](auto& self, const aiScene* assimpScene, const aiNode* assimpBoneNode,
+                                      const std::unordered_map<aiString, const aiNode*, aiStringHash>& assimpBoneNodes,
+                                      std::unordered_map<aiString, uint32_t, aiStringHash>& assimpBonesIDs,
+                                      std::vector<core::Bone>& bones) -> core::Bone::ID
     {
-        if (!assimpBoneNode)
-            return 0xFFFFFFFFu;
+        if (!assimpBoneNode) return core::Bone::UndefinedID;
 
-        if (auto it = assimpBonesIDs.find(assimpBoneNode->mName); it != assimpBonesIDs.end())
-            return it->second;
+        if (auto it = assimpBonesIDs.find(assimpBoneNode->mName); it != assimpBonesIDs.end()) return it->second;
 
         const auto* assimpParentBoneNode = assimpFindParentBoneNode(assimpBoneNode, assimpBoneNodes);
 
-        const uint32_t parentBoneID = self(
-            self,
-            assimpScene,
-            assimpParentBoneNode,
-            assimpBoneNodes,
-            assimpBonesIDs,
-            bones);
+        const auto parentBoneID = self(self, assimpScene, assimpParentBoneNode, assimpBoneNodes, assimpBonesIDs, bones);
+        const auto boneID = static_cast<core::Bone::ID>(bones.size());
+        bones.push_back(
+            {toTransform(assimpScene->findBone(assimpBoneNode->mName)->mOffsetMatrix),
+             assimpBoneTransform(assimpBoneNode, assimpParentBoneNode), parentBoneID, std::vector<core::Bone::ID>()});
 
-        const uint32_t boneID = static_cast<uint32_t>(bones.size());
-        bones.push_back({
-            toTransform(assimpScene->findBone(assimpBoneNode->mName)->mOffsetMatrix),
-            assimpBoneTransform(assimpBoneNode, assimpParentBoneNode),
-            parentBoneID,
-            std::vector<uint32_t>() });
-
-        assimpBonesIDs.insert({ assimpBoneNode->mName, boneID });
+        assimpBonesIDs.insert({assimpBoneNode->mName, boneID});
 
         return boneID;
     };
 
-    std::vector<std::tuple<std::vector<core::Bone>, uint32_t, std::map<std::string, std::shared_ptr<core::Animation>>>> skeletons;
+    std::vector<core::Bone> bones;
+    std::map<std::string, std::shared_ptr<core::Animation>> animations;
     for (const auto& [_, assimpBoneNode] : assimpBoneNodes)
     {
-        const auto* assimpRootBoneNode = assimpFindRootBoneNode(assimpBoneNode, assimpBoneNodes);
-        if (auto it = assimpSkeletonsIDs.find(assimpRootBoneNode->mName); it == assimpSkeletonsIDs.end())
-        {
-            auto skeletonID = static_cast<uint32_t>(skeletons.size());
-            skeletons.push_back(std::make_tuple(
-                std::vector<core::Bone>(),
-                0xFFFFFFFFu,
-                std::map<std::string, std::shared_ptr<core::Animation>>()));
-            assimpSkeletonsIDs.insert({ assimpRootBoneNode->mName, skeletonID });
-        }
-    }
+        const auto boneID =
+            assimpFindBoneID(assimpFindBoneID, assimpScene, assimpBoneNode, assimpBoneNodes, assimpBonesIDs, bones);
 
-    for (const auto& [_, assimpBoneNode] : assimpBoneNodes)
-    {
-        const auto* assimpRootBoneNode = assimpFindRootBoneNode(assimpBoneNode, assimpBoneNodes);
-        const auto skeletonID = assimpSkeletonsIDs.at(assimpRootBoneNode->mName);
-        auto& skeletonBones = std::get<0>(skeletons[skeletonID]);
-
-        const auto boneID = assimpFindBoneID(
-            assimpFindBoneID,
-            assimpScene,
-            assimpBoneNode,
-            assimpBoneNodes,
-            assimpBonesIDs,
-            skeletonBones);
-
-        if (const auto parentBoneID = skeletonBones[boneID].parentID; parentBoneID != 0xFFFFFFFFu)
-            skeletonBones[parentBoneID].childrenIDs.push_back(boneID);
-        else
-            std::get<1>(skeletons[skeletonID]) = boneID;
+        if (const auto parentBoneID = bones[boneID].parentID; parentBoneID != core::Bone::UndefinedID)
+            bones[parentBoneID].childrenIDs.push_back(boneID);
     }
 
     if (assimpScene->HasAnimations())
@@ -584,26 +542,13 @@ static std::vector<std::shared_ptr<core::Skeleton>> toSkeletons(
             const auto* assimpAnimation = assimpScene->mAnimations[i];
             if (assimpAnimation->mNumChannels && assimpAnimation->mChannels)
             {
-                if (auto boneIt = assimpBoneNodes.find(assimpAnimation->mChannels[0u]->mNodeName); boneIt != assimpBoneNodes.end())
-                {
-                    const auto* assimpRootBoneNode = assimpFindRootBoneNode(boneIt->second, assimpBoneNodes);
-                    if (auto rootBoneIt = assimpSkeletonsIDs.find(assimpRootBoneNode->mName); rootBoneIt != assimpSkeletonsIDs.end())
-                    {
-                        const auto skeletonID = rootBoneIt->second;
-                        auto& skeletonAnimations = std::get<2>(skeletons[skeletonID]);
-                        skeletonAnimations.insert({
-                            toString(assimpAnimation->mName),
-                            toAnimation(assimpAnimation, assimpBonesIDs)});
-                    }
-                }
-                
+                animations.insert({toString(assimpAnimation->mName), toAnimation(assimpAnimation, assimpBonesIDs)});
             }
         }
     }
 
-    std::vector<std::shared_ptr<core::Skeleton>> result;
-    for (const auto& skeleton : skeletons)
-        result.push_back(std::make_shared<core::Skeleton>(std::get<0>(skeleton), std::get<1>(skeleton), std::get<2>(skeleton)));
+    std::shared_ptr<core::Skeleton> result;
+    if (!bones.empty()) result = std::make_shared<core::Skeleton>(bones, animations);
 
     return result;
 }
@@ -614,7 +559,6 @@ static size_t toNodeRepresentation(
     const std::unordered_map<aiString, const aiCamera*, aiStringHash>& assimpCameras,
     const std::unordered_map<aiString, const aiLight*, aiStringHash>& assimpLights,
     const std::unordered_map<aiString, uint32_t, aiStringHash>& assimpBonesIDs,
-    const std::unordered_map<aiString, uint32_t, aiStringHash>& assimpSkeletonsIDs,
     std::vector<std::shared_ptr<core::NodeRepresentation>>& nodesRepresentations)
 {
     const auto nodeRepresentationName = toString(assimpNode->mName);
@@ -626,66 +570,34 @@ static size_t toNodeRepresentation(
     std::vector<size_t> nodeRepresentationChildrenIDs(assimpNode->mNumChildren);
     for (size_t i = 0u; i < assimpNode->mNumChildren; ++i)
         nodeRepresentationChildrenIDs[i] = toNodeRepresentation(
-            assimpNode->mChildren[i],
-            assimpBoneNodes,
-            assimpCameras,
-            assimpLights,
-            assimpBonesIDs,
-            assimpSkeletonsIDs,
-            nodesRepresentations);
+            assimpNode->mChildren[i], assimpBoneNodes, assimpCameras, assimpLights, assimpBonesIDs, nodesRepresentations);
 
     std::shared_ptr<core::NodeRepresentation> nodeRepresentation;
 
     if (assimpNode->mNumMeshes)
     {
-        std::vector<size_t> drawableNodeRepresentationDrawablesIDs(assimpNode->mMeshes, assimpNode->mMeshes + assimpNode->mNumMeshes);
+        std::vector<size_t> drawableNodeRepresentationDrawablesIDs(
+            assimpNode->mMeshes, assimpNode->mMeshes + assimpNode->mNumMeshes);
         nodeRepresentation = std::make_shared<core::DrawableNodeRepresentation>(
-            nodeRepresentationName,
-            nodeRepresentationTransform,
-            nodeRepresentationChildrenIDs,
+            nodeRepresentationName, nodeRepresentationTransform, nodeRepresentationChildrenIDs,
             drawableNodeRepresentationDrawablesIDs);
-    }
-    else if (auto assimpRootBoneIter = assimpSkeletonsIDs.find(assimpNode->mName); assimpRootBoneIter != assimpSkeletonsIDs.end())
-    {
-        nodeRepresentation = std::make_shared<core::RootBoneNodeRepresentation>(
-            nodeRepresentationName,
-            nodeRepresentationTransform,
-            nodeRepresentationChildrenIDs,
-            assimpRootBoneIter->second,
-            assimpBonesIDs.at(assimpNode->mName));
-    }
-    else if (auto assimpBoneIter = assimpBonesIDs.find(assimpNode->mName); assimpBoneIter != assimpBonesIDs.end())
-    {
-        nodeRepresentation = std::make_shared<core::BoneNodeRepresentation>(
-            nodeRepresentationName,
-            nodeRepresentationTransform,
-            nodeRepresentationChildrenIDs,
-            assimpBoneIter->second);
     }
     else if (auto assimpCameraIter = assimpCameras.find(assimpNode->mName); assimpCameraIter != assimpCameras.end())
     {
         const auto cs = utils::ClipSpace::makeIdentity();
         const auto z = utils::Range();
         nodeRepresentation = std::make_shared<core::CameraNodeRepresentation>(
-            nodeRepresentationName,
-            nodeRepresentationTransform,
-            nodeRepresentationChildrenIDs,
-            cs,
-            z);
+            nodeRepresentationName, nodeRepresentationTransform, nodeRepresentationChildrenIDs, cs, z);
     }
     else if (auto assimpLightIter = assimpLights.find(assimpNode->mName); assimpLightIter != assimpLights.end())
     {
         nodeRepresentation = std::make_shared<core::LightNodeRepresentation>(
-            nodeRepresentationName,
-            nodeRepresentationTransform,
-            nodeRepresentationChildrenIDs);
+            nodeRepresentationName, nodeRepresentationTransform, nodeRepresentationChildrenIDs);
     }
     else
     {
         nodeRepresentation = std::make_shared<core::NodeRepresentation>(
-            nodeRepresentationName,
-            nodeRepresentationTransform,
-            nodeRepresentationChildrenIDs);
+            nodeRepresentationName, nodeRepresentationTransform, nodeRepresentationChildrenIDs);
     }
 
     nodesRepresentations[nodeRepresentationID] = nodeRepresentation;
@@ -694,7 +606,8 @@ static size_t toNodeRepresentation(
 
 AssimpScenesLoader::AssimpScenesLoader()
     : core::LoaderBase<core::SceneRepresentation>("AssimpScenesLoader")
-{}
+{
+}
 
 AssimpScenesLoader::~AssimpScenesLoader() = default;
 
@@ -707,8 +620,21 @@ std::shared_ptr<core::SceneRepresentation> AssimpScenesLoader::loadResource(cons
         absoluteFileName.string(),
         aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_FlipUVs | aiProcess_GenBoundingBoxes);
 
-    if (!assimpScene)
-        return nullptr;
+    if (!assimpScene) return nullptr;
+
+    // tmp
+    auto print = [](auto& self, aiNode* node, int t) -> void
+    {
+        for (int i = 0; i < t; ++i)
+            std::cout << ' ';
+        std::cout << node->mName.C_Str() << std::endl;
+        for (int i = 0; i < node->mNumChildren; ++i)
+            self(self, node->mChildren[i], t + 2);
+    };
+    //
+    print(print, assimpScene->mRootNode, 0);
+
+    assimpScene->findBone(aiString("mixamorig:Hips"));
 
     std::vector<std::shared_ptr<core::Material>> materials;
     if (assimpScene->HasMaterials())
@@ -727,7 +653,7 @@ std::shared_ptr<core::SceneRepresentation> AssimpScenesLoader::loadResource(cons
         for (uint32_t i = 0u; i < assimpScene->mNumCameras; ++i)
         {
             auto* assimpCamera = assimpScene->mCameras[i];
-            assimpCameras.insert({ assimpCamera->mName, assimpCamera });
+            assimpCameras.insert({assimpCamera->mName, assimpCamera});
         }
     }
 
@@ -738,15 +664,14 @@ std::shared_ptr<core::SceneRepresentation> AssimpScenesLoader::loadResource(cons
         for (uint32_t i = 0u; i < assimpScene->mNumLights; ++i)
         {
             auto* assimpLight = assimpScene->mLights[i];
-            assimpLights.insert({ assimpLight->mName, assimpLight });
+            assimpLights.insert({assimpLight->mName, assimpLight});
         }
     }
 
     std::vector<std::shared_ptr<core::Drawable>> drawables;
-    std::vector<std::shared_ptr<core::Skeleton>> skeletons;
+    std::shared_ptr<core::Skeleton> skeleton;
     std::unordered_map<aiString, const aiNode*, aiStringHash> assimpBoneNodes;
     std::unordered_map<aiString, uint32_t, aiStringHash> assimpBonesIDs;
-    std::unordered_map<aiString, uint32_t, aiStringHash> assimpSkeletonsIDs;
     if (assimpScene->HasMeshes())
     {
         for (uint32_t i = 0u; i < assimpScene->mNumMeshes; ++i)
@@ -757,17 +682,16 @@ std::shared_ptr<core::SceneRepresentation> AssimpScenesLoader::loadResource(cons
                 for (uint32_t j = 0u; j < assimpMesh->mNumBones; ++j)
                 {
                     auto* assimpBone = assimpMesh->mBones[j];
-                    if (auto assimpBoneNodeIter = assimpBoneNodes.find(assimpBone->mName); assimpBoneNodeIter == assimpBoneNodes.end())
+                    if (auto assimpBoneNodeIter = assimpBoneNodes.find(assimpBone->mName);
+                        assimpBoneNodeIter == assimpBoneNodes.end())
                     {
-                        assimpBoneNodes.insert({
-                            assimpBone->mName,
-                            assimpScene->mRootNode->findBoneNode(assimpBone) });
+                        assimpBoneNodes.insert({assimpBone->mName, assimpScene->mRootNode->findBoneNode(assimpBone)});
                     }
                 }
             }
         }
 
-        skeletons = toSkeletons(assimpScene, assimpBoneNodes, assimpBonesIDs, assimpSkeletonsIDs);
+        skeleton = toSkeleton(assimpScene, assimpBoneNodes, assimpBonesIDs);
 
         drawables.reserve(assimpScene->mNumMeshes);
         for (uint32_t i = 0u; i < assimpScene->mNumMeshes; ++i)
@@ -779,21 +703,11 @@ std::shared_ptr<core::SceneRepresentation> AssimpScenesLoader::loadResource(cons
 
     std::vector<std::shared_ptr<core::NodeRepresentation>> nodesRepresentations;
     const auto rootNodeRepresentationID = toNodeRepresentation(
-        assimpScene->mRootNode,
-        assimpBoneNodes,
-        assimpCameras,
-        assimpLights,
-        assimpBonesIDs,
-        assimpSkeletonsIDs,
-        nodesRepresentations);
+        assimpScene->mRootNode, assimpBoneNodes, assimpCameras, assimpLights, assimpBonesIDs, nodesRepresentations);
 
     return std::make_shared<core::SceneRepresentation>(
-        toString(assimpScene->mName),
-        drawables,
-        skeletons,
-        nodesRepresentations,
-        rootNodeRepresentationID);
+        toString(assimpScene->mName), drawables, skeleton, nodesRepresentations, rootNodeRepresentationID);
 }
 
-}
-}
+} // namespace scenes_loader_assimp
+} // namespace simplex

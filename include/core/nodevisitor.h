@@ -21,10 +21,9 @@ public:
     virtual ~NodeVisitor();
 
     virtual bool visit(Node&);
-
 };
 
-} // namespace
-} // namespace
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_NODEVISITOR_H

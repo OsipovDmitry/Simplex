@@ -31,8 +31,8 @@ struct Information
     std::vector<SceneInformation> scenesInformation;
 };
 
-}
-}
-}
+} // namespace debug
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_DEBUGINFORMATION_H

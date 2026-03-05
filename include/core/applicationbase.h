@@ -1,8 +1,8 @@
 #ifndef APPLICATIONBASE_H
 #define APPLICATIONBASE_H
 
-#include <memory>
 #include <filesystem>
+#include <memory>
 
 #include <utils/noncopyble.h>
 
@@ -23,7 +23,7 @@ class CORE_SHARED_EXPORT ApplicationBase : public INamedObject
 public:
     ~ApplicationBase() override;
 
-    const std::string &name() const override;
+    const std::string& name() const override;
 
     bool registerDevice(const std::shared_ptr<IDevice>&);
     bool unregisterDevice(const std::shared_ptr<IDevice>&);
@@ -36,7 +36,7 @@ public:
     static ApplicationBase& instance();
 
     void shutDown();
-    //void update(uint64_t time, uint32_t dt);
+    // void update(uint64_t time, uint32_t dt);
 
     std::shared_ptr<Scene> scene();
     std::shared_ptr<const Scene> scene() const;
@@ -46,10 +46,9 @@ protected:
     ApplicationBase(const std::string&, ApplicationTimeCallback, ApplicationPollEventsCallback);
 
     std::unique_ptr<ApplicationBasePrivate> m_;
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // APPLICATIONBASE_H

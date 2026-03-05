@@ -1,5 +1,5 @@
-#include <core/nodevisitor.h>
 #include <core/node.h>
+#include <core/nodevisitor.h>
 #include <core/scenerootnode.h>
 
 #include "nodeprivate.h"
@@ -10,14 +10,14 @@ namespace simplex
 namespace core
 {
 
-Node::Node(const std::string &name)
+Node::Node(const std::string& name)
     : m_(std::make_unique<NodePrivate>(*this, name))
 {
 }
 
 Node::~Node() = default;
 
-const std::string &Node::name() const
+const std::string& Node::name() const
 {
     return m_->name();
 }
@@ -37,8 +37,7 @@ std::shared_ptr<const Node> Node::rootNode() const
 std::shared_ptr<Scene> Node::scene()
 {
     std::shared_ptr<Scene> result;
-    if (auto sceneRootNode = rootNode()->asSceneRootNode())
-        result = sceneRootNode->scene();
+    if (auto sceneRootNode = rootNode()->asSceneRootNode()) result = sceneRootNode->scene();
 
     return result;
 }
@@ -99,12 +98,12 @@ std::shared_ptr<const LightNode> Node::asLightNode() const
     return nullptr;
 }
 
-std::shared_ptr<BoneNode> Node::asBoneNode()
+std::shared_ptr<SkeletalAnimatedNode> Node::asSkeletalAnimatedNode()
 {
     return nullptr;
 }
 
-std::shared_ptr<const BoneNode> Node::asBoneNode() const
+std::shared_ptr<const SkeletalAnimatedNode> Node::asSkeletalAnimatedNode() const
 {
     return nullptr;
 }
@@ -129,17 +128,17 @@ std::shared_ptr<const ListenerNode> Node::asListenerNode() const
     return nullptr;
 }
 
-const utils::Transform &Node::globalTransform() const
+const utils::Transform& Node::globalTransform() const
 {
     return m_->globalTransform();
 }
 
-const utils::Transform &Node::transform() const
+const utils::Transform& Node::transform() const
 {
     return m_->transform();
 }
 
-void Node::setTransform(const utils::Transform &t)
+void Node::setTransform(const utils::Transform& t)
 {
     BeforeTransformChangedNodeVisitor beforeTransformChangedNodeVisitor;
     acceptDown(beforeTransformChangedNodeVisitor);
@@ -152,17 +151,16 @@ void Node::setTransform(const utils::Transform &t)
     acceptDown(afterTransformChangedNodeVisitor);
 }
 
-void Node::acceptUp(NodeVisitor &nodeVisitor)
+void Node::acceptUp(NodeVisitor& nodeVisitor)
 {
     if (nodeVisitor.visit(*this))
-        if (auto p = parent())
-            p->acceptUp(nodeVisitor);
+        if (auto p = parent()) p->acceptUp(nodeVisitor);
 }
 
-void Node::acceptDown(NodeVisitor &nodeVisitor)
+void Node::acceptDown(NodeVisitor& nodeVisitor)
 {
     if (nodeVisitor.visit(*this))
-        for (auto &child : children())
+        for (auto& child : children())
             child->acceptDown(nodeVisitor);
 }
 
@@ -197,5 +195,5 @@ void Node::doDetach()
     m_->dirtyGlobalTransform();
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

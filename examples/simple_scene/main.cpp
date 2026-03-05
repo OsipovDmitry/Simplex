@@ -1,32 +1,32 @@
-#include <utils/logger.h>
-#include <utils/transform.h>
-#include <utils/meshpainter.h>
-#include <utils/mesh.h>
 #include <utils/glm/gtc/color_space.hpp>
+#include <utils/logger.h>
+#include <utils/mesh.h>
+#include <utils/meshpainter.h>
+#include <utils/transform.h>
 
 #include <core/applicationbase.h>
 #include <core/background.h>
+#include <core/cameranode.h>
+#include <core/directionallightnode.h>
+#include <core/drawable.h>
+#include <core/drawablenode.h>
 #include <core/graphicsengine.h>
 #include <core/graphicsrendererbase.h>
-#include <core/scene.h>
-#include <core/scenerootnode.h>
-#include <core/cameranode.h>
-#include <core/drawablenode.h>
-#include <core/drawable.h>
 #include <core/imagebasedllightnode.h>
-#include <core/directionallightnode.h>
-#include <core/pointlightnode.h>
-#include <core/spotlightnode.h>
-#include <core/mesh.h>
 #include <core/material.h>
-#include <core/scenerepresentation.h>
-#include <core/scenesloader.h>
+#include <core/mesh.h>
 #include <core/nodecollector.h>
+#include <core/pointlightnode.h>
+#include <core/scene.h>
+#include <core/scenerepresentation.h>
+#include <core/scenerootnode.h>
+#include <core/scenesloader.h>
 #include <core/skeletalanimatednode.h>
-
-#include <scenes_loader_assimp/scenesloaderassimp.h>
+#include <core/skeletalanimation.h>
+#include <core/spotlightnode.h>
 
 #include <graphics_glfw/glfwwidget.h>
+#include <scenes_loader_assimp/scenesloaderassimp.h>
 
 struct Cone
 {
@@ -40,7 +40,8 @@ struct Cone
         , direction(glm::normalize(d))
         , height(h)
         , angle(a)
-    {}
+    {
+    }
 
     bool isPointInside(const glm::vec3& v) const
     {
@@ -63,11 +64,7 @@ glm::vec3 coneDirection(const Cone& c)
 
 Cone transformCone(const simplex::utils::Transform& t, const Cone& c)
 {
-    return Cone{
-        t.transformPoint(c.origin),
-        t.transformVector(c.direction),
-        t.scale * c.height,
-        c.angle };
+    return Cone{t.transformPoint(c.origin), t.transformVector(c.direction), t.scale * c.height, c.angle};
 }
 
 #define INSIDE 1
@@ -125,11 +122,9 @@ bool rangeIsPointInside(const Range& r, float t)
 
 int rangeClassifyRange(const Range& r0, Range& r1)
 {
-    if (rangeIsPointInside(r0, rangeStart(r1)) && rangeIsPointInside(r0, rangeEnd(r1)))
-        return INSIDE;
+    if (rangeIsPointInside(r0, rangeStart(r1)) && rangeIsPointInside(r0, rangeEnd(r1))) return INSIDE;
 
-    if (rangeGreaterThan(r1, rangeEnd(r0)) || rangeLessThan(r1, rangeStart(r0)))
-        return OUTSIDE;
+    if (rangeGreaterThan(r1, rangeEnd(r0)) || rangeLessThan(r1, rangeStart(r0))) return OUTSIDE;
 
     return INTERSECT;
 }
@@ -199,9 +194,8 @@ int coneClassifyBoundingBox(const Cone& c, const simplex::utils::BoundingBox& bb
 
     simplex::utils::Line l(coneOrigin(c), coneDir);
     int classify = rangeClassifyRange(
-        //makeRange(0.0f, c.height),
-        coneProjectOnLine(c, l),
-        boundingBoxProjectOnLine(bb, l));
+        // makeRange(0.0f, c.height),
+        coneProjectOnLine(c, l), boundingBoxProjectOnLine(bb, l));
     if (classify == OUTSIDE)
         return OUTSIDE;
     else if (classify == INTERSECT)
@@ -217,7 +211,7 @@ int coneClassifyBoundingBox(const Cone& c, const simplex::utils::BoundingBox& bb
         l = makeLine(boxCenter, dir);
         classify = rangeClassifyRange(
             coneProjectOnLine(c, l),
-            //makeRange(boxCenter[i] - boxHalfSize[i], boxCenter[i] + boxHalfSize[i]));
+            // makeRange(boxCenter[i] - boxHalfSize[i], boxCenter[i] + boxHalfSize[i]));
             boundingBoxProjectOnLine(bb, l));
         if (classify == OUTSIDE)
             return OUTSIDE;
@@ -225,13 +219,10 @@ int coneClassifyBoundingBox(const Cone& c, const simplex::utils::BoundingBox& bb
             inside = false;
 
         dir = glm::cross(dir, coneDir);
-        if (glm::length(dir) < simplex::utils::epsilon<float>())
-            continue;
+        if (glm::length(dir) < simplex::utils::epsilon<float>()) continue;
 
         l = makeLine(boxCenter, dir);
-        classify = rangeClassifyRange(
-            coneProjectOnLine(c, l),
-            boundingBoxProjectOnLine(bb, l));
+        classify = rangeClassifyRange(coneProjectOnLine(c, l), boundingBoxProjectOnLine(bb, l));
         if (classify == OUTSIDE)
             return OUTSIDE;
         else if (classify == INTERSECT)
@@ -241,7 +232,11 @@ int coneClassifyBoundingBox(const Cone& c, const simplex::utils::BoundingBox& bb
     return inside ? INSIDE : INTERSECT;
 }
 
-struct LineIntersectConeResult { uint32_t count; float t[2u]; };
+struct LineIntersectConeResult
+{
+    uint32_t count;
+    float t[2u];
+};
 LineIntersectConeResult lineIntersectCone(const simplex::utils::Line& l, const Cone& c)
 {
     const glm::quat rot = glm::quat(c.direction, glm::vec3(0.0f, 0.0f, 1.0f));
@@ -270,8 +265,7 @@ LineIntersectConeResult lineIntersectCone(const simplex::utils::Line& l, const C
         if (abs(coefB) > simplex::utils::epsilon<float>())
         {
             float t = -coefC / coefB;
-            if (rangeIsPointInside(r, lo.z + t * ld.z))
-                resT[resCount++] = t;
+            if (rangeIsPointInside(r, lo.z + t * ld.z)) resT[resCount++] = t;
         }
     }
     else
@@ -283,33 +277,26 @@ LineIntersectConeResult lineIntersectCone(const simplex::utils::Line& l, const C
             ;
         else if (d < simplex::utils::epsilon<float>())
         {
-            if (abs(ld.z) > cosAngle)
-                resT[resCount++] = -coefB * inv2A;
+            if (abs(ld.z) > cosAngle) resT[resCount++] = -coefB * inv2A;
         }
         else
         {
             const float sqrtD = sqrt(d);
 
             const float t0 = (-coefB + sqrtD) * inv2A;
-            if (rangeIsPointInside(r, lo.z + t0 * ld.z))
-                resT[resCount++] = t0;
+            if (rangeIsPointInside(r, lo.z + t0 * ld.z)) resT[resCount++] = t0;
 
             const float t1 = (-coefB - sqrtD) * inv2A;
-            if (rangeIsPointInside(r, lo.z + t1 * ld.z))
-                resT[resCount++] = t1;
+            if (rangeIsPointInside(r, lo.z + t1 * ld.z)) resT[resCount++] = t1;
         }
     }
 
-    if (resCount == 1u)
-        resT[resCount++] = (r[1u] - lo.z) / ld.z;
+    if (resCount == 1u) resT[resCount++] = (r[1u] - lo.z) / ld.z;
 
-    if ((resCount > 0u) && (resT[0u] > resT[1u]))
-        std::swap(resT[0u], resT[1u]);
+    if ((resCount > 0u) && (resT[0u] > resT[1u])) std::swap(resT[0u], resT[1u]);
 
-    return { resCount, {resT[0u], resT[1u]}};
+    return {resCount, {resT[0u], resT[1u]}};
 }
-
-
 
 Cone cone(glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f), 6.f, glm::quarter_pi<float>() / 2.0f);
 std::weak_ptr<simplex::core::Material> boxMat;
@@ -325,12 +312,11 @@ static std::shared_ptr<simplex::core::Scene> createScene(
 
     auto scene = simplex::core::Scene::createEmpty(name);
 
-    simplex::utils::MeshPainter planePainter(simplex::utils::Mesh::createEmptyMesh({
-        {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
-        {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}},
-        {simplex::utils::VertexAttribute::TexCoords, {2u, simplex::utils::VertexComponentType::Single}},
-        {simplex::utils::VertexAttribute::Tangent, {4u, simplex::utils::VertexComponentType::Single}}
-        }));
+    simplex::utils::MeshPainter planePainter(simplex::utils::Mesh::createEmptyMesh(
+        {{simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
+         {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}},
+         {simplex::utils::VertexAttribute::TexCoords, {2u, simplex::utils::VertexComponentType::Single}},
+         {simplex::utils::VertexAttribute::Tangent, {4u, simplex::utils::VertexComponentType::Single}}}));
     planePainter.setVertexTransform(simplex::utils::Transform::makeScale(10.f));
     planePainter.setTexCoordsTransform(simplex::utils::Transform::makeScale(5.f));
     planePainter.drawPlane();
@@ -351,38 +337,29 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     planeMaterial->setDoubleSided(false);
 
     auto planeDrawableNode = std::make_shared<simplex::core::DrawableNode>("");
-    planeDrawableNode->addDrawable(
-        std::make_shared<simplex::core::Drawable>(planeMesh, planeMaterial));
+    planeDrawableNode->addDrawable(std::make_shared<simplex::core::Drawable>(planeMesh, planeMaterial));
     planeDrawableNode->setTransform(
         simplex::utils::Transform::makeRotation(glm::quat(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f))));
     scene->sceneRootNode()->attach(planeDrawableNode);
 
     static const size_t NumGeometries = 4u;
-    static const std::array<glm::vec3, NumGeometries> nodePositions {
-        glm::vec3(-1.f, 0.f, -1.f),
-        glm::vec3(-1.f, 0.f, +1.f),
-        glm::vec3(+1.f, 1.f, +1.f),
-        glm::vec3(+1.f, 0.f, -1.f) };
+    static const std::array<glm::vec3, NumGeometries> nodePositions{
+        glm::vec3(-1.f, 0.f, -1.f), glm::vec3(-1.f, 0.f, +1.f), glm::vec3(+1.f, 1.f, +1.f), glm::vec3(+1.f, 0.f, -1.f)};
     static const std::array<simplex::utils::MeshPainter& (simplex::utils::MeshPainter::*)(), NumGeometries> painterFunctions{
-        &simplex::utils::MeshPainter::drawBunny,
-        &simplex::utils::MeshPainter::drawTeapot,
-        &simplex::utils::MeshPainter::drawSuzanne,
-        &simplex::utils::MeshPainter::drawTetrahedron
-    };
+        &simplex::utils::MeshPainter::drawBunny, &simplex::utils::MeshPainter::drawTeapot,
+        &simplex::utils::MeshPainter::drawSuzanne, &simplex::utils::MeshPainter::drawTetrahedron};
     static const std::array<glm::vec4, NumGeometries> materialBaseColors{
-        glm::convertSRGBToLinear(glm::vec4(.5f, .5f, 1.f, 1.f)),
-        glm::convertSRGBToLinear(glm::vec4(1.f, 0.f, 0.f, .2f)),
-        glm::convertSRGBToLinear(glm::vec4(0.f, 1.f, 0.f, 1.f)),
-        glm::convertSRGBToLinear(glm::vec4(0.f, 0.f, 1.f, .3f)) };
+        glm::convertSRGBToLinear(glm::vec4(.5f, .5f, 1.f, 1.f)), glm::convertSRGBToLinear(glm::vec4(1.f, 0.f, 0.f, .2f)),
+        glm::convertSRGBToLinear(glm::vec4(0.f, 1.f, 0.f, 1.f)), glm::convertSRGBToLinear(glm::vec4(0.f, 0.f, 1.f, .3f))};
 
     for (size_t i = 0u; i < NumGeometries; ++i)
     {
-        simplex::utils::MeshPainter painter(simplex::utils::Mesh::createEmptyMesh({
-        {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
-        {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}} }));
+        simplex::utils::MeshPainter painter(simplex::utils::Mesh::createEmptyMesh(
+            {{simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
+             {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}}}));
 
         (painter.*(painterFunctions[i]))();
-        
+
         auto mesh = std::make_shared<simplex::core::Mesh>(painter.mesh(), painter.calculateBoundingBox());
 
         auto material = std::make_shared<simplex::core::Material>();
@@ -397,12 +374,13 @@ static std::shared_ptr<simplex::core::Scene> createScene(
         drawableNode->setTransform(simplex::utils::Transform::makeTranslation(nodePositions[i]));
         scene->sceneRootNode()->attach(drawableNode);
     }
-    
-    //cone
-    simplex::utils::MeshPainter conePainter(simplex::utils::Mesh::createEmptyMesh({
-        {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
-        {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}} }));
-    conePainter.setVertexTransform(simplex::utils::Transform(1.0f, glm::quat(glm::vec3(0.0f, 0.0f, -1.0f), cone.direction), cone.origin));
+
+    // cone
+    simplex::utils::MeshPainter conePainter(simplex::utils::Mesh::createEmptyMesh(
+        {{simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
+         {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}}}));
+    conePainter.setVertexTransform(
+        simplex::utils::Transform(1.0f, glm::quat(glm::vec3(0.0f, 0.0f, -1.0f), cone.direction), cone.origin));
     conePainter.drawCone(cone.height, cone.angle, 32u);
 
     auto coneMesh = std::make_shared<simplex::core::Mesh>(conePainter.mesh(), conePainter.calculateBoundingBox());
@@ -417,7 +395,7 @@ static std::shared_ptr<simplex::core::Scene> createScene(
 
     auto coneDrawableNode = std::make_shared<simplex::core::DrawableNode>("");
     coneDrawableNode->addDrawable(sphDrawable);
-    //scene->sceneRootNode()->attach(coneDrawableNode);
+    // scene->sceneRootNode()->attach(coneDrawableNode);
     //
 
     auto cameraNode = std::make_shared<simplex::core::CameraNode>("");
@@ -427,14 +405,14 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     pointLightNode->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(0.f, 2.f, 0.f)));
     pointLightNode->setColor(glm::vec3(3.f));
     pointLightNode->setRadiuses(glm::vec2(2.5f, 3.f));
-    //scene->sceneRootNode()->attach(pointLightNode);
+    // scene->sceneRootNode()->attach(pointLightNode);
 
     auto spotLightNode = std::make_shared<simplex::core::SpotLightNode>("");
-    spotLightNode->setTransform(simplex::utils::Transform::makeLookAt(
-        glm::vec3(1.f), glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f)).inverted());
+    spotLightNode->setTransform(
+        simplex::utils::Transform::makeLookAt(glm::vec3(1.f), glm::vec3(0.f), glm::vec3(0.f, 1.f, 0.f)).inverted());
     spotLightNode->setColor(glm::vec3(3.f));
     spotLightNode->setRadiuses(glm::vec2(2.5f, 3.f));
-    //scene->sceneRootNode()->attach(spotLightNode);
+    // scene->sceneRootNode()->attach(spotLightNode);
 
     auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
     IBLNode->setContribution(1.f);
@@ -444,9 +422,9 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     auto directionalLightNode = std::make_shared<simplex::core::DirectionalLightNode>("");
     directionalLightNode->setTransform(simplex::utils::Transform::makeRotation(
         glm::quat(glm::normalize(glm::vec3(1.f)), glm::normalize(glm::vec3(0.f, 0.f, -1)))));
-    //directionalLightNode->shadow().setMode(simplex::core::ShadingMode::Opaque);
-    //directionalLightNode->shadow().setFilter(simplex::core::ShadingFilter::Point);
-    //scene->sceneRootNode()->attach(directionalLightNode);
+    // directionalLightNode->shadow().setMode(simplex::core::ShadingMode::Opaque);
+    // directionalLightNode->shadow().setFilter(simplex::core::ShadingFilter::Point);
+    // scene->sceneRootNode()->attach(directionalLightNode);
 
     return scene;
 }
@@ -454,30 +432,30 @@ static std::shared_ptr<simplex::core::Scene> createScene(
 void createSpheres()
 {
     ////sphere
-    //simplex::utils::MeshPainter sphPainter(simplex::utils::Mesh::createEmptyMesh({
-    //    {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}} }));
-    //sphPainter.drawCube();
+    // simplex::utils::MeshPainter sphPainter(simplex::utils::Mesh::createEmptyMesh({
+    //     {simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}} }));
+    // sphPainter.drawCube();
 
-    //auto sphMesh = std::make_shared<simplex::core::Mesh>(sphPainter.mesh(), sphPainter.calculateBoundingBox());
+    // auto sphMesh = std::make_shared<simplex::core::Mesh>(sphPainter.mesh(), sphPainter.calculateBoundingBox());
 
-    //auto sphMaterial = std::make_shared<simplex::core::Material>();
-    //sphMaterial->setMetalness(0.f);
-    //sphMaterial->setRoughness(.2f);
-    //boxMat = sphMaterial;
+    // auto sphMaterial = std::make_shared<simplex::core::Material>();
+    // sphMaterial->setMetalness(0.f);
+    // sphMaterial->setRoughness(.2f);
+    // boxMat = sphMaterial;
 
-    //auto sphDrawable = std::make_shared<simplex::core::Drawable>(sphMesh, sphMaterial);
+    // auto sphDrawable = std::make_shared<simplex::core::Drawable>(sphMesh, sphMaterial);
 
-    //auto sphDrawableNode1 = std::make_shared<simplex::core::DrawableNode>("");
-    //sphDrawableNode1->setTransform(simplex::utils::Transform::makeScale(0.0f));
-    //sphDrawableNode1->addDrawable(sphDrawable);
-    //boxDN = sphDrawableNode1;
+    // auto sphDrawableNode1 = std::make_shared<simplex::core::DrawableNode>("");
+    // sphDrawableNode1->setTransform(simplex::utils::Transform::makeScale(0.0f));
+    // sphDrawableNode1->addDrawable(sphDrawable);
+    // boxDN = sphDrawableNode1;
 
-    //if (auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene"))
-    //    if (auto graphicsEngine = window->graphicsEngine())
-    //    {
-    //        auto& scene = graphicsEngine->scene();
-    //        scene->sceneRootNode()->attach(sphDrawableNode1);
-    //    }
+    // if (auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene"))
+    //     if (auto graphicsEngine = window->graphicsEngine())
+    //     {
+    //         auto& scene = graphicsEngine->scene();
+    //         scene->sceneRootNode()->attach(sphDrawableNode1);
+    //     }
 }
 
 static std::shared_ptr<simplex::core::Scene> createScene2(
@@ -515,12 +493,16 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     pointLightNode2->setRadiuses(glm::vec2(900.f, 1000.f));
     scene->sceneRootNode()->attach(pointLightNode2);
 
-    auto sceneRepresentation = scenesLoader->loadOrGet("C:/Users/3520136/Downloads/Hip Hop Dancing/Hip Hop Dancing.dae");
-    scene->sceneRootNode()->attach(sceneRepresentation->generate("", false, false));
+    auto sceneRepresentation = scenesLoader->loadOrGet("C:/Users/3520136/Downloads/Silly Dancing.fbx");
+    auto skeletalAnimatedNode = sceneRepresentation->generate("", false, false);
+    scene->sceneRootNode()->attach(skeletalAnimatedNode);
 
-    //scene->sceneRootNode()->attach(
-    //    simplex::loader_assimp::load("C:/Users/3520136/Downloads/cat_-_walking/scene.gltf")->generate("", false, false));
+    // auto sceneRepresentation = scenesLoader->loadOrGet("C:/Users/3520136/Downloads/cat_-_walking/scene.gltf");
+    // auto skeletalAnimatedNode = sceneRepresentation->generate("", false, false);
+    // scene->sceneRootNode()->attach(skeletalAnimatedNode);
 
+    if (const auto& anims = skeletalAnimatedNode->skeleton()->animations(); !anims.empty())
+        skeletalAnimatedNode->setCurrentAnimation(anims.begin()->first);
 
     return scene;
 }
@@ -547,76 +529,76 @@ static void keyCallback(
 {
     switch (keyCode)
     {
-    case simplex::core::graphics::KeyCode::W:
-    {
-        isWPressed = keyState != simplex::core::graphics::KeyState::Released;
-        break;
-    }
-    case simplex::core::graphics::KeyCode::S:
-    {
-        isSPressed = keyState != simplex::core::graphics::KeyState::Released;
-        break;
-    }
-    case simplex::core::graphics::KeyCode::A:
-    {
-        isAPressed = keyState != simplex::core::graphics::KeyState::Released;
-        break;
-    }
-    case simplex::core::graphics::KeyCode::D:
-    {
-        isDPressed = keyState != simplex::core::graphics::KeyState::Released;
-        break;
-    }
-    case simplex::core::graphics::KeyCode::Q:
-    {
-        isQPressed = keyState != simplex::core::graphics::KeyState::Released;
-        break;
-    }
-    case simplex::core::graphics::KeyCode::E:
-    {
-        isEPressed = keyState != simplex::core::graphics::KeyState::Released;
-        break;
-    }
-    case simplex::core::graphics::KeyCode::Left:
-    {
-        isLeftPressed = keyState != simplex::core::graphics::KeyState::Released;
-        break;
-    }
-    case simplex::core::graphics::KeyCode::Right:
-    {
-        isRightPressed = keyState != simplex::core::graphics::KeyState::Released;
-        break;
-    }
-    case simplex::core::graphics::KeyCode::Up:
-    {
-        isUpPressed = keyState != simplex::core::graphics::KeyState::Released;
-        break;
-    }
-    case simplex::core::graphics::KeyCode::Down:
-    {
-        isDownPressed = keyState != simplex::core::graphics::KeyState::Released;
-        break;
-    }
-    case simplex::core::graphics::KeyCode::LeftShift:
-    {
-        isLShiftPressed = keyState != simplex::core::graphics::KeyState::Released;
-        break;
-    }
-    case simplex::core::graphics::KeyCode::Space:
-    {
-        if (keyState == simplex::core::graphics::KeyState::Pressed)
+        case simplex::core::graphics::KeyCode::W:
         {
-            if (auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene"))
-                if (auto graphicsEngine = window->graphicsEngine())
-                {
-                    isSpacePressed = true;
-                }
+            isWPressed = keyState != simplex::core::graphics::KeyState::Released;
+            break;
         }
+        case simplex::core::graphics::KeyCode::S:
+        {
+            isSPressed = keyState != simplex::core::graphics::KeyState::Released;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::A:
+        {
+            isAPressed = keyState != simplex::core::graphics::KeyState::Released;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::D:
+        {
+            isDPressed = keyState != simplex::core::graphics::KeyState::Released;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::Q:
+        {
+            isQPressed = keyState != simplex::core::graphics::KeyState::Released;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::E:
+        {
+            isEPressed = keyState != simplex::core::graphics::KeyState::Released;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::Left:
+        {
+            isLeftPressed = keyState != simplex::core::graphics::KeyState::Released;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::Right:
+        {
+            isRightPressed = keyState != simplex::core::graphics::KeyState::Released;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::Up:
+        {
+            isUpPressed = keyState != simplex::core::graphics::KeyState::Released;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::Down:
+        {
+            isDownPressed = keyState != simplex::core::graphics::KeyState::Released;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::LeftShift:
+        {
+            isLShiftPressed = keyState != simplex::core::graphics::KeyState::Released;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::Space:
+        {
+            if (keyState == simplex::core::graphics::KeyState::Pressed)
+            {
+                if (auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene"))
+                    if (auto graphicsEngine = window->graphicsEngine())
+                    {
+                        isSpacePressed = true;
+                    }
+            }
 
-        break;
-    }
-    default:
-        break;
+            break;
+        }
+        default:
+            break;
     }
 }
 
@@ -624,20 +606,15 @@ static void updateCallback(uint64_t time, uint32_t dt)
 {
     glm::vec2 deltaAngles(0.f, 0.f);
 
-    if (isUpPressed)
-        deltaAngles.x += 1.f;
+    if (isUpPressed) deltaAngles.x += 1.f;
 
-    if (isDownPressed)
-        deltaAngles.x -= 1.f;
+    if (isDownPressed) deltaAngles.x -= 1.f;
 
-    if (isLeftPressed)
-        deltaAngles.y += 1.f;
+    if (isLeftPressed) deltaAngles.y += 1.f;
 
-    if (isRightPressed)
-        deltaAngles.y -= 1.f;
+    if (isRightPressed) deltaAngles.y -= 1.f;
 
-    if (glm::length(deltaAngles) > .1f)
-        cameraAngles += glm::normalize(deltaAngles) * static_cast<float>(dt) * .001f;
+    if (glm::length(deltaAngles) > .1f) cameraAngles += glm::normalize(deltaAngles) * static_cast<float>(dt) * .001f;
 
     cameraAngles.x = glm::max(cameraAngles.x, -glm::half_pi<float>());
     cameraAngles.x = glm::min(cameraAngles.x, +glm::half_pi<float>());
@@ -649,28 +626,21 @@ static void updateCallback(uint64_t time, uint32_t dt)
     auto cameraUpDir = cameraRotation.transformVector(glm::vec3(0.0f, 1.0f, 0.0f));
     glm::vec3 cameraDir(0.f);
 
-    if (isWPressed)
-        cameraDir += cameraFowrardDir;
+    if (isWPressed) cameraDir += cameraFowrardDir;
 
-    if (isSPressed)
-        cameraDir -= cameraFowrardDir;
+    if (isSPressed) cameraDir -= cameraFowrardDir;
 
-    if (isDPressed)
-        cameraDir += cameraRightDir;
+    if (isDPressed) cameraDir += cameraRightDir;
 
-    if (isAPressed)
-        cameraDir -= cameraRightDir;
+    if (isAPressed) cameraDir -= cameraRightDir;
 
-    if (isQPressed)
-        cameraDir -= cameraUpDir;
+    if (isQPressed) cameraDir -= cameraUpDir;
 
-    if (isEPressed)
-        cameraDir += cameraUpDir;
+    if (isEPressed) cameraDir += cameraUpDir;
 
     const float vel = isLShiftPressed ? .03f : .003f;
-    //const float vel = isLShiftPressed ? 3.f : .3f;
-    if (glm::length(cameraDir) > .1f)
-        cameraPosition += glm::normalize(cameraDir) * static_cast<float>(dt) * vel;
+    // const float vel = isLShiftPressed ? 3.f : .3f;
+    if (glm::length(cameraDir) > .1f) cameraPosition += glm::normalize(cameraDir) * static_cast<float>(dt) * vel;
 
     auto cameraTranslation = simplex::utils::Transform::makeTranslation(cameraPosition);
     auto cameraTransform = cameraTranslation * cameraRotation;
@@ -685,14 +655,14 @@ static void updateCallback(uint64_t time, uint32_t dt)
             scene->sceneRootNode()->acceptDown(cameraCollector);
             cameraCollector.nodes().front()->setTransform(cameraTransform);
 
-            //scene->background()->setRotation(envRotation);
-            //if (auto IBLNode = IBLNodeWeak.lock())
-            //    IBLNode->setTransform(simplex::utils::Transform::makeRotation(envRotation).inverted());
+            // scene->background()->setRotation(envRotation);
+            // if (auto IBLNode = IBLNodeWeak.lock())
+            //     IBLNode->setTransform(simplex::utils::Transform::makeRotation(envRotation).inverted());
         }
 
-    //if (isSpacePressed)
+    // if (isSpacePressed)
     //{
-    //    isSpacePressed = false;
+    //     isSpacePressed = false;
 
     //    boxDN.lock()->setTransform(cameraTransform);
 
@@ -717,9 +687,8 @@ static void closeCallback()
 int main(int argc, char* argv[])
 {
     if (!simplex::core::ApplicationBase::initialize(
-        []() { return simplex::graphics_glfw::GLFWWidget::time(); },
-        []() { simplex::graphics_glfw::GLFWWidget::pollEvents(); }
-    ))
+            []() { return simplex::graphics_glfw::GLFWWidget::time(); },
+            []() { simplex::graphics_glfw::GLFWWidget::pollEvents(); }))
     {
         LOG_CRITICAL << "Failed to initialize application";
         return 0;
@@ -730,10 +699,12 @@ int main(int argc, char* argv[])
     window->setUpdateCallback(updateCallback);
     window->setCloseCallback(closeCallback);
 
-     window->graphicsEngine()->scenesLoader()->registerLoader(std::make_shared<simplex::scenes_loader_assimp::AssimpScenesLoader>());
+    window->graphicsEngine()->scenesLoader()->registerLoader(
+        std::make_shared<simplex::scenes_loader_assimp::AssimpScenesLoader>());
 
     auto& app = simplex::core::ApplicationBase::instance();
-    app.setScene(createScene2("SimpleScene", window->graphicsEngine()->scenesLoader(), window->graphicsEngine()->graphicsRenderer()));
+    app.setScene(
+        createScene2("SimpleScene", window->graphicsEngine()->scenesLoader(), window->graphicsEngine()->graphicsRenderer()));
 
     app.registerDevice(window);
     app.run();

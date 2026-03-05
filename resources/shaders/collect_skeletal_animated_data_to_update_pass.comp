@@ -1,0 +1,20 @@
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#include<scene_info.glsl>
+#include<skeletal_animated_data.glsl>
+#include<skeletal_animated_data_to_update.glsl>
+
+void main(void)
+{
+    if (all(lessThan(gl_GlobalInvocationID, uvec3(sceneInfoSkeletalAnimatedDataCount(), 1u, 1u))))
+    {
+		const uint skeletalAnimatedDataID = gl_GlobalInvocationID.x;
+		const uint time = sceneInfoTime();
+		
+		if (skeletalAnimatedDataLastUpdateTime(skeletalAnimatedDataID) == time)
+		{		
+			const uint skeletalAnimatedDataToUpdateID = sceneInfoGenerateSkeletalAnimatedDataToUpdateID();
+			skeletalAnimatedDataToUpdateSetSkeletalAnimatedDataID(skeletalAnimatedDataToUpdateID, skeletalAnimatedDataID);
+		}
+    }
+}

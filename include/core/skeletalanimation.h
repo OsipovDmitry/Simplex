@@ -43,10 +43,13 @@ private:
 
 struct Bone
 {
+    using ID = uint32_t;
+    static constexpr ID UndefinedID = std::numeric_limits<ID>::max();
+
     utils::Transform offsetTransform;
     utils::Transform transform;
-    uint32_t parentID;
-    std::vector<uint32_t> childrenIDs;
+    ID parentID;
+    std::vector<ID> childrenIDs;
 };
 
 class SkeletonPrivate;
@@ -55,23 +58,18 @@ class CORE_SHARED_EXPORT Skeleton
     NONCOPYBLE(Skeleton)
     PRIVATE_IMPL(Skeleton)
 public:
-    Skeleton(
-        const std::vector<Bone>& bones,
-        uint32_t rootBoneID,
-        const std::map<std::string, std::shared_ptr<Animation>>& animations);
-
+    Skeleton(const std::vector<Bone>& bones, const std::map<std::string, std::shared_ptr<Animation>>& animations);
     ~Skeleton();
 
     const std::vector<Bone>& bones() const;
-    uint32_t rootBoneID() const;
+    Bone::ID rootBoneID() const;
     const std::map<std::string, std::shared_ptr<Animation>>& animations() const;
 
 private:
     std::unique_ptr<SkeletonPrivate> m_;
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_SKELETALANIMATION_H

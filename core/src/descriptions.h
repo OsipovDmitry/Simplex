@@ -1,12 +1,14 @@
 #ifndef CORE_DESCRIPTIONS_H
 #define CORE_DESCRIPTIONS_H
 
+#include <utils/forwarddecl.h>
+#include <utils/glm/ext/quaternion_float.hpp>
+#include <utils/glm/mat4x4.hpp>
 #include <utils/glm/vec2.hpp>
 #include <utils/glm/vec3.hpp>
 #include <utils/glm/vec4.hpp>
-#include <utils/glm/mat4x4.hpp>
-#include <utils/glm/ext/quaternion_float.hpp>
-#include <utils/forwarddecl.h>
+
+#include <core/forwarddecl.h>
 
 namespace simplex
 {
@@ -83,13 +85,14 @@ struct SceneInfoDescription
     uint32_t drawDataCount;
     uint32_t skeletalAnimatedDataCount;
     uint32_t lightsCount;
+    uint32_t skeletalAnimatedDataToUpdateCount;
     uint32_t opaqueCommandsCount;
     uint32_t transparentCommandsCount;
     uint32_t lightNodesMaxCount;
     uint32_t lightNodesCount;
     uint32_t firstGlobalLightNodeID;
-    
-    uint32_t padding[3u];
+
+    uint32_t padding[2u];
 
     static SceneInfoDescription make(
         uint32_t time,
@@ -140,7 +143,7 @@ struct MeshDescription
     //  9.. 9 - tangent space flag [0 - no tangents, 1 - tangents + binormals flags]
     // 10..12 - color components count [0 - no colors, 1 - grayscale, 2 - grayscale,alpha, 3 - RGB, 4 - RGBA, 5..7 - not used]
     // 13..31 - free (19 bits)
-    
+
     uint32_t padding[1u];
 
     static MeshDescription makeEmpty();
@@ -231,10 +234,11 @@ struct DrawDataDescription
 {
     TransformDescription transform;
     uint32_t drawableID;
-    uint32_t padding[3u];
+    uint32_t skeletalAnimatedDataID;
+    uint32_t padding[2u];
 
     static DrawDataDescription makeEmpty();
-    static DrawDataDescription make(const utils::Transform& transform, uint32_t drawableID);
+    static DrawDataDescription make(const utils::Transform& transform, uint32_t drawableID, uint32_t skeletalAnimatedDataID);
 };
 
 struct BackgroundDescription
@@ -282,18 +286,27 @@ struct SkeletalAnimatedDataDescription
     uint32_t currentAnimationID;
     uint32_t bonesTransfromsDataOffset;
     uint32_t bonesTransfromsDataSize;
+    uint32_t lastUpdateTime;
 
-    //uint32_t padding[0u];
+    uint32_t padding[3u];
 
     static SkeletalAnimatedDataDescription makeEmpty();
     static SkeletalAnimatedDataDescription make(
         uint32_t skeletonID,
         uint32_t currentAnimationID,
         uint32_t bonesTransfromsDataOffset,
-        uint32_t bonesTransfromsDataSize);
+        uint32_t bonesTransfromsDataSize,
+        uint32_t lastUpdateTime);
 };
 
-}
-}
+struct SkeletalAnimatedDataToUpdateDescription
+{
+    uint32_t skeletalAnimatedDataID;
+
+    uint32_t padding[3u];
+};
+
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_DESCRIPTIONS_H

@@ -1,8 +1,9 @@
+#include "renderpipeline.h"
+
 #include <core/graphicsrendererbase.h>
 
 #include "geometrybuffer.h"
 #include "renderpasshelpers.h"
-#include "renderpipeline.h"
 #include "scenedata.h"
 
 namespace simplex
@@ -26,6 +27,7 @@ void RenderPipeLine::run(
     m_transparentCommandsBuffer->resize(drawDataCount);
 
     const auto skeletalAnimatedDataCount = sceneData->skeletalAnimatedDataCount();
+    m_skeletalAnimatedDataToUpdateBuffer->resize(skeletalAnimatedDataCount);
 
     const auto clusterNodesCount = glm::compMul(clusterMaxSize);
     m_clusterNodesBuffer->resize(clusterNodesCount);
@@ -35,12 +37,9 @@ void RenderPipeLine::run(
     m_lightNodesBuffer->resize(lightNodesCount);
 
     m_sceneInfoBuffer->set(SceneInfoDescription::make(
-        static_cast<uint32_t>(time),
-        static_cast<uint32_t>(drawDataCount),
-        static_cast<uint32_t>(skeletalAnimatedDataCount),
-        static_cast<uint32_t>(lightsCount),
-        static_cast<uint32_t>(lightNodesCount)));
-        
+        static_cast<uint32_t>(time), static_cast<uint32_t>(drawDataCount), static_cast<uint32_t>(skeletalAnimatedDataCount),
+        static_cast<uint32_t>(lightsCount), static_cast<uint32_t>(lightNodesCount)));
+
     m_cameraBuffer->set(CameraDescription::make(clusterMaxSize, viewTransform, clipSpace, cullPlaneLimits));
 
     for (auto& pass : m_passes)
@@ -65,6 +64,16 @@ ClusterNodesBuffer& RenderPipeLine::clusterNodesBuffer()
 LightNodesBuffer& RenderPipeLine::lightNodesBuffer()
 {
     return m_lightNodesBuffer;
+}
+
+SkeletalAnimatedDataToUpdateBuffer& RenderPipeLine::skeletalAnimatedDataToUpdateBuffer()
+{
+    return m_skeletalAnimatedDataToUpdateBuffer;
+}
+
+graphics::PDispatchComputeIndirectCommandBuffer& RenderPipeLine::skeletalAnimatedDataToUpdateCommandBuffer()
+{
+    return m_skeletalAnimatedDataToUpdateCommandBuffer;
 }
 
 graphics::PDrawArraysIndirectCommandsBuffer& RenderPipeLine::opaqueCommandsBuffer()
@@ -93,30 +102,27 @@ std::shared_ptr<RenderPipeLine> RenderPipeLine::create(
     const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
     const std::shared_ptr<graphics::IVertexArray>& vertexArray)
 {
-    static const auto clear = [](
-        const std::shared_ptr<graphics::RendererBase>& renderer,
-        const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
-        const std::shared_ptr<graphics::IVertexArray>&,
-        const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
-        const std::shared_ptr<const SceneData>&)
-        {
-            geometryBuffer->clear(renderer, frameBuffer);
-        };
+    static const auto clear =
+        [](const std::shared_ptr<graphics::RendererBase>& renderer, const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
+           const std::shared_ptr<graphics::IVertexArray>&, const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+           const std::shared_ptr<const SceneData>&)
+    {
+        geometryBuffer->clear(renderer, frameBuffer);
+    };
 
-    static const auto sort = [](
-        const std::shared_ptr<graphics::RendererBase>& renderer,
-        const std::shared_ptr<graphics::IFrameBuffer>&,
-        const std::shared_ptr<graphics::IVertexArray>&,
-        const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
-        const std::shared_ptr<const SceneData>&)
-        {
-            geometryBuffer->sortOITNodes(renderer);
-        };
+    static const auto sort = [](const std::shared_ptr<graphics::RendererBase>& renderer,
+                                const std::shared_ptr<graphics::IFrameBuffer>&, const std::shared_ptr<graphics::IVertexArray>&,
+                                const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+                                const std::shared_ptr<const SceneData>&)
+    {
+        geometryBuffer->sortOITNodes(renderer);
+    };
 
     auto result = std::shared_ptr<RenderPipeLine>(new RenderPipeLine(programsManager, renderer, frameBuffer, vertexArray));
 
     auto& passes = result->m_passes;
     passes.push_back(std::make_shared<FrustumCullingPass>(programsManager, result));
+    passes.push_back(std::make_shared<CollectSkeletalAnimatedDataToUpdatePass>(programsManager, result));
     passes.push_back(std::make_shared<UpdateCameraInfoPass>(programsManager, result));
     passes.push_back(std::make_shared<CalculateBonesTransformsDataPass>(programsManager, result));
     passes.push_back(std::make_shared<SimplePass>(result, clear));
@@ -143,17 +149,17 @@ RenderPipeLine::RenderPipeLine(
     m_cameraBuffer = CameraBuffer::element_type::create();
     m_clusterNodesBuffer = ClusterNodesBuffer::element_type::create();
     m_lightNodesBuffer = LightNodesBuffer::element_type::create();
+    m_skeletalAnimatedDataToUpdateBuffer = SkeletalAnimatedDataToUpdateBuffer::element_type::create();
+    m_skeletalAnimatedDataToUpdateCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
     m_opaqueCommandsBuffer = graphics::DrawArraysIndirectCommandsBuffer::create();
     m_transparentCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
     m_opaqueParameterBuffer = graphics::PBufferRange::element_type::create(
-        m_sceneInfoBuffer->buffer(),
-        offsetof(SceneInfoDescription, opaqueCommandsCount),
+        m_sceneInfoBuffer->buffer(), offsetof(SceneInfoDescription, opaqueCommandsCount),
         sizeof(SceneInfoDescription::opaqueCommandsCount));
     m_transparentParameterBuffer = graphics::PBufferRange::element_type::create(
-        m_sceneInfoBuffer->buffer(),
-        offsetof(SceneInfoDescription, transparentCommandsCount),
+        m_sceneInfoBuffer->buffer(), offsetof(SceneInfoDescription, transparentCommandsCount),
         sizeof(SceneInfoDescription::transparentCommandsCount));
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

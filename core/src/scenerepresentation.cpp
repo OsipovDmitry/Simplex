@@ -74,60 +74,6 @@ std::shared_ptr<const DrawableNodeRepresentation> DrawableNodeRepresentation::as
     return wp.expired() ? nullptr : std::dynamic_pointer_cast<const DrawableNodeRepresentation>(wp.lock());
 }
 
-BoneNodeRepresentation::BoneNodeRepresentation(
-    const std::string& name,
-    const utils::Transform& transform,
-    const std::vector<size_t>& childrenIDs,
-    uint32_t boneID)
-    : NodeRepresentation(std::make_unique<BoneNodeRepresentationPrivate>(
-        name,
-        transform,
-        childrenIDs,
-        boneID))
-{
-}
-
-BoneNodeRepresentation::~BoneNodeRepresentation() = default;
-
-std::shared_ptr<const BoneNodeRepresentation> BoneNodeRepresentation::asBoneNodeRepresentation() const
-{
-    auto wp = weak_from_this();
-    return wp.expired() ? nullptr : std::dynamic_pointer_cast<const BoneNodeRepresentation>(wp.lock());
-}
-
-std::shared_ptr<const RootBoneNodeRepresentation> BoneNodeRepresentation::asRootBoneNodeRepresentation() const
-{
-    return nullptr;
-}
-
-BoneNodeRepresentation::BoneNodeRepresentation(std::unique_ptr<BoneNodeRepresentationPrivate>&& boneNodeRepresentationPrivate)
-    : NodeRepresentation(std::move(boneNodeRepresentationPrivate))
-{
-}
-
-RootBoneNodeRepresentation::RootBoneNodeRepresentation(
-    const std::string& name,
-    const utils::Transform& transform,
-    const std::vector<size_t>& childrenIDs,
-    uint32_t boneID,
-    uint32_t skeletonID)
-    : BoneNodeRepresentation(std::make_unique<RootBoneNodeRepresentationPrivate>(
-        name,
-        transform,
-        childrenIDs,
-        boneID,
-        skeletonID))
-{
-}
-
-RootBoneNodeRepresentation::~RootBoneNodeRepresentation() = default;
-
-std::shared_ptr<const RootBoneNodeRepresentation> RootBoneNodeRepresentation::asRootBoneNodeRepresentation() const
-{
-    auto wp = weak_from_this();
-    return wp.expired() ? nullptr : std::dynamic_pointer_cast<const RootBoneNodeRepresentation>(wp.lock());
-}
-
 CameraNodeRepresentation::CameraNodeRepresentation(
     const std::string& name,
     const utils::Transform& transform,
@@ -165,10 +111,10 @@ std::shared_ptr<const LightNodeRepresentation> LightNodeRepresentation::asLightN
 SceneRepresentation::SceneRepresentation(
     const std::string& name,
     const std::vector<std::shared_ptr<Drawable>>& drawables,
-    const std::vector<std::shared_ptr<Skeleton>>& skeletons,
+    const std::shared_ptr<Skeleton>& skeleton,
     const std::vector<std::shared_ptr<NodeRepresentation>>& nodesRepresentations,
     size_t rootNodeID)
-    : m_(std::make_unique<SceneRepresentationPrivate>(name, drawables, skeletons, nodesRepresentations, rootNodeID))
+    : m_(std::make_unique<SceneRepresentationPrivate>(name, drawables, skeleton, nodesRepresentations, rootNodeID))
 {
 }
 
@@ -179,116 +125,77 @@ const std::string& SceneRepresentation::name() const
     return m_->name();
 }
 
-std::shared_ptr<Node> SceneRepresentation::generate(
+std::shared_ptr<SkeletalAnimatedNode> SceneRepresentation::generate(
     const std::string& name,
     bool insertCameras,
     bool insertLights) const
 {
-    static auto createNode = [](
-        auto& self,
-        size_t nodeRepresentationID,
-        const std::vector<std::shared_ptr<Drawable>>& drawables,
-        const std::vector<std::shared_ptr<Skeleton>>& skeletons,
-        const std::vector<std::shared_ptr<NodeRepresentation>>& nodesRepresentations,
-        bool insertCameras,
-        bool insertLights) -> std::shared_ptr<Node>
+    static auto createNode = [](auto& self, const std::weak_ptr<SkeletalAnimatedNode>& skeletalAnimatedNode,
+                                size_t nodeRepresentationID, const std::vector<std::shared_ptr<Drawable>>& drawables,
+                                const std::vector<std::shared_ptr<NodeRepresentation>>& nodesRepresentations, bool insertCameras,
+                                bool insertLights) -> std::shared_ptr<Node>
+    {
+        std::shared_ptr<Node> node;
+
+        const auto& nodeRepresentation = nodesRepresentations[nodeRepresentationID];
+        const auto& nodeRepresentationName = nodeRepresentation->name();
+
+        if (auto drawableNodeRepresentation = nodeRepresentation->asDrawableNodeRepresentation())
         {
-            std::shared_ptr<Node> node;
+            auto drawableNode = std::make_shared<DrawableNode>(nodeRepresentationName, skeletalAnimatedNode);
 
-            const auto& nodeRepresentation = nodesRepresentations[nodeRepresentationID];
-            const auto& nodeRepresentationName = nodeRepresentation->name();
+            auto& drawableNodeRepresentationPrivate = drawableNodeRepresentation->m();
+            for (auto drawableID : drawableNodeRepresentationPrivate.drawablesIDs())
+                drawableNode->addDrawable(drawables[drawableID]);
 
-            if (auto drawableNodeRepresentation = nodeRepresentation->asDrawableNodeRepresentation())
-            {
-                auto drawableNode = std::make_shared<DrawableNode>(nodeRepresentationName);
+            node = drawableNode;
+        }
+        else if (auto cameraNodeRepresentation = nodeRepresentation->asCameraNodeRepresentation();
+                 cameraNodeRepresentation && insertCameras)
+        {
+            auto cameraNode = std::make_shared<CameraNode>(nodeRepresentationName);
 
-                auto& drawableNodeRepresentationPrivate = drawableNodeRepresentation->m();
-                for (auto drawableID : drawableNodeRepresentationPrivate.drawablesIDs())
-                    drawableNode->addDrawable(drawables[drawableID]);
+            auto& cameraNodeRepresentationPrivate = cameraNodeRepresentation->m();
+            //
 
-                node = drawableNode;
-            }
-            else if (auto boneNodeRepresentation = nodeRepresentation->asBoneNodeRepresentation())
-            {
-                if (auto rootBoneNodeRepresentation = boneNodeRepresentation->asRootBoneNodeRepresentation())
-                {
-                    auto& rootBoneNodeRepresentationPrivate = rootBoneNodeRepresentation->m();
+            node = cameraNode;
+        }
+        else if (auto lightNodeRepresentation = nodeRepresentation->asLightNodeRepresentation();
+                 lightNodeRepresentation && insertLights)
+        {
+            std::shared_ptr<LightNode> lightNode;
 
-                    auto skeletalAnimatedNode = std::make_shared<SkeletalAnimatedNode>(
-                        nodeRepresentationName,
-                        rootBoneNodeRepresentationPrivate.boneID(),
-                        skeletons[rootBoneNodeRepresentationPrivate.skeletonID()]);
+            auto& lightNodeRepresentationPrivate = lightNodeRepresentation->m();
+            //
 
-                    node = skeletalAnimatedNode;
-                }
-                else
-                {
-                    auto& boneNodeRepresentationPrivate = boneNodeRepresentation->m();
+            node = lightNode;
+        }
+        else
+        {
+            node = std::make_shared<Node>(nodeRepresentationName);
+        }
 
-                    auto boneNode = std::make_shared<BoneNode>(
-                        nodeRepresentationName,
-                        boneNodeRepresentationPrivate.boneID());
+        auto& nodeRepresentationPrivate = nodeRepresentation->m();
 
-                    node = boneNode;
-                }
-            }
-            else if (auto cameraNodeRepresentation = nodeRepresentation->asCameraNodeRepresentation();
-                cameraNodeRepresentation && insertCameras)
-            {
-                auto cameraNode = std::make_shared<CameraNode>(nodeRepresentationName);
+        node->setTransform(nodeRepresentationPrivate.transform());
 
-                auto& cameraNodeRepresentationPrivate = cameraNodeRepresentation->m();
-                //
+        for (auto nodeRepresentationChildID : nodeRepresentationPrivate.childrenIDs())
+        {
+            node->attach(self(
+                self, skeletalAnimatedNode, nodeRepresentationChildID, drawables, nodesRepresentations, insertCameras,
+                insertLights));
+        }
 
-                node = cameraNode;
-            }
-            else if (auto lightNodeRepresentation = nodeRepresentation->asLightNodeRepresentation();
-                lightNodeRepresentation && insertLights)
-            {
-                std::shared_ptr<LightNode> lightNode;
+        return node;
+    };
 
-                auto& lightNodeRepresentationPrivate = lightNodeRepresentation->m();
-                //
-
-                node = lightNode;
-            }
-            else
-            {
-                node = std::make_shared<Node>(nodeRepresentationName);
-            }
-
-            auto& nodeRepresentationPrivate = nodeRepresentation->m();
-
-            node->setTransform(nodeRepresentationPrivate.transform());
-
-            for (auto nodeRepresentationChildID : nodeRepresentationPrivate.childrenIDs())
-            {
-                node->attach(self(
-                    self,
-                    nodeRepresentationChildID,
-                    drawables,
-                    skeletons,
-                    nodesRepresentations,
-                    insertCameras,
-                    insertLights));
-            }
-
-            return node;
-        };
-
-    auto result = std::make_shared<Node>(name);
+    auto result = std::make_shared<SkeletalAnimatedNode>(name, m_->skeleton());
 
     result->attach(createNode(
-        createNode,
-        m_->rootNodeID(),
-        m_->drawables(),
-        m_->skeletons(),
-        m_->nodesRepresentations(),
-        insertCameras,
-        insertLights));
+        createNode, result, m_->rootNodeID(), m_->drawables(), m_->nodesRepresentations(), insertCameras, insertLights));
 
     return result;
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

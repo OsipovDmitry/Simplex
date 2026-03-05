@@ -1,8 +1,8 @@
 #ifndef IENGINE_H
 #define IENGINE_H
 
-#include <core/inamedobject.h>
 #include <core/forwarddecl.h>
+#include <core/inamedobject.h>
 
 namespace simplex
 {
@@ -18,7 +18,7 @@ public:
     virtual std::shared_ptr<const IRenderer> renderer() const = 0;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // IENGINE_H

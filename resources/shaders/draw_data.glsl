@@ -15,7 +15,7 @@ uint drawDataDrawableID(in uint drawDataID)
 	return drawData[drawDataID].drawableID;
 }
 
-uint drawDataBonesTransformsDataOffset(in uint drawDataID)
+uint drawDataSkeletalAnimatedDataID(in uint drawDataID)
 {
-	return 0u;//0xFFFFFFFFu;
+	return drawData[drawDataID].skeletalAnimatedDataID;
 }

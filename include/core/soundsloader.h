@@ -21,7 +21,7 @@ private:
     std::unique_ptr<SoundsLoaderPrivate> m_;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_SOUNDSLOADER_H

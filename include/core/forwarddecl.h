@@ -1,14 +1,13 @@
 #ifndef CORE_FORWARDDECL_H
 #define CORE_FORWARDDECL_H
 
-#include <inttypes.h>
 #include <array>
-#include <unordered_set>
-#include <unordered_map>
-#include <set>
-#include <string>
 #include <functional>
 #include <memory>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 #include <utils/forwarddecl.h>
 #include <utils/glm/vec2.hpp>
@@ -23,7 +22,7 @@ namespace debug
 struct CameraInformation;
 struct SceneInformation;
 struct Information;
-}
+} // namespace debug
 
 namespace settings
 {
@@ -45,7 +44,7 @@ class Graphics;
 class Audio;
 class Physics;
 class Settings;
-}
+} // namespace settings
 
 namespace graphics
 {
@@ -87,6 +86,7 @@ class IFrameBuffer;
 class IProgram;
 class IRenderProgram;
 class IComputeProgram;
+struct DispatchIndirectCommand;
 struct DrawArraysIndirectCommand;
 struct DrawElementsIndirectCommand;
 struct DrawIndirectCommandsBufferReservedData;
@@ -94,8 +94,10 @@ class RendererBase;
 class BufferRange;
 class Image;
 class VAOMesh;
-template <typename T> class StructBuffer;
-template <typename T> class VectorBuffer;
+template <typename T>
+class StructBuffer;
+template <typename T>
+class VectorBuffer;
 
 using PConstBuffer = std::shared_ptr<const IBuffer>;
 using PBuffer = std::shared_ptr<IBuffer>;
@@ -114,6 +116,10 @@ using PImage = std::shared_ptr<Image>;
 
 using PConstImageHandle = std::shared_ptr<const IImageHandle>;
 using PImageHandle = std::shared_ptr<IImageHandle>;
+
+using DispatchComputeIndirectCommandBuffer = StructBuffer<DispatchIndirectCommand>;
+using PDispatchComputeIndirectCommandBuffer = std::shared_ptr<DispatchComputeIndirectCommandBuffer>;
+using PDispatchComputeIndirectCommandConstBuffer = std::shared_ptr<const DispatchComputeIndirectCommandBuffer>;
 
 using DrawArraysIndirectCommandsBuffer = VectorBuffer<DrawArraysIndirectCommand>;
 using PDrawArraysIndirectCommandsBuffer = std::shared_ptr<DrawArraysIndirectCommandsBuffer>;
@@ -140,7 +146,7 @@ using MouseCursorEnterCallback = std::function<void(bool)>;
 using MouseButtonCallback = std::function<void(MouseButtonState, MouseButton, const KeyModifiers&)>;
 using MouseScrollCallback = std::function<void(const glm::ivec2&)>;
 
-}
+} // namespace graphics
 
 namespace audio
 {
@@ -152,7 +158,7 @@ class ISource;
 class IListener;
 class RendererBase;
 class IAudioDevice;
-}
+} // namespace audio
 
 class INamedObject;
 
@@ -171,8 +177,9 @@ class AbstractUniform;
 using PAbstractUniform = std::shared_ptr<AbstractUniform>;
 using PConstAbstractUniform = std::shared_ptr<const AbstractUniform>;
 
-template <typename T> class Uniform;
-template<typename T>
+template <typename T>
+class Uniform;
+template <typename T>
 using PUniform = std::shared_ptr<Uniform<T>>;
 
 enum class UniformID : uint16_t;
@@ -188,7 +195,7 @@ using StateSetList = std::list<std::shared_ptr<const StateSet>>;
 class Mesh;
 
 class MaterialMap;
-enum class MaterialMapTarget: uint16_t;
+enum class MaterialMapTarget : uint16_t;
 class Material;
 
 class Drawable;
@@ -218,13 +225,13 @@ class PointLightNode;
 class SpotLightNode;
 class DirectionalLightNode;
 class ImageBasedLightNode;
-class BoneNode;
 class SkeletalAnimatedNode;
 class SoundNode;
 class ListenerNode;
 
 class NodeVisitor;
-template <typename NodeClass> class NodeCollector;
+template <typename NodeClass>
+class NodeCollector;
 
 class NodeRepresentation;
 class DrawableNodeRepresentation;
@@ -239,7 +246,7 @@ class ProgramsLoader;
 class ScenesLoader;
 class SoundsLoader;
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_FORWARDDECL_H

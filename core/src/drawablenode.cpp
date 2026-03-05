@@ -1,19 +1,19 @@
 #include <utils/logger.h>
 
-#include <core/scene.h>
-#include <core/drawablenode.h>
 #include <core/drawable.h>
+#include <core/drawablenode.h>
+#include <core/scene.h>
 
-#include "sceneprivate.h"
 #include "drawablenodeprivate.h"
+#include "sceneprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-DrawableNode::DrawableNode(const std::string &name)
-    : Node(std::make_unique<DrawableNodePrivate>(*this, name))
+DrawableNode::DrawableNode(const std::string& name, const std::weak_ptr<SkeletalAnimatedNode>& skeletalAnimatedNode)
+    : Node(std::make_unique<DrawableNodePrivate>(*this, name, skeletalAnimatedNode))
 {
 }
 
@@ -30,7 +30,17 @@ std::shared_ptr<const DrawableNode> DrawableNode::asDrawableNode() const
     return const_cast<DrawableNode*>(this)->asDrawableNode();
 }
 
-const std::unordered_set<std::shared_ptr<Drawable>> &DrawableNode::drawables() const
+std::weak_ptr<SkeletalAnimatedNode> DrawableNode::skeletalAnimatedNode()
+{
+    return m().skeletalAnimatedNode();
+}
+
+std::weak_ptr<const SkeletalAnimatedNode> DrawableNode::skeletalAnimatedNode() const
+{
+    return const_cast<DrawableNode*>(this)->skeletalAnimatedNode();
+}
+
+const std::unordered_set<std::shared_ptr<Drawable>>& DrawableNode::drawables() const
 {
     return m().drawables();
 }
@@ -43,21 +53,19 @@ void DrawableNode::addDrawable(const std::shared_ptr<Drawable>& drawable)
         return;
     }
 
-    auto &mPrivate = m();
+    auto& mPrivate = m();
     mPrivate.drawables().insert(drawable);
 
     if (auto s = scene())
-        if (auto& sceneData = s->m().sceneData())
-            mPrivate.addDrawDataToSceneData(sceneData, drawable);
+        if (auto& sceneData = s->m().sceneData()) mPrivate.addDrawDataToSceneData(sceneData, drawable);
 }
 
 void DrawableNode::removeDrawable(const std::shared_ptr<Drawable>& drawable)
 {
-    auto &mPrivate = m();
+    auto& mPrivate = m();
     mPrivate.drawables().erase(drawable);
     mPrivate.removeDrawDataFromSceneData(drawable);
-
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

@@ -2,9 +2,9 @@
 #define CORE_AUDIORENDERERBASE_H
 
 #include <utils/enumclass.h>
-#include <utils/glm/vec3.hpp>
-#include <utils/glm/ext/quaternion_float.hpp>
 #include <utils/forwarddecl.h>
+#include <utils/glm/ext/quaternion_float.hpp>
+#include <utils/glm/vec3.hpp>
 
 #include <core/coreglobal.h>
 #include <core/forwarddecl.h>
@@ -16,19 +16,13 @@ namespace core
 {
 namespace audio
 {
-ENUMCLASS(BufferFormat, uint16_t,
-    Mono8,
-    Mono16,
-    Stereo8,
-    Stereo16)
+ENUMCLASS(BufferFormat, uint16_t, Mono8, Mono16, Stereo8, Stereo16)
 
-ENUMCLASS(SourceState, uint16_t,
-    Initial,
-    Playing,
-    Paused,
-    Stopped)
+ENUMCLASS(SourceState, uint16_t, Initial, Playing, Paused, Stopped)
 
-ENUMCLASS(AttenuationModel, uint16_t,
+ENUMCLASS(
+    AttenuationModel,
+    uint16_t,
     None,
     InverseDistance,
     InverseDistanceClamped,
@@ -99,7 +93,6 @@ public:
 
     virtual bool looping() const = 0;
     virtual void setLooping(bool) = 0;
-
 };
 
 class IListener
@@ -118,7 +111,6 @@ public:
 
     virtual glm::quat orientation() const = 0;
     virtual void setOrientation(const glm::quat&) = 0;
-
 };
 
 class RendererBasePrivate;
@@ -149,7 +141,7 @@ public:
     virtual std::shared_ptr<IListener> listener() = 0;
     virtual std::shared_ptr<const IListener> listener() const = 0;
 
-    virtual std::shared_ptr<IBuffer> createBuffer(const std::shared_ptr<utils::Sound> & = nullptr) const = 0;
+    virtual std::shared_ptr<IBuffer> createBuffer(const std::shared_ptr<utils::Sound>& = nullptr) const = 0;
     virtual std::shared_ptr<ISource> createSource() const = 0;
 
     virtual SourceState sourceState(const std::shared_ptr<ISource>&) const = 0;
@@ -165,8 +157,8 @@ protected:
     std::unique_ptr<RendererBasePrivate> m_;
 };
 
-}
-}
-}
+} // namespace audio
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_AUDIORENDERERBASE_H

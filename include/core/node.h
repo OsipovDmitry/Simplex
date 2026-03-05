@@ -25,7 +25,7 @@ public:
     Node(const std::string&);
     ~Node() override;
 
-    const std::string &name() const override;
+    const std::string& name() const override;
 
     std::shared_ptr<Node> rootNode();
     std::shared_ptr<const Node> rootNode() const;
@@ -33,8 +33,8 @@ public:
     std::shared_ptr<Scene> scene();
     std::shared_ptr<const Scene> scene() const;
 
-    const utils::Transform &globalTransform() const;
-    const utils::Transform &transform() const;
+    const utils::Transform& globalTransform() const;
+    const utils::Transform& transform() const;
     void setTransform(const utils::Transform&);
 
     void acceptUp(NodeVisitor&);
@@ -55,8 +55,8 @@ public:
     virtual std::shared_ptr<LightNode> asLightNode();
     virtual std::shared_ptr<const LightNode> asLightNode() const;
 
-    virtual std::shared_ptr<BoneNode> asBoneNode();
-    virtual std::shared_ptr<const BoneNode> asBoneNode() const;
+    virtual std::shared_ptr<SkeletalAnimatedNode> asSkeletalAnimatedNode();
+    virtual std::shared_ptr<const SkeletalAnimatedNode> asSkeletalAnimatedNode() const;
 
     virtual std::shared_ptr<SoundNode> asSoundNode();
     virtual std::shared_ptr<const SoundNode> asSoundNode() const;
@@ -73,7 +73,7 @@ protected:
     std::unique_ptr<NodePrivate> m_;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_NODE_H

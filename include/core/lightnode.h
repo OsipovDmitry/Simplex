@@ -1,8 +1,8 @@
 #ifndef CORE_LIGHTNODE_H
 #define CORE_LIGHTNODE_H
 
-#include <utils/pimpl.h>
 #include <utils/enumclass.h>
+#include <utils/pimpl.h>
 
 #include <core/node.h>
 
@@ -11,11 +11,7 @@ namespace simplex
 namespace core
 {
 
-ENUMCLASS(LightType, uint16_t,
-          Point,
-          Spot,
-          Directional,
-          ImageBased)
+ENUMCLASS(LightType, uint16_t, Point, Spot, Directional, ImageBased)
 
 class LightNodePrivate;
 class CORE_SHARED_EXPORT LightNode : public Node
@@ -44,15 +40,14 @@ public:
     bool isLightingEnabled() const;
     void setLightingEnabled(bool);
 
-    Shadow &shadow();
-    const Shadow &shadow() const;
+    Shadow& shadow();
+    const Shadow& shadow() const;
 
 protected:
     LightNode(std::unique_ptr<LightNodePrivate>);
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_LIGHTNODE_H

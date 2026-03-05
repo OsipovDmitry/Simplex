@@ -1,20 +1,19 @@
 #ifndef CORE_SKELETALANIMATEDNODEPRIVATE_H
 #define CORE_SKELETALANIMATEDNODEPRIVATE_H
 
-#include "bonenodeprivate.h"
+#include "nodeprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-class SceneData;
 class SkeletalAnimatedDataHandler;
 
-class SkeletalAnimatedNodePrivate : public BoneNodePrivate
+class SkeletalAnimatedNodePrivate : public NodePrivate
 {
 public:
-    SkeletalAnimatedNodePrivate(SkeletalAnimatedNode&, const std::string&, uint32_t, const std::shared_ptr<Skeleton>&);
+    SkeletalAnimatedNodePrivate(SkeletalAnimatedNode&, const std::string&, const std::shared_ptr<Skeleton>&);
     ~SkeletalAnimatedNodePrivate() override;
 
     void doAttachToScene(const std::shared_ptr<Scene>&) override;
@@ -33,7 +32,7 @@ private:
     std::shared_ptr<SkeletalAnimatedDataHandler> m_handler;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_CAMERANODEPRIVATE_H

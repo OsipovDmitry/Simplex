@@ -3,10 +3,10 @@
 
 #include <memory>
 
-#include <utils/glm/vec3.hpp>
 #include <utils/glm/ext/quaternion_float.hpp>
-#include <utils/pimpl.h>
+#include <utils/glm/vec3.hpp>
 #include <utils/noncopyble.h>
+#include <utils/pimpl.h>
 
 #include <core/coreglobal.h>
 #include <core/forwarddecl.h>
@@ -38,14 +38,11 @@ public:
     float blurPower() const;
     void setBlurPower(float);
 
-
-
 private:
     std::unique_ptr<BackgroundPrivate> m_;
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_BACKGROUND_H

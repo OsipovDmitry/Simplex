@@ -43,10 +43,9 @@ public:
 
 private:
     std::unique_ptr<GraphicsEnginePrivate> m_;
-
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_GRAPHICSENGINE_H

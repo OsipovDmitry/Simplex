@@ -1,6 +1,12 @@
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 #include<camera.glsl>
+#include<indirect_commands.glsl>
+#include<scene_info.glsl>
+
+layout (std430) buffer ssbo_skeletalAnimatedDataToUpdateCommandBuffer {
+	DispatchIndirectCommand skeletalAnimatedDataToUpdateCommand;
+};
 
 void main(void)
 {
@@ -18,5 +24,11 @@ void main(void)
 		
 		cameraExpandZRange(ZRange);
 		cameraUpdateMatrices(ZRange);
+		
+		const float skeletalAnimatedDataToUpdateCount = float(sceneInfoSkeletalAnimatedDataToUpdateCount());
+		const float calculateBonesTransformsDataComputeProgramWorkGroupSizeX = float(CALCULATE_BONES_TRANSFORMS_DATA_COMPUTE_PROGRAM_WORK_GROUP_SIZE_X);
+		const uint calculateBonesTransformsDataComputeProgramNumWorkGroupsX =
+			uint(ceil(skeletalAnimatedDataToUpdateCount / calculateBonesTransformsDataComputeProgramWorkGroupSizeX) + 0.5f);
+		skeletalAnimatedDataToUpdateCommand = DispatchIndirectCommand(calculateBonesTransformsDataComputeProgramNumWorkGroupsX, 1u, 1u);
 	}
 }

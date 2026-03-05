@@ -7,6 +7,7 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 #include<mesh.glsl>
 #include<camera.glsl>
 #include<scene_info.glsl>
+#include<skeletal_animated_data.glsl>
 #include<math/classifications.glsl>
 #include<math/intersections.glsl>
 
@@ -87,6 +88,10 @@ void main(void)
 									drawDataID);
 							}
 						}
+						
+						const uint skeletalAnimatedDataID = drawDataSkeletalAnimatedDataID(drawDataID);
+						const uint time = sceneInfoTime();
+						skeletalAnimatedDataSetLastUpdateTime(skeletalAnimatedDataID, time);
 					}
 				}
 			}

@@ -1,16 +1,16 @@
 #ifndef CORE_MATERIAL_H
 #define CORE_MATERIAL_H
 
-#include <memory>
 #include <filesystem>
+#include <memory>
 
-#include <utils/noncopyble.h>
-#include <utils/pimpl.h>
 #include <utils/enumclass.h>
 #include <utils/forwarddecl.h>
-#include <utils/image.h>
 #include <utils/glm/vec3.hpp>
 #include <utils/glm/vec4.hpp>
+#include <utils/image.h>
+#include <utils/noncopyble.h>
+#include <utils/pimpl.h>
 
 #include <core/coreglobal.h>
 #include <core/forwarddecl.h>
@@ -41,17 +41,9 @@ public:
 
 private:
     std::unique_ptr<MaterialMapPrivate> m_;
-
 };
 
-ENUMCLASS(MaterialMapTarget, uint16_t,
-    BaseColor,
-    Opacity,
-    Emission,
-    Occlusion,
-    Roughness,
-    Metalness,
-    Normal);
+ENUMCLASS(MaterialMapTarget, uint16_t, BaseColor, Opacity, Emission, Occlusion, Roughness, Metalness, Normal);
 
 class MaterialPrivate;
 class CORE_SHARED_EXPORT Material
@@ -106,7 +98,7 @@ private:
     std::unique_ptr<MaterialPrivate> m_;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_MATERIAL_H
