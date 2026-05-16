@@ -1,6 +1,7 @@
 #ifndef QTOPENGL_4_5_RENDERER_H
 #define QTOPENGL_4_5_RENDERER_H
 
+#include <bitset>
 #include <deque>
 #include <list>
 #include <tuple>
@@ -602,13 +603,14 @@ class FrameBufferBase_4_5 : public core::graphics::IFrameBuffer
     NONCOPYBLE(FrameBufferBase_4_5)
     CURRENT_CONTEXT_INFO
 public:
-    FrameBufferBase_4_5(GLuint id);
     ~FrameBufferBase_4_5() override;
 
     GLuint id() const;
 
     bool isComplete() const override;
     void clear(const std::unordered_set<core::graphics::FrameBufferAttachment>&) override;
+
+    void reset() override;
 
     std::shared_ptr<const core::graphics::ISurface> attachmentSurface(core::graphics::FrameBufferAttachment) const override;
     uint32_t attachmentMipmapLevel(core::graphics::FrameBufferAttachment) const override;
@@ -668,7 +670,13 @@ public:
     float blendConstantAlpha() const override;
     void setBlendConstantAlpha(float) override;
 
+    bool clipDistance(uint32_t) const override;
+    void setClipDistance(uint32_t, bool) override;
+    void setClipDistances(bool) override;
+
 protected:
+    FrameBufferBase_4_5(GLuint id);
+
     GLuint m_id;
 
     struct AttachmentDescription
@@ -687,7 +695,7 @@ protected:
     core::graphics::FaceType m_cullFaceType;
     bool m_faceCulling;
 
-    std::array<bool, core::graphics::FrameBufferColorAttachmentsCount()> m_colorMasks;
+    std::bitset<core::graphics::FrameBufferColorAttachmentsCount()> m_colorMasks;
 
     core::graphics::ComparingFunc m_depthFunc;
     bool m_depthTest;
@@ -699,15 +707,17 @@ protected:
     core::graphics::StencilOperations m_stencilOperationsFrontFace, m_stencilOperationsBackFace;
     bool m_stencilTest;
 
-    std::array<core::graphics::BlendEquation, core::graphics::FrameBufferColorAttachmentsCount()> m_blendColorEquation,
-        m_blendAlphaEquation;
-    std::array<core::graphics::BlendFactor, core::graphics::FrameBufferColorAttachmentsCount()> m_blendColorSourceFactor,
-        m_blendAlphaSourceFactor;
-    std::array<core::graphics::BlendFactor, core::graphics::FrameBufferColorAttachmentsCount()> m_blendColorDestFactor,
-        m_blendAlphaDestFactor;
+    std::array<core::graphics::BlendEquation, core::graphics::FrameBufferColorAttachmentsCount()> m_blendColorEquation;
+    std::array<core::graphics::BlendEquation, core::graphics::FrameBufferColorAttachmentsCount()> m_blendAlphaEquation;
+    std::array<core::graphics::BlendFactor, core::graphics::FrameBufferColorAttachmentsCount()> m_blendColorSourceFactor;
+    std::array<core::graphics::BlendFactor, core::graphics::FrameBufferColorAttachmentsCount()> m_blendAlphaSourceFactor;
+    std::array<core::graphics::BlendFactor, core::graphics::FrameBufferColorAttachmentsCount()> m_blendColorDestFactor;
+    std::array<core::graphics::BlendFactor, core::graphics::FrameBufferColorAttachmentsCount()> m_blendAlphaDestFactor;
     glm::vec3 m_blendConstColor;
     float m_blendConstAlpha;
     bool m_blending;
+
+    std::bitset<core::graphics::FrameBufferClipDistancesCount()> m_clipDistances;
 };
 
 class FrameBuffer_4_5 : public FrameBufferBase_4_5

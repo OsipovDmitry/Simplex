@@ -11,7 +11,7 @@ namespace simplex
 namespace core
 {
 
-SpotLightNode::SpotLightNode(const std::string &name)
+SpotLightNode::SpotLightNode(const std::string& name)
     : LightNode(std::make_unique<SpotLightNodePrivate>(*this, name))
 {
     setColor(glm::vec3(1.f));
@@ -32,57 +32,52 @@ std::shared_ptr<const SpotLightNode> SpotLightNode::asSpotLightNode() const
     return const_cast<SpotLightNode*>(this)->asSpotLightNode();
 }
 
-const glm::vec3 &SpotLightNode::color() const
+const glm::vec3& SpotLightNode::color() const
 {
     return m().color();
 }
 
-void SpotLightNode::setColor(const glm::vec3 &value)
+void SpotLightNode::setColor(const glm::vec3& value)
 {
     auto& mPrivate = m();
 
     mPrivate.color() = value;
-    mPrivate.changeInSceneData();
+    mPrivate.onChanged();
 }
 
-const glm::vec2 &SpotLightNode::radiuses() const
+const glm::vec2& SpotLightNode::radiuses() const
 {
     return m().radiuses();
 }
 
-void SpotLightNode::setRadiuses(const glm::vec2 &value)
+void SpotLightNode::setRadiuses(const glm::vec2& value)
 {
-    if (value[0] < 0.f)
-        LOG_CRITICAL << "minRadius must be greater or equal than 0.0";
+    if (value[0] < 0.f) LOG_CRITICAL << "minRadius must be greater or equal than 0.0";
 
-    if (value[1] <= value[0])
-        LOG_CRITICAL << "maxRadius must be greater than minRadius";
+    if (value[1] <= value[0]) LOG_CRITICAL << "maxRadius must be greater than minRadius";
 
     auto& mPrivate = m();
     mPrivate.radiuses() = value;
-    mPrivate.changeInSceneData();
+    mPrivate.onChanged();
 }
 
-const glm::vec2 &SpotLightNode::halfAngles() const
+const glm::vec2& SpotLightNode::halfAngles() const
 {
     return m().halfAngles();
 }
 
-void SpotLightNode::setHalfAngles(const glm::vec2 &value)
+void SpotLightNode::setHalfAngles(const glm::vec2& value)
 {
-    if (value[0] < 0.f)
-        LOG_CRITICAL << "Min angle must be greater or equal than 0.0";
+    if (value[0] < 0.f) LOG_CRITICAL << "Min angle must be greater or equal than 0.0";
 
-    if (value[0] >= value[1])
-        LOG_CRITICAL << "Max angle must be greater than min angle";
+    if (value[0] >= value[1]) LOG_CRITICAL << "Max angle must be greater than min angle";
 
-    if (value[1] >= glm::half_pi<float>())
-        LOG_CRITICAL << "Max angle must be less than pi/2";
+    if (value[1] >= glm::half_pi<float>()) LOG_CRITICAL << "Max angle must be less than pi/2";
 
     auto& mPrivate = m();
     mPrivate.halfAngles() = value;
-    mPrivate.changeInSceneData();
+    mPrivate.onChanged();
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

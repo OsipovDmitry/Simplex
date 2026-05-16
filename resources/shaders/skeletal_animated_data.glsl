@@ -14,9 +14,9 @@ uint skeletalAnimatedDataCurrentAnimationID(in uint skeletalAnimatedDataID)
 	return skeletalAnimatedData[skeletalAnimatedDataID].currentAnimationID;
 }
 
-uint skeletalAnimatedDataBonesTransfromsDataOffset(in uint skeletalAnimatedDataID)
+uint skeletalAnimatedDataBonesTransformsDataOffset(in uint skeletalAnimatedDataID)
 {
-	return skeletalAnimatedData[skeletalAnimatedDataID].bonesTransfromsDataOffset;
+	return skeletalAnimatedData[skeletalAnimatedDataID].bonesTransformsDataOffset;
 }
 
 uint skeletalAnimatedDataLastUpdateTime(in uint skeletalAnimatedDataID)

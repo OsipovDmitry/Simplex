@@ -23,6 +23,9 @@ public:
 
     const glm::vec3& color() const;
     void setColor(const glm::vec3&);
+
+    uint32_t shadowCascadesCount() const;
+    void setShadowCascadesCount(uint32_t);
 };
 
 } // namespace core

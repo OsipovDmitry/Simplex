@@ -1,10 +1,11 @@
+#include "geometrybuffer.h"
+
 #include <utils/glm/common.hpp>
 
 #include <core/graphicsrendererbase.h>
 #include <core/programsloader.h>
 #include <core/settings.h>
 
-#include "geometrybuffer.h"
 #include "resources.h"
 #include "uniform.h"
 
@@ -17,7 +18,6 @@ GeometryBuffer::GeometryBuffer(const glm::uvec2& size)
     : StateSet()
     , m_size(0u)
     , m_isInitialized(false)
-
 {
 }
 
@@ -28,8 +28,7 @@ const glm::uvec2& GeometryBuffer::size() const
 
 void GeometryBuffer::resize(const glm::uvec2& size, const std::shared_ptr<graphics::RendererBase>& graphicsRenderer)
 {
-    if (m_size == size)
-        return;
+    if (m_size == size) return;
 
     m_size = glm::max(size, glm::uvec2(1u, 1u));
 
@@ -41,10 +40,9 @@ void GeometryBuffer::resize(const glm::uvec2& size, const std::shared_ptr<graphi
         graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Depth32F));
     m_depthTextureHandle->makeResident();
 
-    m_OITNodeIDImageHandle = graphicsRenderer->createImageHandle(
-        graphics::Image::create(
-            graphics::Image::DataAccess::ReadWrite,
-            graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R32UI)));
+    m_OITNodeIDImageHandle = graphicsRenderer->createImageHandle(graphics::Image::create(
+        graphics::Image::DataAccess::ReadWrite,
+        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R32UI)));
     m_OITNodeIDImageHandle->makeResident();
 
     m_finalTextureHandle = graphicsRenderer->createTextureHandle(
@@ -55,12 +53,8 @@ void GeometryBuffer::resize(const glm::uvec2& size, const std::shared_ptr<graphi
     auto OITBufferSize = glm::min(OITSetings.maxNodes(), m_size.x * m_size.y * OITSetings.nodesPerPixel());
 
     m_GBuffer = PGBuffer::element_type::create(GBufferDescription::make(
-        m_colorTextureHandle->handle(),
-        m_depthTextureHandle->handle(),
-        m_OITNodeIDImageHandle->handle(),
-        m_finalTextureHandle->handle(),
-        m_size,
-        OITBufferSize));
+        m_colorTextureHandle->handle(), m_depthTextureHandle->handle(), m_OITNodeIDImageHandle->handle(),
+        m_finalTextureHandle->handle(), m_size, OITBufferSize));
 
     m_OITBuffer = POITBuffer::element_type::create();
     m_OITBuffer->resize(OITBufferSize);
@@ -69,18 +63,14 @@ void GeometryBuffer::resize(const glm::uvec2& size, const std::shared_ptr<graphi
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::OITNodesBuffer) = graphics::BufferRange::create(m_OITBuffer->buffer());
 }
 
-void GeometryBuffer::initialize(const std::shared_ptr<ProgramsLoader>& programsManager)
+void GeometryBuffer::initialize(const std::shared_ptr<ProgramsLoader>& programsLoader)
 {
-    if (m_isInitialized)
-        return;
+    if (m_isInitialized) return;
 
-    m_clearOITNodeIDImageProgram = programsManager->loadOrGetComputeProgram(
-        resources::ClearOITNodeIDImagePassComputeShaderPath,
-        {});
+    m_clearOITNodeIDImageProgram =
+        programsLoader->loadOrGetComputeProgram(resources::ClearOITNodeIDImagePassComputeShaderPath, {});
 
-    m_sortOITNodesProgram = programsManager->loadOrGetComputeProgram(
-        resources::SortOITNodesPassComputeShaderPath,
-        {});
+    m_sortOITNodesProgram = programsLoader->loadOrGetComputeProgram(resources::SortOITNodesPassComputeShaderPath, {});
 }
 
 void GeometryBuffer::clear(
@@ -89,20 +79,14 @@ void GeometryBuffer::clear(
 {
     m_GBuffer->setField(offsetof(GBufferDescription, OITNodesCount), 0u);
 
-    graphicsRenderer->compute(
-        glm::uvec3(m_size, 1u),
-        m_clearOITNodeIDImageProgram,
-        { shared_from_this() });
+    graphicsRenderer->compute(glm::uvec3(m_size, 1u), m_clearOITNodeIDImageProgram, {shared_from_this()});
 
-    framebuffer->detachAll();
+    framebuffer->reset();
     framebuffer->attach(graphics::FrameBufferAttachment::Color0, m_colorTextureHandle->texture());
     framebuffer->attach(graphics::FrameBufferAttachment::Color1, m_finalTextureHandle->texture());
     framebuffer->attach(graphics::FrameBufferAttachment::Depth, m_depthTextureHandle->texture());
-
     framebuffer->setClearColor(0u, glm::uvec4(0u));
     framebuffer->setClearColor(1u, glm::vec4(0.f, 0.f, 0.f, 1.f));
-    framebuffer->setClearDepth(1.f);
-
     framebuffer->setColorMask(0u, true);
     framebuffer->setColorMask(1u, true);
     framebuffer->setDepthMask(true);
@@ -113,18 +97,14 @@ void GeometryBuffer::clear(
         return;
     }
 
-    framebuffer->clear({
-        graphics::FrameBufferAttachment::Color0,
-        graphics::FrameBufferAttachment::Color1,
-        core::graphics::FrameBufferAttachment::Depth });
+    framebuffer->clear(
+        {graphics::FrameBufferAttachment::Color0, graphics::FrameBufferAttachment::Color1,
+         graphics::FrameBufferAttachment::Depth});
 }
 
 void GeometryBuffer::sortOITNodes(const std::shared_ptr<graphics::RendererBase>& graphicsRenderer) const
 {
-    graphicsRenderer->compute(
-        glm::uvec3(m_size, 1u),
-        m_sortOITNodesProgram,
-        { shared_from_this() });
+    graphicsRenderer->compute(glm::uvec3(m_size, 1u), m_sortOITNodesProgram, {shared_from_this()});
 }
 
 PConstGBuffer GeometryBuffer::GBuffer() const
@@ -152,5 +132,5 @@ graphics::PConstTexture GeometryBuffer::finalTexture() const
     return m_finalTextureHandle->texture();
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

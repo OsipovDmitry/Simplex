@@ -1,97 +1,99 @@
 {
-    "Application":
-    {
-        "Name": "Simplex3DEngine",
-        "Scene": {
-            "RootNodeName": "SceneRootNode",
-            "ListenerNodeName": "ListenerNode"
-        }
-    },
-    "Graphics": {
-        "CullPlaneLimits": [0.1, 10000.0],
-        "Camera": {
-            "ClipSpace": {
-                "OrthoHeight": 1.0,
-                "PerspectiveFOV": 1.047198,
-                "Type": "perspective"
-            },
-			"ClusterMaxSize": [6, 5, 6]
-        },
-        "Background": {
-            "EnvironmentColor": [1.0, 1.0, 1.0],
-            "BlurPower": 0.07
-        },
-        "Flat": {
-            "Color": [1.0, 1.0, 1.0, 1.0]
-        },
-        "PBR": {
-            "DielectricSpecular": 0.04,
-            "ORMSwizzleMask": [0, 0, 0],
-            "BaseColor": [1.0, 1.0, 1.0, 1.0],
-            "Roughness": 0.5,
-            "Metalness": 0.0,
-            "Emission": [0.0, 0.0, 0.0],
-            "NormalMapScale": 1.0,
-            "OcclusionMapStrngth": 1.0
-        },
-        "IBL": {
-            "Contribution": 0.4
-        },
-        "Shadow": {
-            "Mode": "disabled",
-            "Filter": "vsm",
-            "DepthBias": 0.05,
-            "MapSize": 512
-        },
-        "SSAO": {
-            "Mode": "disabled",
-            "ViewportDenominator": 1.0,
-            "Contribution": 1.0,
-            "KernelSize": 16,
-            "NoiseSize": 4,
-            "Radius": 0.3
-        },
-        "Blur": {
-            "Sigma": 2.0
-        },
-		"OIT": {
-			"NodesPerPixel": 24,
-			"MaxNodes": 124416000
-		},
-        "DebugRendering": {
-            "NodeBoundingBox": {
-                "IsEnabled": false,
-                "Color": [1.0, 0.0, 0.0, 1.0]
-            },
-            "DrawableNodeLocalBoundingBox": {
-                "IsEnabled": false,
-                "Color": [0.0, 1.0, 0.0, 1.0]
-            },
-            "DrawableBoundingBox": {
-                "IsEnabled": false,
-                "Color": [0.0, 0.0, 1.0, 1.0]
-            },
-            "LightNodeAreaBoundingBox": {
-                "IsEnabled": false,
-                "Color": [1.0, 1.0, 1.0, 0.2]
-            }
-        }
-    },
-    "Audio": {
-        "Source": {
-            "Gain": 1.0,
-            "MinGain": 0.0,
-            "MaxGain": 1.0,
-            "ReferenceDistance": 1.0,
-            "RolloffFactor": 1.0,
-            "MaxDistance": "max",
-            "Pitch": 1.0
-            
-        },
-        "Listener": {
-            "Gain": 1.0
-        }
-    },
-    "Physics": {
+  "Application": {
+    "Name": "Simplex3DEngine",
+    "Scene": {
+      "RootNodeName": "SceneRootNode",
+      "ListenerNodeName": "ListenerNode"
     }
+  },
+  "Graphics": {
+    "CullPlaneLimits": [ 0.1, 10000.0 ],
+	"DrawDataCullingAlgorithm": "SuperFast",
+	"ShadowDataCullingAlgorithm": "SuperFast",
+	"SpotLightCullingAlgorithm": "SuperFast",
+    "Camera": {
+      "ClipSpace": {
+        "OrthoHeight": 1.0,
+        "PerspectiveFOV": 1.047198,
+        "Type": "perspective"
+      },
+      "ClusterSize": [ 16, 8, 32 ]
+    },
+    "Background": {
+      "EnvironmentColor": [ 1.0, 1.0, 1.0 ],
+      "BlurPower": 0.07
+    },
+    "Flat": {
+      "Color": [ 1.0, 1.0, 1.0, 1.0 ]
+    },
+    "PBR": {
+      "DielectricSpecular": 0.04,
+      "ORMSwizzleMask": [ 0, 0, 0 ],
+      "BaseColor": [ 1.0, 1.0, 1.0, 1.0 ],
+      "Roughness": 0.5,
+      "Metalness": 0.0,
+      "Emission": [ 0.0, 0.0, 0.0 ],
+      "NormalMapScale": 1.0,
+      "OcclusionMapStrngth": 1.0
+    },
+    "IBL": {
+      "Contribution": 0.4
+    },
+    "Shadow": {
+	  "AtlasSize": 2048,
+      "MapSize": 1024,
+	  "BlurSigma": 3.0,
+	  "LightBleedingAmount": 0.2
+    },
+    "SSAO": {
+      "Mode": "disabled",
+      "ViewportDenominator": 1.0,
+      "Contribution": 1.0,
+      "KernelSize": 16,
+      "NoiseSize": 4,
+      "Radius": 0.3
+    },
+    "Blur": {
+      "Sigma": 2.0
+    },
+    "OIT": {
+      "NodesPerPixel": 24,
+      "MaxNodes": 124416000
+    },
+    "DebugRendering": {
+      "NodeBoundingBox": {
+        "IsEnabled": false,
+        "Color": [ 1.0, 0.0, 0.0, 1.0 ]
+      },
+      "DrawableNodeLocalBoundingBox": {
+        "IsEnabled": false,
+        "Color": [ 0.0, 1.0, 0.0, 1.0 ]
+      },
+      "DrawableBoundingBox": {
+        "IsEnabled": false,
+        "Color": [ 0.0, 0.0, 1.0, 1.0 ]
+      },
+      "LightNodeAreaBoundingBox": {
+        "IsEnabled": false,
+        "Color": [ 1.0, 1.0, 1.0, 0.2 ]
+      }
+    }
+  },
+  "Audio": {
+    "Source": {
+      "Gain": 1.0,
+      "MinGain": 0.0,
+      "MaxGain": 1.0,
+      "ReferenceDistance": 1.0,
+      "RolloffFactor": 1.0,
+      "MaxDistance": "max",
+      "Pitch": 1.0
+
+    },
+    "Listener": {
+      "Gain": 1.0
+    }
+  },
+  "Physics": {
+  }
 }

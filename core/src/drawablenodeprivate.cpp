@@ -27,19 +27,24 @@ DrawableNodePrivate::DrawableNodePrivate(
 
 DrawableNodePrivate::~DrawableNodePrivate() = default;
 
-void DrawableNodePrivate::doAfterTransformChanged()
+const utils::BoundingBox& DrawableNodePrivate::calculateBoundingBox()
+{
+    return localBoundingBox();
+}
+
+void DrawableNodePrivate::onAfterTransformChanged()
 {
     changeDrawDataInSceneData();
 }
 
-void DrawableNodePrivate::doAttachToScene(const std::shared_ptr<Scene>& scene)
+void DrawableNodePrivate::onAttachToScene(const std::shared_ptr<Scene>& scene)
 {
     if (const auto& sceneData = scene->m().sceneData())
         for (const auto& drawable : m_drawables)
             addDrawDataToSceneData(sceneData, drawable);
 }
 
-void DrawableNodePrivate::doDetachFromScene(const std::shared_ptr<Scene>&)
+void DrawableNodePrivate::onDetachFromScene(const std::shared_ptr<Scene>&)
 {
     for (const auto& drawable : m_drawables)
         removeDrawDataFromSceneData(drawable);
@@ -98,6 +103,30 @@ void DrawableNodePrivate::changeDrawDataInSceneData()
 std::unordered_set<std::shared_ptr<Drawable>>& DrawableNodePrivate::drawables()
 {
     return m_drawables;
+}
+
+const utils::BoundingBox& DrawableNodePrivate::localBoundingBox()
+{
+    if (isLocalBoundingBoxDirty())
+    {
+        m_localBoundingBox = utils::BoundingBox::empty();
+        for (const auto& drawable : m_drawables)
+            if (auto mesh = drawable->mesh()) m_localBoundingBox += mesh->boundingBox();
+        isLocalBoundingBoxDirty() = false;
+    }
+
+    return m_localBoundingBox;
+}
+
+bool& DrawableNodePrivate::isLocalBoundingBoxDirty()
+{
+    return m_isLocalBoundingBoxDirty;
+}
+
+void DrawableNodePrivate::dirtyLocalBoundingBox()
+{
+    m_isLocalBoundingBoxDirty = true;
+    dirtyBoundingBox();
 }
 
 std::weak_ptr<SkeletalAnimatedNode>& DrawableNodePrivate::skeletalAnimatedNode()

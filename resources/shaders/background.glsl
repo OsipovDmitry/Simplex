@@ -9,7 +9,7 @@ vec3 backgroundEnvironmentColor()
 
 Quat backgroundRotation()
 {
-	return makeQuat(background.rotation);
+	return toQuat(background.rotation);
 }
 
 float backgroundBlurPower()

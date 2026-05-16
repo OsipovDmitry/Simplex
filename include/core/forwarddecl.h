@@ -8,9 +8,11 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <variant>
 
 #include <utils/forwarddecl.h>
 #include <utils/glm/vec2.hpp>
+#include <utils/glm/vec4.hpp>
 
 namespace simplex
 {
@@ -56,8 +58,7 @@ enum class TextureFilterMode : uint16_t;
 enum class TextureSwizzle : uint16_t;
 using TextureSwizzleMask = std::array<TextureSwizzle, 4u>;
 enum class FrameBufferAttachment : uint16_t;
-union FrameBufferClearColorValue;
-enum class FrameBufferClearColorType : uint16_t;
+using FrameBufferClearColor = std::variant<glm::vec4, glm::i32vec4, glm::u32vec4>;
 enum class UniformType : uint16_t;
 struct AttributeInfo;
 struct OutputInfo;
@@ -170,7 +171,12 @@ using ApplicationTimeCallback = std::function<uint64_t()>;
 using ApplicationPollEventsCallback = std::function<void()>;
 
 class IEngine;
+
+enum class DrawDataCullingAlgorithm : uint16_t;
+enum class ShadowDataCullingAlgorithm : uint16_t;
+enum class SpotLightCullingAlgorithm : uint16_t;
 class GraphicsEngine;
+
 class AudioEngine;
 
 class AbstractUniform;
@@ -202,12 +208,9 @@ class Drawable;
 using DrawableComponentSet = std::set<UniformID>;
 
 class Background;
-class Shadow;
 class SSAO;
 enum class SSAOMode : uint16_t;
 enum class LightType : uint16_t;
-enum class ShadingMode : uint16_t;
-enum class ShadingFilter : uint16_t;
 enum class SoundState : uint16_t;
 
 struct AnimationChannel;
@@ -225,6 +228,7 @@ class PointLightNode;
 class SpotLightNode;
 class DirectionalLightNode;
 class ImageBasedLightNode;
+class AmbientLightNode;
 class SkeletalAnimatedNode;
 class SoundNode;
 class ListenerNode;

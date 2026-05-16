@@ -12,9 +12,30 @@ Transform makeTransform(in float scale, in Quat rotation, in vec3 translation)
 	return Transform(rotation, translation, scale);
 }
 
+Transform makeTransform(in float scale)
+{
+	return makeTransform(scale, makeIdentityQuat(), vec3(0.0f));
+}
+
+Transform makeTransform(in Quat rotation)
+{
+	return makeTransform(1.0f, rotation, vec3(0.0f));
+}
+
+Transform makeTransform(in vec3 translation)
+{
+	return makeTransform(1.0f, makeIdentityQuat(), translation);
+}
+
 Transform makeIdentityTransform()
 {
-	return Transform(Quat(0.0f, 0.0f, 0.0f, 1.0f), vec3(0.0f), 1.0f);
+	return makeTransform(1.0f, makeIdentityQuat(), vec3(0.0f));
+}
+
+Transform makeLookAtTransform(in vec3 eye, in vec3 center, in vec3 up)
+{
+	const Quat q = quatConjugate(makeLookAtQuat(normalize(center - eye), normalize(up)));
+    return makeTransform(1.0f, q, -rotateVector(q, eye));
 }
 
 vec3 transformVector(in Transform t, in vec3 v)
@@ -22,14 +43,24 @@ vec3 transformVector(in Transform t, in vec3 v)
 	return rotateVector(t.rotation, v);
 }
 
+Quat transformQuat(in Transform t, in Quat q)
+{
+	return quatMult(t.rotation, q);
+}
+
 vec3 transformPoint(in Transform t, in vec3 p)
 {
 	return transformVector(t, p * t.scale) + t.translation;
 }
 
-float transformDistance(in Transform t, in float d)
+float transformSize(in Transform t, in float s)
 {
-	return t.scale * d;
+	return t.scale * s;
+}
+
+vec3 transformSize(in Transform t, in vec3 s)
+{
+	return t.scale * s;
 }
 
 Transform transformInverted(in Transform t)
@@ -42,10 +73,10 @@ Transform transformInverted(in Transform t)
 
 Transform transformMult(in Transform t1, in Transform t2)
 {
-	const vec3 translation = t1.translation + (t1.scale * rotateVector(t1.rotation, t2.translation));
-	const Quat rotation = quatMult(t1.rotation, t2.rotation);
-	const float scale = t1.scale * t2.scale;
-	return makeTransform(scale, rotation, translation);
+	return makeTransform(
+		transformSize(t1, t2.scale),
+		transformQuat(t1, t2.rotation),
+		transformPoint(t1, t2.translation));
 }
 
 mat4x4 transformMat4x4(in Transform t)

@@ -1,7 +1,7 @@
 #extension GL_ARB_bindless_texture : enable
 
-#include<material_map.glsl>
 #include<background.glsl>
+#include<map.glsl>
 
 in vec3 v_texCoords;
 
@@ -15,7 +15,7 @@ void main(void)
 	uint environmentMapID = backgroundEnvironmentMapID();
 	if (environmentMapID != 0xFFFFFFFFu)
 	{
-		const TextureHandle textureHandle = materialMapTextureHandle(environmentMapID);
+		const TextureHandle textureHandle = mapTextureHandle(environmentMapID);
 		if (!isTextureHandleEmpty(textureHandle))
 		{
 			float blurPower = backgroundBlurPower();

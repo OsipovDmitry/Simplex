@@ -3,6 +3,8 @@
 #include <utils/boundingbox.h>
 #include <utils/clipspace.h>
 #include <utils/idgenerator.h>
+#include <utils/orientedboundingbox.h>
+#include <utils/range.h>
 #include <utils/transform.h>
 
 #include <core/lightnode.h>
@@ -16,11 +18,32 @@ static const uint32_t PointLightTypeID = castFromLightType(LightType::Point);
 static const uint32_t SpotLightTypeID = castFromLightType(LightType::Spot);
 static const uint32_t DirectionalLightTypeID = castFromLightType(LightType::Directional);
 static const uint32_t ImageBasedLightTypeID = castFromLightType(LightType::ImageBased);
-static const uint32_t EmptyLightTypeID = std::numeric_limits<uint32_t>::max();
+static const uint32_t AmbientLightTypeID = castFromLightType(LightType::Ambient);
+static const uint32_t UndefinedLightTypeID = std::numeric_limits<uint32_t>::max();
 
 QuatDescription QuatDescription::make(const glm::quat& value)
 {
     return {glm::vec4(value.x, value.y, value.z, value.w)};
+}
+
+RangeDescription RangeDescription::make(const utils::Range& value)
+{
+    return {static_cast<glm::vec2>(value)};
+}
+
+PlaneDescription PlaneDescription::make(const utils::Plane& value)
+{
+    return {static_cast<glm::vec4>(value)};
+}
+
+BoundingBoxDescription BoundingBoxDescription::make(const utils::BoundingBox& bb)
+{
+    return {glm::vec4(bb.minPoint(), 0.0f), glm::vec4(bb.maxPoint(), 0.0f)};
+}
+
+OrientedBoundingBoxDescription OrientedBoundingBoxDescription::make(const utils::OrientedBoundingBox& obb)
+{
+    return {QuatDescription::make(obb.rotation()), glm::vec4(obb.translation(), 0.0f), glm::vec4(obb.halfSizes(), 0.0f)};
 }
 
 TransformDescription TransformDescription::makeEmpty()
@@ -38,41 +61,53 @@ ClipSpaceDescription ClipSpaceDescription::make(const utils::ClipSpace& clipSpac
     return {clipSpace.params(), utils::castFromClipSpaceType(clipSpace.type())};
 }
 
-CameraDescription CameraDescription::make(
-    const glm::uvec3& clusterMaxSize,
+RenderInfoDescription RenderInfoDescription::make(
+    uint32_t time,
+    float dielectricSpecular,
+    const utils::OrientedBoundingBox& globalBoundingBox,
+    uint32_t drawDataCount,
+    uint32_t skeletalAnimatedDataCount,
+    uint32_t shadowsCount,
+    uint32_t lightsCount,
+    graphics::TextureHandle shadowVarianceBluredTextureHandle,
+    graphics::TextureHandle shadowColorBluredTextureHandle,
+    const std::vector<float>& shadowBlurKernel,
+    float shadowLightBleedingAmount,
+    uint32_t shadowAtlasSize,
+    const glm::uvec3& clusterSize,
     const utils::Transform& viewTransform,
     const utils::ClipSpace& clipSpace,
     const utils::Range& cullPlaneLimits)
 {
-    const auto viewTransformInverted = viewTransform.inverted();
-    const auto projectionMatrix = clipSpace.projectionMatrix(cullPlaneLimits);
-    const auto viewProjectionMatrix = projectionMatrix * viewTransform;
+    RenderInfoDescription result{};
 
-    return {
-        glm::uvec4(clusterMaxSize, 0u),
-        TransformDescription::make(viewTransform),
-        ClipSpaceDescription::make(clipSpace),
-        glm::vec2(cullPlaneLimits.nearValue(), cullPlaneLimits.farValue()),
-        glm::uvec2(glm::floatBitsToUint(FLT_MAX), glm::floatBitsToUint(0.f)),
-        TransformDescription::make(viewTransformInverted),
-        glm::vec4(viewTransformInverted.transformPoint(glm::vec3(0.f)), 1.f),
-        glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(1.f, 0.f, 0.f))), 0.f),
-        glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(0.f, 1.f, 0.f))), 0.f),
-        glm::vec4(glm::normalize(viewTransformInverted.transformVector(glm::vec3(0.f, 0.f, 1.f))), 0.f),
-        projectionMatrix,
-        glm::inverse(projectionMatrix),
-        viewProjectionMatrix,
-        glm::inverse(viewProjectionMatrix)};
-}
+    // global
+    result.time = time;
+    result.dielectricSpecular = dielectricSpecular;
 
-SceneInfoDescription SceneInfoDescription::make(
-    uint32_t time,
-    uint32_t drawDataCount,
-    uint32_t skeletalAnimatedDataCount,
-    uint32_t lightsCount,
-    uint32_t lightNodesMaxCount)
-{
-    return {time, drawDataCount, skeletalAnimatedDataCount, lightsCount, 0u, 0u, 0u, lightNodesMaxCount, 0u, 0xFFFFFFFFu};
+    // scene
+    result.globalBoundingBox = OrientedBoundingBoxDescription::make(globalBoundingBox);
+    result.drawDataCount = drawDataCount;
+    result.skeletalAnimatedDataCount = skeletalAnimatedDataCount;
+    result.shadowsCount = shadowsCount;
+    result.lightsCount = lightsCount;
+
+    // shadow
+    result.shadowVarianceBluredTextureHandle = shadowVarianceBluredTextureHandle;
+    result.shadowColorBluredTextureHandle = shadowColorBluredTextureHandle;
+    for (size_t i = 0u; i < shadowBlurKernel.size(); ++i)
+        result.shadowBlurKernel[i] = shadowBlurKernel[i];
+    result.shadowBlurRadius = static_cast<uint32_t>(shadowBlurKernel.size());
+    result.shadowLightBleedingAmount = shadowLightBleedingAmount;
+    result.shadowAtlasSize = shadowAtlasSize;
+
+    // camera
+    result.clusterSize = glm::uvec4(clusterSize, 0u);
+    result.viewTransform = TransformDescription::make(viewTransform);
+    result.clipSpace = ClipSpaceDescription::make(clipSpace);
+    result.cullPlaneLimits = RangeDescription::make(cullPlaneLimits);
+
+    return result;
 }
 
 GBufferDescription GBufferDescription::make(
@@ -113,27 +148,15 @@ MeshDescription MeshDescription::make(
     flags |= ((hasTangent ? 1u : 0u) & 0x1u) << 9u;
     flags |= (numColorComponents & 0x7u) << 10u;
 
-    return {
-        glm::vec4(bb.minPoint(), glm::uintBitsToFloat(verticesDataSize)),
-        glm::vec4(bb.maxPoint(), glm::uintBitsToFloat(elementsDataSize)), verticesDataOffset, elementsDataOffset, flags};
+    return {BoundingBoxDescription::make(bb), verticesDataSize, elementsDataSize, verticesDataOffset, elementsDataOffset, flags};
 }
 
-uint32_t MeshDescription::verticesDataSize(const MeshDescription& desc)
-{
-    return glm::floatBitsToUint(desc.boundingBoxMinPointAndVerticesDataSize.w);
-}
-
-uint32_t MeshDescription::elementsDataSize(const MeshDescription& desc)
-{
-    return glm::floatBitsToUint(desc.boundingBoxMaxPointAndElementsDataSize.w);
-}
-
-MaterialMapDescription MaterialMapDescription::makeEmpty()
+MapDescription MapDescription::makeEmpty()
 {
     return make(utils::IDsGeneratorT<graphics::TextureHandle>::last());
 }
 
-MaterialMapDescription MaterialMapDescription::make(graphics::TextureHandle textureHandle)
+MapDescription MapDescription::make(graphics::TextureHandle textureHandle)
 {
     return {textureHandle};
 }
@@ -214,7 +237,34 @@ DrawDataDescription DrawDataDescription::make(
 
 BackgroundDescription BackgroundDescription::makeEmpty()
 {
-    return BackgroundDescription::make(glm::quat(), glm::vec3(1.f), 0.f, utils::IDsGenerator::last());
+    return BackgroundDescription::make(glm::quat(1.f, 0.f, 0.f, 0.f), glm::vec3(1.f), 0.f, utils::IDsGenerator::last());
+}
+
+ShadowTransformsDataDescription ShadowTransformsDataDescription::make(
+    const utils::Transform& viewTransform,
+    const utils::Range& ZRange,
+    const glm::mat4x4& projectionMatrix,
+    const glm::uvec3& mapCoords,
+    uint32_t packerLayerID)
+{
+    return {
+        TransformDescription::make(viewTransform), RangeDescription::make(ZRange), projectionMatrix,
+        glm::uvec4(mapCoords, packerLayerID)};
+}
+
+ShadowTransformsDataDescription ShadowTransformsDataDescription::make(const glm::uvec3& mapCoords, uint32_t packerLayerID)
+{
+    return make(utils::Transform::makeIdentity(), utils::Range(), glm::mat4x4(1.f), mapCoords, packerLayerID);
+}
+
+glm::uvec3 ShadowTransformsDataDescription::mapCoords(const ShadowTransformsDataDescription& desc)
+{
+    return glm::uvec3(desc.mapCoordsAndPackerItemID);
+}
+
+uint32_t ShadowTransformsDataDescription::packerItemID(const ShadowTransformsDataDescription& desc)
+{
+    return desc.mapCoordsAndPackerItemID[3u];
 }
 
 BackgroundDescription BackgroundDescription::make(
@@ -226,49 +276,107 @@ BackgroundDescription BackgroundDescription::make(
     return {QuatDescription::make(rotation), glm::vec4(environmentColor, blurPower), environmentMapID};
 }
 
+ShadowDescription ShadowDescription::makeEmpty()
+{
+    return make(0u, utils::Range(), 0u, utils::IDsGenerator::last());
+}
+
+ShadowDescription ShadowDescription::make(
+    uint32_t mapSize,
+    const utils::Range& cullPlaneLimits,
+    uint32_t layersCount,
+    uint32_t transformsDataOffset)
+{
+    uint32_t flags = 0u;
+    flags |= (layersCount & 0x7u) << 0u;
+
+    return {RangeDescription::make(cullPlaneLimits), mapSize, transformsDataOffset, flags};
+}
+
+uint32_t ShadowDescription::layersCount(const ShadowDescription& desc)
+{
+    return glm::bitfieldExtract(desc.flags, 0, 3);
+}
+
 LightDescription LightDescription::makeEmpty()
 {
     return {
         TransformDescription::make(utils::Transform::makeIdentity()),
-        glm::vec4(glm::vec3(0.f), glm::uintBitsToFloat(EmptyLightTypeID)), glm::vec4(0.f)};
+        glm::vec4(glm::vec3(0.f), glm::uintBitsToFloat(UndefinedLightTypeID)), glm::vec4(0.f), utils::IDsGenerator::last(), 0u};
 }
 
-LightDescription LightDescription::makePoint(const utils::Transform& transform, const glm::vec3& color, const glm::vec2& radiuses)
+LightDescription LightDescription::makePoint(
+    const utils::Transform& transform,
+    bool isEnabled,
+    const glm::vec3& color,
+    const glm::vec2& radiuses,
+    uint32_t shadowID)
 {
+    uint32_t flags = 0u;
+    flags |= (isEnabled & 0x1u) << 0u;
+
     return {
         TransformDescription::make(transform), glm::vec4(color, glm::uintBitsToFloat(PointLightTypeID)),
-        glm::vec4(radiuses, 0.f, 0.f)};
+        glm::vec4(radiuses, 0.f, 0.f), shadowID, flags};
 }
 
 LightDescription LightDescription::makeSpot(
     const utils::Transform& transform,
+    bool isEnabled,
     const glm::vec3& color,
     const glm::vec2& radiuses,
-    const glm::vec2& halfAngles)
+    const glm::vec2& halfAngles,
+    uint32_t shadowID)
 {
+    uint32_t flags = 0u;
+    flags |= (isEnabled & 0x1u) << 0u;
+
     return {
         TransformDescription::make(transform), glm::vec4(color, glm::uintBitsToFloat(SpotLightTypeID)),
-        glm::vec4(radiuses, halfAngles)};
+        glm::vec4(radiuses, halfAngles), shadowID, flags};
 }
 
-LightDescription LightDescription::makeDirectional(const utils::Transform& transform, const glm::vec3& color)
+LightDescription LightDescription::makeDirectional(
+    const utils::Transform& transform,
+    bool isEnabled,
+    const glm::vec3& color,
+    uint32_t shadowID)
 {
+    uint32_t flags = 0u;
+    flags |= (isEnabled & 0x1u) << 0u;
+
     return {
-        TransformDescription::make(transform), glm::vec4(color, glm::uintBitsToFloat(DirectionalLightTypeID)), glm::vec4(0.f)};
+        TransformDescription::make(transform), glm::vec4(color, glm::uintBitsToFloat(DirectionalLightTypeID)), glm::vec4(0.f),
+        shadowID, flags};
 }
 
 LightDescription LightDescription::makeImageBased(
     const utils::Transform& transform,
+    bool isEnabled,
     uint32_t BRDFLutMapID,
     uint32_t diffuseMapID,
     uint32_t specularMapID,
     float contribution)
 {
+    uint32_t flags = 0u;
+    flags |= (isEnabled & 0x1u) << 0u;
+
     return {
-        TransformDescription::make(transform), glm::vec4(glm::vec3(), glm::uintBitsToFloat(ImageBasedLightTypeID)),
+        TransformDescription::make(transform), glm::vec4(glm::vec3(0.f), glm::uintBitsToFloat(ImageBasedLightTypeID)),
         glm::vec4(
             glm::uintBitsToFloat(BRDFLutMapID), glm::uintBitsToFloat(diffuseMapID), glm::uintBitsToFloat(specularMapID),
-            contribution)};
+            contribution),
+        utils::IDsGenerator::last(), flags};
+}
+
+LightDescription LightDescription::makeAmbient(bool isEnabled, const glm::vec3& color)
+{
+    uint32_t flags = 0u;
+    flags |= (isEnabled & 0x1u) << 0u;
+
+    return {
+        TransformDescription::makeEmpty(), glm::vec4(color, glm::uintBitsToFloat(AmbientLightTypeID)), glm::vec4(0.f),
+        utils::IDsGenerator::last(), flags};
 }
 
 SkeletonDescription SkeletonDescription::makeEmpty()
@@ -281,6 +389,21 @@ SkeletonDescription SkeletonDescription::make(uint32_t dataOffset, uint32_t data
     return {dataOffset, dataSize};
 }
 
+ShadowMapsDescription ShadowMapsDescription::makeEmpty()
+{
+    return ShadowMapsDescription::make(
+        utils::IDsGeneratorT<graphics::TextureHandle>::last(), utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+        utils::IDsGeneratorT<graphics::TextureHandle>::last());
+}
+
+ShadowMapsDescription ShadowMapsDescription::make(
+    graphics::TextureHandle shadowDepthTextureHandle,
+    graphics::TextureHandle shadowVarianceTextureHandle,
+    graphics::TextureHandle shadowColorTextureHandle)
+{
+    return {shadowDepthTextureHandle, shadowVarianceTextureHandle, shadowColorTextureHandle};
+}
+
 SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::makeEmpty()
 {
     return make(utils::IDsGenerator::last(), utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0u, 0u);
@@ -289,11 +412,11 @@ SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::makeEmpty()
 SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::make(
     uint32_t skeletonID,
     uint32_t currentAnimationID,
-    uint32_t bonesTransfromsDataOffset,
-    uint32_t bonesTransfromsDataSize,
+    uint32_t bonesTransformsDataOffset,
+    uint32_t bonesTransformsDataSize,
     uint32_t lastUpdateTime)
 {
-    return {skeletonID, currentAnimationID, bonesTransfromsDataOffset, bonesTransfromsDataSize, lastUpdateTime};
+    return {skeletonID, currentAnimationID, bonesTransformsDataOffset, bonesTransformsDataSize, lastUpdateTime};
 }
 
 } // namespace core

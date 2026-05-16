@@ -1,26 +1,30 @@
 #include<constants.glsl>
-#include<transform.glsl>
 
 #define Range vec2
 
+Range makeRange(in vec2 v)
+{
+	return v;
+}
+
 Range makeRange(in float t0, in float t1)
 {
-	return (t0 < t1) ? Range(t0, t1) : Range(t1, t0);
+	return makeRange(vec2(t0, t1));
 }
 
 Range makeRange(in float t)
 {
-	return Range(t, t);
+	return makeRange(t, t);
 }
 
-Range makeRange(in vec2 v)
+Range makeRangeFromCenterAndHalfSize(in float center, in float halfSize)
 {
-	return Range(v[0u], v[1u]);
+	return makeRange(center - halfSize, center + halfSize);
 }
 
 Range makeEmptyRange()
 {
-	return Range(FLT_MAX, -FLT_MAX);
+	return makeRange(FLT_MAX, -FLT_MAX);
 }
 
 bool isRangeEmpty(in Range r)
@@ -38,34 +42,43 @@ float rangeEnd(in Range r)
 	return r[1u];
 }
 
+float rangeCenter(in Range r)
+{
+	return 0.5f * (r[1u] + r[0u]);
+}
+
+float rangeHalfSize(in Range r)
+{
+	return 0.5f * (r[1u] - r[0u]);
+}
+
 Range rangeExpand(in Range r, in float t)
 {
 	return makeRange(min(r[0u], t), max(r[1u], t));
 }
 
+Range rangeExpand(in Range r0, in Range r1)
+{
+	return makeRange(min(r0[0u], r1[0u]), max(r0[1u], r1[1u]));
+}
+
+Range rangeIntersect(in Range r0, in Range r1)
+{
+	return makeRange(max(r0[0u], r1[0u]), min(r0[1u], r1[1u]));
+}
+
 bool rangeLessThan(in Range r, in float t)
 {
-	return all(lessThan(r, vec2(t)));
+	return (r[1u] < t);
 }
 
 bool rangeGreaterThan(in Range r, in float t)
 {
-	return all(greaterThan(r, vec2(t)));
+	return (r[0u] > t);
 }
 
 bool rangeIsPointInside(in Range r, in float t)
 {
 	return (r[0u] <= t) && (t <= r[1u]);
 }
-
-Range absRange(in Range r)
-{
-	return makeRange(abs(r));
-}
-
-Range transformRange(in Transform t, in Range r)
-{
-	return makeRange(transformDistance(t, r[0u]), transformDistance(t, r[1u]));
-}
-
 

@@ -28,11 +28,11 @@ vec3 fresnelSchlick(in float cosTheta, in vec3 F0)
 }
 
 vec3 calculatePBR(
+	in vec3 lightColor,
 	in vec3 baseColor,
 	in float metalness,
 	in float roughness,
 	in vec3 F0,
-	in vec3 lightColor,
 	in vec3 N,
 	in vec3 L,
 	in vec3 V)

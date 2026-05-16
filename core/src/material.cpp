@@ -61,7 +61,6 @@ void MaterialMap::setImage(const std::shared_ptr<utils::Image>& value)
 Material::Material()
     : m_(std::make_unique<MaterialPrivate>())
 {
-
 }
 Material::~Material() = default;
 
@@ -69,7 +68,7 @@ bool Material::isLighted() const
 {
     return m_->isLighted();
 }
-void Material::setIsLighted(bool value)
+void Material::setLighted(bool value)
 {
     m_->isLighted() = value;
     m_->onChanged();
@@ -80,7 +79,7 @@ bool Material::isShadowed() const
     return m_->isShadowed();
 }
 
-void Material::setIsShadowed(bool value)
+void Material::setShadowed(bool value)
 {
     m_->isShadowed() = value;
     m_->onChanged();
@@ -91,7 +90,7 @@ bool Material::isShadowCasted() const
     return m_->isShadowCasted();
 }
 
-void Material::setIsShadowCasted(bool value)
+void Material::setShadowCasted(bool value)
 {
     m_->isShadowCasted() = value;
     m_->onChanged();
@@ -207,5 +206,5 @@ void Material::setMaterialMap(MaterialMapTarget target, const std::shared_ptr<Ma
     m_->onChanged();
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

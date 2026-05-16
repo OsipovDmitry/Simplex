@@ -1,115 +1,44 @@
-#include <utils/logger.h>
+#include "shadow.h"
 
 #include <core/lightnode.h>
-#include <core/settings.h>
-#include <core/shadow.h>
-#include <core/graphicsrendererbase.h>
 
 #include "lightnodeprivate.h"
-#include "shadowprivate.h"
-#include "shadowbuffer.h"
+#include "scenedata.h"
 
 namespace simplex
 {
 namespace core
 {
 
-Shadow::Shadow(LightType lightType)
-    : m_(std::make_unique<ShadowPrivate>())
+Shadow::Shadow(const LightNode& lightNode)
+    : m_lightNode(lightNode)
 {
-    switch (lightType)
-    {
-    case LightType::Point:
-    {
-        m_->shadowBuffer() = std::make_shared<ShadowBufferCube>();
-        break;
-    }
-    case LightType::Directional:
-    case LightType::Spot:
-    {
-        m_->shadowBuffer() = std::make_shared<ShadowBuffer2D>();
-        break;
-    }
-    default:
-        break;
-    }
-
-    const auto numLayeredMatrices = LightNodePrivate::numLayeredShadowMatrices(lightType);
-
-    auto layeredMatricesBuffer = ShadowPrivate::LayeredMatricesBuffer::element_type::create();
-    layeredMatricesBuffer->resize(numLayeredMatrices);
-    //layeredMatricesBuffer->setReservedData({ numLayeredMatrices, 0u, 0u, 0u });
-    m_->layeredMatricesBuffer() = layeredMatricesBuffer;
-
-    const auto &graphicsSettings = settings::Settings::instance().graphics();
-    const auto &shadowSettings = graphicsSettings.shadow();
-    setMapSize(glm::uvec2(shadowSettings.mapSize()));
-    setMode(shadowSettings.mode());
-    setFilter(shadowSettings.filter());
-    setDepthBias(shadowSettings.depthBias());
-    setCullPlanesLimits(graphicsSettings.cullPlaneLimits());
 }
 
 Shadow::~Shadow() = default;
 
-ShadingMode Shadow::mode() const
+const LightNode& Shadow::lightNode() const
 {
-    return m().mode();
+    return m_lightNode;
 }
 
-void Shadow::setMode(ShadingMode value)
+std::shared_ptr<ShadowHandler>& Shadow::handler() const
 {
-    m().mode() = value;
+    return m_handler;
 }
 
-ShadingFilter Shadow::filter() const
+void Shadow::onChanged()
 {
-    return m().filter();
+    if (m_handler)
+    {
+        if (auto sceneData = m_handler->sceneData().lock())
+        {
+            sceneData->onShadowChanged(
+                m_handler->ID(), m_lightNode.shadowMapSize(), m_lightNode.shadowCullPlanesLimits(),
+                m_lightNode.m().shadowLayersCount());
+        }
+    }
 }
 
-void Shadow::setFilter(ShadingFilter value)
-{
-    m().filter() = value;
-}
-
-float Shadow::depthBias() const
-{
-    return m().depthBias();
-}
-
-void Shadow::setDepthBias(float value)
-{
-    if (value < 0.f)
-        LOG_CRITICAL << "Shadow depth bias can't be less than 0.0";
-
-    m().depthBias() = value;
-}
-
-const glm::uvec2 &Shadow::mapSize() const
-{
-    return m().mapSize();
-}
-
-void Shadow::setMapSize(const glm::uvec2 &value)
-{
-    m().mapSize() = value;
-}
-
-const utils::Range &Shadow::cullPlanesLimits() const
-{
-    return m().cullPlanesLimits();
-}
-
-void Shadow::setCullPlanesLimits(const utils::Range &value)
-{
-    if (value.nearValue() <= 0.f)
-        LOG_CRITICAL << "Znear must be greater than 0.0";
-
-    if (value.farValue() <= value.nearValue())
-        LOG_CRITICAL << "Zfar must be greater than Znear";
-
-    m().cullPlanesLimits() = value;
-}
-
-}
-}
+} // namespace core
+} // namespace simplex

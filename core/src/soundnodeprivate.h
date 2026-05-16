@@ -14,17 +14,17 @@ public:
     SoundNodePrivate(SoundNode&, const std::string&);
     ~SoundNodePrivate() override;
 
-    void doDetachFromScene(const std::shared_ptr<Scene>&) override;
+    void onDetachFromScene(const std::shared_ptr<Scene>&) override;
 
-    std::shared_ptr<audio::ISource> &source();
-    SoundState &state();
+    std::shared_ptr<audio::ISource>& source();
+    SoundState& state();
 
 private:
     std::shared_ptr<audio::ISource> m_source;
     SoundState m_state;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_SOUNDNODEPRIVATE_H

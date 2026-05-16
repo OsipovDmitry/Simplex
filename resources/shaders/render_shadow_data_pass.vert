@@ -1,30 +1,40 @@
 #include<bones_transforms_data.glsl>
-#include<camera.glsl>
 #include<drawable.glsl>
 #include<draw_data.glsl>
 #include<mesh.glsl>
+#include<render_info.glsl>
+#include<shadow.glsl>
+#include<shadow_data.glsl>
+#include<shadow_transforms_data.glsl>
 #include<skeletal_animated_data.glsl>
 #include<vertex_data.glsl>
 
+#include<math/transform.glsl>
+
+flat out uint v_layerID;
 flat out uint v_meshID;
 flat out uint v_materialID;
-out vec3 v_normal;
+out float v_linearNormalizedDepth;
 out vec2 v_texCoords;
-out vec3 v_tangent;
-out vec3 v_binormal;
 out vec4 v_color;
+
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_ClipDistance[6];
+};
 
 void main(void)
 {
-	const uint drawDataID = gl_BaseInstance;
-	
-	const Transform modelTransform = drawDataTransform(drawDataID);
+	const uint shadowDataID = gl_BaseInstance;
+	const uint drawDataID = shadowDataDrawDataID(shadowDataID);
+
 	const uint drawableID = drawDataDrawableID(drawDataID);
 	const uint skeletalAnimatedDataID = drawDataSkeletalAnimatedDataID(drawDataID);
 	
 	uint bonesTransformsDataOffset = 0xFFFFFFFFu;
 	if (skeletalAnimatedDataID != 0xFFFFFFFFu)
-		bonesTransformsDataOffset = skeletalAnimatedDataBonesTransfromsDataOffset(skeletalAnimatedDataID);
+		bonesTransformsDataOffset = skeletalAnimatedDataBonesTransformsDataOffset(skeletalAnimatedDataID);
 	
 	v_meshID = drawableMeshID(drawableID);
 	v_materialID = drawableMaterialID(drawableID);
@@ -43,12 +53,7 @@ void main(void)
 	}
 	
 	const uint normalComponentsCount = meshNormalComponentsCount(v_meshID);
-	vec3 normal = vec3(0.0f);
-	if (normalComponentsCount > 0u)
-	{
-		normal = verticesDataVertexNormal(verticesDataOffset, vertexStride, vertexID, relativeOffset, normalComponentsCount);
-		relativeOffset += normalComponentsCount;
-	}
+	relativeOffset += normalComponentsCount;
 	
 	const uint texCoordsComponentsCount = meshTexCoordsComponentsCount(v_meshID);
 	vec2 texCoords = vec2(0.0f);
@@ -58,16 +63,8 @@ void main(void)
 		relativeOffset += texCoordsComponentsCount;
 	}
 	
-	vec3 tangent = vec3(0.0f);
-	vec3 binormal = vec3(0.0f);
 	const bool hasTangent = meshTangentFlag(v_meshID);
-	if (hasTangent)
-	{
-		float binormalFlag = 0.0f;
-		verticesDataVertexTangentAndBinormalFlag(verticesDataOffset, vertexStride, vertexID, relativeOffset, tangent, binormalFlag);
-		binormal = normalize(cross(normal, tangent) * binormalFlag);
-		relativeOffset += 4u;
-	}
+	relativeOffset += (hasTangent) ? 4u : 0u;
 
 	if (bonesTransformsDataOffset != 0xFFFFFFFFu)
 	{
@@ -87,16 +84,7 @@ void main(void)
 			boneTransform += transformMat4x4(bonesTransformsDataBoneTransform(bonesTransformsDataOffset, boneID)) * boneWeight;
 		}
 		
-		mat3 boneNormalMatrix = transpose(inverse(mat3(boneTransform)));
-		
 		position = vec3(boneTransform * vec4(position, 1.0f));
-		normal = boneNormalMatrix * normal;
-		if (hasTangent)
-		{
-			tangent = boneNormalMatrix * tangent;
-			binormal = boneNormalMatrix * binormal;
-		}
-		
 		relativeOffset += 2u * bonesCount;
 	}
 	
@@ -108,10 +96,39 @@ void main(void)
 		relativeOffset += colorComponentsCount;
 	}
 	
-	gl_Position = cameraViewProjectionMatrix() * vec4(transformPoint(modelTransform, position), 1.0f);
-	v_normal = transformVector(modelTransform, normal);
+	const uint shadowID = shadowDataShadowID(shadowDataID);
+	const uint layerID = shadowDataLayerID(shadowDataID, uint(gl_InstanceID));
+	const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
+	
+	const uint mapSize = shadowMapSize(shadowID);
+	const uvec3 mapCoords = shadowTransformsDataMapCoords(transformsDataOffset, layerID);
+	
+	const uint shadowAtlasSize = renderInfoShadowAtlasSize();
+	const float scale = float(mapSize) / float(shadowAtlasSize);
+	const vec2 translation = vec2(mapCoords.xy) / float(shadowAtlasSize);
+	
+	const vec3 positionWS = transformPoint(drawDataTransform(drawDataID), position);
+	const vec3 positionLVS = transformPoint(shadowTransformsDataViewTransform(transformsDataOffset, layerID), positionWS);
+	const vec4 positionLCS = shadowTransformsDataProjectionMatrix(transformsDataOffset, layerID) * vec4(positionLVS, 1.0f);
+	
+	for (uint i = 0u; i < 3u; ++i)
+	{
+		gl_ClipDistance[2u * i + 0u] = positionLCS[3u] - positionLCS[i];
+		gl_ClipDistance[2u * i + 1u] = positionLCS[i] + positionLCS[3u];
+	}
+	
+	vec2 NDC_XY = positionLCS.xy / positionLCS.w;
+	NDC_XY = NDC_XY * 0.5f + vec2(0.5f);
+	NDC_XY = NDC_XY * scale + translation;
+	NDC_XY = NDC_XY * 2.0f - vec2(1.0f);
+	NDC_XY = NDC_XY * positionLCS.w;
+	
+	const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, layerID);
+	const float linearNormalizedDepth = (-positionLVS[2u] - rangeStart(layerZRange)) / (rangeEnd(layerZRange) - rangeStart(layerZRange));
+	
+	gl_Position = vec4(NDC_XY, positionLCS.zw);
+	v_layerID = mapCoords[2u];
+	v_linearNormalizedDepth = linearNormalizedDepth;
 	v_texCoords = texCoords;
-	v_tangent = transformVector(modelTransform, tangent);
-	v_binormal = transformVector(modelTransform, binormal);
 	v_color = color;	
 }

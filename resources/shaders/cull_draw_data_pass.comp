@@ -1,0 +1,139 @@
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+#include<camera.glsl>
+#include<counters.glsl>
+#include<drawable.glsl>
+#include<draw_data.glsl>
+#include<indirect_commands.glsl>
+#include<material.glsl>
+#include<mesh.glsl>
+#include<render_info.glsl>
+#include<skeletal_animated_data.glsl>
+
+#include<math/bounding_box.glsl>
+#include<math/classifications.glsl>
+#include<math/constants.glsl>
+#include<math/intersections.glsl>
+#include<math/oriented_bounding_box.glsl>
+#include<math/range.glsl>
+
+#define DISABLED_DRAW_DATA_CULLING_ALGORITHM 0
+#define SUPER_FAST_DRAW_DATA_CULLING_ALGORITHM 1
+#define FAST_DRAW_DATA_CULLING_ALGORITHM 2
+#define CORRECT_DRAW_DATA_CULLING_ALGORITHM 3
+
+#ifndef DRAW_DATA_CULLING_ALGORITHM
+	#define DRAW_DATA_CULLING_ALGORITHM SUPER_FAST_DRAW_DATA_CULLING_ALGORITHM
+#endif
+
+layout (std430) buffer ssbo_opaqueDrawDataRenderCommandsBuffer {
+	DrawArraysIndirectCommand opaqueDrawDataRenderCommands[];
+};
+
+layout (std430) buffer ssbo_transparentDrawDataRenderCommandsBuffer {
+	DrawArraysIndirectCommand transparentDrawDataRenderCommands[];
+};
+
+void updateNearFar(inout Range nearFar, in vec3 v)
+{
+	nearFar = rangeExpand(nearFar, -v.z);
+}
+
+void main(void)
+{
+    if (all(lessThan(gl_GlobalInvocationID, uvec3(renderInfoDrawDataCount(), 1u, 1u))))
+    {
+		const uint drawDataID = gl_GlobalInvocationID[0u];
+		const uint drawableID = drawDataDrawableID(drawDataID);
+		if (drawableID != 0xFFFFFFFFu)
+		{
+			const uint meshID = drawableMeshID(drawableID);
+			const uint materialID = drawableMaterialID(drawableID);
+			if ((meshID != 0xFFFFFFFFu) && (materialID != 0xFFFFFFFFu))
+			{
+				const BoundingBox localBoundingBox = meshBoundingBox(meshID);
+				
+				if (!isBoundingBoxEmpty(localBoundingBox))
+				{	
+					const OrientedBoundingBox orientedBoundingBox = transformOrientedBoundingBox(
+						transformMult(cameraViewTransform(), drawDataTransform(drawDataID)),
+						makeOrientedBoundingBox(localBoundingBox));
+					
+					const vec3 frustumPoints[FRUSTUM_POINTS_COUNT] = cameraFrustumPoints();
+					
+					#if (DRAW_DATA_CULLING_ALGORITHM == DISABLED_DRAW_DATA_CULLING_ALGORITHM)
+						bool isBoundingBoxVisible = true;
+					#elif (DRAW_DATA_CULLING_ALGORITHM == SUPER_FAST_DRAW_DATA_CULLING_ALGORITHM)
+						bool isBoundingBoxVisible = orientedBoundingBoxVsFrustumSuperFast(
+							orientedBoundingBox,
+							cameraFrustumFaceNormalLines(),
+							cameraFrustumRanges());
+					#elif (DRAW_DATA_CULLING_ALGORITHM == FAST_DRAW_DATA_CULLING_ALGORITHM)
+						bool isBoundingBoxVisible = orientedBoundingBoxVsFrustumFast(
+							orientedBoundingBox,
+							cameraFrustumFaceNormalLines(),
+							cameraFrustumRanges(),
+							frustumPoints);
+					#elif (DRAW_DATA_CULLING_ALGORITHM == CORRECT_DRAW_DATA_CULLING_ALGORITHM)
+						bool isBoundingBoxVisible = orientedBoundingBoxVsFrustum(
+							orientedBoundingBox,
+							cameraFrustumFaceNormalLines(),
+							cameraFrustumRanges(),
+							frustumPoints,
+							cameraFrustumEdgeDirections());
+					#else
+						error!!!
+					#endif
+					
+					if (isBoundingBoxVisible)
+					{	
+						Range nearFar = makeRange(FLT_MAX, 0.0f);
+						
+						const vec3 obbPoints[BOUNDING_BOX_POINTS_COUNT] = orientedBoundingBoxPoints(orientedBoundingBox);
+						
+						for (uint i = 0u; i < BOUNDING_BOX_EDGES_COUNT; ++i)
+						{
+							const uvec2 edgeIndices = boundingBoxEdgeIndices(i);
+							
+							const LineSegment obbEdge = makeLineSegment(obbPoints[edgeIndices[0u]], obbPoints[edgeIndices[1u]]);
+							const LineSegmentIntersectFrustumResult lsifr = lineSegmentIntersectFrustum(obbEdge, cameraFrustumPlanes());
+							for (uint j = 0u; j < lsifr.count; ++j)
+								updateNearFar(nearFar, lsifr.p[j]);
+								
+							const LineSegment fEdge = makeLineSegment(frustumPoints[edgeIndices[0u]], frustumPoints[edgeIndices[1u]]);
+							const LineSegmentIntersectOrientedBoundingBoxResult lsiobbr =
+								lineSegmentIntersectOrientedBoundingBox(fEdge, orientedBoundingBox);
+							for (uint j = 0u; j < lsiobbr.count; ++j)
+								updateNearFar(nearFar, lsiobbr.p[j]);
+						}
+						
+						countersExpandZRange(nearFar);
+
+						if (isMeshTransparent(meshID) || isMaterialTransparent(materialID))
+						{
+							const uint commandID = countersGenerateTransparentDrawDataRenderCommandID();
+							transparentDrawDataRenderCommands[commandID] = DrawArraysIndirectCommand(
+								meshElementsDataSize(meshID),
+								1u,
+								meshElementsDataOffset(meshID),
+								drawDataID);
+						}
+						else
+						{
+							const uint commandID = countersGenerateOpaqueDrawDataRenderCommandID();
+							opaqueDrawDataRenderCommands[commandID] = DrawArraysIndirectCommand(
+								meshElementsDataSize(meshID),
+								1u,
+								meshElementsDataOffset(meshID),
+								drawDataID);
+						}
+						
+						const uint skeletalAnimatedDataID = drawDataSkeletalAnimatedDataID(drawDataID);
+						const uint time = renderInfoTime();
+						skeletalAnimatedDataSetLastUpdateTime(skeletalAnimatedDataID, time);
+					}
+				}
+			}
+		}
+    }
+}

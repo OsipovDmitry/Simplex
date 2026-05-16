@@ -12,6 +12,7 @@ namespace core
 
 GraphicsEnginePrivate::GraphicsEnginePrivate(const std::string& name)
     : m_name(name)
+    , m_dielectricSpecular(.04f)
 {
 }
 
@@ -58,6 +59,11 @@ std::shared_ptr<graphics::IVertexArray>& GraphicsEnginePrivate::vertexArray()
 std::shared_ptr<GeometryBuffer>& GraphicsEnginePrivate::geometryBuffer()
 {
     return m_geometryBuffer;
+}
+
+float& GraphicsEnginePrivate::dielectricSpecular()
+{
+    return m_dielectricSpecular;
 }
 
 const std::string& GraphicsEnginePrivate::attributeNameByID(utils::VertexAttribute ID)
@@ -175,28 +181,39 @@ const std::string& GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
         {ShaderStorageBlockID::ElementsDataBuffer, "ssbo_elementsDataBuffer"},
         {ShaderStorageBlockID::SkeletonsDataBuffer, "ssbo_skeletonsDataBuffer"},
         {ShaderStorageBlockID::BonesTransformsDataBuffer, "ssbo_bonesTransformsDataBuffer"},
+        {ShaderStorageBlockID::ShadowTransformsDataBuffer, "ssbo_shadowTransformsDataBuffer"},
+        {ShaderStorageBlockID::ShadowDataBuffer, "ssbo_shadowDataBuffer"},
 
         {ShaderStorageBlockID::MeshesBuffer, "ssbo_meshesBuffer"},
-        {ShaderStorageBlockID::MaterialMapsBuffer, "ssbo_materialMapsBuffer"},
+        {ShaderStorageBlockID::MapsBuffer, "ssbo_mapsBuffer"},
         {ShaderStorageBlockID::MaterialsBuffer, "ssbo_materialsBuffer"},
         {ShaderStorageBlockID::DrawablesBuffer, "ssbo_drawablesBuffer"},
         {ShaderStorageBlockID::BackgroundBuffer, "ssbo_backgroundBuffer"},
         {ShaderStorageBlockID::LightsBuffer, "ssbo_lightsBuffer"},
+        {ShaderStorageBlockID::ShadowsBuffer, "ssbo_shadowsBuffer"},
         {ShaderStorageBlockID::SkeletonsBuffer, "ssbo_skeletonsBuffer"},
+        {ShaderStorageBlockID::ShadowMapsBuffer, "ssbo_shadowMapsBuffer"},
 
         {ShaderStorageBlockID::DrawDataBuffer, "ssbo_drawDataBuffer"},
         {ShaderStorageBlockID::SkeletalAnimatedDataBuffer, "ssbo_skeletalAnimatedDataBuffer"},
 
         {ShaderStorageBlockID::SkeletalAnimatedDataToUpdateBuffer, "ssbo_skeletalAnimatedDataToUpdateBuffer"},
+        {ShaderStorageBlockID::ShadowsToUpdateBuffer, "ssbo_shadowsToUpdateBuffer"},
 
         {ShaderStorageBlockID::SkeletalAnimatedDataToUpdateCommandBuffer, "ssbo_skeletalAnimatedDataToUpdateCommandBuffer"},
-        {ShaderStorageBlockID::OpaqueCommandsBuffer, "ssbo_opaqueCommandsBuffer"},
-        {ShaderStorageBlockID::TransparentCommandsBuffer, "ssbo_transparentCommandsBuffer"},
+        {ShaderStorageBlockID::OpaqueDrawDataRenderCommandsBuffer, "ssbo_opaqueDrawDataRenderCommandsBuffer"},
+        {ShaderStorageBlockID::TransparentDrawDataRenderCommandsBuffer, "ssbo_transparentDrawDataRenderCommandsBuffer"},
+        {ShaderStorageBlockID::ShadowDataCullCommandBuffer, "ssbo_shadowDataCullCommandBuffer"},
+        {ShaderStorageBlockID::ShadowMapBlurCommandsBuffer, "ssbo_shadowMapBlurCommandsBuffer"},
+        {ShaderStorageBlockID::ShadowDataRenderCommandsBuffer, "ssbo_shadowDataRenderCommandsBuffer"},
+        {ShaderStorageBlockID::OpaqueShadowDataRenderCommandsBuffer, "ssbo_opaqueShadowDataRenderCommandsBuffer"},
+        {ShaderStorageBlockID::TransparentShadowDataRenderCommandsBuffer, "ssbo_transparentShadowDataRenderCommandsBuffer"},
 
         {ShaderStorageBlockID::CameraBuffer, "ssbo_cameraBuffer"},
         {ShaderStorageBlockID::ClusterNodesBuffer, "ssbo_clusterNodesBuffer"},
         {ShaderStorageBlockID::LightNodesBuffer, "ssbo_lightNodesBuffer"},
-        {ShaderStorageBlockID::SceneInfoBuffer, "ssbo_sceneInfoBuffer"},
+        {ShaderStorageBlockID::RenderInfoBuffer, "ssbo_renderInfoBuffer"},
+        {ShaderStorageBlockID::CountersBuffer, "ssbo_countersBuffer"},
         {ShaderStorageBlockID::GBuffer, "ssbo_GBuffer"},
         {ShaderStorageBlockID::OITNodesBuffer, "ssbo_OITNodesBuffer"},
 

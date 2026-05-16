@@ -15,10 +15,10 @@ constexpr T epsilon()
 template <typename T>
 constexpr T maximum()
 {
-    return static_cast<T>(1234567.f/*1e+6*/);
+    return static_cast<T>(1234567.f /*1e+6*/);
 }
 
-}
-}
+} // namespace utils
+} // namespace simplex
 
 #endif // UTILS_EPSILON_H

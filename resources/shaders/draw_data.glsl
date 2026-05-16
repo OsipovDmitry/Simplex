@@ -7,7 +7,7 @@ layout (std430) readonly buffer ssbo_drawDataBuffer {
 
 Transform drawDataTransform(in uint drawDataID)
 {
-	return makeTransform(drawData[drawDataID].transform);
+	return toTransform(drawData[drawDataID].transform);
 }
 
 uint drawDataDrawableID(in uint drawDataID)

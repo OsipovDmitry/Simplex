@@ -18,11 +18,14 @@ class ProgramsLoader;
 class RenderPass;
 class SceneData;
 
-using SceneInfoBuffer = std::shared_ptr<graphics::StructBuffer<SceneInfoDescription>>;
+using RenderInfoBuffer = std::shared_ptr<graphics::StructBuffer<RenderInfoDescription>>;
+using CountersBuffer = std::shared_ptr<graphics::StructBuffer<CountersDescription>>;
 using CameraBuffer = std::shared_ptr<graphics::StructBuffer<CameraDescription>>;
 using ClusterNodesBuffer = std::shared_ptr<graphics::VectorBuffer<ClusterNodeDescription>>;
 using LightNodesBuffer = std::shared_ptr<graphics::VectorBuffer<LightNodeDescription>>;
 using SkeletalAnimatedDataToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<SkeletalAnimatedDataToUpdateDescription>>;
+using ShadowsToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowToUpdateDescription>>;
+using ShadowDataBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowDataDescription>>;
 
 class RenderPipeLine
 {
@@ -30,24 +33,39 @@ public:
     ~RenderPipeLine();
 
     void run(
-        uint64_t time,
         const std::shared_ptr<const GeometryBuffer>&,
         const std::shared_ptr<const SceneData>&,
+        uint64_t time,
+        float dielectricSpecular,
+        const utils::OrientedBoundingBox&,
         const utils::Transform&,
         const utils::ClipSpace&,
         const utils::Range&,
         const glm::uvec3&);
 
-    SceneInfoBuffer& sceneInfoBuffer();
+    RenderInfoBuffer& renderInfoBuffer();
+    CountersBuffer& countersBuffer();
     CameraBuffer& cameraBuffer();
     ClusterNodesBuffer& clusterNodesBuffer();
     LightNodesBuffer& lightNodesBuffer();
     SkeletalAnimatedDataToUpdateBuffer& skeletalAnimatedDataToUpdateBuffer();
-    graphics::PDispatchComputeIndirectCommandBuffer& skeletalAnimatedDataToUpdateCommandBuffer();
-    graphics::PDrawArraysIndirectCommandsBuffer& opaqueCommandsBuffer();
-    graphics::PDrawArraysIndirectCommandsBuffer& transparentCommandsBuffer();
-    graphics::PBufferRange& opaqueParameterBuffer();
-    graphics::PBufferRange& transparentParameterBuffer();
+    ShadowsToUpdateBuffer& shadowsToUpdateBuffer();
+    ShadowDataBuffer& shadowDataBuffer();
+    graphics::PDispatchComputeIndirectCommandBuffer& bonesTransformsDataCalculateCommandBuffer();
+    graphics::PDrawArraysIndirectCommandsBuffer& opaqueDrawDataRenderCommandsBuffer();
+    graphics::PDrawArraysIndirectCommandsBuffer& transparentDrawDataRenderCommandsBuffer();
+    graphics::PBufferRange& opaqueDrawDataRenderParameterBuffer();
+    graphics::PBufferRange& transparentDrawDataRenderParameterBuffer();
+    graphics::PDispatchComputeIndirectCommandBuffer& shadowDataCullCommandBuffer();
+    graphics::PDrawArraysIndirectCommandsBuffer& shadowMapBlurCommandsBuffer();
+    graphics::PTextureHandle& shadowVarianceBluredTextureHandle();
+    graphics::PTextureHandle& shadowColorBluredTextureHandle();
+    graphics::PDrawArraysIndirectCommandsBuffer& opaqueShadowDataRenderCommandsBuffer();
+    graphics::PDrawArraysIndirectCommandsBuffer& transparentShadowDataRenderCommandsBuffer();
+    graphics::PBufferRange& opaqueShadowDataRenderParameterBuffer();
+    graphics::PBufferRange& transparentShadowDataRenderParameterBuffer();
+
+    graphics::PConstTexture finalTexture() const;
 
     static std::shared_ptr<RenderPipeLine> create(
         const std::shared_ptr<ProgramsLoader>&,
@@ -62,16 +80,33 @@ private:
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&);
 
-    SceneInfoBuffer m_sceneInfoBuffer;
+    void resizeShadowVarianceBluredTexture(const graphics::PConstTexture&);
+    void resizeShadowColorBluredTexture(const graphics::PConstTexture&);
+    void resizeFinalTexture(const glm::uvec2&);
+    std::vector<float> calculateShadowBlurKernel(float);
+
+    RenderInfoBuffer m_renderInfoBuffer;
+    CountersBuffer m_countersBuffer;
     CameraBuffer m_cameraBuffer;
     ClusterNodesBuffer m_clusterNodesBuffer;
     LightNodesBuffer m_lightNodesBuffer;
     SkeletalAnimatedDataToUpdateBuffer m_skeletalAnimatedDataToUpdateBuffer;
-    graphics::PDispatchComputeIndirectCommandBuffer m_skeletalAnimatedDataToUpdateCommandBuffer;
-    graphics::PDrawArraysIndirectCommandsBuffer m_opaqueCommandsBuffer;
-    graphics::PDrawArraysIndirectCommandsBuffer m_transparentCommandsBuffer;
-    graphics::PBufferRange m_opaqueParameterBuffer;
-    graphics::PBufferRange m_transparentParameterBuffer;
+    ShadowsToUpdateBuffer m_shadowsToUpdateBuffer;
+    ShadowDataBuffer m_shadowDataBuffer;
+    graphics::PDispatchComputeIndirectCommandBuffer m_bonesTransformsDataCalculateCommandBuffer;
+    graphics::PDrawArraysIndirectCommandsBuffer m_opaqueDrawDataRenderCommandsBuffer;
+    graphics::PDrawArraysIndirectCommandsBuffer m_transparentDrawDataRenderCommandsBuffer;
+    graphics::PBufferRange m_opaqueDrawDataRenderParameterBuffer;
+    graphics::PBufferRange m_transparentDrawDataRenderParameterBuffer;
+    graphics::PDispatchComputeIndirectCommandBuffer m_shadowDataCullCommandBuffer;
+    graphics::PDrawArraysIndirectCommandsBuffer m_shadowMapBlurCommandsBuffer;
+    graphics::PTextureHandle m_shadowVarianceBluredTextureHandle;
+    graphics::PTextureHandle m_shadowColorBluredTextureHandle;
+    graphics::PDrawArraysIndirectCommandsBuffer m_opaqueShadowDataRenderCommandsBuffer;
+    graphics::PDrawArraysIndirectCommandsBuffer m_transparentShadowDataRenderCommandsBuffer;
+    graphics::PBufferRange m_opaqueShadowDataRenderParameterBuffer;
+    graphics::PBufferRange m_transparentShadowDataRenderParameterBuffer;
+    graphics::PTexture m_finalTexture;
 
     std::shared_ptr<graphics::RendererBase> m_renderer;
     std::shared_ptr<graphics::IFrameBuffer> m_frameBuffer;

@@ -15,7 +15,7 @@ namespace core
 
 Scene::~Scene() = default;
 
-const std::string &Scene::name() const
+const std::string& Scene::name() const
 {
     return m_->name();
 }
@@ -58,7 +58,7 @@ std::shared_ptr<Scene> Scene::createEmpty(const std::string& sceneName)
     return scene;
 }
 
-Scene::Scene(const std::string &name)
+Scene::Scene(const std::string& name)
     : m_(std::make_unique<ScenePrivate>(*this, name))
 {
     m_->sceneData() = std::make_shared<SceneData>();
@@ -66,13 +66,13 @@ Scene::Scene(const std::string &name)
 
     m_->sceneData()->setBackground(m_->background());
 
-    m_->listenerNode() = std::shared_ptr<ListenerNode>(new ListenerNode(settings::Settings::instance().application().scene().listenerNodeName()));
+    m_->listenerNode() =
+        std::shared_ptr<ListenerNode>(new ListenerNode(settings::Settings::instance().application().scene().listenerNodeName()));
 
-    m_->sceneRootNode() = std::shared_ptr<SceneRootNode>(new SceneRootNode(settings::Settings::instance().application().scene().sceneRootNodeName()));
+    m_->sceneRootNode() = std::shared_ptr<SceneRootNode>(
+        new SceneRootNode(settings::Settings::instance().application().scene().sceneRootNodeName()));
     m_->sceneRootNode()->attach(m_->listenerNode());
 }
 
-
-
-}
-}
+} // namespace core
+} // namespace simplex

@@ -3,15 +3,6 @@
 layout (std430) buffer ssbo_GBuffer { GBufferDescription GBuffer; };
 layout (std430) buffer ssbo_OITNodesBuffer { OITNodeDescription OITNodes[]; };
 
-OITNodeDescription makeOITNodeDescription(in uvec4 PBRData, in float depth, in uint nextOITNodeID)
-{
-	OITNodeDescription desc;
-	desc.PBRData = PBRData;
-	desc.depth = depth;
-	desc.nextID = nextOITNodeID;
-	return desc;
-}
-
 uvec2 geometryBufferSize()
 {
 	return GBuffer.size;
@@ -93,4 +84,9 @@ void geometryBufferData(in uint OITNodeID, out uvec4 PBRData, out float depth, o
 	PBRData = OITNodes[OITNodeID].PBRData;
 	depth = OITNodes[OITNodeID].depth;
 	nextOITNodeID = OITNodes[OITNodeID].nextID;
+}
+
+vec3 geometryBufferFinalColor(in ivec2 fragCoords)
+{
+	return texelFetch(sampler2DRect(GBuffer.finalTextureHandle), fragCoords).rgb;
 }

@@ -48,38 +48,53 @@ class TextFile;
 class SortedObject;
 struct SortedObjectComparator;
 
-template<typename T> struct RangeT;
+template <typename T>
+struct RangeT;
 using Range = RangeT<float>;
 
-template<glm::length_t L, typename T> struct TransformT;
+template <glm::length_t L, typename T>
+struct TransformT;
 using Transform = TransformT<3, float>;
 
-template<glm::length_t L, typename T> struct PlaneT;
+template <glm::length_t L, typename T>
+struct PlaneT;
 using Plane = PlaneT<3, float>;
 
-template<glm::length_t L, typename T> struct LineT;
+template <glm::length_t L, typename T>
+struct LineT;
 using Line = LineT<3, float>;
 
-template<glm::length_t L, typename T> struct LineSegmentT;
+template <glm::length_t L, typename T>
+struct LineSegmentT;
 using LineSegment = LineSegmentT<3, float>;
 
-template <glm::length_t L, typename T> struct BoundingBoxT;
+template <glm::length_t L, typename T>
+struct BoundingBoxT;
 using BoundingBox = BoundingBoxT<3, float>;
 
+template <glm::length_t L, typename T>
+struct OrientedBoundingBoxT;
+using OrientedBoundingBox = OrientedBoundingBoxT<3, float>;
+
 enum class ClipSpaceType : uint16_t;
-template<typename T> struct ClipSpaceT;
+template <typename T>
+struct ClipSpaceT;
 using ClipSpace = ClipSpaceT<float>;
 
-template<typename T> struct FrustumT;
+template <typename T>
+struct FrustumT;
 using Frustum = FrustumT<float>;
 
-template<typename T> class WeakPtrList;
+template <typename T>
+class WeakPtrList;
 
-template <typename T> struct IDsGeneratorT;
+template <typename T>
+struct IDsGeneratorT;
 using IDsGenerator = IDsGeneratorT<uint32_t>;
 
+class RectPacker;
 
-}
-}
+} // namespace utils
+} // namespace simplex
 
 #endif // UTILS_FORWARDDECL_H

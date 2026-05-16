@@ -11,7 +11,7 @@ namespace simplex
 namespace core
 {
 
-ENUMCLASS(LightType, uint16_t, Point, Spot, Directional, ImageBased)
+ENUMCLASS(LightType, uint16_t, Point, Spot, Directional, ImageBased, Ambient)
 
 class LightNodePrivate;
 class CORE_SHARED_EXPORT LightNode : public Node
@@ -37,11 +37,20 @@ public:
     virtual std::shared_ptr<ImageBasedLightNode> asIBLLightNode();
     virtual std::shared_ptr<const ImageBasedLightNode> asIBLLightNode() const;
 
+    virtual std::shared_ptr<AmbientLightNode> asAmbientLightNode();
+    virtual std::shared_ptr<const AmbientLightNode> asAmbientLightNode() const;
+
     bool isLightingEnabled() const;
     void setLightingEnabled(bool);
 
-    Shadow& shadow();
-    const Shadow& shadow() const;
+    bool isShadingEnabled() const;
+    void setShadingEnabled(bool);
+
+    uint32_t shadowMapSize() const;
+    void setShadowMapSize(uint32_t);
+
+    const utils::Range& shadowCullPlanesLimits() const;
+    void setShadowCullPlanesLimits(const utils::Range&);
 
 protected:
     LightNode(std::unique_ptr<LightNodePrivate>);

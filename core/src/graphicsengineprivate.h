@@ -19,22 +19,24 @@ public:
 
     std::string& name();
 
-    std::shared_ptr<graphics::RendererBase> &renderer();
-    std::shared_ptr<TexturesLoader> &texturesLoader();
-    std::shared_ptr<ProgramsLoader> &programsLoader();
+    std::shared_ptr<graphics::RendererBase>& renderer();
+    std::shared_ptr<TexturesLoader>& texturesLoader();
+    std::shared_ptr<ProgramsLoader>& programsLoader();
     std::shared_ptr<ScenesLoader>& scenesLoader();
 
-    std::shared_ptr<RenderPipeLine> &renderPipeLine();
+    std::shared_ptr<RenderPipeLine>& renderPipeLine();
 
     std::shared_ptr<graphics::IFrameBuffer>& frameBuffer();
     std::shared_ptr<graphics::IVertexArray>& vertexArray();
     std::shared_ptr<GeometryBuffer>& geometryBuffer();
 
-    static const std::string &attributeNameByID(utils::VertexAttribute);
+    float& dielectricSpecular();
+
+    static const std::string& attributeNameByID(utils::VertexAttribute);
     static const std::string& outputNameByID(graphics::FrameBufferAttachment);
-    static const std::string &uniformNameByID(UniformID);
+    static const std::string& uniformNameByID(UniformID);
     static const std::string& uniformBlockNameByID(UniformBlockID);
-    static const std::string &shaderStorageBlockNameByID(ShaderStorageBlockID);
+    static const std::string& shaderStorageBlockNameByID(ShaderStorageBlockID);
 
 private:
     std::string m_name;
@@ -49,9 +51,11 @@ private:
     std::shared_ptr<graphics::IFrameBuffer> m_frameBuffer;
     std::shared_ptr<graphics::IVertexArray> m_vertexArray;
     std::shared_ptr<GeometryBuffer> m_geometryBuffer;
+
+    float m_dielectricSpecular;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // GRAPHICSENGINEPRIVATE_H

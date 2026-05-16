@@ -144,11 +144,23 @@ void Node::setTransform(const utils::Transform& t)
     acceptDown(beforeTransformChangedNodeVisitor);
 
     m_->transform() = t;
-
     m_->dirtyGlobalTransform();
 
     AfterTransformChangedNodeVisitor afterTransformChangedNodeVisitor;
     acceptDown(afterTransformChangedNodeVisitor);
+
+    if (auto p = parent())
+    {
+        p->m().dirtyBoundingBox();
+
+        BoundingBoxChangedNodeVisitor boundingBoxChangedNodeVisitor;
+        p->acceptUp(boundingBoxChangedNodeVisitor);
+    }
+}
+
+const utils::BoundingBox& Node::boundingBox() const
+{
+    return m_->boundingBox();
 }
 
 void Node::acceptUp(NodeVisitor& nodeVisitor)
@@ -173,7 +185,15 @@ void Node::doAttach()
 {
     m_->dirtyGlobalTransform();
 
-    m_->doAttachToParent(parent());
+    if (auto p = parent())
+    {
+        p->m().dirtyBoundingBox();
+
+        BoundingBoxChangedNodeVisitor boundingBoxChangedNodeVisitor;
+        p->acceptUp(boundingBoxChangedNodeVisitor);
+    }
+
+    m_->onAttachToParent(parent());
 
     if (auto s = scene())
     {
@@ -190,9 +210,17 @@ void Node::doDetach()
         acceptDown(detachFromSceneNodeVisitor);
     }
 
-    m_->doDetachFromParent(parent());
+    m_->onDetachFromParent(parent());
 
     m_->dirtyGlobalTransform();
+
+    if (auto p = parent())
+    {
+        p->m().dirtyBoundingBox();
+
+        BoundingBoxChangedNodeVisitor boundingBoxChangedNodeVisitor;
+        p->acceptUp(boundingBoxChangedNodeVisitor);
+    }
 }
 
 } // namespace core

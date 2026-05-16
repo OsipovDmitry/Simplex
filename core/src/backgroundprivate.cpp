@@ -1,4 +1,5 @@
 #include "backgroundprivate.h"
+
 #include "scenedata.h"
 
 namespace simplex
@@ -7,10 +8,11 @@ namespace core
 {
 
 BackgroundPrivate::BackgroundPrivate()
-    : m_rotation()
+    : m_rotation(1.0f, 0.0f, 0.0f, 0.0f)
     , m_environmentColor(1.f)
     , m_blurPower(0.f)
-{}
+{
+}
 
 BackgroundPrivate::~BackgroundPrivate() = default;
 
@@ -46,5 +48,5 @@ void BackgroundPrivate::onChanged()
             sceneData->onBackgroundChanged(m_environmentMap, m_rotation, m_environmentColor, m_blurPower);
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

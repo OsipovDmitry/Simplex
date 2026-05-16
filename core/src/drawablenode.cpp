@@ -5,6 +5,7 @@
 #include <core/scene.h>
 
 #include "drawablenodeprivate.h"
+#include "nodevisitorhelpers.h"
 #include "sceneprivate.h"
 
 namespace simplex
@@ -55,6 +56,10 @@ void DrawableNode::addDrawable(const std::shared_ptr<Drawable>& drawable)
 
     auto& mPrivate = m();
     mPrivate.drawables().insert(drawable);
+    mPrivate.dirtyLocalBoundingBox();
+
+    BoundingBoxChangedNodeVisitor boundingBoxChangedNodeVisitor;
+    acceptUp(boundingBoxChangedNodeVisitor);
 
     if (auto s = scene())
         if (auto& sceneData = s->m().sceneData()) mPrivate.addDrawDataToSceneData(sceneData, drawable);
@@ -64,6 +69,11 @@ void DrawableNode::removeDrawable(const std::shared_ptr<Drawable>& drawable)
 {
     auto& mPrivate = m();
     mPrivate.drawables().erase(drawable);
+    mPrivate.dirtyLocalBoundingBox();
+
+    BoundingBoxChangedNodeVisitor boundingBoxChangedNodeVisitor;
+    acceptUp(boundingBoxChangedNodeVisitor);
+
     mPrivate.removeDrawDataFromSceneData(drawable);
 }
 

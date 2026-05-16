@@ -19,7 +19,8 @@ public:
     std::shared_ptr<SkeletalAnimatedNode> asSkeletalAnimatedNode() override;
     std::shared_ptr<const SkeletalAnimatedNode> asSkeletalAnimatedNode() const override;
 
-    const std::shared_ptr<Skeleton>& skeleton() const;
+    std::shared_ptr<Skeleton> skeleton();
+    std::shared_ptr<const Skeleton> skeleton() const;
 
     const std::string& currentAnimation() const;
     bool setCurrentAnimation(const std::string&);

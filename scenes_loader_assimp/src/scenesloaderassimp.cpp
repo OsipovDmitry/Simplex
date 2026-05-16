@@ -17,9 +17,6 @@
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
 
-// tmp
-#include <iostream>
-
 namespace simplex
 {
 
@@ -621,18 +618,6 @@ std::shared_ptr<core::SceneRepresentation> AssimpScenesLoader::loadResource(cons
         aiProcess_Triangulate | aiProcess_SortByPType | aiProcess_FlipUVs | aiProcess_GenBoundingBoxes);
 
     if (!assimpScene) return nullptr;
-
-    // tmp
-    auto print = [](auto& self, aiNode* node, int t) -> void
-    {
-        for (int i = 0; i < t; ++i)
-            std::cout << ' ';
-        std::cout << node->mName.C_Str() << std::endl;
-        for (int i = 0; i < node->mNumChildren; ++i)
-            self(self, node->mChildren[i], t + 2);
-    };
-    //
-    print(print, assimpScene->mRootNode, 0);
 
     assimpScene->findBone(aiString("mixamorig:Hips"));
 

@@ -16,8 +16,8 @@ public:
     SkeletalAnimatedNodePrivate(SkeletalAnimatedNode&, const std::string&, const std::shared_ptr<Skeleton>&);
     ~SkeletalAnimatedNodePrivate() override;
 
-    void doAttachToScene(const std::shared_ptr<Scene>&) override;
-    void doDetachFromScene(const std::shared_ptr<Scene>&) override;
+    void onAttachToScene(const std::shared_ptr<Scene>&) override;
+    void onDetachFromScene(const std::shared_ptr<Scene>&) override;
 
     std::shared_ptr<Skeleton>& skeleton();
     std::string& currentAnimation();

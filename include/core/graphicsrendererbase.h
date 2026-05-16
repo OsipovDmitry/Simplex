@@ -14,7 +14,6 @@
 #include <utils/glm/mat4x4.hpp>
 #include <utils/glm/vec2.hpp>
 #include <utils/glm/vec3.hpp>
-#include <utils/glm/vec4.hpp>
 #include <utils/image.h>
 #include <utils/logger.h>
 #include <utils/mesh.h>
@@ -116,16 +115,6 @@ ENUMCLASS(TextureFilterMode, uint16_t, Point, Linear, Bilinear, Trilinear)
 ENUMCLASS(TextureSwizzle, uint16_t, Red, Green, Blue, Alpha, Zero, One)
 
 ENUMCLASS(FrameBufferAttachment, uint16_t, Color0, Color1, Color2, Color3, Depth, Stencil, DepthStencil)
-
-union FrameBufferClearColorValue {
-    glm::vec4 floatColor;
-    glm::i32vec4 intColor;
-    glm::u32vec4 uintColor;
-};
-
-ENUMCLASS(FrameBufferClearColorType, uint16_t, Single, Int32, Uint32)
-
-using FrameBufferClearColor = std::pair<FrameBufferClearColorType, FrameBufferClearColorValue>;
 
 ENUMCLASS(
     UniformType,
@@ -266,6 +255,11 @@ static constexpr uint16_t FrameBufferColorAttachmentsCount()
 static constexpr bool IsFrameBufferColorAttachment(FrameBufferAttachment a)
 {
     return FrameBufferColorAttachmentIndex(a) < FrameBufferColorAttachmentsCount();
+}
+
+static constexpr uint32_t FrameBufferClipDistancesCount()
+{
+    return 8u;
 }
 
 class IBuffer
@@ -421,6 +415,8 @@ public:
     virtual bool isComplete() const = 0;
     virtual void clear(const std::unordered_set<FrameBufferAttachment>&) = 0;
 
+    virtual void reset() = 0;
+
     virtual void attach(FrameBufferAttachment, std::shared_ptr<const ISurface>, uint32_t level = 0u) = 0;
     virtual void attachLayer(FrameBufferAttachment, std::shared_ptr<const ITexture>, uint32_t level = 0u, uint32_t layer = 0u) = 0;
     virtual void detach(FrameBufferAttachment) = 0;
@@ -482,6 +478,10 @@ public:
     virtual void setBlendConstantColor(const glm::vec3&) = 0;
     virtual float blendConstantAlpha() const = 0;
     virtual void setBlendConstantAlpha(float) = 0;
+
+    virtual bool clipDistance(uint32_t) const = 0;
+    virtual void setClipDistance(uint32_t, bool) = 0;
+    virtual void setClipDistances(bool) = 0;
 };
 
 class IProgram

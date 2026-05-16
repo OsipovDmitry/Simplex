@@ -1,0 +1,26 @@
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+#include<camera.glsl>
+#include<counters.glsl>
+#include<render_info.glsl>
+
+#include<math/range.glsl>
+
+void main(void)
+{
+    if (all(lessThan(gl_GlobalInvocationID, uvec3(1u))))
+	{
+		const Range cullPlaneLimits = renderInfoCullPlaneLimits();
+		const Range calculatedZRange = countersZRange();
+		
+		const Range expandedZRange = makeRangeFromCenterAndHalfSize(
+				rangeCenter(calculatedZRange),
+				rangeHalfSize(calculatedZRange) * 1.01f);
+		
+		Range ZRange = rangeIntersect(cullPlaneLimits, expandedZRange);
+		if (isRangeEmpty(ZRange))
+			ZRange = makeRange(rangeStart(cullPlaneLimits), rangeStart(cullPlaneLimits) + 1.f);
+		
+		cameraUpdate(renderInfoClusterSize(), renderInfoViewTransform(), renderInfoClipSpace(), ZRange);
+	}
+}

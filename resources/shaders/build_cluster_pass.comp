@@ -1,12 +1,12 @@
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-#include<math/bounding_box.glsl>
 #include<camera.glsl>
 #include<cluster_node.glsl>
 
+#include<math/bounding_box.glsl>
+
 void main(void)
 {
-	
     if (all(lessThan(gl_GlobalInvocationID, uvec3(cameraClusterTotalSize(), 1u, 1u))))
     {
 		const uvec3 clusterSize = cameraClusterSize();

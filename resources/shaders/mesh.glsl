@@ -5,19 +5,17 @@ layout (std430) readonly buffer ssbo_meshesBuffer { MeshDescription meshes[]; };
 
 BoundingBox meshBoundingBox(in uint meshID)
 {
-	return makeBoundingBox(
-		meshes[meshID].boundingBoxMinPointAndVerticesDataSize.xyz,
-		meshes[meshID].boundingBoxMaxPointAndElementsDataSize.xyz);
+	return toBoundingBox(meshes[meshID].boundingBox);
 }
 
 uint meshVerticesDataSize(in uint meshID)
 {
-	return floatBitsToUint(meshes[meshID].boundingBoxMinPointAndVerticesDataSize.w);
+	return meshes[meshID].verticesDataSize;
 }
 
 uint meshElementsDataSize(in uint meshID)
 {
-	return floatBitsToUint(meshes[meshID].boundingBoxMaxPointAndElementsDataSize.w);
+	return meshes[meshID].elementsDataSize;
 }
 
 uint meshVerticesDataOffset(in uint meshID)

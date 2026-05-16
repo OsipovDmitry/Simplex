@@ -1,5 +1,5 @@
-#include <utils/logger.h>
 #include <utils/clipspace.h>
+#include <utils/logger.h>
 
 #include <core/cameranode.h>
 #include <core/settings.h>
@@ -12,21 +12,21 @@ namespace simplex
 namespace core
 {
 
-CameraNode::CameraNode(const std::string &name)
+CameraNode::CameraNode(const std::string& name)
     : Node(std::make_unique<CameraNodePrivate>(*this, name))
 {
     setRenderingEnabled(true);
     useDefaultFramebuffer();
 
-    auto &graphicsSettings = settings::Settings::instance().graphics();
-    auto &cameraSettings = graphicsSettings.camera();
+    const auto& graphicsSettings = settings::Settings::instance().graphics();
+    const auto& cameraSettings = graphicsSettings.camera();
 
-    (cameraSettings.clipSpace().type() == utils::ClipSpaceType::Perspective) ?
-        setPerspectiveClipSpace(cameraSettings.clipSpace().perspectiveFOV()) :
-        setOrthoClipSpace(cameraSettings.clipSpace().orthoHeight());
+    (cameraSettings.clipSpace().type() == utils::ClipSpaceType::Perspective)
+        ? setPerspectiveClipSpace(cameraSettings.clipSpace().perspectiveFOV())
+        : setOrthoClipSpace(cameraSettings.clipSpace().orthoHeight());
 
     setCullPlanesLimits(graphicsSettings.cullPlaneLimits());
-    setClusterMaxSize(cameraSettings.clusterMaxSize());
+    setClusterSize(cameraSettings.clusterSize());
 }
 
 CameraNode::~CameraNode() = default;
@@ -67,14 +67,14 @@ void CameraNode::useSeparateFramebuffer(const glm::uvec2& size)
     m().geometryBuffer() = std::make_shared<GeometryBuffer>(size);
 }
 
-const utils::ClipSpace &CameraNode::clipSpace() const
+const utils::ClipSpace& CameraNode::clipSpace() const
 {
     return m().clipSpace();
 }
 
 void CameraNode::setOrthoClipSpace(float height)
 {
-    auto &mPrivate = m();
+    auto& mPrivate = m();
     mPrivate.clipSpaceType() = utils::ClipSpaceType::Ortho;
     mPrivate.clipSpaceVerticalParam() = height;
     mPrivate.updateClipSpace();
@@ -82,37 +82,35 @@ void CameraNode::setOrthoClipSpace(float height)
 
 void CameraNode::setPerspectiveClipSpace(float fovY)
 {
-    auto &mPrivate = m();
+    auto& mPrivate = m();
     mPrivate.clipSpaceType() = utils::ClipSpaceType::Perspective;
     mPrivate.clipSpaceVerticalParam() = fovY;
     mPrivate.updateClipSpace();
 }
 
-const utils::Range &CameraNode::cullPlanesLimits() const
+const utils::Range& CameraNode::cullPlanesLimits() const
 {
     return m().cullPlanesLimits();
 }
 
-void CameraNode::setCullPlanesLimits(const utils::Range &value)
+void CameraNode::setCullPlanesLimits(const utils::Range& value)
 {
-    if (value.nearValue() <= 0.f)
-        LOG_CRITICAL << "ZNear must be greater than 0.0";
+    if (value.nearValue() <= 0.f) LOG_CRITICAL << "ZNear must be greater than 0.0";
 
-    if (value.farValue() <= value.nearValue())
-        LOG_CRITICAL << "ZFar must be greater than Znear";
+    if (value.farValue() <= value.nearValue()) LOG_CRITICAL << "ZFar must be greater than Znear";
 
     m().cullPlanesLimits() = value;
 }
 
-const glm::uvec3& CameraNode::clusterMaxSize() const
+const glm::uvec3& CameraNode::clusterSize() const
 {
-    return m().clusterMaxSize();
+    return m().clusterSize();
 }
 
-void CameraNode::setClusterMaxSize(const glm::uvec3& value)
+void CameraNode::setClusterSize(const glm::uvec3& value)
 {
-    m().clusterMaxSize() = value;
+    m().clusterSize() = value;
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

@@ -1,7 +1,7 @@
 #include <utils/logger.h>
 
-#include <core/scene.h>
 #include <core/pointlightnode.h>
+#include <core/scene.h>
 
 #include "graphicsengineprivate.h"
 #include "pointlightnodeprivate.h"
@@ -11,7 +11,7 @@ namespace simplex
 namespace core
 {
 
-PointLightNode::PointLightNode(const std::string &name)
+PointLightNode::PointLightNode(const std::string& name)
     : LightNode(std::make_unique<PointLightNodePrivate>(*this, name))
 {
     setColor(glm::vec3(1.f));
@@ -31,36 +31,34 @@ std::shared_ptr<const PointLightNode> PointLightNode::asPointLightNode() const
     return const_cast<PointLightNode*>(this)->asPointLightNode();
 }
 
-const glm::vec3 &PointLightNode::color() const
+const glm::vec3& PointLightNode::color() const
 {
     return m().color();
 }
 
-void PointLightNode::setColor(const glm::vec3 &value)
+void PointLightNode::setColor(const glm::vec3& value)
 {
     auto& mPrivate = m();
 
     mPrivate.color() = value;
-    mPrivate.changeInSceneData();
+    mPrivate.onChanged();
 }
 
-const glm::vec2 &PointLightNode::radiuses() const
+const glm::vec2& PointLightNode::radiuses() const
 {
     return m().radiuses();
 }
 
-void PointLightNode::setRadiuses(const glm::vec2 &value)
+void PointLightNode::setRadiuses(const glm::vec2& value)
 {
-    if (value[0u] < 0.f)
-        LOG_CRITICAL << "minRadius must be greater or equal than 0.0";
+    if (value[0u] < 0.f) LOG_CRITICAL << "minRadius must be greater or equal than 0.0";
 
-    if (value[1u] <= value[0])
-        LOG_CRITICAL << "maxRadius must be greater than minRadius";
+    if (value[1u] <= value[0]) LOG_CRITICAL << "maxRadius must be greater than minRadius";
 
-    auto &mPrivate = m();
+    auto& mPrivate = m();
     mPrivate.radiuses() = value;
-    mPrivate.changeInSceneData();
+    mPrivate.onChanged();
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

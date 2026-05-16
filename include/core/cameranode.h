@@ -36,8 +36,8 @@ public:
     const utils::Range& cullPlanesLimits() const;
     void setCullPlanesLimits(const utils::Range&);
 
-    const glm::uvec3& clusterMaxSize() const;
-    void setClusterMaxSize(const glm::uvec3&);
+    const glm::uvec3& clusterSize() const;
+    void setClusterSize(const glm::uvec3&);
 };
 
 } // namespace core

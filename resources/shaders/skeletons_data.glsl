@@ -1,6 +1,6 @@
 #include<descriptions.glsl>
 
-layout (std430) readonly buffer ssbo_skeletonsDataBuffer { float skeletonsData[]; };
+layout (std430) readonly buffer ssbo_skeletonsDataBuffer { SkeletonsDataDescription skeletonsData[]; };
 
 uint skeletonsDataSkeletonBonesCount(in uint skeletonsDataOffset)
 {
@@ -32,11 +32,11 @@ Transform skeletonsDataSkeletonBoneOffsetTransform(in uint skeletonsDataOffset, 
 	const uint boneDataOffset = skeletonsDataSkeletonBoneDataOffset(skeletonsDataOffset, boneID);
 	const uint boneOffsetTransformOffset = skeletonsDataOffset + boneDataOffset + 0u;
 	
-	const QuatDescription rotation = QuatDescription(
+	const Quat rotation = makeQuat(vec4(
 		skeletonsData[boneOffsetTransformOffset + 0u],
 		skeletonsData[boneOffsetTransformOffset + 1u],
 		skeletonsData[boneOffsetTransformOffset + 2u],
-		skeletonsData[boneOffsetTransformOffset + 3u]);
+		skeletonsData[boneOffsetTransformOffset + 3u]));
 	
 	const vec4 translationAndScale = vec4(
 		skeletonsData[boneOffsetTransformOffset + 4u],
@@ -44,7 +44,7 @@ Transform skeletonsDataSkeletonBoneOffsetTransform(in uint skeletonsDataOffset, 
 		skeletonsData[boneOffsetTransformOffset + 6u],
 		skeletonsData[boneOffsetTransformOffset + 7u]);
 		
-	return makeTransform(TransformDescription(rotation, translationAndScale));	
+	return makeTransform(translationAndScale.w, rotation, translationAndScale.xyz);	
 }
 
 Transform skeletonsDataSkeletonBoneTransform(in uint skeletonsDataOffset, in uint boneID)
@@ -52,11 +52,11 @@ Transform skeletonsDataSkeletonBoneTransform(in uint skeletonsDataOffset, in uin
 	const uint boneDataOffset = skeletonsDataSkeletonBoneDataOffset(skeletonsDataOffset, boneID);
 	const uint boneTransformOffset = skeletonsDataOffset + boneDataOffset + 8u;
 	
-	const QuatDescription rotation = QuatDescription(
+	const Quat rotation = makeQuat(vec4(
 		skeletonsData[boneTransformOffset + 0u],
 		skeletonsData[boneTransformOffset + 1u],
 		skeletonsData[boneTransformOffset + 2u],
-		skeletonsData[boneTransformOffset + 3u]);
+		skeletonsData[boneTransformOffset + 3u]));
 	
 	const vec4 translationAndScale = vec4(
 		skeletonsData[boneTransformOffset + 4u],
@@ -64,7 +64,7 @@ Transform skeletonsDataSkeletonBoneTransform(in uint skeletonsDataOffset, in uin
 		skeletonsData[boneTransformOffset + 6u],
 		skeletonsData[boneTransformOffset + 7u]);
 		
-	return makeTransform(TransformDescription(rotation, translationAndScale));	
+	return makeTransform(translationAndScale.w, rotation, translationAndScale.xyz);		
 }
 
 uint skeletonsDataSkeletonBoneParentID(in uint skeletonsDataOffset, in uint boneID)

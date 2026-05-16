@@ -2253,38 +2253,7 @@ std::shared_ptr<RenderBuffer_4_5> RenderBuffer_4_5::create(
     return std::make_shared<RenderBuffer_4_5>(width, height, internalFormat);
 }
 
-// FrameBuffer_4_5
-
-FrameBufferBase_4_5::FrameBufferBase_4_5(GLuint id)
-    : m_id(id)
-{
-    SAVE_CURRENT_CONTEXT;
-    for (uint32_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
-        setClearColor(i, glm::vec4(.5f, .5f, 1.f, 1.f));
-
-    setClearDepth(1.f);
-    setClearStencil(0x00u);
-
-    setFaceCulling(false);
-
-    setColorMasks(true);
-
-    setDepthTest(true);
-    setDepthMask(true);
-
-    setStencilTest(false);
-
-    setBlending(false);
-    setBlendConstantColor(glm::vec3(1.f));
-    setBlendConstantAlpha(1.f);
-    for (uint32_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
-    {
-        setBlendEquation(i, core::graphics::BlendEquation::Add, core::graphics::BlendEquation::Add);
-        setBlendFactor(
-            i, core::graphics::BlendFactor::Zero, core::graphics::BlendFactor::One, core::graphics::BlendFactor::Zero,
-            core::graphics::BlendFactor::One);
-    }
-}
+// FrameBufferBase_4_5
 
 FrameBufferBase_4_5::~FrameBufferBase_4_5() = default;
 
@@ -2310,30 +2279,30 @@ void FrameBufferBase_4_5::clear(const std::unordered_set<core::graphics::FrameBu
 
         if (core::graphics::IsFrameBufferColorAttachment(attachment))
         {
-            auto drawBuffer = core::graphics::FrameBufferColorAttachmentIndex(attachment);
+            const auto index = core::graphics::FrameBufferColorAttachmentIndex(attachment);
 
-            auto colorMask = m_colorMasks[drawBuffer];
-            glColorMaski(static_cast<GLuint>(drawBuffer), colorMask, colorMask, colorMask, colorMask);
+            const GLenum drawBuffer = GL_COLOR_ATTACHMENT0 + index;
+            glNamedFramebufferDrawBuffers(m_id, 1, &drawBuffer);
 
-            const auto& clearColor = m_clearColor[drawBuffer];
-            switch (clearColor.first)
+            const GLboolean colorMask = m_colorMasks[index];
+            glColorMaski(0, colorMask, colorMask, colorMask, colorMask);
+
+            const auto& clearColor = m_clearColor[index];
+            switch (clearColor.index())
             {
-                case core::graphics::FrameBufferClearColorType::Single:
+                case 0u:
                 {
-                    glClearNamedFramebufferfv(
-                        m_id, GL_COLOR, static_cast<GLint>(drawBuffer), glm::value_ptr(clearColor.second.floatColor));
+                    glClearNamedFramebufferfv(m_id, GL_COLOR, 0, glm::value_ptr(std::get<glm::vec4>(clearColor)));
                     break;
                 }
-                case core::graphics::FrameBufferClearColorType::Int32:
+                case 1u:
                 {
-                    glClearNamedFramebufferiv(
-                        m_id, GL_COLOR, static_cast<GLint>(drawBuffer), glm::value_ptr(clearColor.second.intColor));
+                    glClearNamedFramebufferiv(m_id, GL_COLOR, 0, glm::value_ptr(std::get<glm::i32vec4>(clearColor)));
                     break;
                 }
-                case core::graphics::FrameBufferClearColorType::Uint32:
+                case 2u:
                 {
-                    glClearNamedFramebufferuiv(
-                        m_id, GL_COLOR, static_cast<GLint>(drawBuffer), glm::value_ptr(clearColor.second.uintColor));
+                    glClearNamedFramebufferuiv(m_id, GL_COLOR, 0, glm::value_ptr(std::get<glm::u32vec4>(clearColor)));
                     break;
                 }
                 default:
@@ -2355,6 +2324,39 @@ void FrameBufferBase_4_5::clear(const std::unordered_set<core::graphics::FrameBu
             glClearNamedFramebufferiv(m_id, GL_STENCIL, 0, &m_clearStencil);
         }
     }
+}
+
+void FrameBufferBase_4_5::reset()
+{
+    detachAll();
+
+    for (uint32_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
+        setClearColor(i, glm::vec4(.5f, .5f, 1.f, 1.f));
+
+    setClearDepth(1.f);
+    setClearStencil(0x00u);
+
+    setFaceCulling(false);
+
+    setColorMasks(false);
+
+    setDepthTest(false);
+    setDepthMask(false);
+
+    setStencilTest(false);
+
+    setBlending(false);
+    setBlendConstantColor(glm::vec3(1.f));
+    setBlendConstantAlpha(1.f);
+    for (uint32_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
+    {
+        setBlendEquation(i, core::graphics::BlendEquation::Add, core::graphics::BlendEquation::Add);
+        setBlendFactor(
+            i, core::graphics::BlendFactor::Zero, core::graphics::BlendFactor::One, core::graphics::BlendFactor::Zero,
+            core::graphics::BlendFactor::One);
+    }
+
+    setClipDistances(false);
 }
 
 std::shared_ptr<const core::graphics::ISurface> FrameBufferBase_4_5::attachmentSurface(
@@ -2397,9 +2399,7 @@ void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::vec4& value)
     if (index >= core::graphics::FrameBufferColorAttachmentsCount())
         LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
 
-    core::graphics::FrameBufferClearColorValue clearColorValue;
-    clearColorValue.floatColor = value;
-    m_clearColor[index] = {core::graphics::FrameBufferClearColorType::Single, clearColorValue};
+    m_clearColor[index] = value;
 }
 
 void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::i32vec4& value)
@@ -2408,9 +2408,7 @@ void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::i32vec4& valu
     if (index >= core::graphics::FrameBufferColorAttachmentsCount())
         LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
 
-    core::graphics::FrameBufferClearColorValue clearColorValue;
-    clearColorValue.intColor = value;
-    m_clearColor[index] = {core::graphics::FrameBufferClearColorType::Int32, clearColorValue};
+    m_clearColor[index] = value;
 }
 
 void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::u32vec4& value)
@@ -2419,9 +2417,7 @@ void FrameBufferBase_4_5::setClearColor(uint32_t index, const glm::u32vec4& valu
     if (index >= core::graphics::FrameBufferColorAttachmentsCount())
         LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
 
-    core::graphics::FrameBufferClearColorValue clearColorValue;
-    clearColorValue.uintColor = value;
-    m_clearColor[index] = {core::graphics::FrameBufferClearColorType::Uint32, clearColorValue};
+    m_clearColor[index] = value;
 }
 
 float FrameBufferBase_4_5::clearDepth() const
@@ -2470,8 +2466,7 @@ void FrameBufferBase_4_5::setFaceCulling(bool value, core::graphics::FaceType ty
 bool FrameBufferBase_4_5::colorMask(uint32_t index) const
 {
     CHECK_CURRENT_CONTEXT;
-    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
-        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+    if (index >= m_colorMasks.size()) LOG_CRITICAL << "Index must be less than " << m_colorMasks.size();
 
     return m_colorMasks[index];
 }
@@ -2479,8 +2474,7 @@ bool FrameBufferBase_4_5::colorMask(uint32_t index) const
 void FrameBufferBase_4_5::setColorMask(uint32_t index, bool value)
 {
     CHECK_CURRENT_CONTEXT;
-    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
-        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+    if (index >= m_colorMasks.size()) LOG_CRITICAL << "Index must be less than " << m_colorMasks.size();
 
     m_colorMasks[index] = value;
 }
@@ -2488,8 +2482,7 @@ void FrameBufferBase_4_5::setColorMask(uint32_t index, bool value)
 void FrameBufferBase_4_5::setColorMasks(bool value)
 {
     CHECK_CURRENT_CONTEXT;
-    for (auto& mask : m_colorMasks)
-        mask = value;
+    (value) ? m_colorMasks.set() : m_colorMasks.reset();
 }
 
 bool FrameBufferBase_4_5::depthTest() const
@@ -2682,12 +2675,18 @@ void FrameBufferBase_4_5::setBlending(bool value)
 core::graphics::BlendEquation FrameBufferBase_4_5::blendColorEquation(uint32_t index) const
 {
     CHECK_CURRENT_CONTEXT;
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     return m_blendColorEquation[index];
 }
 
 core::graphics::BlendEquation FrameBufferBase_4_5::blendAlphaEquation(uint32_t index) const
 {
     CHECK_CURRENT_CONTEXT;
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     return m_blendAlphaEquation[index];
 }
 
@@ -2697,6 +2696,9 @@ void FrameBufferBase_4_5::setBlendEquation(
     core::graphics::BlendEquation alphaValue)
 {
     CHECK_CURRENT_CONTEXT;
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     m_blendColorEquation[index] = colorValue;
     m_blendAlphaEquation[index] = alphaValue;
 }
@@ -2704,24 +2706,36 @@ void FrameBufferBase_4_5::setBlendEquation(
 core::graphics::BlendFactor FrameBufferBase_4_5::blendColorSourceFactor(uint32_t index) const
 {
     CHECK_CURRENT_CONTEXT;
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     return m_blendColorSourceFactor[index];
 }
 
 core::graphics::BlendFactor FrameBufferBase_4_5::blendAlphaSourceFactor(uint32_t index) const
 {
     CHECK_CURRENT_CONTEXT;
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     return m_blendAlphaSourceFactor[index];
 }
 
 core::graphics::BlendFactor FrameBufferBase_4_5::blendColorDestinationFactor(uint32_t index) const
 {
     CHECK_CURRENT_CONTEXT;
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     return m_blendColorDestFactor[index];
 }
 
 core::graphics::BlendFactor FrameBufferBase_4_5::blendAlphaDestinationFactor(uint32_t index) const
 {
     CHECK_CURRENT_CONTEXT;
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     return m_blendAlphaDestFactor[index];
 }
 
@@ -2733,6 +2747,9 @@ void FrameBufferBase_4_5::setBlendFactor(
     core::graphics::BlendFactor alphaDestValue)
 {
     CHECK_CURRENT_CONTEXT;
+    if (index >= core::graphics::FrameBufferColorAttachmentsCount())
+        LOG_CRITICAL << "Index must be less than " << core::graphics::FrameBufferColorAttachmentsCount();
+
     m_blendColorSourceFactor[index] = colorSourceValue;
     m_blendColorDestFactor[index] = colorDestValue;
     m_blendAlphaSourceFactor[index] = alphaSourceValue;
@@ -2761,6 +2778,34 @@ void FrameBufferBase_4_5::setBlendConstantAlpha(float value)
 {
     CHECK_CURRENT_CONTEXT;
     m_blendConstAlpha = value;
+}
+
+bool FrameBufferBase_4_5::clipDistance(uint32_t index) const
+{
+    CHECK_CURRENT_CONTEXT;
+    if (index >= m_clipDistances.size()) LOG_CRITICAL << "Index must be less than " << m_clipDistances.size();
+
+    return m_clipDistances[index];
+}
+
+void FrameBufferBase_4_5::setClipDistance(uint32_t index, bool state)
+{
+    CHECK_CURRENT_CONTEXT;
+    if (index >= m_clipDistances.size()) LOG_CRITICAL << "Index must be less than " << m_clipDistances.size();
+
+    m_clipDistances[index] = state;
+}
+
+void FrameBufferBase_4_5::setClipDistances(bool state)
+{
+    CHECK_CURRENT_CONTEXT;
+    state ? m_clipDistances.set() : m_clipDistances.reset();
+}
+
+FrameBufferBase_4_5::FrameBufferBase_4_5(GLuint id)
+    : m_id(id)
+{
+    SAVE_CURRENT_CONTEXT;
 }
 
 // FrameBuffer_4_5
@@ -2842,7 +2887,9 @@ void FrameBuffer_4_5::detachAll()
 
 std::shared_ptr<FrameBuffer_4_5> FrameBuffer_4_5::create()
 {
-    return std::make_shared<FrameBuffer_4_5>();
+    auto result = std::make_shared<FrameBuffer_4_5>();
+    result->reset();
+    return result;
 }
 
 // DefaultFrameBuffer_4_5
@@ -2943,7 +2990,9 @@ void DefaultFrameBuffer_4_5::setClearStencil(uint8_t)
 
 std::shared_ptr<DefaultFrameBuffer_4_5> DefaultFrameBuffer_4_5::create(GLuint id)
 {
-    return std::make_shared<DefaultFrameBuffer_4_5>(id);
+    auto result = std::make_shared<DefaultFrameBuffer_4_5>(id);
+    result->reset();
+    return result;
 }
 
 // ProgramBase_4_5
@@ -3365,7 +3414,8 @@ bool RenderProgram_4_5::postBuild(std::string& log)
 
         glGetProgramResourceName(m_id, GL_PROGRAM_INPUT, i, m_attributeNameMaxLength, nullptr, attributeName.data());
 
-        static const std::unordered_set<std::string> s_excludedAttributes{"gl_DrawID", "gl_VertexID", "gl_BaseInstance"};
+        static const std::unordered_set<std::string> s_excludedAttributes{
+            "gl_DrawID", "gl_VertexID", "gl_InstanceID", "gl_BaseInstance"};
 
         if (const std::string attributeNameString = attributeName.data(); !s_excludedAttributes.count(attributeNameString))
         {
@@ -4321,6 +4371,14 @@ void GLFWRenderer::setupFramebuffer(
     }
     else
         glDisable(GL_BLEND);
+
+    for (uint32_t i = 0u; i < core::graphics::FrameBufferClipDistancesCount(); ++i)
+    {
+        if (framebuffer->clipDistance(i))
+            glEnable(GL_CLIP_DISTANCE0 + i);
+        else
+            glDisable(GL_CLIP_DISTANCE0 + i);
+    }
 
     int32_t maxOuputLocation = -1;
     for (const auto& outputInfo : renderProgram->outputsInfo())

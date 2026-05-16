@@ -4,6 +4,7 @@
 #include<frustum.glsl>
 #include<line.glsl>
 #include<line_segment.glsl>
+#include<oriented_bounding_box.glsl>
 #include<plane.glsl>
 #include<range.glsl>
 #include<utils.glsl>
@@ -139,21 +140,20 @@ LineIntersectConeResult lineIntersectCone(in Line l, in Cone c)
 }
 
 struct LineIntersectFrustumResult { uint count; float t[2u]; };
-LineIntersectFrustumResult lineIntersectFrustum(in Line l, in Frustum f)
+LineIntersectFrustumResult lineIntersectFrustum(in Line l, in Plane fPlanes[FRUSTUM_PLANES_COUNT])
 {
 	uint resCount = 0u;
 	float resT[2u] = float[2u](0.0f, 0.0f);
 	
 	const vec3 lineOrig = lineOrigin(l);
 	const vec3 lineDir = lineDirection(l);
-	const Plane[FRUSTUM_PLANES_COUNT] planes = frustumPlanes(f);
 	
 	for (uint i = 0u; i < FRUSTUM_PLANES_COUNT; ++i)
 	{
-		const float denom = dot(planeNormal(planes[i]), lineDir);
+		const float denom = dot(planeNormal(fPlanes[i]), lineDir);
 		if (abs(denom) > EPS)
 		{
-			const float t = -distanceToPlane(planes[i], lineOrig) / denom;
+			const float t = -distanceToPlane(fPlanes[i], lineOrig) / denom;
 			const vec3 point = linePoint(l, t);
 			
 			bool inside = true;
@@ -162,7 +162,7 @@ LineIntersectFrustumResult lineIntersectFrustum(in Line l, in Frustum f)
 				if (i == j)
 					continue;
 					
-				inside = (distanceToPlane(planes[j], point) > 0.0f);
+				inside = (distanceToPlane(fPlanes[j], point) > 0.0f);
 				
 				if (!inside)
 					break;
@@ -248,6 +248,32 @@ LineSegmentIntersectBoundingBoxResult lineSegmentIntersectBoundingBox(in LineSeg
 	return result;
 }
 
+struct LineSegmentIntersectOrientedBoundingBoxResult { uint count; vec3 p[2u]; };
+LineSegmentIntersectOrientedBoundingBoxResult lineSegmentIntersectOrientedBoundingBox(in LineSegment ls, in OrientedBoundingBox obb)
+{	
+	const Transform toOBB = makeTransform(
+		1.0f,
+		orientedBoundingBoxRotation(obb),
+		orientedBoundingBoxTranslation(obb));
+	const Transform fromOBB = transformInverted(toOBB);
+	
+	const LineSegment transformedLS = transformLineSegment(fromOBB, ls);
+	
+	const vec3 obbHalfSize = orientedBoundingBoxHalfSize(obb);
+	LineSegmentIntersectBoundingBoxResult lsibbr = lineSegmentIntersectBoundingBox(
+		transformedLS,
+		makeBoundingBox(-obbHalfSize, obbHalfSize));
+	
+	LineSegmentIntersectOrientedBoundingBoxResult result = LineSegmentIntersectOrientedBoundingBoxResult(
+		lsibbr.count,
+		vec3[2u](vec3(0.0f), vec3(0.0f)));
+	
+	for (uint i = 0u; i < lsibbr.count; ++i)
+		result.p[i] = transformPoint(toOBB, lsibbr.p[i]);
+	
+	return result;
+}
+
 struct LineSegmentIntersectConeResult { uint count; vec3 p[2u]; };
 LineSegmentIntersectConeResult lineSegmentIntersectCone(in LineSegment ls, in Cone c)
 {
@@ -284,7 +310,7 @@ LineSegmentIntersectConeResult lineSegmentIntersectCone(in LineSegment ls, in Co
 }
 
 struct LineSegmentIntersectFrustumResult { uint count; vec3 p[2u]; };
-LineSegmentIntersectFrustumResult lineSegmentIntersectFrustum(in LineSegment ls, in Frustum f)
+LineSegmentIntersectFrustumResult lineSegmentIntersectFrustum(in LineSegment ls, in Plane fPlanes[FRUSTUM_PLANES_COUNT])
 {
 	LineSegmentIntersectFrustumResult result = LineSegmentIntersectFrustumResult(0u, vec3[2u](vec3(0.0f), vec3(0.0f)));
 	
@@ -294,7 +320,7 @@ LineSegmentIntersectFrustumResult lineSegmentIntersectFrustum(in LineSegment ls,
     const float dirLen = length(dir);
     if (dirLen < EPS)
 	{
-		if (frustumIsPointInside(f, sp))
+		if (frustumIsPointInside(fPlanes, sp))
 		{
 			result.p[result.count++] = sp;
 			result.p[result.count++] = ep;
@@ -303,7 +329,7 @@ LineSegmentIntersectFrustumResult lineSegmentIntersectFrustum(in LineSegment ls,
 	else
 	{
 		const Line l = makeLine(sp, dir);
-		const LineIntersectFrustumResult lifr = lineIntersectFrustum(l, f);
+		const LineIntersectFrustumResult lifr = lineIntersectFrustum(l, fPlanes);
 		
 		if (lifr.count > 0u)
 		{

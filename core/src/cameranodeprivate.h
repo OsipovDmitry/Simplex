@@ -18,16 +18,16 @@ public:
     CameraNodePrivate(CameraNode&, const std::string&);
     ~CameraNodePrivate() override;
 
-    bool &isRenderingEnabled();
+    bool& isRenderingEnabled();
 
-    std::shared_ptr<GeometryBuffer> &geometryBuffer();
+    std::shared_ptr<GeometryBuffer>& geometryBuffer();
 
-    utils::ClipSpaceType &clipSpaceType();
-    float &clipSpaceVerticalParam();
-    utils::ClipSpace &clipSpace();
+    utils::ClipSpaceType& clipSpaceType();
+    float& clipSpaceVerticalParam();
+    utils::ClipSpace& clipSpace();
 
-    utils::Range &cullPlanesLimits();
-    glm::uvec3& clusterMaxSize();
+    utils::Range& cullPlanesLimits();
+    glm::uvec3& clusterSize();
 
     void resize(const glm::uvec2&);
     void updateClipSpace();
@@ -43,10 +43,10 @@ private:
     utils::ClipSpace m_clipSpace;
 
     utils::Range m_cullPlanesLimits;
-    glm::uvec3 m_clusterMaxSize;
+    glm::uvec3 m_clusterSize;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_CAMERANODEPRIVATE_H

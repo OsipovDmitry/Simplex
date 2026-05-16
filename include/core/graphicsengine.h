@@ -1,6 +1,7 @@
 #ifndef CORE_GRAPHICSENGINE_H
 #define CORE_GRAPHICSENGINE_H
 
+#include <utils/enumclass.h>
 #include <utils/noncopyble.h>
 #include <utils/pimpl.h>
 
@@ -11,6 +12,10 @@ namespace simplex
 {
 namespace core
 {
+
+ENUMCLASS(DrawDataCullingAlgorithm, uint16_t, Disabled, SuperFast, Fast, Correct)
+ENUMCLASS(ShadowDataCullingAlgorithm, uint16_t, Disabled, SuperFast, Fast, Correct)
+ENUMCLASS(SpotLightCullingAlgorithm, uint16_t, SuperFast, Fast, Correct)
 
 class GraphicsEnginePrivate;
 class CORE_SHARED_EXPORT GraphicsEngine : public IEngine

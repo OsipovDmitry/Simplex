@@ -8,6 +8,7 @@
 #include <utils/glm/vec3.hpp>
 #include <utils/glm/vec4.hpp>
 #include <utils/idgenerator.h>
+#include <utils/rectpacker.h>
 
 #include <core/forwarddecl.h>
 #include <core/stateset.h>
@@ -109,12 +110,11 @@ public:
         }
     }
 
+    value_type get(size_t index) const { return m_vectorBuffer->get(index); }
+
     std::shared_ptr<const graphics::IDynamicBuffer> buffer() const { return m_vectorBuffer->buffer(); }
 
     static std::shared_ptr<DataStore<value_type>> create() { return std::make_shared<DataStore<value_type>>(); }
-
-    // tmp
-    std::shared_ptr<graphics::VectorBuffer<value_type>> vectorBuffer() const { return m_vectorBuffer; }
 
 private:
     std::shared_ptr<graphics::VectorBuffer<value_type>> m_vectorBuffer;
@@ -140,28 +140,27 @@ private:
     }
 };
 
-using VerticesDataDescription = float;
-using ElementsDataDescription = uint32_t;
-using SkeletonsDataDescription = float;
-using BonesTransfromsDataDescription = TransformDescription;
-
 using VerticesDataBuffer = std::shared_ptr<DataStore<VerticesDataDescription>>;
 using ElementsDataBuffer = std::shared_ptr<DataStore<ElementsDataDescription>>;
 using SkeletonsDataBuffer = std::shared_ptr<DataStore<SkeletonsDataDescription>>;
-using BonesTransformsDataBuffer = std::shared_ptr<DataStore<BonesTransfromsDataDescription>>;
+using BonesTransformsDataBuffer = std::shared_ptr<DataStore<BonesTransformsDataDescription>>;
+using ShadowTransformsDataBuffer = std::shared_ptr<DataStore<ShadowTransformsDataDescription>>;
 
 using MeshesBuffer = std::shared_ptr<graphics::VectorBuffer<MeshDescription>>;
-using MaterialMapsBuffer = std::shared_ptr<graphics::VectorBuffer<MaterialMapDescription>>;
+using MapsBuffer = std::shared_ptr<graphics::VectorBuffer<MapDescription>>;
 using MaterialsBuffer = std::shared_ptr<graphics::VectorBuffer<MaterialDescription>>;
 using DrawablesBuffer = std::shared_ptr<graphics::VectorBuffer<DrawableDescription>>;
 using BackgroundBuffer = std::shared_ptr<graphics::StructBuffer<BackgroundDescription>>;
 using LightsBuffer = std::shared_ptr<graphics::VectorBuffer<LightDescription>>;
+using ShadowsBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowDescription>>;
 using SkeletonsBuffer = std::shared_ptr<graphics::VectorBuffer<SkeletonDescription>>;
+using ShadowMapsBuffer = std::shared_ptr<graphics::StructBuffer<ShadowMapsDescription>>;
 
 using DrawDataBuffer = std::shared_ptr<graphics::VectorBuffer<DrawDataDescription>>;
 using SkeletalAnimatedDataBuffer = std::shared_ptr<graphics::VectorBuffer<SkeletalAnimatedDataDescription>>;
 
 class SceneData;
+class Shadow;
 
 class ResourceHandler
 {
@@ -261,6 +260,21 @@ private:
     std::weak_ptr<const Background> m_background;
 };
 
+class ShadowHandler : public ResourceHandler
+{
+public:
+    ShadowHandler(const std::weak_ptr<SceneData>&, const std::weak_ptr<const Shadow>&, utils::IDsGenerator::value_type);
+    ShadowHandler(const std::weak_ptr<SceneData>&);
+    ~ShadowHandler() override;
+
+    std::weak_ptr<const Shadow>& shadow();
+    utils::IDsGenerator::value_type ID() const;
+
+private:
+    std::weak_ptr<const Shadow> m_shadow;
+    utils::IDsGenerator::value_type m_ID;
+};
+
 class LightHandler : public ResourceHandler
 {
 public:
@@ -348,6 +362,16 @@ public:
     AddBonesTransformsDataResult addBonesTransformsData(const std::vector<Bone>&);
     void removeBonesTransformsData(uint32_t, uint32_t);
 
+    struct AddShadowTransformsDataResult
+    {
+        uint32_t shadowTransformsDataOffset = utils::IDsGenerator::last();
+    };
+    AddShadowTransformsDataResult addShadowTransformsData(
+        uint32_t,
+        const std::array<glm::uvec3, 6u>&,
+        const std::array<utils::RectPacker::ItemID, 6u>&);
+    void removeShadowTransformsData(uint32_t, uint32_t);
+
     struct AddTextureHandleResult
     {
         graphics::TextureHandle handle = utils::IDsGeneratorT<graphics::TextureHandle>::last();
@@ -357,6 +381,14 @@ public:
         const graphics::PConstTexture&,
         const std::shared_ptr<graphics::RendererBase>&);
     void removeTextureHandle(uint32_t);
+
+    struct AddShadowRectResult
+    {
+        glm::uvec3 coords = glm::uvec3(utils::IDsGenerator::last());
+        utils::RectPacker::ItemID itemID = utils::IDsGenerator::last();
+    };
+    AddShadowRectResult addShadowRect(uint32_t shadowMapSize);
+    void removeShadowRect(uint32_t packerID, utils::RectPacker::ItemID itemID);
 
     std::shared_ptr<MeshHandler> addMesh(const std::shared_ptr<const Mesh>&);
     void removeMesh(const std::shared_ptr<const Mesh>&);
@@ -404,22 +436,59 @@ public:
     void removeBackground(const std::shared_ptr<const Background>&);
     void onBackgroundChanged(const std::shared_ptr<const MaterialMap>&, const glm::quat&, const glm::vec3&, float);
 
-    std::shared_ptr<LightHandler> addPointLight(const utils::Transform&, const glm::vec3&, const glm::vec2&);
-    void onPointLightChanged(utils::IDsGenerator::value_type, const utils::Transform&, const glm::vec3&, const glm::vec2&);
+    std::shared_ptr<ShadowHandler> addShadow(const std::shared_ptr<const Shadow>&);
+    void removeShadow(const std::shared_ptr<const Shadow>&);
+    void onShadowChanged(
+        utils::IDsGenerator::value_type ID,
+        uint32_t mapSize,
+        const utils::Range& cullPlaneLimits,
+        uint32_t layersCount);
 
-    std::shared_ptr<LightHandler> addSpotLight(const utils::Transform&, const glm::vec3&, const glm::vec2&, const glm::vec2&);
+    std::shared_ptr<LightHandler> addPointLight(
+        const utils::Transform&,
+        bool,
+        const glm::vec3&,
+        const glm::vec2&,
+        const std::shared_ptr<const Shadow>&);
+    void onPointLightChanged(
+        utils::IDsGenerator::value_type,
+        const utils::Transform&,
+        bool,
+        const glm::vec3&,
+        const glm::vec2&,
+        const std::shared_ptr<const Shadow>&);
+
+    std::shared_ptr<LightHandler> addSpotLight(
+        const utils::Transform&,
+        bool,
+        const glm::vec3&,
+        const glm::vec2&,
+        const glm::vec2&,
+        const std::shared_ptr<const Shadow>&);
     void onSpotLightChanged(
         utils::IDsGenerator::value_type,
         const utils::Transform&,
+        bool,
         const glm::vec3&,
         const glm::vec2&,
-        const glm::vec2&);
+        const glm::vec2&,
+        const std::shared_ptr<const Shadow>&);
 
-    std::shared_ptr<LightHandler> addDirectionalLight(const utils::Transform&, const glm::vec3&);
-    void onDirectionalLightChanged(utils::IDsGenerator::value_type, const utils::Transform&, const glm::vec3&);
+    std::shared_ptr<LightHandler> addDirectionalLight(
+        const utils::Transform&,
+        bool,
+        const glm::vec3&,
+        const std::shared_ptr<const Shadow>&);
+    void onDirectionalLightChanged(
+        utils::IDsGenerator::value_type,
+        const utils::Transform&,
+        bool,
+        const glm::vec3&,
+        const std::shared_ptr<const Shadow>&);
 
     std::shared_ptr<LightHandler> addImageBasedLight(
         const utils::Transform&,
+        bool,
         const std::shared_ptr<const MaterialMap>&,
         const std::shared_ptr<const MaterialMap>&,
         const std::shared_ptr<const MaterialMap>&,
@@ -427,10 +496,14 @@ public:
     void onImageBasedLightChanged(
         utils::IDsGenerator::value_type,
         const utils::Transform&,
+        bool,
         const std::shared_ptr<const MaterialMap>&,
         const std::shared_ptr<const MaterialMap>&,
         const std::shared_ptr<const MaterialMap>&,
         float);
+
+    std::shared_ptr<LightHandler> addAmbientLight(bool, const glm::vec3&);
+    void onAmbientLightChanged(utils::IDsGenerator::value_type, bool, const glm::vec3&);
 
     void removeLight(utils::IDsGenerator::value_type);
 
@@ -459,9 +532,15 @@ public:
 
     size_t drawDataCount() const;
     size_t skeletalAnimatedDataCount() const;
+    size_t shadowsCount() const;
     size_t lightsCount() const;
 
-    graphics::PDrawArraysIndirectCommandsConstBuffer screenQuadCommandsBuffer() const;
+    uint32_t shadowAtlasSize() const;
+    float shadowBlurSigma() const;
+    float shadowLightBleedingAmount() const;
+    graphics::PConstTexture shadowDepthTexture() const;
+    graphics::PConstTexture shadowVarianceTexture() const;
+    graphics::PConstTexture shadowColorTexture() const;
 
 private:
     std::shared_ptr<LightHandler> addLight();
@@ -477,35 +556,40 @@ private:
     ElementsDataBuffer m_elementsDataBuffer;
     SkeletonsDataBuffer m_skeletonsDataBuffer;
     BonesTransformsDataBuffer m_bonesTransformsDataBuffer;
+    ShadowTransformsDataBuffer m_shadowTransformsDataBuffer;
     std::deque<graphics::PTextureHandle> m_textureHandles;
 
     MeshesBuffer m_meshesBuffer;
-    MaterialMapsBuffer m_materialMapsBuffer;
+    MapsBuffer m_mapsBuffer;
     MaterialsBuffer m_materialsBuffer;
     DrawablesBuffer m_drawablesBuffer;
     BackgroundBuffer m_backgroundBuffer;
     LightsBuffer m_lightsBuffer;
+    ShadowsBuffer m_shadowsBuffer;
     SkeletonsBuffer m_skeletonsBuffer;
+    ShadowMapsBuffer m_shadowMapsBuffer;
 
     DrawDataBuffer m_drawDataBuffer;
     SkeletalAnimatedDataBuffer m_skeletalAnimatedDataBuffer;
 
-    graphics::PDrawArraysIndirectCommandsBuffer m_screenQuadCommandsBuffer;
-
     utils::IDsGenerator m_meshIDsGenerator;
-    utils::IDsGenerator m_materialMapIDsGenerator;
+    utils::IDsGenerator m_mapIDsGenerator;
     utils::IDsGenerator m_materialIDsGenerator;
     utils::IDsGenerator m_drawableIDsGenerator;
+    utils::IDsGenerator m_shadowIDsGenerator;
     utils::IDsGenerator m_lightIDsGenerator;
     utils::IDsGenerator m_skeletonIDsGenerator;
 
     utils::IDsGenerator m_drawDataIDsGenerator;
     utils::IDsGenerator m_skeletalAnimatedDataIDsGenerator;
 
-    std::shared_ptr<Mesh> m_screenQuadMesh;
-    std::shared_ptr<Mesh> m_pointLightAreaMesh;
-    std::shared_ptr<Mesh> m_spotLightAreaMesh;
-    std::shared_ptr<Mesh> m_directionalLightAreaMesh;
+    uint32_t m_shadowAtlasSize;
+    float m_shadowBlurSigma;
+    float m_shadowLightBleedingAmount;
+    std::vector<std::shared_ptr<utils::RectPacker>> m_shadowMapsRectPackers;
+    graphics::PTextureHandle m_shadowDepthTextureHandle;
+    graphics::PTextureHandle m_shadowVarianceTextureHandle;
+    graphics::PTextureHandle m_shadowColorTextureHandle;
 };
 
 } // namespace core

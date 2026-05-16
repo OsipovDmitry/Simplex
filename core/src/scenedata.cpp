@@ -1,23 +1,25 @@
 #include "scenedata.h"
 
-#include <utils/meshpainter.h>
-
 #include <core/background.h>
 #include <core/drawable.h>
 #include <core/graphicsengine.h>
 #include <core/graphicsrendererbase.h>
 #include <core/igraphicswidget.h>
+#include <core/lightnode.h>
 #include <core/material.h>
 #include <core/mesh.h>
 #include <core/scene.h>
+#include <core/settings.h>
 #include <core/skeletalanimation.h>
 #include <core/texturesloader.h>
 
 #include "backgroundprivate.h"
 #include "drawableprivate.h"
+#include "lightnodeprivate.h"
 #include "materialprivate.h"
 #include "meshprivate.h"
 #include "sceneprivate.h"
+#include "shadow.h"
 #include "skeletalanimationprivate.h"
 
 namespace simplex
@@ -186,7 +188,7 @@ DrawDataHandler::DrawDataHandler(const std::weak_ptr<SceneData>& sceneData, size
 
 DrawDataHandler::DrawDataHandler(const std::weak_ptr<SceneData>& sceneData)
     : ResourceHandler(sceneData)
-    , m_ID(utils::IDsGenerator::last())
+    , m_ID(utils::IDsGeneratorT<size_t>::last())
 {
 }
 
@@ -220,6 +222,38 @@ BackgroundHandler::~BackgroundHandler()
 std::weak_ptr<const Background>& BackgroundHandler::background()
 {
     return m_background;
+}
+
+ShadowHandler::ShadowHandler(
+    const std::weak_ptr<SceneData>& sceneData,
+    const std::weak_ptr<const Shadow>& shadow,
+    utils::IDsGenerator::value_type ID)
+    : ResourceHandler(sceneData)
+    , m_shadow(shadow)
+    , m_ID(ID)
+{
+}
+
+ShadowHandler::ShadowHandler(const std::weak_ptr<SceneData>& sceneData)
+    : ResourceHandler(sceneData)
+    , m_ID(utils::IDsGenerator::last())
+{
+}
+
+ShadowHandler::~ShadowHandler()
+{
+    if (auto sceneData = m_sceneData.lock())
+        if (auto shadow = m_shadow.lock()) sceneData->removeShadow(shadow);
+}
+
+std::weak_ptr<const Shadow>& ShadowHandler::shadow()
+{
+    return m_shadow;
+}
+
+utils::IDsGenerator::value_type ShadowHandler::ID() const
+{
+    return m_ID;
 }
 
 LightHandler::LightHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID)
@@ -294,18 +328,23 @@ size_t SkeletalAnimatedDataHandler::ID() const
 
 SceneData::SceneData()
 {
+    const auto& settings = settings::Settings::instance();
+
     m_verticesDataBuffer = VerticesDataBuffer::element_type::create();
     m_elementsDataBuffer = ElementsDataBuffer::element_type::create();
     m_skeletonsDataBuffer = SkeletonsDataBuffer::element_type::create();
     m_bonesTransformsDataBuffer = BonesTransformsDataBuffer::element_type::create();
+    m_shadowTransformsDataBuffer = ShadowTransformsDataBuffer::element_type::create();
 
     m_meshesBuffer = MeshesBuffer::element_type::create();
-    m_materialMapsBuffer = MaterialMapsBuffer::element_type::create();
+    m_mapsBuffer = MapsBuffer::element_type::create();
     m_materialsBuffer = MaterialsBuffer::element_type::create();
     m_drawablesBuffer = DrawablesBuffer::element_type::create();
-    m_backgroundBuffer = BackgroundBuffer::element_type::create();
+    m_backgroundBuffer = BackgroundBuffer::element_type::create(BackgroundDescription::makeEmpty());
     m_lightsBuffer = LightsBuffer::element_type::create();
+    m_shadowsBuffer = ShadowsBuffer::element_type::create();
     m_skeletonsBuffer = SkeletonsBuffer::element_type::create();
+    m_shadowMapsBuffer = ShadowMapsBuffer::element_type::create(ShadowMapsDescription::makeEmpty());
 
     m_drawDataBuffer = DrawDataBuffer::element_type::create();
     m_skeletalAnimatedDataBuffer = SkeletalAnimatedDataBuffer::element_type::create();
@@ -318,10 +357,11 @@ SceneData::SceneData()
         graphics::BufferRange::create(m_skeletonsDataBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::BonesTransformsDataBuffer) =
         graphics::BufferRange::create(m_bonesTransformsDataBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowTransformsDataBuffer) =
+        graphics::BufferRange::create(m_shadowTransformsDataBuffer->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::MeshesBuffer) = graphics::BufferRange::create(m_meshesBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::MaterialMapsBuffer) =
-        graphics::BufferRange::create(m_materialMapsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::MapsBuffer) = graphics::BufferRange::create(m_mapsBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::MaterialsBuffer) =
         graphics::BufferRange::create(m_materialsBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::DrawablesBuffer) =
@@ -329,28 +369,21 @@ SceneData::SceneData()
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::BackgroundBuffer) =
         graphics::BufferRange::create(m_backgroundBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::LightsBuffer) = graphics::BufferRange::create(m_lightsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowsBuffer) = graphics::BufferRange::create(m_shadowsBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::SkeletonsBuffer) =
         graphics::BufferRange::create(m_skeletonsBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowMapsBuffer) =
+        graphics::BufferRange::create(m_shadowMapsBuffer->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::DrawDataBuffer) =
         graphics::BufferRange::create(m_drawDataBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::SkeletalAnimatedDataBuffer) =
         graphics::BufferRange::create(m_skeletalAnimatedDataBuffer->buffer());
 
-    // create screen quad mesh
-    m_screenQuadMesh = std::make_shared<Mesh>(
-        utils::MeshPainter(
-            utils::Mesh::createEmptyMesh({{utils::VertexAttribute::Position, {2u, utils::VertexComponentType::Single}}}))
-            .drawScreenQuad()
-            .mesh(),
-        utils::BoundingBox());
-    auto screenQuadMeshHandler = addMesh(m_screenQuadMesh);
-
-    // create screen quad commands buffer
-    auto screenQuadMeshDescription = m_meshesBuffer->get(screenQuadMeshHandler->ID());
-    m_screenQuadCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create(
-        {{MeshDescription::elementsDataSize(screenQuadMeshDescription), 1u, screenQuadMeshDescription.elementsDataOffset,
-          screenQuadMeshHandler->ID()}});
+    const auto& shadowSettings = settings.graphics().shadow();
+    m_shadowAtlasSize = shadowSettings.atlasSize();
+    m_shadowBlurSigma = shadowSettings.blurSigma();
+    m_shadowLightBleedingAmount = shadowSettings.lightBleedingAmount();
 }
 
 SceneData::~SceneData() = default;
@@ -776,23 +809,157 @@ void SceneData::removeBonesTransformsData(uint32_t bonesTransformsDataOffset, ui
     m_bonesTransformsDataBuffer->free(bonesTransformsDataOffset, bonesTransformsDataSize);
 }
 
+SceneData::AddShadowTransformsDataResult SceneData::addShadowTransformsData(
+    uint32_t layersCount,
+    const std::array<glm::uvec3, 6u>& mapsCoords,
+    const std::array<utils::RectPacker::ItemID, 6u>& packersItemIDs)
+{
+    if (!layersCount) return {};
+
+    std::vector<ShadowTransformsDataDescription> shadowTransformsData(layersCount);
+    for (uint32_t i = 0u; i < layersCount; ++i)
+    {
+        shadowTransformsData[i] = ShadowTransformsDataDescription::make(mapsCoords[i], packersItemIDs[i]);
+    }
+
+    const auto shadowTransformsDataOffset = m_shadowTransformsDataBuffer->allocate(layersCount, shadowTransformsData.data());
+    return {static_cast<uint32_t>(shadowTransformsDataOffset)};
+}
+
+void SceneData::removeShadowTransformsData(uint32_t shadowTransformsDataOffset, uint32_t layersCount)
+{
+    if ((shadowTransformsDataOffset == utils::IDsGenerator::last()) || (!layersCount)) return;
+
+    m_shadowTransformsDataBuffer->free(shadowTransformsDataOffset, layersCount);
+}
+
 SceneData::AddTextureHandleResult SceneData::addTextureHandle(
-    uint32_t materialMapID,
-    const graphics::PConstTexture& materialMapTexture,
+    uint32_t mapID,
+    const graphics::PConstTexture& texture,
     const std::shared_ptr<graphics::RendererBase>& graphicsRenderer)
 {
-    if ((materialMapID == utils::IDsGenerator::last()) || (!materialMapTexture) || (!graphicsRenderer)) return {};
+    if ((mapID == utils::IDsGenerator::last()) || (!texture) || (!graphicsRenderer)) return {};
 
-    auto textureHandle = graphicsRenderer->createTextureHandle(materialMapTexture);
+    auto textureHandle = graphicsRenderer->createTextureHandle(texture);
     textureHandle->makeResident();
 
-    m_textureHandles[materialMapID] = textureHandle;
+    m_textureHandles[mapID] = textureHandle;
     return {textureHandle->handle()};
 }
 
 void SceneData::removeTextureHandle(uint32_t materialMapID)
 {
     m_textureHandles[materialMapID].reset();
+}
+
+SceneData::AddShadowRectResult SceneData::addShadowRect(uint32_t shadowMapSize)
+{
+    static const auto recreateShadowMaps =
+        [](const std::shared_ptr<graphics::RendererBase>& graphicsRenderer, graphics::PTextureHandle& depthTextureHandle,
+           graphics::PTextureHandle& varianceTextureHandle, graphics::PTextureHandle& colorTextureHandle, uint32_t mapSize,
+           uint32_t layersCount)
+    {
+        auto depthTexture =
+            graphicsRenderer->createTexture2DArrayEmpty(mapSize, mapSize, layersCount, graphics::PixelInternalFormat::Depth32F);
+        depthTexture->setFilterMode(graphics::TextureFilterMode::Point);
+        depthTextureHandle = graphicsRenderer->createTextureHandle(depthTexture);
+        depthTextureHandle->makeResident();
+
+        auto varianceTexture =
+            graphicsRenderer->createTexture2DArrayEmpty(mapSize, mapSize, layersCount, graphics::PixelInternalFormat::RG32F);
+        varianceTexture->setFilterMode(graphics::TextureFilterMode::Linear);
+        varianceTextureHandle = graphicsRenderer->createTextureHandle(varianceTexture);
+        varianceTextureHandle->makeResident();
+
+        auto colorTexture = graphicsRenderer->createTexture2DArrayEmpty(
+            mapSize, mapSize, layersCount, graphics::PixelInternalFormat::R11F_G11F_B10F);
+        colorTexture->setFilterMode(graphics::TextureFilterMode::Linear);
+        colorTextureHandle = graphicsRenderer->createTextureHandle(colorTexture);
+        colorTextureHandle->makeResident();
+    };
+
+    static const auto updateShadowMapsBuffer = [](ShadowMapsBuffer& shadowMapsBuffer,
+                                                  const graphics::PConstTextureHandle& shadowDepthTextureHandle,
+                                                  const graphics::PConstTextureHandle& shadowVarianceTextureHandle,
+                                                  const graphics::PConstTextureHandle& shadowColorTextureHandle)
+    {
+        shadowMapsBuffer->set(ShadowMapsDescription::make(
+            shadowDepthTextureHandle ? shadowDepthTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+            shadowVarianceTextureHandle ? shadowVarianceTextureHandle->handle()
+                                        : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+            shadowColorTextureHandle ? shadowColorTextureHandle->handle()
+                                     : utils::IDsGeneratorT<graphics::TextureHandle>::last()));
+    };
+
+    static const auto addRectToPackers = [](std::vector<std::shared_ptr<utils::RectPacker>>& packers,
+                                            uint32_t mapSize) -> std::pair<glm::uvec3, utils::RectPacker::ItemID>
+    {
+        for (size_t packerID = 0u; packerID < packers.size(); ++packerID)
+        {
+            auto& packer = packers[packerID];
+            if (const auto itemID = packer->addItem(glm::uvec2(mapSize)); itemID != utils::IDsGenerator::last())
+            {
+                return {glm::uvec3(packer->itemPosition(itemID), packerID), itemID};
+            }
+        }
+
+        return {glm::uvec3(utils::IDsGenerator::last()), utils::IDsGenerator::last()};
+    };
+
+    static const auto addRectToNewPacker = [](std::vector<std::shared_ptr<utils::RectPacker>>& packers, uint32_t atlasSize,
+                                              uint32_t mapSize) -> std::pair<glm::uvec3, utils::RectPacker::ItemID>
+    {
+        const auto packerID = static_cast<uint32_t>(packers.size());
+        packers.push_back(std::make_shared<utils::RectPacker>(glm::uvec2(atlasSize)));
+
+        auto& packer = packers[packerID];
+        if (const auto itemID = packer->addItem(glm::uvec2(mapSize)); itemID != utils::IDsGenerator::last())
+        {
+            return {glm::uvec3(packer->itemPosition(itemID), packerID), itemID};
+        }
+
+        return {glm::uvec3(utils::IDsGenerator::last()), utils::IDsGenerator::last()};
+    };
+
+    auto graphicsRenderer = graphics::RendererBase::current();
+    if (!graphicsRenderer)
+    {
+        LOG_CRITICAL << "No current graphics renderer";
+        return {};
+    }
+
+    if (const auto [coords, itemID] = addRectToPackers(m_shadowMapsRectPackers, shadowMapSize);
+        itemID != utils::IDsGenerator::last())
+    {
+        return {coords, itemID};
+    }
+
+    if (const auto [coords, itemID] = addRectToNewPacker(m_shadowMapsRectPackers, m_shadowAtlasSize, shadowMapSize);
+        itemID != utils::IDsGenerator::last())
+    {
+        recreateShadowMaps(
+            graphicsRenderer, m_shadowDepthTextureHandle, m_shadowVarianceTextureHandle, m_shadowColorTextureHandle,
+            m_shadowAtlasSize, coords[2u] + 1u);
+        updateShadowMapsBuffer(
+            m_shadowMapsBuffer, m_shadowDepthTextureHandle, m_shadowVarianceTextureHandle, m_shadowColorTextureHandle);
+
+        return {coords, itemID};
+    }
+
+    LOG_CRITICAL << "Can't add shadow to rect packer";
+    return {};
+}
+
+void SceneData::removeShadowRect(uint32_t packerID, utils::RectPacker::ItemID itemID)
+{
+    if ((packerID == utils::IDsGenerator::last()) || (itemID == utils::IDsGenerator::last()))
+    {
+        return;
+    }
+    else
+    {
+        m_shadowMapsRectPackers[packerID]->removeItem(itemID);
+    }
 }
 
 std::shared_ptr<MeshHandler> SceneData::addMesh(const std::shared_ptr<const Mesh>& mesh)
@@ -855,8 +1022,8 @@ void SceneData::onMeshChanged(
     const utils::BoundingBox& bb)
 {
     const auto meshDescription = m_meshesBuffer->get(ID);
-    removeVerticeshData(meshDescription.verticesDataOffset, MeshDescription::verticesDataSize(meshDescription));
-    removeElementsData(meshDescription.elementsDataOffset, MeshDescription::elementsDataSize(meshDescription));
+    removeVerticeshData(meshDescription.verticesDataOffset, meshDescription.verticesDataSize);
+    removeElementsData(meshDescription.elementsDataOffset, meshDescription.elementsDataSize);
 
     AddVerticesDataResult addVerticesDataResult;
     AddElementsDataResult addElementsDataResult;
@@ -899,15 +1066,15 @@ std::shared_ptr<MaterialMapHandler> SceneData::addMaterialMap(const std::shared_
 
         if (!result)
         {
-            const auto materialMapID = m_materialMapIDsGenerator.generate();
-            m_materialMapsBuffer->resize(static_cast<size_t>(materialMapID) + 1u);
-            m_materialMapsBuffer->set(materialMapID, MaterialMapDescription::makeEmpty());
-            m_textureHandles.resize(static_cast<size_t>(materialMapID) + 1u);
-            m_textureHandles[materialMapID] = nullptr;
+            const auto mapID = m_mapIDsGenerator.generate();
+            m_mapsBuffer->resize(static_cast<size_t>(mapID) + 1u);
+            m_mapsBuffer->set(mapID, MapDescription::makeEmpty());
+            m_textureHandles.resize(static_cast<size_t>(mapID) + 1u);
+            m_textureHandles[mapID] = nullptr;
 
-            onMaterialMapChanged(materialMapID, materialMap->filesystemPath(), materialMap->image());
+            onMaterialMapChanged(mapID, materialMap->filesystemPath(), materialMap->image());
 
-            result = std::make_shared<MaterialMapHandler>(weak_from_this(), materialMap, materialMapID);
+            result = std::make_shared<MaterialMapHandler>(weak_from_this(), materialMap, mapID);
             materialMapPrivate.handlers().insert(result);
         }
     }
@@ -923,9 +1090,9 @@ void SceneData::removeMaterialMap(const std::shared_ptr<const MaterialMap>& mate
     {
         if ((*it)->sceneData().lock() == shared_from_this())
         {
-            const auto materialMapID = (*it)->ID();
-            onMaterialMapChanged(materialMapID, std::filesystem::path(), nullptr);
-            m_materialMapIDsGenerator.clear(materialMapID);
+            const auto mapID = (*it)->ID();
+            onMaterialMapChanged(mapID, std::filesystem::path(), nullptr);
+            m_mapIDsGenerator.clear(mapID);
             materialMapHandlers.erase(it);
             break;
         }
@@ -973,7 +1140,7 @@ void SceneData::onMaterialMapChanged(
     else if (image)
         texture = texturesManager->loadOrGet(image);
 
-    m_materialMapsBuffer->set(ID, MaterialMapDescription::make(addTextureHandle(ID, texture, graphicsRenderer).handle));
+    m_mapsBuffer->set(ID, MapDescription::make(addTextureHandle(ID, texture, graphicsRenderer).handle));
 }
 
 std::shared_ptr<MaterialHandler> SceneData::addMaterial(const std::shared_ptr<const Material>& material)
@@ -1168,81 +1335,182 @@ void SceneData::onBackgroundChanged(
     if (auto environmentMapID = materialMapHandler->ID(); environmentMapID != utils::IDsGenerator::last())
         if (auto& textureHandle = m_textureHandles[environmentMapID])
             if (auto texture = textureHandle->texture())
-                mipmapLevel = glm::clamp(blurPower, 0.f, 1.f) * glm::max(0u, (texture->numMipmapLevels() - 1u));
+                mipmapLevel = glm::clamp(blurPower, 0.f, 1.f) * (glm::max(1u, texture->numMipmapLevels()) - 1u);
 
     m_backgroundBuffer->set(BackgroundDescription::make(rotation, environmentColor, mipmapLevel, materialMapHandler->ID()));
 }
 
+std::shared_ptr<ShadowHandler> SceneData::addShadow(const std::shared_ptr<const Shadow>& shadow)
+{
+    std::shared_ptr<ShadowHandler> result;
+
+    if (!shadow)
+    {
+        result = std::make_shared<ShadowHandler>(weak_from_this());
+    }
+    else
+    {
+        if (const auto& shadowHandler = shadow->handler())
+        {
+            if (shadowHandler->sceneData().lock() == shared_from_this())
+            {
+                result = shadowHandler;
+            }
+        }
+
+        if (!result)
+        {
+            auto shadowID = m_shadowIDsGenerator.generate();
+            m_shadowsBuffer->resize(static_cast<size_t>(shadowID) + 1u);
+            m_shadowsBuffer->set(shadowID, ShadowDescription::makeEmpty());
+
+            const auto& lightNode = shadow->lightNode();
+            onShadowChanged(
+                shadowID, lightNode.shadowMapSize(), lightNode.shadowCullPlanesLimits(), lightNode.m().shadowLayersCount());
+
+            result = std::make_shared<ShadowHandler>(weak_from_this(), shadow, shadowID);
+            shadow->handler() = result;
+        }
+    }
+
+    return result;
+}
+
+void SceneData::removeShadow(const std::shared_ptr<const Shadow>& shadow)
+{
+    auto& shadowHandler = shadow->handler();
+    if (shadowHandler && (shadowHandler->sceneData().lock() == shared_from_this()))
+    {
+        const auto shadowID = shadowHandler->ID();
+        onShadowChanged(shadowID, 0u, utils::Range(), 0u);
+        m_shadowIDsGenerator.clear(shadowID);
+        shadowHandler.reset();
+    }
+}
+
+void SceneData::onShadowChanged(
+    utils::IDsGenerator::value_type ID,
+    uint32_t mapSize,
+    const utils::Range& cullPlaneLimits,
+    uint32_t layersCount)
+{
+    const auto shadowDescription = m_shadowsBuffer->get(ID);
+    const auto descLayersCount = ShadowDescription::layersCount(shadowDescription);
+    const auto descTransformsDataOffset = shadowDescription.transformsDataOffset;
+
+    for (uint32_t i = 0u; i < descLayersCount; ++i)
+    {
+        auto shadowTransformsDataDescription = m_shadowTransformsDataBuffer->get(descTransformsDataOffset + i);
+        const auto descPackerID = ShadowTransformsDataDescription::mapCoords(shadowTransformsDataDescription)[2u];
+        const auto descPackertemID = ShadowTransformsDataDescription::packerItemID(shadowTransformsDataDescription);
+        removeShadowRect(descPackerID, static_cast<utils::RectPacker::ItemID>(descPackertemID));
+    }
+
+    removeShadowTransformsData(shadowDescription.transformsDataOffset, descLayersCount);
+
+    std::array<glm::uvec3, 6u> mapsCoords{};
+    std::array<uint32_t, 6u> packersItemIDs{};
+    for (uint32_t i = 0u; i < layersCount; ++i)
+    {
+        const auto addShadowRectResult = addShadowRect(mapSize);
+        mapsCoords[i] = addShadowRectResult.coords;
+        packersItemIDs[i] = static_cast<uint32_t>(addShadowRectResult.itemID);
+    }
+
+    auto addShadowTransformsDataResult = addShadowTransformsData(layersCount, mapsCoords, packersItemIDs);
+
+    m_shadowsBuffer->set(
+        ID,
+        ShadowDescription::make(mapSize, cullPlaneLimits, layersCount, addShadowTransformsDataResult.shadowTransformsDataOffset));
+}
+
 std::shared_ptr<LightHandler> SceneData::addPointLight(
     const utils::Transform& transform,
+    bool isLightingEnabled,
     const glm::vec3& color,
-    const glm::vec2& radiuses)
+    const glm::vec2& radiuses,
+    const std::shared_ptr<const Shadow>& shadow)
 {
     auto result = addLight();
-    onPointLightChanged(result->ID(), transform, color, radiuses);
+    onPointLightChanged(result->ID(), transform, isLightingEnabled, color, radiuses, shadow);
     return result;
 }
 
 void SceneData::onPointLightChanged(
     utils::IDsGenerator::value_type ID,
     const utils::Transform& transform,
+    bool isLightingEnabled,
     const glm::vec3& color,
-    const glm::vec2& radiuses)
+    const glm::vec2& radiuses,
+    const std::shared_ptr<const Shadow>& shadow)
 {
-    onLightChanged(ID, LightDescription::makePoint(transform, color, radiuses));
+    onLightChanged(ID, LightDescription::makePoint(transform, isLightingEnabled, color, radiuses, addShadow(shadow)->ID()));
 }
 
 std::shared_ptr<LightHandler> SceneData::addSpotLight(
     const utils::Transform& transform,
+    bool isLightingEnabled,
     const glm::vec3& color,
     const glm::vec2& radiuses,
-    const glm::vec2& halfAngles)
+    const glm::vec2& halfAngles,
+    const std::shared_ptr<const Shadow>& shadow)
 {
     auto result = addLight();
-    onSpotLightChanged(result->ID(), transform, color, radiuses, halfAngles);
+    onSpotLightChanged(result->ID(), transform, isLightingEnabled, color, radiuses, halfAngles, shadow);
     return result;
 }
 
 void SceneData::onSpotLightChanged(
     utils::IDsGenerator::value_type ID,
     const utils::Transform& transform,
+    bool isLightingEnabled,
     const glm::vec3& color,
     const glm::vec2& radiuses,
-    const glm::vec2& halfAngles)
+    const glm::vec2& halfAngles,
+    const std::shared_ptr<const Shadow>& shadow)
 {
-    onLightChanged(ID, LightDescription::makeSpot(transform, color, radiuses, halfAngles));
+    onLightChanged(
+        ID, LightDescription::makeSpot(transform, isLightingEnabled, color, radiuses, halfAngles, addShadow(shadow)->ID()));
 }
 
-std::shared_ptr<LightHandler> SceneData::addDirectionalLight(const utils::Transform& transform, const glm::vec3& color)
+std::shared_ptr<LightHandler> SceneData::addDirectionalLight(
+    const utils::Transform& transform,
+    bool isLightingEnabled,
+    const glm::vec3& color,
+    const std::shared_ptr<const Shadow>& shadow)
 {
     auto result = addLight();
-    onDirectionalLightChanged(result->ID(), transform, color);
+    onDirectionalLightChanged(result->ID(), transform, isLightingEnabled, color, shadow);
     return result;
 }
 
 void SceneData::onDirectionalLightChanged(
     utils::IDsGenerator::value_type ID,
     const utils::Transform& transform,
-    const glm::vec3& color)
+    bool isLightingEnabled,
+    const glm::vec3& color,
+    const std::shared_ptr<const Shadow>& shadow)
 {
-    onLightChanged(ID, LightDescription::makeDirectional(transform, color));
+    onLightChanged(ID, LightDescription::makeDirectional(transform, isLightingEnabled, color, addShadow(shadow)->ID()));
 }
 
 std::shared_ptr<LightHandler> SceneData::addImageBasedLight(
     const utils::Transform& transform,
+    bool isLightingEnabled,
     const std::shared_ptr<const MaterialMap>& BRDFLutMap,
     const std::shared_ptr<const MaterialMap>& diffuseMap,
     const std::shared_ptr<const MaterialMap>& specularMap,
     float contribution)
 {
     auto result = addLight();
-    onImageBasedLightChanged(result->ID(), transform, BRDFLutMap, diffuseMap, specularMap, contribution);
+    onImageBasedLightChanged(result->ID(), transform, isLightingEnabled, BRDFLutMap, diffuseMap, specularMap, contribution);
     return result;
 }
 
 void SceneData::onImageBasedLightChanged(
     utils::IDsGenerator::value_type ID,
     const utils::Transform& transform,
+    bool isLightingEnabled,
     const std::shared_ptr<const MaterialMap>& BRDFLutMap,
     const std::shared_ptr<const MaterialMap>& diffuseMap,
     const std::shared_ptr<const MaterialMap>& specularMap,
@@ -1250,8 +1518,20 @@ void SceneData::onImageBasedLightChanged(
 {
     onLightChanged(
         ID, LightDescription::makeImageBased(
-                transform, addMaterialMap(BRDFLutMap)->ID(), addMaterialMap(diffuseMap)->ID(), addMaterialMap(specularMap)->ID(),
-                contribution));
+                transform, isLightingEnabled, addMaterialMap(BRDFLutMap)->ID(), addMaterialMap(diffuseMap)->ID(),
+                addMaterialMap(specularMap)->ID(), contribution));
+}
+
+std::shared_ptr<LightHandler> SceneData::addAmbientLight(bool isLightingEnabled, const glm::vec3& color)
+{
+    auto result = addLight();
+    onAmbientLightChanged(result->ID(), isLightingEnabled, color);
+    return result;
+}
+
+void SceneData::onAmbientLightChanged(utils::IDsGenerator::value_type ID, bool isLightingEnabled, const glm::vec3& color)
+{
+    onLightChanged(ID, LightDescription::makeAmbient(isLightingEnabled, color));
 }
 
 void SceneData::removeLight(utils::IDsGenerator::value_type lightID)
@@ -1406,7 +1686,7 @@ void SceneData::onSkeletalAnimatedDataChanged(
 {
     const auto skeletalAnimatedDataDescription = m_skeletalAnimatedDataBuffer->get(skeletalAnimatedDataID);
     removeBonesTransformsData(
-        skeletalAnimatedDataDescription.bonesTransfromsDataOffset, skeletalAnimatedDataDescription.bonesTransfromsDataSize);
+        skeletalAnimatedDataDescription.bonesTransformsDataOffset, skeletalAnimatedDataDescription.bonesTransformsDataSize);
 
     AddBonesTransformsDataResult addBonesTransformsDataResult;
     auto currentAnimationID = utils::IDsGenerator::last();
@@ -1417,7 +1697,7 @@ void SceneData::onSkeletalAnimatedDataChanged(
 
         const auto& animations = skeleton->animations();
         if (auto currentAnimationIter = animations.find(currentAnimation); currentAnimationIter != animations.end())
-            currentAnimationID = std::distance(animations.begin(), currentAnimationIter);
+            currentAnimationID = static_cast<uint32_t>(std::distance(animations.begin(), currentAnimationIter));
     }
 
     m_skeletalAnimatedDataBuffer->set(
@@ -1437,14 +1717,44 @@ size_t SceneData::skeletalAnimatedDataCount() const
     return m_skeletalAnimatedDataBuffer->size();
 }
 
+size_t SceneData::shadowsCount() const
+{
+    return m_shadowsBuffer->size();
+}
+
 size_t SceneData::lightsCount() const
 {
     return m_lightsBuffer->size();
 }
 
-graphics::PDrawArraysIndirectCommandsConstBuffer SceneData::screenQuadCommandsBuffer() const
+uint32_t SceneData::shadowAtlasSize() const
 {
-    return m_screenQuadCommandsBuffer;
+    return m_shadowAtlasSize;
+}
+
+float SceneData::shadowBlurSigma() const
+{
+    return m_shadowBlurSigma;
+}
+
+float SceneData::shadowLightBleedingAmount() const
+{
+    return m_shadowLightBleedingAmount;
+}
+
+graphics::PConstTexture SceneData::shadowDepthTexture() const
+{
+    return m_shadowDepthTextureHandle ? m_shadowDepthTextureHandle->texture() : nullptr;
+}
+
+graphics::PConstTexture SceneData::shadowVarianceTexture() const
+{
+    return m_shadowVarianceTextureHandle ? m_shadowVarianceTextureHandle->texture() : nullptr;
+}
+
+graphics::PConstTexture SceneData::shadowColorTexture() const
+{
+    return m_shadowColorTextureHandle ? m_shadowColorTextureHandle->texture() : nullptr;
 }
 
 std::shared_ptr<LightHandler> SceneData::addLight()

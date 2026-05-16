@@ -1,6 +1,5 @@
 #include<constants.glsl>
 #include<line.glsl>
-#include<line_segment.glsl>
 #include<range.glsl>
 #include<transform.glsl>
 #include<utils.glsl>
@@ -47,19 +46,38 @@ vec3 boundingBoxHalfSize(in BoundingBox bb)
 
 vec3 boundingBoxPoint(in BoundingBox bb, in uint ID)
 {
-	const uint index = clamp(ID, 0u, BOUNDING_BOX_POINTS_COUNT - 1u);
 	vec3 result;
 	for (uint i = 0u; i < 3u; ++i)
-		result[i] = bb.points[(index & (1u << i)) >> i][i];
+		result[i] = bb.points[bitfieldExtract(ID, int(i), 1)][i];
 	return result;
 }
 
-LineSegment boundingBoxEdge(in BoundingBox bb, in uint ID)
+vec3[BOUNDING_BOX_POINTS_COUNT] boundingBoxPoints(in BoundingBox bb)
 {
-	const uvec2 edgeIndices = boundingBoxEdgeIndices(ID);
-	return makeLineSegment(
-		boundingBoxPoint(bb, edgeIndices[0u]),
-		boundingBoxPoint(bb, edgeIndices[1u]));
+	vec3 result[BOUNDING_BOX_POINTS_COUNT];
+	
+	for (uint p = 0u; p < BOUNDING_BOX_POINTS_COUNT; ++p)
+		for (uint i = 0u; i < 3u; ++i)
+			result[p][i] = bb.points[bitfieldExtract(p, int(i), 1)][i];
+		
+	return result;
+}
+
+void boundingBoxCalculateFaceNormalLinesAndRanges(
+	in BoundingBox bb,
+	out Line faceNormalLines[BOUNDING_BOX_FACE_NORMAL_LINES_COUNT],
+	out Range ranges[BOUNDING_BOX_FACE_NORMAL_LINES_COUNT])
+{
+	for (uint i = 0u; i < BOUNDING_BOX_FACE_NORMAL_LINES_COUNT; ++i)
+	{
+		faceNormalLines[i] = makeLine(vec3(0.0f), orth(i));
+		ranges[i] = makeRange(bb.points[0u][i], bb.points[1u][i]);
+	}
+}
+
+vec3[BOUNDING_BOX_EDGE_DIRECTIONS_COUNT] boundingBoxCalculateEdgeDirections()
+{
+	return vec3[BOUNDING_BOX_EDGE_DIRECTIONS_COUNT](orth(0u), orth(1u), orth(2u));
 }
 
 Range boundingBoxProjectOnLine(in BoundingBox bb, in Line l)
@@ -94,18 +112,17 @@ bool boundingBoxIsPointInside(in BoundingBox bb, in vec3 v)
 	return all(greaterThan(boundingBoxMinPoint(bb), v)) && all(greaterThan(v, boundingBoxMaxPoint(bb)));
 }
 
+// Be carefull, this method extends a bounding box! More over,
+// transformBoundingBox(t, transformBoundingBox(transformInverted(t), bb)) != bb
+// in common case
 BoundingBox transformBoundingBox(in Transform t, in BoundingBox bb)
 {
-	mat3 axes = mat3(1.0f);
-	for (uint i = 0u; i < 3u; ++i)
-	{
-		vec3 axis = vec3(0.0f);
-		axis[i] = 1.0f;
-		
-		axes[i] = abs(transformVector(t, axis));
-	}
+	const mat3 axes = mat3(
+		abs(transformVector(t, orth(0u))),
+		abs(transformVector(t, orth(1u))),
+		abs(transformVector(t, orth(2u))));
 
-    const vec3 halfSize = axes * (boundingBoxHalfSize(bb) * transformDistance(t, 1.0f));
+    const vec3 halfSize = axes * transformSize(t, boundingBoxHalfSize(bb));
     const vec3 center = transformPoint(t, boundingBoxCenter(bb));
     return makeBoundingBox(center - halfSize, center + halfSize);
 }

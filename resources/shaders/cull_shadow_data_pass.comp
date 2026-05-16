@@ -1,0 +1,143 @@
+layout (local_size_x = 256, local_size_y = 4, local_size_z = 1) in;
+
+#include<counters.glsl>
+#include<drawable.glsl>
+#include<draw_data.glsl>
+#include<indirect_commands.glsl>
+#include<material.glsl>
+#include<mesh.glsl>
+#include<render_info.glsl>
+#include<shadow.glsl>
+#include<shadow_data.glsl>
+#include<shadow_to_update.glsl>
+#include<shadow_transforms_data.glsl>
+
+#include<math/bounding_box.glsl>
+#include<math/classifications.glsl>
+#include<math/oriented_bounding_box.glsl>
+#include<math/pyramid.glsl>
+#include<math/sphere.glsl>
+#include<math/transform.glsl>
+
+layout (std430) buffer ssbo_opaqueShadowDataRenderCommandsBuffer {
+	DrawArraysIndirectCommand opaqueShadowDataRenderCommands[];
+};
+
+layout (std430) buffer ssbo_transparentShadowDataRenderCommandsBuffer {
+	DrawArraysIndirectCommand transparentShadowDataRenderCommands[];
+};
+
+#define DISABLED_SHADOW_DATA_CULLING_ALGORITHM 0
+#define SUPER_FAST_SHADOW_DATA_CULLING_ALGORITHM 1
+#define FAST_SHADOW_DATA_CULLING_ALGORITHM 2
+#define CORRECT_SHADOW_DATA_CULLING_ALGORITHM 3
+
+#ifndef SHADOW_DATA_CULLING_ALGORITHM
+	#define SHADOW_DATA_CULLING_ALGORITHM SUPER_FAST_SHADOW_DATA_CULLING_ALGORITHM
+#endif
+
+uint addShadowData(in uint drawDataID, in uint shadowID, in uint layerIDs[6u])
+{
+	const uint shadowDataID = countersGenerateShadowDataID();
+	shadowDataInitialize(shadowDataID, drawDataID, shadowID, layerIDs);
+	
+	return shadowDataID;
+}
+
+void addOpaqueShadowData(in uint drawDataID, in uint shadowID, in uint meshID, in uint layersCount, in uint layerIDs[6u])
+{
+	const uint commandID = countersGenerateOpaqueShadowDataRenderCommandID();
+	opaqueShadowDataRenderCommands[commandID] = DrawArraysIndirectCommand(
+		meshElementsDataSize(meshID),
+		layersCount,
+		meshElementsDataOffset(meshID),
+		addShadowData(drawDataID, shadowID, layerIDs));
+}
+
+void addTransparentShadowData(in uint drawDataID, in uint shadowID, in uint meshID, in uint layersCount, in uint layerIDs[6u])
+{
+	const uint commandID = countersGenerateTransparentShadowDataRenderCommandID();
+	transparentShadowDataRenderCommands[commandID] = DrawArraysIndirectCommand(
+		meshElementsDataSize(meshID),
+		layersCount,
+		meshElementsDataOffset(meshID),
+		addShadowData(drawDataID, shadowID, layerIDs));
+}
+
+void main(void)
+{
+	if (all(lessThan(gl_GlobalInvocationID, uvec3(renderInfoDrawDataCount(), countersShadowsToUpdateCount(), 1u))))
+	{
+		const uint drawDataID = gl_GlobalInvocationID[0u];
+		const uint shadowToUpdateID = gl_GlobalInvocationID[1u];
+		
+		const uint drawableID = drawDataDrawableID(drawDataID);
+		if (drawableID != 0xFFFFFFFFu)
+		{
+			const uint meshID = drawableMeshID(drawableID);
+			const uint materialID = drawableMaterialID(drawableID);
+			if ((meshID != 0xFFFFFFFFu) && (materialID != 0xFFFFFFFFu))
+			{
+				const BoundingBox localBoundingBox = meshBoundingBox(meshID);
+				
+				if (!isBoundingBoxEmpty(localBoundingBox) && isMaterialShadowCasted(materialID))
+				{		
+					const Transform modelTransform = drawDataTransform(drawDataID);
+					
+					const uint shadowID = shadowToUpdateShadowID(shadowToUpdateID);
+					const uint layersCount = shadowLayersCount(shadowID); 
+					const uint transformDataOffset = shadowTransformsDataOffset(shadowID);
+					
+					uint layerIDs[6u] = uint[6u](0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu, 0xFFFFFFFFu);
+					uint instancesCount = 0u;
+					
+					for (uint layerID = 0u; layerID < layersCount; ++layerID)
+					{
+						const OrientedBoundingBox orientedBoundingBox = transformOrientedBoundingBox(
+							transformMult(shadowTransformsDataViewTransform(transformDataOffset, layerID), modelTransform),
+							makeOrientedBoundingBox(localBoundingBox));
+						
+						#if (SHADOW_DATA_CULLING_ALGORITHM == DISABLED_SHADOW_DATA_CULLING_ALGORITHM)
+							bool isBoundingBoxVisible = true;
+						#elif (SHADOW_DATA_CULLING_ALGORITHM == SUPER_FAST_SHADOW_DATA_CULLING_ALGORITHM)
+							bool isBoundingBoxVisible = orientedBoundingBoxVsFrustumSuperFast(
+								orientedBoundingBox,
+								shadowTransformsDataFrustumFaceNormalLines(transformDataOffset, layerID),
+								shadowTransformsDataFrustumRanges(transformDataOffset, layerID));
+						#elif (SHADOW_DATA_CULLING_ALGORITHM == FAST_SHADOW_DATA_CULLING_ALGORITHM)
+							bool isBoundingBoxVisible = orientedBoundingBoxVsFrustumFast(
+								orientedBoundingBox,
+								shadowTransformsDataFrustumFaceNormalLines(transformDataOffset, layerID),
+								shadowTransformsDataFrustumRanges(transformDataOffset, layerID),
+								shadowTransformsDataFrustumPoints(transformDataOffset, layerID));
+						#elif (SHADOW_DATA_CULLING_ALGORITHM == CORRECT_SHADOW_DATA_CULLING_ALGORITHM)
+							bool isBoundingBoxVisible = orientedBoundingBoxVsFrustum(
+								orientedBoundingBox,
+								shadowTransformsDataFrustumFaceNormalLines(transformDataOffset, layerID),
+								shadowTransformsDataFrustumRanges(transformDataOffset, layerID),
+								shadowTransformsDataFrustumPoints(transformDataOffset, layerID),
+								shadowTransformsDataFrustumEdgeDirections(transformDataOffset, layerID));
+						#else
+							error!!!
+						#endif
+						
+						if (isBoundingBoxVisible)
+						{
+							layerIDs[instancesCount++] = layerID;
+						}
+					}
+					
+					if (instancesCount > 0u)
+					{
+						const bool isTransparent = isMeshTransparent(meshID) || isMaterialTransparent(materialID);
+						if (isTransparent)
+							addTransparentShadowData(drawDataID, shadowID, meshID, instancesCount, layerIDs);
+						else
+							addOpaqueShadowData(drawDataID, shadowID, meshID, instancesCount, layerIDs);
+					}
+					
+				}
+			}
+		}
+	}
+}

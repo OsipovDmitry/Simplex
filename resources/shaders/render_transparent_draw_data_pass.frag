@@ -1,10 +1,15 @@
 #extension GL_ARB_bindless_texture : enable
 
-#include<gammacorrection.glsl>
+layout (early_fragment_tests) in;
+
+#include<geometry.glsl>
 #include<packing.glsl>
-#include<mesh.glsl>
+#include<map.glsl>
 #include<material.glsl>
-#include<material_map.glsl>
+#include<mesh.glsl>
+#include<render_info.glsl>
+
+#include<math/gamma_correction.glsl>
 
 flat in uint v_meshID;
 flat in uint v_materialID;
@@ -13,8 +18,6 @@ in vec3 v_tangent;
 in vec3 v_binormal;
 in vec2 v_texCoords;
 in vec4 v_color;
-
-out uvec4 o_fragColor0;
 
 void main(void)
 {
@@ -29,7 +32,7 @@ void main(void)
 	const uint baseColorMapID = materialBaseColorMapID(v_materialID);
 	if (hasTexCoords && (baseColorMapID != 0xFFFFFFFFu))
 	{
-		const TextureHandle textureHandle = materialMapTextureHandle(baseColorMapID);
+		const TextureHandle textureHandle = mapTextureHandle(baseColorMapID);
 		if (!isTextureHandleEmpty(textureHandle))
 			baseColor *= toLinearRGB(texture(sampler2D(textureHandle), v_texCoords));
 	}
@@ -37,20 +40,17 @@ void main(void)
 	const uint opacityMapID = materialOpacityMapID(v_materialID);
 	if (hasTexCoords && (opacityMapID != 0xFFFFFFFFu))
 	{
-		const TextureHandle textureHandle = materialMapTextureHandle(opacityMapID);
+		const TextureHandle textureHandle = mapTextureHandle(opacityMapID);
 		if (!isTextureHandleEmpty(textureHandle))
 			baseColor.a *= texture(sampler2D(textureHandle), v_texCoords).r;
 	}
-
-	if (baseColor.a < materialAlphaCutoff(v_materialID))
-		discard;
 	
 	vec3 emission = materialEmission(v_materialID);
 	
 	const uint emissionMapID = materialEmissionMapID(v_materialID);
 	if (hasTexCoords && (emissionMapID != 0xFFFFFFFFu))
 	{
-		const TextureHandle textureHandle = materialMapTextureHandle(emissionMapID);
+		const TextureHandle textureHandle = mapTextureHandle(emissionMapID);
 		if (!isTextureHandleEmpty(textureHandle))
 			emission *= toLinearRGB(texture(sampler2D(textureHandle), v_texCoords).rgb);
 	}
@@ -62,7 +62,7 @@ void main(void)
 	const uint occlusionMapID = materialOcclusionMapID(v_materialID);
     if (hasTexCoords && (occlusionMapID != 0xFFFFFFFFu))
 	{
-		const TextureHandle textureHandle = materialMapTextureHandle(occlusionMapID);
+		const TextureHandle textureHandle = mapTextureHandle(occlusionMapID);
 		if (!isTextureHandleEmpty(textureHandle))
 		{
 			occlusion *= texture(sampler2D(textureHandle), v_texCoords)[ORMSwizzleMask[0u]];
@@ -75,7 +75,7 @@ void main(void)
 	const uint roughnessMapID = materialRoughnessMapID(v_materialID);
 	if (hasTexCoords && (roughnessMapID != 0xFFFFFFFFu))
 	{
-		const TextureHandle textureHandle = materialMapTextureHandle(roughnessMapID);
+		const TextureHandle textureHandle = mapTextureHandle(roughnessMapID);
 		if (!isTextureHandleEmpty(textureHandle))
 			roughness *= texture(sampler2D(textureHandle), v_texCoords)[ORMSwizzleMask[1u]];
 	}
@@ -85,7 +85,7 @@ void main(void)
 	const uint metalnessMapID = materialMetalnessMapID(v_materialID);
 	if (hasTexCoords && (metalnessMapID != 0xFFFFFFFFu))
 	{
-		const TextureHandle textureHandle = materialMapTextureHandle(metalnessMapID);
+		const TextureHandle textureHandle = mapTextureHandle(metalnessMapID);
 		if (!isTextureHandleEmpty(textureHandle))
 			metalness *= texture(sampler2D(textureHandle), v_texCoords)[ORMSwizzleMask[2u]];
 	}
@@ -95,7 +95,7 @@ void main(void)
 	const uint normalMapID = materialNormalMapID(v_materialID);
 	if (hasTexCoords && meshTangentFlag(v_meshID) && (normalMapID != 0xFFFFFFFFu))
 	{
-		const TextureHandle textureHandle = materialMapTextureHandle(normalMapID);
+		const TextureHandle textureHandle = mapTextureHandle(normalMapID);
 		if (!isTextureHandleEmpty(textureHandle))
 		{
 			vec3 localNormal = unpackNormal(texture(sampler2D(textureHandle), v_texCoords).xyz);
@@ -105,17 +105,23 @@ void main(void)
 		}
 	}
 	
-	if (!gl_FrontFacing)
-		normal = -normal;
-	
-	o_fragColor0 = packPBRData(
-		baseColor.rgb,
-		emission,
-		occlusion,
-		roughness,
-		metalness,
-		1.0f,
-		normal,
-		isMaterialLighted(v_materialID),
-		isMaterialShadowed(v_materialID));
+    const uint OITNodeID = geometryBufferGenerateOITNodeID();
+	if (OITNodeID < geometryBufferOITNodesMaxCount())
+    {
+		const uint nextOITNodeID = geometryBufferSetFirstOITNodeID(ivec2(gl_FragCoord.xy), OITNodeID);
+		geometryBufferInitializeOITNode(
+			OITNodeID,
+			packPBRData(
+				baseColor.rgb,
+				emission,
+				occlusion,
+				roughness,
+				metalness,
+				baseColor.a,
+				normal,
+				isMaterialLighted(v_materialID),
+				isMaterialShadowed(v_materialID)),
+			gl_FragCoord.z,
+			nextOITNodeID);
+    }
 }

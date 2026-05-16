@@ -1,76 +1,77 @@
 #include "lightnodeprivate.h"
-#include "shadowprivate.h"
+
+#include <core/scene.h>
+
+#include "scenedata.h"
+#include "sceneprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-LightNodePrivate::LightNodePrivate(LightNode &lightNode, const std::string &name, LightType type)
+LightNodePrivate::LightNodePrivate(LightNode& lightNode, const std::string& name, LightType type)
     : NodePrivate(lightNode, name)
     , m_type(type)
     , m_isLightingEnabled(true)
-    , m_shadow(std::make_shared<Shadow>(type))
-    , m_shadowTransform()
 {
 }
 
 LightNodePrivate::~LightNodePrivate() = default;
+
+void LightNodePrivate::onAfterTransformChanged()
+{
+    onChanged();
+}
+
+void LightNodePrivate::onAttachToScene(const std::shared_ptr<Scene>& scene)
+{
+    if (auto& sceneData = scene->m().sceneData())
+    {
+        m_lightHandler = createLightInSceneData(*sceneData);
+    }
+}
+
+void LightNodePrivate::onDetachFromScene(const std::shared_ptr<Scene>&)
+{
+    m_lightHandler.reset();
+}
 
 LightType& LightNodePrivate::type()
 {
     return m_type;
 }
 
-uint32_t LightNodePrivate::numLayeredShadowMatrices() const
-{
-    return numLayeredShadowMatrices(m_type);
-}
-
-uint32_t LightNodePrivate::numLayeredShadowMatrices(LightType type)
-{
-    uint32_t result = 0u;
-    switch (type)
-    {
-    case LightType::Point:
-    {
-        result = 6u;
-        break;
-    }
-    case LightType::Directional:
-    case LightType::Spot:
-    {
-        result = 1u;
-        break;
-    }
-    default:
-    {
-        break;
-    }
-    }
-    return result;
-}
-
-bool &LightNodePrivate::isLightingEnabled()
+bool& LightNodePrivate::isLightingEnabled()
 {
     return m_isLightingEnabled;
 }
 
-Shadow &LightNodePrivate::shadow()
+std::shared_ptr<Shadow>& LightNodePrivate::shadow()
 {
-    return *m_shadow;
+    return m_shadow;
 }
 
-LightNodePrivate::ShadowTransform &LightNodePrivate::shadowTransform(const utils::Frustum::Points &cameraFrustumPoints)
+uint32_t& LightNodePrivate::shadowMapSize()
 {
-    m_shadowTransform = doShadowTransform(cameraFrustumPoints);
-    return m_shadowTransform;
+    return m_shadowMapSize;
 }
 
-LightNodePrivate::ShadowTransform LightNodePrivate::doShadowTransform(const utils::Frustum::Points&)
+utils::Range& LightNodePrivate::shadowCullPlanesLimits()
 {
-    return ShadowTransform();
+    return m_shadowCullPlanesLimits;
 }
 
+void LightNodePrivate::onChanged()
+{
+    if (m_lightHandler)
+    {
+        if (auto sceneData = m_lightHandler->sceneData().lock())
+        {
+            updateLightInSceneData(*sceneData, m_lightHandler->ID());
+        }
+    }
 }
-}
+
+} // namespace core
+} // namespace simplex

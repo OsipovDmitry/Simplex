@@ -22,13 +22,13 @@ SkeletalAnimatedNodePrivate::SkeletalAnimatedNodePrivate(
 
 SkeletalAnimatedNodePrivate::~SkeletalAnimatedNodePrivate() = default;
 
-void SkeletalAnimatedNodePrivate::doAttachToScene(const std::shared_ptr<Scene>& scene)
+void SkeletalAnimatedNodePrivate::onAttachToScene(const std::shared_ptr<Scene>& scene)
 {
     if (const auto& sceneData = scene->m().sceneData())
         m_handler = sceneData->addSkeletalAnimatedData(m_skeleton, m_currentAnimation);
 }
 
-void SkeletalAnimatedNodePrivate::doDetachFromScene(const std::shared_ptr<Scene>&)
+void SkeletalAnimatedNodePrivate::onDetachFromScene(const std::shared_ptr<Scene>&)
 {
     m_handler.reset();
 }

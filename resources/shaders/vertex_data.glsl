@@ -1,5 +1,7 @@
-layout (std430) readonly buffer ssbo_verticesDataBuffer { float verticesData[]; };
-layout (std430) readonly buffer ssbo_elementsDataBuffer { uint elementsData[]; };
+#include<descriptions.glsl>
+
+layout (std430) readonly buffer ssbo_verticesDataBuffer { VerticesDataDescription verticesData[]; };
+layout (std430) readonly buffer ssbo_elementsDataBuffer { ElementsDataDescription elementsData[]; };
 
 vec3 verticesDataVertexPosition(
 	in uint verticesDataOffset,

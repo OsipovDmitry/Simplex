@@ -22,6 +22,42 @@ struct QuatDescription
     static QuatDescription make(const glm::quat&);
 };
 
+struct RangeDescription
+{
+    glm::vec2 r;
+    uint32_t padding[2u];
+
+    static RangeDescription make(const utils::Range&);
+};
+
+struct PlaneDescription
+{
+    glm::vec4 p;
+
+    static PlaneDescription make(const utils::Plane&);
+};
+
+struct BoundingBoxDescription
+{
+    glm::vec4 minPoint;
+    glm::vec4 maxPoint;
+
+    // uint32_t padding[0u];
+
+    static BoundingBoxDescription make(const utils::BoundingBox&);
+};
+
+struct OrientedBoundingBoxDescription
+{
+    QuatDescription rotation;
+    glm::vec4 translation;
+    glm::vec4 halfSizes;
+
+    // uint32_t padding[0u];
+
+    static OrientedBoundingBoxDescription make(const utils::OrientedBoundingBox&);
+};
+
 struct TransformDescription
 {
     QuatDescription rotation;
@@ -42,33 +78,33 @@ struct ClipSpaceDescription
 
 struct CameraDescription
 {
-    glm::uvec4 clusterMaxSize;
+    glm::uvec4 clusterSize;
     TransformDescription viewTransform;
-    ClipSpaceDescription clipSpace;
-    glm::vec2 cullPlaneLimits;
-    glm::uvec2 ZRange; // uvec2 for atomic operations
     TransformDescription viewTransformInverted;
-    glm::vec4 viewPosition;
-    glm::vec4 viewXDirection;
-    glm::vec4 viewYDirection;
-    glm::vec4 viewZDirection;
+    ClipSpaceDescription clipSpace;
+    RangeDescription ZRange;
     glm::mat4x4 projectionMatrix;
     glm::mat4x4 projectionMatrixInverted;
     glm::mat4x4 viewProjectionMatrix;
     glm::mat4x4 viewProjectionMatrixInverted;
+    glm::vec4 viewPosition;
+    glm::vec4 viewXDirection;
+    glm::vec4 viewYDirection;
+    glm::vec4 viewZDirection;
+    glm::vec4 frustumPoints[8u];
+    glm::vec4 frustumFaceNormalLinesAndRanges0[5u];
+    glm::vec4 frustumFaceNormalLinesAndRanges1[5u];
+    PlaneDescription frustumPlanes[6u];
+    glm::vec4 frustumEdgeDirections[6u];
 
-    static CameraDescription make(
-        const glm::uvec3& clusterMaxSize,
-        const utils::Transform&,
-        const utils::ClipSpace&,
-        const utils::Range&);
+    // uint32_t padding[0u];
 };
 
 struct ClusterNodeDescription
 {
-    glm::vec4 boundingBoxMinPoint;
-    glm::vec4 boundingBoxMaxPoint;
-    uint32_t firstLightNodeID;
+    BoundingBoxDescription boundingBox;
+    uint32_t firstLightNodeID; // it's stored separately because of atomic access
+
     uint32_t padding[3u];
 };
 
@@ -79,27 +115,77 @@ struct LightNodeDescription
     uint32_t padding[2u];
 };
 
-struct SceneInfoDescription
+struct RenderInfoDescription
 {
+    // global
     uint32_t time;
+    float dielectricSpecular;
+
+    uint32_t globalPadding[2u];
+
+    // scene
+    OrientedBoundingBoxDescription globalBoundingBox;
     uint32_t drawDataCount;
     uint32_t skeletalAnimatedDataCount;
+    uint32_t shadowsCount;
     uint32_t lightsCount;
-    uint32_t skeletalAnimatedDataToUpdateCount;
-    uint32_t opaqueCommandsCount;
-    uint32_t transparentCommandsCount;
-    uint32_t lightNodesMaxCount;
-    uint32_t lightNodesCount;
-    uint32_t firstGlobalLightNodeID;
 
-    uint32_t padding[2u];
+    // uint32_t scenePadding[0u]; // graphics::TextureHandle is uvec2 (uint64_t)
 
-    static SceneInfoDescription make(
+    // shadow
+    static const size_t ShadowBlurKernelSize = 32u; // no affects the padding
+
+    graphics::TextureHandle shadowVarianceBluredTextureHandle;
+    graphics::TextureHandle shadowColorBluredTextureHandle;
+    float shadowBlurKernel[ShadowBlurKernelSize];
+    uint32_t shadowBlurRadius;
+    float shadowLightBleedingAmount;
+    uint32_t shadowAtlasSize;
+
+    uint32_t shadowPadding[1u]; // graphics::TextureHandle is uvec2 (uint64_t)
+
+    // camera
+    glm::uvec4 clusterSize;
+    TransformDescription viewTransform;
+    ClipSpaceDescription clipSpace;
+    RangeDescription cullPlaneLimits;
+
+    // uint32_t camerPaadding[0u];
+
+    static RenderInfoDescription make(
         uint32_t time,
+        float dielectricSpecular,
+        const utils::OrientedBoundingBox& globalBoundingBox,
         uint32_t drawDataCount,
         uint32_t skeletalAnimatedDataCount,
+        uint32_t shadowsCount,
         uint32_t lightsCount,
-        uint32_t lightNodesMaxCount);
+        graphics::TextureHandle shadowVarianceBluredTextureHandle,
+        graphics::TextureHandle shadowColorBluredTextureHandle,
+        const std::vector<float>& shadowBlurKernel,
+        float shadowLightBleedingAmount,
+        uint32_t shadowAtlasSize,
+        const glm::uvec3& clusterSize,
+        const utils::Transform& viewTransform,
+        const utils::ClipSpace& clipSpace,
+        const utils::Range& cullPlaneLimits);
+};
+
+struct CountersDescription
+{
+    glm::uvec2 ZRange; // uvec2 for atomic operations
+    uint32_t firstGlobalLightNodeID;
+    uint32_t lightNodesCount;
+    uint32_t skeletalAnimatedDataToUpdateCount;
+    uint32_t shadowsToUpdateCount;
+    uint32_t opaqueDrawDataRenderCommandsCount;
+    uint32_t transparentDrawDataRenderCommandsCount;
+    uint32_t shadowDataCount;
+    uint32_t opaqueShadowDataRenderCommandsCount;
+    uint32_t transparentShadowDataRenderCommandsCount;
+
+    // padding
+    uint32_t padding[1u];
 };
 
 struct GBufferDescription
@@ -111,6 +197,9 @@ struct GBufferDescription
     glm::uvec2 size;
     uint32_t OITNodesMaxCount;
     uint32_t OITNodesCount;
+
+    // padding
+    // uint32_t padding[0u];
 
     static GBufferDescription make(
         graphics::TextureHandle colorTextureHandle,
@@ -129,10 +218,14 @@ struct OITNodeDescription
     uint32_t padding[2u];
 };
 
+using VerticesDataDescription = float;
+using ElementsDataDescription = uint32_t;
+
 struct MeshDescription
 {
-    glm::vec4 boundingBoxMinPointAndVerticesDataSize;
-    glm::vec4 boundingBoxMaxPointAndElementsDataSize;
+    BoundingBoxDescription boundingBox;
+    uint32_t verticesDataSize;
+    uint32_t elementsDataSize;
     uint32_t verticesDataOffset;
     uint32_t elementsDataOffset; // draw arrays is used if 0xFFFFFFFFu
     uint32_t flags;
@@ -144,7 +237,7 @@ struct MeshDescription
     // 10..12 - color components count [0 - no colors, 1 - grayscale, 2 - grayscale,alpha, 3 - RGB, 4 - RGBA, 5..7 - not used]
     // 13..31 - free (19 bits)
 
-    uint32_t padding[1u];
+    uint32_t padding[3u];
 
     static MeshDescription makeEmpty();
     static MeshDescription make(
@@ -159,16 +252,14 @@ struct MeshDescription
         uint32_t numBones,
         bool hasTangent,
         uint32_t numColorComponents);
-    static uint32_t verticesDataSize(const MeshDescription&);
-    static uint32_t elementsDataSize(const MeshDescription&);
 };
 
-struct MaterialMapDescription
+struct MapDescription
 {
     graphics::TextureHandle textureHandle;
 
-    static MaterialMapDescription makeEmpty();
-    static MaterialMapDescription make(graphics::TextureHandle);
+    static MapDescription makeEmpty();
+    static MapDescription make(graphics::TextureHandle);
 };
 
 struct MaterialDescription
@@ -256,18 +347,111 @@ struct BackgroundDescription
         uint32_t environmentMapID);
 };
 
+struct ShadowTransformsDataDescription
+{
+    TransformDescription viewTransform;
+    RangeDescription ZRange;
+    glm::mat4x4 projectionMatrix;
+    glm::uvec4 mapCoordsAndPackerItemID;
+    glm::vec4 frustumPoints[8u];
+    glm::vec4 frustumFaceNormalLinesAndRanges0[5u];
+    glm::vec4 frustumFaceNormalLinesAndRanges1[5u];
+    PlaneDescription frustumPlanes[6u];
+    glm::vec4 frustumEdgeDirections[6u];
+
+    // uint32_t padding[0u];
+
+    static ShadowTransformsDataDescription make(
+        const utils::Transform&,
+        const utils::Range&,
+        const glm::mat4x4&,
+        const glm::uvec3&,
+        uint32_t);
+    static ShadowTransformsDataDescription make(const glm::uvec3&, uint32_t);
+
+    static glm::uvec3 mapCoords(const ShadowTransformsDataDescription&);
+    static uint32_t packerItemID(const ShadowTransformsDataDescription&);
+};
+
+struct ShadowDescription
+{
+    RangeDescription cullPlaneLimits;
+    uint32_t mapSize;
+    uint32_t transformsDataOffset;
+    uint32_t flags;
+    //  0.. 2 - layers count
+    //  3..31 - free (29 bits)
+
+    uint32_t padding[1u];
+
+    static ShadowDescription makeEmpty();
+    static ShadowDescription make(
+        uint32_t mapSize,
+        const utils::Range& cullPlaneLimits,
+        uint32_t layersCount,
+        uint32_t transformsDataOffset);
+
+    static uint32_t layersCount(const ShadowDescription&);
+};
+
 struct LightDescription
 {
     TransformDescription transform;
-    glm::vec4 flags0;
-    glm::vec4 flags1;
+    glm::vec4 params0;
+    glm::vec4 params1;
+    uint32_t shadowID;
+    uint32_t flags;
+    //  0.. 0 - is enabled
+    //  1..31 - free (31 bits)
+
+    uint32_t padding[2u];
 
     static LightDescription makeEmpty();
-    static LightDescription makePoint(const utils::Transform&, const glm::vec3&, const glm::vec2&);
-    static LightDescription makeSpot(const utils::Transform&, const glm::vec3&, const glm::vec2&, const glm::vec2&);
-    static LightDescription makeDirectional(const utils::Transform&, const glm::vec3&);
-    static LightDescription makeImageBased(const utils::Transform&, uint32_t, uint32_t, uint32_t, float);
+    static LightDescription makePoint(
+        const utils::Transform& transform,
+        bool isEnabled,
+        const glm::vec3& color,
+        const glm::vec2& radiuses,
+        uint32_t shadowID);
+    static LightDescription makeSpot(
+        const utils::Transform& transform,
+        bool isEnabled,
+        const glm::vec3& color,
+        const glm::vec2& radiuses,
+        const glm::vec2& halfAngles,
+        uint32_t shadowID);
+    static LightDescription makeDirectional(
+        const utils::Transform& transform,
+        bool isEnabled,
+        const glm::vec3& color,
+        uint32_t shadowID);
+    static LightDescription makeImageBased(
+        const utils::Transform& transform,
+        bool isEnabled,
+        uint32_t BRDFLutMapID,
+        uint32_t diffuseMapID,
+        uint32_t specularMapID,
+        float contribution);
+    static LightDescription makeAmbient(bool isEnabled, const glm::vec3& color);
 };
+
+struct ShadowToUpdateDescription
+{
+    uint32_t shadowID;
+
+    uint32_t padding[3u];
+};
+
+struct ShadowDataDescription
+{
+    uint32_t drawDataID;
+    uint32_t shadowID;
+    uint32_t layerIDs[6u];
+
+    // uint32_t padding[0u];
+};
+
+using SkeletonsDataDescription = float;
 
 struct SkeletonDescription
 {
@@ -280,12 +464,29 @@ struct SkeletonDescription
     static SkeletonDescription make(uint32_t dataOffset, uint32_t dataSize);
 };
 
+struct ShadowMapsDescription
+{
+    graphics::TextureHandle shadowDepthTextureHandle;
+    graphics::TextureHandle shadowVarianceTextureHandle;
+    graphics::TextureHandle shadowColorTextureHandle;
+
+    uint32_t padding[2u]; // graphics::TextureHandle is uvec2 (uint64_t)
+
+    static ShadowMapsDescription makeEmpty();
+    static ShadowMapsDescription make(
+        graphics::TextureHandle shadowDepthTextureHandle,
+        graphics::TextureHandle shadowVarianceTextureHandle,
+        graphics::TextureHandle shadowColorTextureHandle);
+};
+
+using BonesTransformsDataDescription = TransformDescription;
+
 struct SkeletalAnimatedDataDescription
 {
     uint32_t skeletonID;
     uint32_t currentAnimationID;
-    uint32_t bonesTransfromsDataOffset;
-    uint32_t bonesTransfromsDataSize;
+    uint32_t bonesTransformsDataOffset;
+    uint32_t bonesTransformsDataSize;
     uint32_t lastUpdateTime;
 
     uint32_t padding[3u];
@@ -294,8 +495,8 @@ struct SkeletalAnimatedDataDescription
     static SkeletalAnimatedDataDescription make(
         uint32_t skeletonID,
         uint32_t currentAnimationID,
-        uint32_t bonesTransfromsDataOffset,
-        uint32_t bonesTransfromsDataSize,
+        uint32_t bonesTransformsDataOffset,
+        uint32_t bonesTransformsDataSize,
         uint32_t lastUpdateTime);
 };
 

@@ -1,12 +1,8 @@
-#include <utils/logger.h>
-
-#include <core/scene.h>
-#include <core/imagebasedllightnode.h>
-#include <core/settings.h>
+#include <core/imagebasedlightnode.h>
 #include <core/material.h>
+#include <core/settings.h>
 
-#include "graphicsengineprivate.h"
-#include "imagebasedllightnodeprivate.h"
+#include "imagebasedlightnodeprivate.h"
 #include "resources.h"
 
 namespace simplex
@@ -14,15 +10,13 @@ namespace simplex
 namespace core
 {
 
-ImageBasedLightNode::ImageBasedLightNode(const std::string &name)
+ImageBasedLightNode::ImageBasedLightNode(const std::string& name)
     : LightNode(std::make_unique<ImageBasedLightNodePrivate>(*this, name))
 {
     setBRDFLutMap(std::make_shared<MaterialMap>(resources::DefaultIBLBRDFLutMapPath));
     setDiffuseMap(std::make_shared<MaterialMap>(resources::DefaultIBLDiffuseMapPath));
     setSpecularMap(std::make_shared<MaterialMap>(resources::DefaultIBLSpecularMapPath));
     setContribution(settings::Settings::instance().graphics().ibl().contribution());
-
-    shadow().setMode(ShadingMode::Disabled);
 }
 
 ImageBasedLightNode::~ImageBasedLightNode() = default;
@@ -53,7 +47,7 @@ void ImageBasedLightNode::setBRDFLutMap(const std::shared_ptr<MaterialMap>& valu
     auto& mPrivate = m();
 
     mPrivate.BRDFLutMap() = value;
-    mPrivate.changeInSceneData();
+    mPrivate.onChanged();
 }
 
 std::shared_ptr<MaterialMap> ImageBasedLightNode::diffuseMap()
@@ -71,7 +65,7 @@ void ImageBasedLightNode::setDiffuseMap(const std::shared_ptr<MaterialMap>& valu
     auto& mPrivate = m();
 
     mPrivate.diffuseMap() = value;
-    mPrivate.changeInSceneData();
+    mPrivate.onChanged();
 }
 
 std::shared_ptr<MaterialMap> ImageBasedLightNode::specularMap()
@@ -89,7 +83,7 @@ void ImageBasedLightNode::setSpecularMap(const std::shared_ptr<MaterialMap>& val
     auto& mPrivate = m();
 
     mPrivate.specularMap() = value;
-    mPrivate.changeInSceneData();
+    mPrivate.onChanged();
 }
 
 float ImageBasedLightNode::contribution() const
@@ -102,8 +96,8 @@ void ImageBasedLightNode::setContribution(float value)
     auto& mPrivate = m();
 
     mPrivate.contribution() = value;
-    mPrivate.changeInSceneData();
+    mPrivate.onChanged();
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

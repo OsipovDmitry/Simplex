@@ -1,143 +1,241 @@
 #include<bounding_box.glsl>
-#include<cone.glsl>
 #include<constants.glsl>
 #include<frustum.glsl>
+#include<line.glsl>
+#include<oriented_bounding_box.glsl>
+#include<plane.glsl>
+#include<pyramid.glsl>
+#include<range.glsl>
 #include<sphere.glsl>
 
-int boundingBoxClassifyPoint(in BoundingBox bb, in vec3 p)
+bool rangeVsRange(in Range r0, in Range r1)
 {
-	if (any(lessThan(p, bb.points[0u])) || any(greaterThan(p, bb.points[1u])))
-		return OUTSIDE;
-		
-	return INSIDE;
+	return !isRangeEmpty(rangeIntersect(r0, r1));
 }
 
-//int boundingBoxClassifySphere(in BoundingBox bb, in Sphere s)
-//{
-//	const vec3 c = sphereCenter(s);
-//	const float r = sphereRadius(s);
-//	
-//	const vec3 cp = boundingBoxClosestPoint(bb, c) - c;
-//	if (dot(cp, cp) > r * r)
-//		return OUTSIDE;
-//		
-//	const vec3 r3 = vec3(r);
-//	if (all(greaterThan(c - bb.points[0u]), r3) && all(greaterThan(bb.points[1u] - c), r3)))
-//		return INSIDE;
-//	
-//	return INTERSECT;
-//}
-
-int planeClassifyLineSegment(in Plane p, in LineSegment ls)
+bool orientedBoundingBoxVsFrustumSuperFast(
+	in OrientedBoundingBox obb,
+	in Line fFaceNormalLines[FRUSTUM_FACE_NORMAL_LINES_COUNT],
+	in Range fRanges[FRUSTUM_FACE_NORMAL_LINES_COUNT])
 {
-	const vec2 dists = vec2(distanceToPlane(p, ls.startPoint), distanceToPlane(p, ls.endPoint));
+	if (isOrientedBoundingBoxEmpty(obb))
+		return false;
 	
-	if (all(greaterThan(dists, vec2(0.0f))))
-		return IN_FRONT;
-	else if (all(lessThan(dists, vec2(0.0f))))
-		return IN_BACK;
-	else
-		return INTERSECT;
-}
-
-int planeClassifyBoundingBox(in Plane p, in BoundingBox bb)
-{
-	const vec2 dists = boundingBoxProjectOnLine(bb, makeLine(planeAnyPoint(p), planeNormal(p)));
-	
-	if (all(greaterThan(dists, vec2(0.0f))))
-		return IN_FRONT;
-	else if (all(lessThan(dists, vec2(0.0f))))
-		return IN_BACK;
-	else
-		return INTERSECT;
-}
-
-int sphereClassifyBoundingBox(in Sphere s, in BoundingBox bb)
-{	
-	const vec3 c = sphereCenter(s);
-	const float r = sphereRadius(s);
-	
-	const vec3 cp = boundingBoxClosestPoint(bb, c) - c;
-	if (dot(cp, cp) > r * r)
-		return OUTSIDE;
-	
-	for (uint i = 0u; i < BOUNDING_BOX_POINTS_COUNT; ++i)
-		if (distance(c, boundingBoxPoint(bb, i)) > r)
-			return INTERSECT;
-	
-	return INSIDE;
-}
-
-int sphereClassifyFrustum(in Sphere s, in Frustum f)
-{
-	const vec3 c = sphereCenter(s);
-	const float r = sphereRadius(s);
-	
-	const vec3 cp = frustumClosestPoint(f, c) - c;
-	if (dot(cp, cp) > r * r)
-		return OUTSIDE;
-	
-	for (uint i = 0u; i < FRUSTUM_POINTS_COUNT; ++i)
-		if (distance(c, f.cachedPoints[i]) > r)
-			return INTERSECT;
-	
-	return INSIDE;
-}
-
-int coneClassifyBoundingBox(in Cone c, in BoundingBox bb)
-{	
-	return INTERSECT;
-}
-
-int coneClassifyFrustum(in Cone c, in Frustum f)
-{
-	return INTERSECT;
-}
-
-int frustumClassifyPoint(in Frustum f, in vec3 p)
-{
-	int result = 1;
-	for (uint i = 0u; (result != -1) && (i < FRUSTUM_PLANES_COUNT); ++i)
-		if (distanceToPlane(f.cachedPlanes[i], p) < 0.0f)
-			result = -1;
-	return result;
-}
-
-int frustumClassifyBoundingBox(in Frustum f, in BoundingBox bb)
-{
-	if (isBoundingBoxEmpty(bb))
-		return OUTSIDE;
-		
-	bool inside = true;
-	for (uint i = 0u; i < FRUSTUM_PLANES_COUNT; ++i)
+	for (uint i = 0u; i < FRUSTUM_FACE_NORMAL_LINES_COUNT; ++i)
 	{
-		int c = planeClassifyBoundingBox(f.cachedPlanes[i], bb);
-		if (c == IN_BACK)
-			return OUTSIDE;
-		else if (c != IN_FRONT)
-			inside = false;
+		const Range obbRange = orientedBoundingBoxProjectOnLine(obb, fFaceNormalLines[i]);
+		
+		if (!rangeVsRange(fRanges[i], obbRange))
+			return false;
 	}
 	
-	if (inside)
-		return INSIDE;
+	return true;
+}
+
+bool orientedBoundingBoxVsFrustumFast(
+	in OrientedBoundingBox obb,
+	in Line fFaceNormalLines[FRUSTUM_FACE_NORMAL_LINES_COUNT],
+	in Range fRanges[FRUSTUM_FACE_NORMAL_LINES_COUNT],
+	in vec3 fPoints[FRUSTUM_POINTS_COUNT])
+{
+	if (!orientedBoundingBoxVsFrustumSuperFast(obb, fFaceNormalLines, fRanges))
+		return false;
 	
-	for (uint k = 0u; k < 3u; ++k)
+	Line obbFaceNormalLines[BOUNDING_BOX_FACE_NORMAL_LINES_COUNT];
+	Range obbRanges[BOUNDING_BOX_FACE_NORMAL_LINES_COUNT];
+	orientedBoundingBoxCalculateFaceNormalLinesAndRanges(obb, obbFaceNormalLines, obbRanges);
+	
+	for (uint i = 0u; i < BOUNDING_BOX_FACE_NORMAL_LINES_COUNT; ++i)
 	{
-		bool outside = true;
-		for (uint i = 0u; outside && (i < FRUSTUM_POINTS_COUNT); ++i)
-			if (f.cachedPoints[i][k] >= bb.points[0u][k])
-				outside = false;
-		if (outside)
-			return OUTSIDE;
+		const Range fRange = frustumProjectOnLine(fPoints, obbFaceNormalLines[i]);
+		
+		if (!rangeVsRange(fRange, obbRanges[i]))
+			return false;
+	}
+	
+	return true;
+}
+
+bool orientedBoundingBoxVsFrustum(
+	in OrientedBoundingBox obb,
+	in Line fFaceNormalLines[FRUSTUM_FACE_NORMAL_LINES_COUNT],
+	in Range fRanges[FRUSTUM_FACE_NORMAL_LINES_COUNT],
+	in vec3 fPoints[FRUSTUM_POINTS_COUNT],
+	in vec3 fEdgeDirections[FRUSTUM_EDGE_DIRECTIONS_COUNT])
+{
+	if (!orientedBoundingBoxVsFrustumFast(obb, fFaceNormalLines, fRanges, fPoints))
+		return false;
+	
+	const vec3 obbEdgeDirections[BOUNDING_BOX_EDGE_DIRECTIONS_COUNT] = orientedBoundingBoxCalculateEdgeDirections(obb);
+	
+	for (uint i = 0u; i < FRUSTUM_EDGE_DIRECTIONS_COUNT; ++i)
+	{
+		for (uint j = 0u; j < BOUNDING_BOX_EDGE_DIRECTIONS_COUNT; ++j)
+		{
+			const vec3 dir = cross(fEdgeDirections[i], obbEdgeDirections[j]);
+			if (length(dir) < EPS)
+				continue;
 			
-		outside = true;
-		for (uint i = 0u; outside && (i < FRUSTUM_POINTS_COUNT); ++i)
-			if (f.cachedPoints[i][k] <= bb.points[1u][k])
-				outside = false;
-		if (outside)
-			return OUTSIDE;
+			const Line l = makeLine(vec3(0.0f), dir);
+			
+			const Range fRange = frustumProjectOnLine(fPoints, l);
+			const Range obbRange = orientedBoundingBoxProjectOnLine(obb, l);
+			
+			if (!rangeVsRange(fRange, obbRange))
+				return false;
+		}
 	}
 	
-	return INTERSECT;
+	return true;
 }
 
+bool sphereVsFrustum(in Sphere s, in mat4x4 projectionMatrixInverted)
+{
+	const vec3 c = sphereCenter(s);
+	return distance(frustumClosestPoint(projectionMatrixInverted, c), c) <= sphereRadius(s);
+}
+
+bool sphereVsBoundingBox(in Sphere s, in BoundingBox bb)
+{	
+	const vec3 c = sphereCenter(s);
+	return distance(boundingBoxClosestPoint(bb, c), c) <= sphereRadius(s);
+}
+
+bool pyramidVsFrustumSuperFast(
+	in Pyramid p,
+	in Line fFaceNormalLines[FRUSTUM_FACE_NORMAL_LINES_COUNT],
+	in Range fRanges[FRUSTUM_FACE_NORMAL_LINES_COUNT])
+{		
+	for (uint i = 0u; i < FRUSTUM_FACE_NORMAL_LINES_COUNT; ++i)
+	{
+		const Range pRange = pyramidProjectOnLine(p, fFaceNormalLines[i]);
+		
+		if (!rangeVsRange(fRanges[i], pRange))
+			return false;
+	}
+	
+	return true;
+}
+
+bool pyramidVsFrustumFast(
+	in Pyramid p,
+	in Line fFaceNormalLines[FRUSTUM_FACE_NORMAL_LINES_COUNT],
+	in Range fRanges[FRUSTUM_FACE_NORMAL_LINES_COUNT],
+	in vec3 fPoints[FRUSTUM_POINTS_COUNT])
+{
+	if (!pyramidVsFrustumSuperFast(p, fFaceNormalLines, fRanges))
+		return false;
+	
+	Line pFaceNormalLines[PYRAMID_FACE_NORMAL_LINES_COUNT];
+	Range pRanges[PYRAMID_FACE_NORMAL_LINES_COUNT];
+	pyramidCalculateFaceNormalLinesAndRanges(p, pFaceNormalLines, pRanges);
+	
+	for (uint i = 0u; i < PYRAMID_FACE_NORMAL_LINES_COUNT; ++i)
+	{
+		const Range fRange = frustumProjectOnLine(fPoints, pFaceNormalLines[i]);
+		
+		if (!rangeVsRange(fRange, pRanges[i]))
+			return false;
+	}
+	
+	return true;
+}
+
+bool pyramidVsFrustum(
+	in Pyramid p,
+	in Line fFaceNormalLines[FRUSTUM_FACE_NORMAL_LINES_COUNT],
+	in Range fRanges[FRUSTUM_FACE_NORMAL_LINES_COUNT],
+	in vec3 fPoints[FRUSTUM_POINTS_COUNT],
+	in vec3 fEdgeDirections[FRUSTUM_EDGE_DIRECTIONS_COUNT])
+{
+	if (!pyramidVsFrustumFast(p, fFaceNormalLines, fRanges, fPoints))
+		return false;
+	
+	const vec3 pEdgeDirections[PYRAMID_EDGE_DIRECTIONS_COUNT] = pyramidCalculateEdgeDirections(p);
+	
+	for (uint i = 0u; i < FRUSTUM_EDGE_DIRECTIONS_COUNT; ++i)
+	{
+		for (uint j = 0u; j < PYRAMID_EDGE_DIRECTIONS_COUNT; ++j)
+		{
+			const vec3 dir = cross(fEdgeDirections[i], pEdgeDirections[j]);
+			if (length(dir) < EPS)
+				continue;
+			
+			const Line l = makeLine(vec3(0.0f), dir);
+			
+			const Range fRange = frustumProjectOnLine(fPoints, l);
+			const Range pRange = pyramidProjectOnLine(p, l);
+			
+			if (!rangeVsRange(fRange, pRange))
+				return false;
+		}
+	}
+	
+	return true;
+}
+
+bool pyramidVsBoundingBoxSuperFast(in Pyramid p, in BoundingBox bb)
+{	
+	Line bbFaceNormalLines[BOUNDING_BOX_FACE_NORMAL_LINES_COUNT];
+	Range bbRanges[BOUNDING_BOX_FACE_NORMAL_LINES_COUNT];
+	boundingBoxCalculateFaceNormalLinesAndRanges(bb, bbFaceNormalLines, bbRanges);
+	
+	for (uint i = 0u; i < BOUNDING_BOX_FACE_NORMAL_LINES_COUNT; ++i)
+	{
+		const Range pRange = pyramidProjectOnLine(p, bbFaceNormalLines[i]);
+		
+		if (!rangeVsRange(bbRanges[i], pRange))
+			return false;
+	}
+	
+	return true;
+}
+
+bool pyramidVsBoundingBoxFast(in Pyramid p, in BoundingBox bb)
+{	
+	if (!pyramidVsBoundingBoxSuperFast(p, bb))
+		return false;
+	
+	Line pFaceNormalLines[PYRAMID_FACE_NORMAL_LINES_COUNT];
+	Range pRanges[PYRAMID_FACE_NORMAL_LINES_COUNT];
+	pyramidCalculateFaceNormalLinesAndRanges(p, pFaceNormalLines, pRanges);
+	
+	for (uint i = 0u; i < PYRAMID_FACE_NORMAL_LINES_COUNT; ++i)
+	{
+		const Range bbRange = boundingBoxProjectOnLine(bb, pFaceNormalLines[i]);
+		
+		if (!rangeVsRange(pRanges[i], bbRange))
+			return false;
+	}
+	
+	return true;
+}
+
+bool pyramidVsBoundingBox(in Pyramid p, in BoundingBox bb)
+{	
+	if (!pyramidVsBoundingBoxFast(p, bb))
+		return false;
+	
+	const vec3 pEdgeDirections[PYRAMID_EDGE_DIRECTIONS_COUNT] = pyramidCalculateEdgeDirections(p);
+	const vec3 bbEdgeDirections[BOUNDING_BOX_EDGE_DIRECTIONS_COUNT] = boundingBoxCalculateEdgeDirections();
+	
+	for (uint i = 0u; i < PYRAMID_EDGE_DIRECTIONS_COUNT; ++i)
+	{
+		for (uint j = 0u; j < BOUNDING_BOX_EDGE_DIRECTIONS_COUNT; ++j)
+		{
+			const vec3 dir = cross(pEdgeDirections[i], bbEdgeDirections[j]);
+			if (length(dir) < EPS)
+				continue;
+			
+			const Line l = makeLine(vec3(0.0f), dir);
+			
+			const Range pRange = pyramidProjectOnLine(p, l);
+			const Range bbRange = boundingBoxProjectOnLine(bb, l);
+			
+			if (!rangeVsRange(pRange, bbRange))
+				return false;
+		}
+	}
+	
+	return true;
+}

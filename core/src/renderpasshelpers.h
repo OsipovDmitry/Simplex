@@ -36,11 +36,28 @@ private:
     RunMethod m_runMethod;
 };
 
-class FrustumCullingPass : public RenderPass
+class InitializeCameraPass : public RenderPass
 {
 public:
-    FrustumCullingPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~FrustumCullingPass() override;
+    InitializeCameraPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~InitializeCameraPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+};
+
+class CullDrawDataPass : public RenderPass
+{
+public:
+    CullDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~CullDrawDataPass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,
@@ -70,11 +87,28 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
-class UpdateCameraInfoPass : public RenderPass
+class UpdateCameraPass : public RenderPass
 {
 public:
-    UpdateCameraInfoPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~UpdateCameraInfoPass() override;
+    UpdateCameraPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~UpdateCameraPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+};
+
+class PrepareBonesTransformsDataCalculateCommandPass : public RenderPass
+{
+public:
+    PrepareBonesTransformsDataCalculateCommandPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~PrepareBonesTransformsDataCalculateCommandPass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,
@@ -104,11 +138,11 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
-class RenderDrawDataGeometryPass : public RenderPass
+class RenderDrawDataPass : public RenderPass
 {
 public:
-    RenderDrawDataGeometryPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~RenderDrawDataGeometryPass() override;
+    RenderDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~RenderDrawDataPass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,
@@ -156,6 +190,97 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
+class PrepareShadowDataCullCommnadPass : public RenderPass
+{
+public:
+    PrepareShadowDataCullCommnadPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~PrepareShadowDataCullCommnadPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+};
+
+class PrepareShadowMapBlurCommandsPass : public RenderPass
+{
+public:
+    PrepareShadowMapBlurCommandsPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~PrepareShadowMapBlurCommandsPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+};
+
+class CullShadowDataPass : public RenderPass
+{
+public:
+    CullShadowDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~CullShadowDataPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+    graphics::PBufferRange m_opaqueBlackShadowDataRenderCommandsBuffer;
+    graphics::PBufferRange m_transparentBlackShadowDataRenderCommandsBuffer;
+    graphics::PBufferRange m_opaqueColorShadowDataRenderCommandsBuffer;
+    graphics::PBufferRange m_transparentColorShadowDataRenderCommandsBuffer;
+};
+
+class RenderShadowDataPass : public RenderPass
+{
+public:
+    RenderShadowDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~RenderShadowDataPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IRenderProgram> m_opaqueProgram;
+    std::shared_ptr<graphics::IRenderProgram> m_transparentProgram;
+};
+
+class BlurShadowMapPass : public RenderPass
+{
+public:
+    BlurShadowMapPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~BlurShadowMapPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IRenderProgram> m_horizontalProgram;
+    std::shared_ptr<graphics::IRenderProgram> m_verticalProgram;
+};
+
 class RenderBackgroundPass : public RenderPass
 {
 public:
@@ -188,10 +313,23 @@ public:
 
 private:
     std::shared_ptr<graphics::IRenderProgram> m_program;
+};
 
-    SceneInfoBuffer m_sceneInfoBuffer;
-    ClusterNodesBuffer m_clusterNodesBuffer;
-    CameraBuffer m_cameraBuffer;
+class FinalPass : public RenderPass
+{
+public:
+    FinalPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~FinalPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IRenderProgram> m_program;
 };
 
 } // namespace core

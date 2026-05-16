@@ -56,13 +56,13 @@ public:
     ~Material();
 
     bool isLighted() const;
-    void setIsLighted(bool);
+    void setLighted(bool);
 
     bool isShadowed() const;
-    void setIsShadowed(bool);
+    void setShadowed(bool);
 
     bool isShadowCasted() const;
-    void setIsShadowCasted(bool);
+    void setShadowCasted(bool);
 
     bool isDoubleSided() const;
     void setDoubleSided(bool);

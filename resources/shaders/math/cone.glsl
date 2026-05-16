@@ -72,6 +72,6 @@ Cone transformCone(in Transform t, in Cone c)
 	return makeCone(
 		transformPoint(t, c.origin),
 		transformVector(t, c.direction),
-		transformDistance(t, c.height),
+		transformSize(t, c.height),
 		c.halfAngle);
 }

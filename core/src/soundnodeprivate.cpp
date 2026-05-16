@@ -1,16 +1,16 @@
+#include "soundnodeprivate.h"
+
 #include <utils/logger.h>
 
 #include <core/audiorendererbase.h>
 #include <core/soundnode.h>
-
-#include "soundnodeprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-SoundNodePrivate::SoundNodePrivate(SoundNode &soundNode, const std::string &name)
+SoundNodePrivate::SoundNodePrivate(SoundNode& soundNode, const std::string& name)
     : NodePrivate(soundNode, name)
     , m_state(SoundState::Stop)
 {
@@ -18,24 +18,23 @@ SoundNodePrivate::SoundNodePrivate(SoundNode &soundNode, const std::string &name
 
 SoundNodePrivate::~SoundNodePrivate() = default;
 
-void SoundNodePrivate::doDetachFromScene(const std::shared_ptr<Scene>&)
+void SoundNodePrivate::onDetachFromScene(const std::shared_ptr<Scene>&)
 {
     auto audioRenderer = audio::RendererBase::current();
-    if (!audioRenderer)
-        LOG_CRITICAL << "Audio renderer can't be nullptr";
+    if (!audioRenderer) LOG_CRITICAL << "Audio renderer can't be nullptr";
 
     audioRenderer->pauseSource(m_source);
 }
 
-std::shared_ptr<audio::ISource> &SoundNodePrivate::source()
+std::shared_ptr<audio::ISource>& SoundNodePrivate::source()
 {
     return m_source;
 }
 
-SoundState &SoundNodePrivate::state()
+SoundState& SoundNodePrivate::state()
 {
     return m_state;
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

@@ -1,5 +1,5 @@
-#ifndef CORE_IBLLIGHTNODE_H
-#define CORE_IBLLIGHTNODE_H
+#ifndef CORE_IMAGEBASEDLIGHTNODE_H
+#define CORE_IMAGEBASEDLIGHTNODE_H
 
 #include <core/lightnode.h>
 
@@ -38,4 +38,4 @@ public:
 } // namespace core
 } // namespace simplex
 
-#endif // CORE_IBLLIGHTNODE_H
+#endif // CORE_IMAGEBASEDLIGHTNODE_H

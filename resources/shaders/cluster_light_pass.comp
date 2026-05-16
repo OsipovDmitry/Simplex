@@ -1,95 +1,313 @@
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
-#include<math/classifications.glsl>
 #include<camera.glsl>
 #include<cluster_node.glsl>
-#include<light_node.glsl>
+#include<counters.glsl>
 #include<light.glsl>
-#include<scene_info.glsl>
+#include<light_node.glsl>
+#include<shadow.glsl>
+#include<shadow_to_update.glsl>
+#include<shadow_transforms_data.glsl>
+#include<render_info.glsl>
+
+#include<math/classifications.glsl>
+#include<math/clip_space.glsl>
+#include<math/constants.glsl>
+#include<math/line.glsl>
+#include<math/oriented_bounding_box.glsl>
+#include<math/pyramid.glsl>
+#include<math/range.glsl>
+#include<math/sphere.glsl>
+#include<math/transform.glsl>
+#include<math/utils.glsl>
+
+#define SUPER_FAST_SPOT_LIGHT_CULLING_ALGORITHM 0
+#define FAST_SPOT_LIGHT_CULLING_ALGORITHM 1
+#define CORRECT_SPOT_LIGHT_CULLING_ALGORITHM 2
+
+#ifndef SPOT_LIGHT_CULLING_ALGORITHM
+	#define SPOT_LIGHT_CULLING_ALGORITHM SUPER_FAST_SPOT_LIGHT_CULLING_ALGORITHM
+#endif
 
 void addLightAsGlobal(in uint lightID)
 {
-	const uint lightNodeID = sceneInfoGenerateLightNodeID();
-	if (lightNodeID < sceneInfoLightNodesMaxCount())
-	{
-		uint nextLightNodeID = sceneInfoSetFirstGlobalLightNodeID(lightNodeID);
-		lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
-	}
+	const uint lightNodeID = countersGenerateLightNodeID();
+	const uint nextLightNodeID = countersSetFirstGlobalLightNodeID(lightNodeID);
+	lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
 }
 
-void addPointLight(in uint lightID, in Sphere s)
+void addPointLightToCluster(in uint lightID, in Sphere s)
 {
 	for (uint i = 0u; i < cameraClusterTotalSize(); ++i)
 	{
 		const BoundingBox bb = clusterNodeBoundingBox(i);
-		if (sphereClassifyBoundingBox(s, bb) != OUTSIDE)
+		const bool isCollided = sphereVsBoundingBox(s, bb);
+		
+		if (isCollided)
 		{
-			const uint lightNodeID = sceneInfoGenerateLightNodeID();
-			if (lightNodeID < sceneInfoLightNodesMaxCount())
-			{
-				uint nextLightNodeID = clusterNodeSetFirstLightNodeID(i, lightNodeID);
-				lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
-			}
+			const uint lightNodeID = countersGenerateLightNodeID();
+			const uint nextLightNodeID = clusterNodeSetFirstLightNodeID(i, lightNodeID);
+			lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
 		}
 	}
 }
 
-void addSpotLight(in uint lightID, in Cone c)
+void addSpotLightToCluster(in uint lightID, in Pyramid p)
 {
 	for (uint i = 0u; i < cameraClusterTotalSize(); ++i)
 	{
 		const BoundingBox bb = clusterNodeBoundingBox(i);
-		if (coneClassifyBoundingBox(c, bb) != OUTSIDE)
+		
+		#if (SPOT_LIGHT_CULLING_ALGORITHM == SUPER_FAST_SPOT_LIGHT_CULLING_ALGORITHM)
+			const bool isCollided = pyramidVsBoundingBoxSuperFast(p, bb);
+		#elif (SPOT_LIGHT_CULLING_ALGORITHM == FAST_SPOT_LIGHT_CULLING_ALGORITHM)
+			const bool isCollided = pyramidVsBoundingBoxFast(p, bb);
+		#elif (SPOT_LIGHT_CULLING_ALGORITHM == CORRECT_SPOT_LIGHT_CULLING_ALGORITHM)
+			const bool isCollided = pyramidVsBoundingBox(p, bb);
+		#else
+			error!!!
+		#endif
+		
+		if (isCollided)
 		{
-			const uint lightNodeID = sceneInfoGenerateLightNodeID();
-			if (lightNodeID < sceneInfoLightNodesMaxCount())
+			const uint lightNodeID = countersGenerateLightNodeID();
+			const uint nextLightNodeID = clusterNodeSetFirstLightNodeID(i, lightNodeID);
+			lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
+		}
+	}
+}
+
+void addShadowToUpdate(in uint shadowID)
+{
+	const uint shadowToUpdateID = countersGenerateShadowToUpdateID();
+	shadowToUpdateSetShadowID(shadowToUpdateID, shadowID);
+}
+
+void addDirectionalShadow(
+	in uint shadowID,
+	in Transform lightViewTransform)
+{
+	if (shadowID != 0xFFFFFFFFu)
+	{
+		const OrientedBoundingBox globalBoundingBoxWS = renderInfoGlobalBoundingBox();
+		const OrientedBoundingBox globalBoundingBoxLVS = transformOrientedBoundingBox(lightViewTransform, globalBoundingBoxWS);
+		const Range globalBoundingBoxRangeLVS = orientedBoundingBoxProjectOnLine(
+			globalBoundingBoxLVS,
+			makeLine(vec3(0.0f), orth(2u)));
+		
+		const Transform translatedLightViewTransform = transformMult(
+			makeTransform(-orth(2u) * rangeEnd(globalBoundingBoxRangeLVS)),
+			lightViewTransform);
+			
+		const Transform camViewTransformInverted = cameraViewTransformInverted();
+		const ClipSpace camClipSpace = cameraClipSpace();
+		const Range camZRange = cameraZRange();
+		const float camZNear = rangeStart(camZRange);
+		const float camZFar = rangeEnd(camZRange);
+		
+		const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
+		const uint layersCount = shadowLayersCount(shadowID);
+		for (uint layerID = 0u; layerID < layersCount; ++layerID)
+		{
+			const Range camLayerZRange = makeRange(
+				mix(camZNear, camZFar, pow(float(layerID) / float(layersCount), 1.5f)),
+				mix(camZNear, camZFar, pow(float(layerID + 1u) / float(layersCount), 1.5f)));
+				
+			const mat4x4 camLayerProjectionMatrixInverted = inverse(clipSpaceProjectionMatrix(camClipSpace, camLayerZRange));
+			BoundingBox layerBoundingBoxLVS = makeEmptyBoundingBox();
+			
+			for (uint pointID = 0u; pointID < FRUSTUM_POINTS_COUNT; ++pointID)
 			{
-				uint nextLightNodeID = clusterNodeSetFirstLightNodeID(i, lightNodeID);
-				lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
+				const vec3 pointVS = frustumCalculatePoint(camLayerProjectionMatrixInverted, pointID);
+				const vec3 pointWS = transformPoint(camViewTransformInverted, pointVS);
+				const vec3 pointLVS = transformPoint(translatedLightViewTransform, pointWS);
+				layerBoundingBoxLVS = boundingBoxExpand(layerBoundingBoxLVS, pointLVS);
 			}
+			
+			const vec3 layerBoundingBoxMaxPointLVS = boundingBoxMaxPoint(layerBoundingBoxLVS);
+			const float layerExpandedBoundingBoxMaxPointZLVS = max(layerBoundingBoxMaxPointLVS[2u], 0.0f);
+				
+			const vec3 layerExpandedBoundingBoxMinPointLVS = boundingBoxMinPoint(layerBoundingBoxLVS);
+			const vec3 layerExpandedBoundingBoxMaxPointLVS = vec3(
+				layerBoundingBoxMaxPointLVS.xy,
+				layerExpandedBoundingBoxMaxPointZLVS);
+			
+			shadowTransformsDataInitialize(
+				transformsDataOffset,
+				layerID,
+				translatedLightViewTransform,
+				makeOrthoClipSpace(
+					layerExpandedBoundingBoxMinPointLVS[0u],
+					layerExpandedBoundingBoxMaxPointLVS[0u],
+					layerExpandedBoundingBoxMinPointLVS[1u],
+					layerExpandedBoundingBoxMaxPointLVS[1u]),
+				makeRange(
+					-layerExpandedBoundingBoxMaxPointLVS[2u],
+					-layerExpandedBoundingBoxMinPointLVS[2u]));
+		}
+		
+		addShadowToUpdate(shadowID);
+	}
+}
+
+void addPointShadow(
+	in uint shadowID,
+	in Transform lightViewTransform,
+	in float pointLightOuterRadius)
+{
+	if (shadowID != 0xFFFFFFFFu)
+	{
+		const Range ZRange = rangeIntersect(shadowCullPlaneLimits(shadowID), makeRange(0.0f, pointLightOuterRadius)); 
+		
+		if (!isRangeEmpty(ZRange))
+		{	
+			const Transform layeredLookAtTransforms[6u] = Transform[6u](
+				makeLookAtTransform(vec3(0.f), vec3( 1.f, 0.f, 0.f), vec3(0.f,-1.f, 0.f)),
+				makeLookAtTransform(vec3(0.f), vec3(-1.f, 0.f, 0.f), vec3(0.f,-1.f, 0.f)),
+				makeLookAtTransform(vec3(0.f), vec3( 0.f, 1.f, 0.f), vec3(0.f, 0.f, 1.f)),
+				makeLookAtTransform(vec3(0.f), vec3( 0.f,-1.f, 0.f), vec3(0.f, 0.f,-1.f)),
+				makeLookAtTransform(vec3(0.f), vec3( 0.f, 0.f, 1.f), vec3(0.f,-1.f, 0.f)),
+				makeLookAtTransform(vec3(0.f), vec3( 0.f, 0.f,-1.f), vec3(0.f,-1.f, 0.f)));
+			
+			const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
+			for (uint layerID = 0u; layerID < 6u; ++layerID)
+			{
+				shadowTransformsDataInitialize(
+					transformsDataOffset,
+					layerID,
+					transformMult(layeredLookAtTransforms[layerID], lightViewTransform),
+					makePerspectiveClipSpace(1.0f, QUARTER_PI),
+					ZRange);
+			}
+			
+			addShadowToUpdate(shadowID);
+		}
+	}
+}
+
+void addSpotShadow(
+	in uint shadowID,
+	in Transform lightViewTransform,
+	in float spotLightOuterRadius,
+	in float spotLightOuterHalfAngle)
+{
+	if (shadowID != 0xFFFFFFFFu)
+	{
+		const Range ZRange = rangeIntersect(shadowCullPlaneLimits(shadowID), makeRange(0.0f, spotLightOuterRadius)); 
+		
+		if (!isRangeEmpty(ZRange))
+		{
+			const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
+			shadowTransformsDataInitialize(
+				transformsDataOffset,
+				0u,
+				lightViewTransform,
+				makePerspectiveClipSpace(1.0f, spotLightOuterHalfAngle),
+				ZRange);
+			
+			addShadowToUpdate(shadowID);
 		}
 	}
 }
 
 void main(void)
 {
-	if (all(lessThan(gl_GlobalInvocationID, uvec3(sceneInfoLightsCount(), 1u, 1u))))
+	if (all(lessThan(gl_GlobalInvocationID, uvec3(renderInfoLightsCount(), 1u, 1u))))
 	{
 		const uint lightID = gl_GlobalInvocationID.x;
 	
-		const uint typeID = lightTypeID(lightID);
-		if ((typeID == DirectionalLightTypeID) || (typeID == ImageBasedLightTypeID))
+		if (lightIsEnabled(lightID))
 		{
-			addLightAsGlobal(lightID);
-		}
-		else
-		{
-			const Transform lightViewTransform = transformMult(cameraViewTransform(), lightTransform(lightID));
-			const Frustum frustum = makeFrustum(makeIdentityTransform(), cameraClipSpace(), cameraZRange());
-				
-			if (typeID == PointLightTypeID)
+			const uint typeID = lightTypeID(lightID);
+			
+			if (typeID == AmbientLightTypeID)
 			{
+				addLightAsGlobal(lightID);
+			}
+			else if (typeID == ImageBasedLightTypeID)
+			{
+				addLightAsGlobal(lightID);
+			}
+			else if (typeID == DirectionalLightTypeID)
+			{
+				const Transform lightModelTransform = lightTransform(lightID);
+				
+				addLightAsGlobal(lightID);
+				addDirectionalShadow(
+					lightShadowID(lightID),
+					transformInverted(lightModelTransform));
+			}
+			else if (typeID == PointLightTypeID)
+			{
+				const Transform lightModelTransform = lightTransform(lightID);
+				const float outerRadius = pointLightRadiuses(lightID)[1u];
 				const Sphere sphere = transformSphere(
-					lightViewTransform,
-					makeSphere(vec3(0.0f), pointLightRadiuses(lightID)[1u]));
+					transformMult(cameraViewTransform(), lightModelTransform),
+					makeSphere(vec3(0.0f), outerRadius));
+				
+				bool isSphereVisible = sphereVsFrustum(sphere, cameraProjectionMatrixInverted());
+				
+				if (isSphereVisible)
+				{
+					const vec3 fPoints[FRUSTUM_POINTS_COUNT] = cameraFrustumPoints();
 					
-				const int c = sphereClassifyFrustum(sphere, frustum);
-				if (c == INSIDE)
-					addLightAsGlobal(lightID);
-				else if (c == INTERSECT)
-					addPointLight(lightID, sphere);
+					if (sphereIsFrustumInside(sphere, fPoints))
+						addLightAsGlobal(lightID);
+					else
+						addPointLightToCluster(lightID, sphere);
+					
+					addPointShadow(
+						lightShadowID(lightID),
+						transformInverted(lightModelTransform),
+						outerRadius);
+				}
 			}
 			else if (typeID == SpotLightTypeID)
 			{
-				const Cone cone = transformCone(
-					lightViewTransform,
-					makeCone(vec3(0.0f), vec3(0.0f, 0.0f, -1.0f), spotLightRadiuses(lightID)[1u], spotLightHalfAngles(lightID)[1u]));
+				const Transform lightModelTransform = lightTransform(lightID);
+				const float outerRadius = spotLightRadiuses(lightID)[1u];
+				const float outerHalfAngle = spotLightHalfAngles(lightID)[1u];
+				const Pyramid pyramid = transformPyramid(
+					transformMult(cameraViewTransform(), lightModelTransform),
+					makePyramid(makeIdentityQuat(), vec3(0.0f), outerRadius, outerHalfAngle));
 					
-				const int c = coneClassifyFrustum(cone, frustum);
-				if (c == INSIDE)
-					addLightAsGlobal(lightID);
-				else if (c == INTERSECT)
-					addSpotLight(lightID, cone);
+				const vec3 fPoints[FRUSTUM_POINTS_COUNT] = cameraFrustumPoints();
+					
+				#if (SPOT_LIGHT_CULLING_ALGORITHM == SUPER_FAST_SPOT_LIGHT_CULLING_ALGORITHM)
+					bool isPyramidVisible = pyramidVsFrustumSuperFast(
+						pyramid,
+						cameraFrustumFaceNormalLines(),
+						cameraFrustumRanges());
+				#elif (SPOT_LIGHT_CULLING_ALGORITHM == FAST_SPOT_LIGHT_CULLING_ALGORITHM)
+					bool isPyramidVisible = pyramidVsFrustumFast(
+						pyramid,
+						cameraFrustumFaceNormalLines(),
+						cameraFrustumRanges(),
+						fPoints);
+				#elif (SPOT_LIGHT_CULLING_ALGORITHM == CORRECT_SPOT_LIGHT_CULLING_ALGORITHM)
+					bool isPyramidVisible = pyramidVsFrustum(
+						pyramid,
+						cameraFrustumFaceNormalLines(),
+						cameraFrustumRanges(),
+						fPoints,
+						cameraFrustumEdgeDirections());
+				#else
+					error!!!
+				#endif
+					
+				if (isPyramidVisible)
+				{
+					if (pyramidIsFrustumInside(pyramid, fPoints))
+						addLightAsGlobal(lightID);
+					else
+						addSpotLightToCluster(lightID, pyramid);
+					
+					addSpotShadow(
+						lightShadowID(lightID),
+						transformInverted(lightModelTransform),
+						outerRadius,
+						outerHalfAngle);
+				}
 			}
 		}
 	}

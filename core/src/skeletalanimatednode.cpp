@@ -28,9 +28,14 @@ std::shared_ptr<const SkeletalAnimatedNode> SkeletalAnimatedNode::asSkeletalAnim
     return const_cast<SkeletalAnimatedNode*>(this)->asSkeletalAnimatedNode();
 }
 
-const std::shared_ptr<Skeleton>& SkeletalAnimatedNode::skeleton() const
+std::shared_ptr<Skeleton> SkeletalAnimatedNode::skeleton()
 {
     return m().skeleton();
+}
+
+std::shared_ptr<const Skeleton> SkeletalAnimatedNode::skeleton() const
+{
+    return const_cast<SkeletalAnimatedNode*>(this)->skeleton();
 }
 
 const std::string& SkeletalAnimatedNode::currentAnimation() const

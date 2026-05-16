@@ -1,127 +1,69 @@
-#include<clip_space.glsl>
 #include<constants.glsl>
-#include<line_segment.glsl>
+#include<line.glsl>
 #include<plane.glsl>
 #include<range.glsl>
 #include<transform.glsl>
 
-struct Frustum
+vec3 frustumCalculatePoint(in mat4x4 projectionMatrixInverted, in uint ID)
 {
-	Transform viewTransform;
-	ClipSpace clipSpace;
-	vec2 ZRange;
-	
-	Transform cachedViewTransformInverted;
-	mat4x4 cachedProjectionMatrix;
-	mat4x4 cachedProjectionMatrixInverted;
-	mat4x4 cachedViewProjectionMatrix;
-	mat4x4 cachedViewProjectionMatrixInverted;
-	vec3 cachedPoints[FRUSTUM_POINTS_COUNT]; // in world space
-	Plane cachedPlanes[FRUSTUM_PLANES_COUNT]; // in world space
-};
+	const vec3 v = vec3(
+		float(bitfieldExtract(ID, 0, 1)),
+		float(bitfieldExtract(ID, 1, 1)),
+		float(bitfieldExtract(ID, 2, 1)));
+	return projectPoint(projectionMatrixInverted, 2.0f * v - vec3(1.0f));
+}
 
-Frustum makeFrustum(in Transform vt, in ClipSpace cs, in vec2 Z)
+Plane frustumCalculatePlane(in mat4x4 projectionMatrix, in uint ID)
 {
-	const Transform vtInv = transformInverted(vt);
-	const mat4x4 pm = clipSpaceProjectionMatrix(cs, Z);
-	const mat4x4 pmInv = inverse(pm);
-	const mat4x4 vpm = pm * transformMat4x4(vt);
-	const mat4x4 vpmInv = inverse(vpm);
+	const float sign = float(ID % 2) * 2.0f - 1.0f;
+	vec4 coefs;
+	for (uint j = 0; j < 4u; ++j)
+		coefs[j] = projectionMatrix[j][3u] - sign * projectionMatrix[j][ID/2];
+	return makePlane(coefs);
+}
+
+vec3 frustumCalculateSideEdgeAbsDirection(in mat4x4 projectionMatrixInverted)
+{
+	const vec3 p0 = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, -1.0f));
+	const vec3 p1 = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, +1.0f));
+	return normalize(p1 - p0);
+}
+
+Line frustumCalculateFaceNormalLine(in mat4x4 projectionMatrix, in uint ID)
+{
+	const float sign = float(ID % 2) * 2.0f - 1.0f;
 	
-	vec3[FRUSTUM_POINTS_COUNT] points;
+	vec4 coefs;
+	for (uint j = 0; j < 4u; ++j)
+		coefs[j] = projectionMatrix[j][3u] - sign * projectionMatrix[j][ID/2];
+		
+	const Plane p = makePlane(coefs);
+	
+	return makeLine(planeAnyPoint(p), planeNormal(p));
+}
+
+Range frustumProjectOnLine(in vec3 fPoints[FRUSTUM_POINTS_COUNT], in Line l)
+{
+	Range result = makeEmptyRange();
 	for (uint i = 0u; i < FRUSTUM_POINTS_COUNT; ++i)
+		result = rangeExpand(result, lineProjectOn(l, fPoints[i]));
+	return result;
+}
+
+bool frustumIsPointInside(in Plane fPlanes[FRUSTUM_PLANES_COUNT], in vec3 p)
+{
+	for (uint i = 0u; i < FRUSTUM_PLANES_COUNT; ++i)
 	{
-		const vec3 v = vec3(
-			float(bitfieldExtract(i, 0, 1)),
-			float(bitfieldExtract(i, 1, 1)),
-			float(bitfieldExtract(i, 2, 1)));
-		points[i] = projectPoint(vpmInv, 2.0f * v - vec3(1.0f));
+		if (distanceToPlane(fPlanes[i], p) < 0.0f)
+			return false;
 	}
 	
-	Plane[FRUSTUM_PLANES_COUNT] planes;
-	for (uint i = 0u; i < FRUSTUM_PLANES_COUNT; ++i)
-    {
-        const float sign = float(i % 2) * 2.0f - 1.0f;
-        vec4 coefs;
-        for (uint j = 0; j < 4u; ++j)
-            coefs[j] = vpm[j][3u] - sign * vpm[j][i/2];
-        planes[i] = makePlane(coefs);
-    }
-	
-	return Frustum(vt, cs, Z, vtInv, pm, pmInv, vpm, vpmInv, points, planes);
+	return true;
 }
 
-Transform frustumViewTransform(in Frustum f)
+vec3 frustumClosestPoint(in mat4x4 projectionMatrixInverted, in vec3 v)
 {
-	return f.viewTransform;
-}
-
-ClipSpace frustumClipSpace(in Frustum f)
-{
-	return f.clipSpace;
-}
-
-vec2 frustumZRange(in Frustum f)
-{
-	return f.ZRange;
-}
-
-Transform frustumViewTransformInverted(in Frustum f)
-{
-	return f.cachedViewTransformInverted;
-}
-
-mat4x4 frustumProjectionMatrix(in Frustum f)
-{
-	return f.cachedProjectionMatrix;
-}
-
-mat4x4 frustumProjectionMatrixInverted(in Frustum f)
-{
-	return f.cachedProjectionMatrixInverted;
-}
-
-mat4x4 frustumViewProjectionMatrix(in Frustum f)
-{
-	return f.cachedViewProjectionMatrix;
-}
-
-mat4x4 frustumViewProjectionMatrixInverted(in Frustum f)
-{
-	return f.cachedViewProjectionMatrixInverted;
-}
-
-vec3 frustumPoint(in Frustum f, in uint ID)
-{
-	return f.cachedPoints[ID];
-}
-
-vec3[FRUSTUM_POINTS_COUNT] frustumPoints(in Frustum f)
-{
-	return f.cachedPoints;
-}
-
-Plane frustumPlane(in Frustum f, in uint ID)
-{
-	return f.cachedPlanes[ID];
-}
-
-Plane[FRUSTUM_PLANES_COUNT] frustumPlanes(in Frustum f)
-{
-	return f.cachedPlanes;
-}
-
-LineSegment frustumEdge(in Frustum f, in uint ID)
-{
-	const uvec2 edgeIndices = boundingBoxEdgeIndices(ID);
-	return makeLineSegment(
-		frustumPoint(f, edgeIndices[0u]),
-		frustumPoint(f, edgeIndices[1u]));
-}
-
-vec3 frustumClosestPoint(in Frustum f, in vec3 v)
-{
-	vec3 test = transformPoint(f.viewTransform, v);
+	vec3 test = v;
 
 	bool rSignChange = false;
 	if (test[0u] < 0.0f)
@@ -139,8 +81,8 @@ vec3 frustumClosestPoint(in Frustum f, in vec3 v)
 
 	test[2u] = -test[2u];
 
-	const vec3 minBound = projectPoint(f.cachedProjectionMatrixInverted, vec3(1.0f, 1.0f, -1.0f));
-	const vec3 maxBound = projectPoint(f.cachedProjectionMatrixInverted, vec3(1.0f, 1.0f, 1.0f));
+	const vec3 minBound = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, -1.0f));
+	const vec3 maxBound = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, 1.0f));
 	const float fDRatio = maxBound[2u] / minBound[2u];
 
 	const float rmin = minBound[0u];
@@ -482,24 +424,5 @@ vec3 frustumClosestPoint(in Frustum f, in vec3 v)
 		closest[1u] = -closest[1u];
 	closest[2u] *= -1;
 
-	return transformPoint(f.cachedViewTransformInverted, closest);
+	return closest;
 }
-
-bool frustumIsPointInside(in Frustum f, in vec3 v)
-{
-	bool inside = true;
-	for (uint i = 0u; i < FRUSTUM_PLANES_COUNT; ++i)
-	{
-		inside = (distanceToPlane(frustumPlane(f, i), v) > 0.0f);
-		
-		if (!inside)
-			break;
-	}
-	
-	return inside;
-}
-
-//Frustum transformFrustum(in Frustum f, in Transform t)
-//{
-//	return makeFrustum(transformMult(f.viewTransform, transformInverted(t)), f.clipSpace, f.ZRange);
-//}

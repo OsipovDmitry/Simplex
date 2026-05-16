@@ -52,7 +52,7 @@ public:
     ~Camera() override;
 
     const ClipSpace& clipSpace() const;
-    const glm::u32vec3& clusterMaxSize() const;
+    const glm::u32vec3& clusterSize() const;
 };
 
 class CORE_SHARED_EXPORT Background : public utils::SettingsComponent
@@ -105,10 +105,10 @@ public:
     Shadow(const rapidjson::Document::ValueType*);
     ~Shadow() override;
 
-    ShadingMode mode() const;
-    ShadingFilter filter() const;
-    float depthBias() const;
+    uint32_t atlasSize() const;
     uint32_t mapSize() const;
+    float blurSigma() const;
+    float lightBleedingAmount() const;
 };
 
 class CORE_SHARED_EXPORT SSAO : public utils::SettingsComponent
@@ -203,6 +203,9 @@ public:
     ~Graphics() override;
 
     const utils::Range& cullPlaneLimits() const;
+    DrawDataCullingAlgorithm drawDataCullingAlgorithm() const;
+    ShadowDataCullingAlgorithm shadowDataCullingAlgorithm() const;
+    SpotLightCullingAlgorithm spotLightCullingAlgorithm() const;
     const Camera& camera() const;
     const Background& background() const;
     const Flat& flat() const;

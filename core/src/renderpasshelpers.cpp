@@ -1,8 +1,9 @@
 #include "renderpasshelpers.h"
 
+#include <core/graphicsengine.h>
 #include <core/graphicsrendererbase.h>
 #include <core/programsloader.h>
-#include <core/uniform.h>
+#include <core/settings.h>
 
 #include "geometrybuffer.h"
 #include "resources.h"
@@ -31,29 +32,64 @@ void SimplePass::run(
     m_runMethod(renderer, frameBuffer, vertexArray, geometryBuffer, sceneData);
 }
 
-FrustumCullingPass::FrustumCullingPass(
+InitializeCameraPass::InitializeCameraPass(
     const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
-    m_program = programsManager->loadOrGetComputeProgram(resources::FrustumCullingPassComputeShaderPath, {});
+    m_program = programsManager->loadOrGetComputeProgram(resources::InitializeCameraPassComputeShaderPath, {});
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SceneInfoBuffer) =
-        graphics::BufferRange::create(renderPipeLine->sceneInfoBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
+        graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
+}
+
+InitializeCameraPass::~InitializeCameraPass() = default;
+
+void InitializeCameraPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>&,
+    const std::shared_ptr<graphics::IVertexArray>&,
+    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>&)
+{
+    renderer->compute(glm::uvec3(1u), m_program, {shared_from_this()});
+}
+
+CullDrawDataPass::CullDrawDataPass(
+    const std::shared_ptr<ProgramsLoader>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    const auto drawDataCullingAlgorithm = settings::Settings::instance().graphics().drawDataCullingAlgorithm();
+    m_program = programsManager->loadOrGetComputeProgram(
+        resources::CullDrawDataPassComputeShaderPath,
+        {{"DRAW_DATA_CULLING_ALGORITHM", std::to_string(castFromDrawDataCullingAlgorithm(drawDataCullingAlgorithm))}});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
         graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::OpaqueCommandsBuffer) =
-        graphics::BufferRange::create(renderPipeLine->opaqueCommandsBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::TransparentCommandsBuffer) =
-        graphics::BufferRange::create(renderPipeLine->transparentCommandsBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::OpaqueDrawDataRenderCommandsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->opaqueDrawDataRenderCommandsBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::TransparentDrawDataRenderCommandsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->transparentDrawDataRenderCommandsBuffer()->buffer());
 }
 
-FrustumCullingPass::~FrustumCullingPass() = default;
+CullDrawDataPass::~CullDrawDataPass() = default;
 
-void FrustumCullingPass::run(
+void CullDrawDataPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>&,
     const std::shared_ptr<graphics::IVertexArray>&,
@@ -71,8 +107,11 @@ CollectSkeletalAnimatedDataToUpdatePass::CollectSkeletalAnimatedDataToUpdatePass
 {
     m_program = programsManager->loadOrGetComputeProgram(resources::CollectSkeletalAnimatedDataToUpdatePassComputeShaderPath, {});
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SceneInfoBuffer) =
-        graphics::BufferRange::create(renderPipeLine->sceneInfoBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::SkeletalAnimatedDataToUpdateBuffer) =
         graphics::BufferRange::create(renderPipeLine->skeletalAnimatedDataToUpdateBuffer()->buffer());
@@ -92,7 +131,36 @@ void CollectSkeletalAnimatedDataToUpdatePass::run(
         {sceneData, shared_from_this()});
 }
 
-UpdateCameraInfoPass::UpdateCameraInfoPass(
+UpdateCameraPass::UpdateCameraPass(
+    const std::shared_ptr<ProgramsLoader>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    m_program = programsManager->loadOrGetComputeProgram(resources::UpdateCameraPassComputeShaderPath, {});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
+        graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
+}
+
+UpdateCameraPass::~UpdateCameraPass() = default;
+
+void UpdateCameraPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>&,
+    const std::shared_ptr<graphics::IVertexArray>&,
+    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>&)
+{
+    renderer->compute(glm::uvec3(1u), m_program, {shared_from_this()});
+}
+
+PrepareBonesTransformsDataCalculateCommandPass::PrepareBonesTransformsDataCalculateCommandPass(
     const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
@@ -104,23 +172,20 @@ UpdateCameraInfoPass::UpdateCameraInfoPass(
         calculateBonesTransformsDataComputeProgram->workGroupSize().x;
 
     m_program = programsManager->loadOrGetComputeProgram(
-        resources::UpdateCameraInfoPassComputeShaderPath,
+        resources::PrepareBonesTransformsDataCalculateCommandPassComputeShaderPath,
         {{"CALCULATE_BONES_TRANSFORMS_DATA_COMPUTE_PROGRAM_WORK_GROUP_SIZE_X",
           std::to_string(calculateBonesTransformsDataComputeProgramWorkGroupSizeX)}});
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SceneInfoBuffer) =
-        graphics::BufferRange::create(renderPipeLine->sceneInfoBuffer()->buffer());
-
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
-        graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::SkeletalAnimatedDataToUpdateCommandBuffer) =
-        graphics::BufferRange::create(renderPipeLine->skeletalAnimatedDataToUpdateCommandBuffer()->buffer());
+        graphics::BufferRange::create(renderPipeLine->bonesTransformsDataCalculateCommandBuffer()->buffer());
 }
 
-UpdateCameraInfoPass::~UpdateCameraInfoPass() = default;
+PrepareBonesTransformsDataCalculateCommandPass::~PrepareBonesTransformsDataCalculateCommandPass() = default;
 
-void UpdateCameraInfoPass::run(
+void PrepareBonesTransformsDataCalculateCommandPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>&,
     const std::shared_ptr<graphics::IVertexArray>&,
@@ -137,8 +202,11 @@ CalculateBonesTransformsDataPass::CalculateBonesTransformsDataPass(
 {
     m_program = programsManager->loadOrGetComputeProgram(resources::CalculateBonesTransformsDataPassComputeShaderPath, {});
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SceneInfoBuffer) =
-        graphics::BufferRange::create(renderPipeLine->sceneInfoBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::SkeletalAnimatedDataToUpdateBuffer) =
         graphics::BufferRange::create(renderPipeLine->skeletalAnimatedDataToUpdateBuffer()->buffer());
@@ -161,32 +229,31 @@ void CalculateBonesTransformsDataPass::run(
     }
 
     renderer->computeIndirect(
-        m_program, {sceneData, shared_from_this()}, renderPipeLine->skeletalAnimatedDataToUpdateCommandBuffer());
+        m_program, {sceneData, shared_from_this()}, renderPipeLine->bonesTransformsDataCalculateCommandBuffer());
 }
 
-RenderDrawDataGeometryPass::RenderDrawDataGeometryPass(
+RenderDrawDataPass::RenderDrawDataPass(
     const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 
 {
     m_opaqueProgram = programsManager->loadOrGetRenderProgram(
-        resources::RenderDrawDataGeometryPassVertexShaderPath, resources::RenderOpaqueDrawDataGeometryPassFragmentShaderPath, {});
+        resources::RenderDrawDataPassVertexShaderPath, resources::RenderOpaqueDrawDataPassFragmentShaderPath, {});
 
     m_transparentProgram = programsManager->loadOrGetRenderProgram(
-        resources::RenderDrawDataGeometryPassVertexShaderPath, resources::RenderTransparentDrawDataGeometryPassFragmentShaderPath,
-        {});
+        resources::RenderDrawDataPassVertexShaderPath, resources::RenderTransparentDrawDataPassFragmentShaderPath, {});
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SceneInfoBuffer) =
-        graphics::BufferRange::create(renderPipeLine->sceneInfoBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
         graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
 }
 
-RenderDrawDataGeometryPass::~RenderDrawDataGeometryPass() = default;
+RenderDrawDataPass::~RenderDrawDataPass() = default;
 
-void RenderDrawDataGeometryPass::run(
+void RenderDrawDataPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<graphics::IVertexArray>& vertexArray,
@@ -200,35 +267,27 @@ void RenderDrawDataGeometryPass::run(
         return;
     }
 
-    framebuffer->detachAll();
+    framebuffer->reset();
     framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->colorTexture());
     framebuffer->attach(graphics::FrameBufferAttachment::Depth, geometryBuffer->depthTexture());
-
-    framebuffer->setFaceCulling(false);
-    framebuffer->setColorMasks(true);
+    framebuffer->setColorMask(0u, true);
+    framebuffer->setColorMask(1u, true);
     framebuffer->setDepthTest(true);
     framebuffer->setDepthMask(true);
-    framebuffer->setStencilTest(false);
-    framebuffer->setBlending(false);
 
     renderer->multiDrawArraysIndirectCount(
         glm::uvec4(0u, 0u, geometryBuffer->size()), m_opaqueProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
-        utils::PrimitiveType::Triangles, renderPipeLine->opaqueCommandsBuffer(), renderPipeLine->opaqueParameterBuffer());
+        utils::PrimitiveType::Triangles, renderPipeLine->opaqueDrawDataRenderCommandsBuffer(),
+        renderPipeLine->opaqueDrawDataRenderParameterBuffer());
 
-    framebuffer->detachAll();
+    framebuffer->reset();
     framebuffer->attach(graphics::FrameBufferAttachment::Depth, geometryBuffer->depthTexture());
-
-    framebuffer->setFaceCulling(false);
-    framebuffer->setColorMasks(false);
     framebuffer->setDepthTest(true);
-    framebuffer->setDepthMask(false);
-    framebuffer->setStencilTest(false);
-    framebuffer->setBlending(false);
 
     renderer->multiDrawArraysIndirectCount(
         glm::uvec4(0u, 0u, geometryBuffer->size()), m_transparentProgram, framebuffer, vertexArray,
         {geometryBuffer, sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
-        renderPipeLine->transparentCommandsBuffer(), renderPipeLine->transparentParameterBuffer());
+        renderPipeLine->transparentDrawDataRenderCommandsBuffer(), renderPipeLine->transparentDrawDataRenderParameterBuffer());
 }
 
 BuildClusterPass::BuildClusterPass(
@@ -270,10 +329,16 @@ ClusterLightPass::ClusterLightPass(
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
-    m_program = programsManager->loadOrGetComputeProgram(resources::ClusterLightPassComputeShaderPath, {});
+    const auto spotLightCullingAlgorithm = settings::Settings::instance().graphics().spotLightCullingAlgorithm();
+    m_program = programsManager->loadOrGetComputeProgram(
+        resources::ClusterLightPassComputeShaderPath,
+        {{"SPOT_LIGHT_CULLING_ALGORITHM", std::to_string(castFromSpotLightCullingAlgorithm(spotLightCullingAlgorithm))}});
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SceneInfoBuffer) =
-        graphics::BufferRange::create(renderPipeLine->sceneInfoBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
         graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
@@ -283,6 +348,9 @@ ClusterLightPass::ClusterLightPass(
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::LightNodesBuffer) =
         graphics::BufferRange::create(renderPipeLine->lightNodesBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowsToUpdateBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowsToUpdateBuffer()->buffer());
 }
 
 ClusterLightPass::~ClusterLightPass() = default;
@@ -296,6 +364,273 @@ void ClusterLightPass::run(
 {
     renderer->compute(
         glm::uvec3(static_cast<uint32_t>(sceneData->lightsCount()), 1u, 1u), m_program, {sceneData, shared_from_this()});
+}
+
+PrepareShadowDataCullCommnadPass::PrepareShadowDataCullCommnadPass(
+    const std::shared_ptr<ProgramsLoader>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    const auto cullShadowDataComputeProgram =
+        programsManager->loadOrGetComputeProgram(resources::CullShadowDataPassComputeShaderPath, {});
+
+    const auto cullShadowDataComputeProgramWorkGroupSize = cullShadowDataComputeProgram->workGroupSize();
+
+    m_program = programsManager->loadOrGetComputeProgram(
+        resources::PrepareShadowDataCullCommandPassComputeShaderPath,
+        {{"CULL_SHADOW_DATA_COMPUTE_PROGRAM_WORK_GROUP_SIZE_X", std::to_string(cullShadowDataComputeProgramWorkGroupSize.x)},
+         {"CULL_SHADOW_DATA_COMPUTE_PROGRAM_WORK_GROUP_SIZE_Y", std::to_string(cullShadowDataComputeProgramWorkGroupSize.y)}});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowDataCullCommandBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowDataCullCommandBuffer()->buffer());
+}
+
+PrepareShadowDataCullCommnadPass::~PrepareShadowDataCullCommnadPass() = default;
+
+void PrepareShadowDataCullCommnadPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>&,
+    const std::shared_ptr<graphics::IVertexArray>&,
+    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>&)
+{
+    renderer->compute(glm::uvec3(1u), m_program, {shared_from_this()});
+}
+
+PrepareShadowMapBlurCommandsPass::PrepareShadowMapBlurCommandsPass(
+    const std::shared_ptr<ProgramsLoader>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    m_program = programsManager->loadOrGetComputeProgram(resources::PrepareShadowMapBlurCommandsComputeShaderPath, {});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowMapBlurCommandsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowMapBlurCommandsBuffer()->buffer());
+}
+
+PrepareShadowMapBlurCommandsPass::~PrepareShadowMapBlurCommandsPass() = default;
+
+void PrepareShadowMapBlurCommandsPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>&,
+    const std::shared_ptr<graphics::IVertexArray>&,
+    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>&)
+{
+    renderer->compute(glm::uvec3(1u), m_program, {shared_from_this()});
+}
+
+CullShadowDataPass::CullShadowDataPass(
+    const std::shared_ptr<ProgramsLoader>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    const auto shadowDataCullingAlgorithm = settings::Settings::instance().graphics().shadowDataCullingAlgorithm();
+    m_program = programsManager->loadOrGetComputeProgram(
+        resources::CullShadowDataPassComputeShaderPath,
+        {{"SHADOW_DATA_CULLING_ALGORITHM", std::to_string(castFromShadowDataCullingAlgorithm(shadowDataCullingAlgorithm))}});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowsToUpdateBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowsToUpdateBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowDataBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowDataBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::OpaqueShadowDataRenderCommandsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->opaqueShadowDataRenderCommandsBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::TransparentShadowDataRenderCommandsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->transparentShadowDataRenderCommandsBuffer()->buffer());
+}
+
+CullShadowDataPass::~CullShadowDataPass() = default;
+
+void CullShadowDataPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>&,
+    const std::shared_ptr<graphics::IVertexArray>&,
+    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>& sceneData)
+{
+    auto renderPipeLine = m_renderPipeLine.lock();
+    if (!renderPipeLine)
+    {
+        LOG_CRITICAL << "RenderPipeLine can't be nullptr";
+        return;
+    }
+
+    renderer->computeIndirect(m_program, {sceneData, shared_from_this()}, renderPipeLine->shadowDataCullCommandBuffer());
+}
+
+RenderShadowDataPass::RenderShadowDataPass(
+    const std::shared_ptr<ProgramsLoader>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    m_opaqueProgram = programsManager->loadOrGetRenderProgram(
+        resources::RenderShadowDataPassVertexShaderPath, resources::RenderShadowDataPassGeometryShaderPath,
+        resources::RenderOpaqueShadowDataPassFragmentShaderPath, {});
+
+    m_transparentProgram = programsManager->loadOrGetRenderProgram(
+        resources::RenderShadowDataPassVertexShaderPath, resources::RenderShadowDataPassGeometryShaderPath,
+        resources::RenderTransparentShadowDataPassFragmentShaderPath, {});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowDataBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowDataBuffer()->buffer());
+}
+
+RenderShadowDataPass::~RenderShadowDataPass() = default;
+
+void RenderShadowDataPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<graphics::IVertexArray>& vertexArray,
+    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>& sceneData)
+{
+    auto renderPipeLine = m_renderPipeLine.lock();
+    if (!renderPipeLine)
+    {
+        LOG_CRITICAL << "RenderPipeLine can't be nullptr";
+        return;
+    }
+
+    const auto shadowDepthTexture = sceneData->shadowDepthTexture();
+    const auto shadowVarianceTexture = sceneData->shadowVarianceTexture();
+    const auto shadowColorTexture = sceneData->shadowColorTexture();
+
+    if (shadowDepthTexture && shadowVarianceTexture && shadowColorTexture)
+    {
+        const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(sceneData->shadowAtlasSize()));
+
+        framebuffer->reset();
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, shadowVarianceTexture);
+        framebuffer->attach(graphics::FrameBufferAttachment::Color1, shadowColorTexture);
+        framebuffer->attach(graphics::FrameBufferAttachment::Depth, shadowDepthTexture);
+        framebuffer->setClearColor(0u, glm::vec4(1.0f));
+        framebuffer->setClearColor(1u, glm::vec4(1.0f));
+        framebuffer->setColorMask(0u, true);
+        framebuffer->setColorMask(1u, true);
+        framebuffer->setDepthMask(true);
+
+        framebuffer->clear(
+            {graphics::FrameBufferAttachment::Color0, graphics::FrameBufferAttachment::Color1,
+             core::graphics::FrameBufferAttachment::Depth});
+
+        framebuffer->reset();
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, shadowVarianceTexture);
+        framebuffer->attach(graphics::FrameBufferAttachment::Depth, shadowDepthTexture);
+        framebuffer->setColorMask(0u, true);
+        framebuffer->setDepthTest(true);
+        framebuffer->setDepthMask(true);
+
+        for (uint32_t i = 0; i < 6u; ++i)
+            framebuffer->setClipDistance(i, true);
+
+        renderer->multiDrawArraysIndirectCount(
+            viewport, m_opaqueProgram, framebuffer, vertexArray, {sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
+            renderPipeLine->opaqueShadowDataRenderCommandsBuffer(), renderPipeLine->opaqueShadowDataRenderParameterBuffer());
+
+        framebuffer->reset();
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, shadowColorTexture);
+        framebuffer->attach(graphics::FrameBufferAttachment::Depth, shadowDepthTexture);
+        framebuffer->setColorMask(0u, true);
+        framebuffer->setDepthTest(true);
+        framebuffer->setBlending(true);
+        framebuffer->setBlendEquation(0u, graphics::BlendEquation::Add, graphics::BlendEquation::Add);
+        framebuffer->setBlendFactor(
+            0u, graphics::BlendFactor::Zero, graphics::BlendFactor::SrcColor, graphics::BlendFactor::Zero,
+            graphics::BlendFactor::One);
+
+        for (uint32_t i = 0; i < 6u; ++i)
+            framebuffer->setClipDistance(i, true);
+
+        renderer->multiDrawArraysIndirectCount(
+            viewport, m_transparentProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
+            utils::PrimitiveType::Triangles, renderPipeLine->transparentShadowDataRenderCommandsBuffer(),
+            renderPipeLine->transparentShadowDataRenderParameterBuffer());
+    }
+}
+
+BlurShadowMapPass::BlurShadowMapPass(
+    const std::shared_ptr<ProgramsLoader>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    m_horizontalProgram = programsManager->loadOrGetRenderProgram(
+        resources::BlurShadowMapPassVertexShaderPath, resources::BlurShadowMapPassGeometryShaderPath,
+        resources::BlurShadowMapPassFragmentShaderPath, {{"HORIZONTAL_PASS", ""}});
+
+    m_verticalProgram = programsManager->loadOrGetRenderProgram(
+        resources::BlurShadowMapPassVertexShaderPath, resources::BlurShadowMapPassGeometryShaderPath,
+        resources::BlurShadowMapPassFragmentShaderPath, {{"VERTICAL_PASS", ""}});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+}
+
+BlurShadowMapPass::~BlurShadowMapPass() = default;
+
+void BlurShadowMapPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<graphics::IVertexArray>& vertexArray,
+    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>& sceneData)
+{
+    auto renderPipeLine = m_renderPipeLine.lock();
+    if (!renderPipeLine)
+    {
+        LOG_CRITICAL << "RenderPipeLine can't be nullptr";
+        return;
+    }
+
+    const auto shadowVarianceTexture = sceneData->shadowVarianceTexture();
+    const auto shadowColorTexture = sceneData->shadowColorTexture();
+
+    if (shadowVarianceTexture && shadowColorTexture)
+    {
+        const auto& shadowVarianceBluredTextureHandle = renderPipeLine->shadowVarianceBluredTextureHandle();
+        const auto& shadowColorBluredTextureHandle = renderPipeLine->shadowColorBluredTextureHandle();
+
+        const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(sceneData->shadowAtlasSize()));
+
+        framebuffer->reset();
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, shadowVarianceBluredTextureHandle->texture());
+        framebuffer->attach(graphics::FrameBufferAttachment::Color1, shadowColorBluredTextureHandle->texture());
+        framebuffer->setColorMask(0u, true);
+        framebuffer->setColorMask(1u, true);
+        renderer->drawArraysIndirect(
+            viewport, m_horizontalProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
+            utils::PrimitiveType::TriangleStrip, renderPipeLine->shadowMapBlurCommandsBuffer());
+
+        framebuffer->reset();
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, shadowVarianceTexture);
+        framebuffer->attach(graphics::FrameBufferAttachment::Color1, shadowColorTexture);
+        framebuffer->setColorMask(0u, true);
+        framebuffer->setColorMask(1u, true);
+        renderer->drawArraysIndirect(
+            viewport, m_verticalProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
+            utils::PrimitiveType::TriangleStrip, renderPipeLine->shadowMapBlurCommandsBuffer());
+    }
 }
 
 RenderBackgroundPass::RenderBackgroundPass(
@@ -319,19 +654,13 @@ void RenderBackgroundPass::run(
     const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
     const std::shared_ptr<const SceneData>& sceneData)
 {
-    framebuffer->detachAll();
+    framebuffer->reset();
     framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->finalTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::Depth, geometryBuffer->depthTexture());
+    framebuffer->setColorMask(0u, true);
 
-    framebuffer->setFaceCulling(false);
-    framebuffer->setColorMasks(true);
-    framebuffer->setDepthTest(false);
-    framebuffer->setStencilTest(false);
-    framebuffer->setBlending(false);
-
-    renderer->drawArraysIndirect(
+    renderer->drawArrays(
         glm::uvec4(0u, 0u, geometryBuffer->size()), m_program, framebuffer, vertexArray, {sceneData, shared_from_this()},
-        utils::PrimitiveType::Triangles, sceneData->screenQuadCommandsBuffer());
+        utils::PrimitiveType::TriangleStrip, 0u, 4u);
 }
 
 BlendPass::BlendPass(const std::shared_ptr<ProgramsLoader>& programsManager, const std::shared_ptr<RenderPipeLine>& renderPipeLine)
@@ -340,8 +669,11 @@ BlendPass::BlendPass(const std::shared_ptr<ProgramsLoader>& programsManager, con
     m_program =
         programsManager->loadOrGetRenderProgram(resources::BlendPassVertexShaderPath, resources::BlendPassFragmentShaderPath, {});
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::SceneInfoBuffer) =
-        graphics::BufferRange::create(renderPipeLine->sceneInfoBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
         graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
@@ -362,22 +694,51 @@ void BlendPass::run(
     const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
     const std::shared_ptr<const SceneData>& sceneData)
 {
-    framebuffer->detachAll();
+    framebuffer->reset();
     framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->finalTexture());
-
-    framebuffer->setFaceCulling(false);
-    framebuffer->setColorMasks(true);
-    framebuffer->setDepthTest(false);
-    framebuffer->setStencilTest(false);
+    framebuffer->setColorMask(0u, true);
     framebuffer->setBlending(true);
     framebuffer->setBlendEquation(0u, graphics::BlendEquation::Add, graphics::BlendEquation::Add);
     framebuffer->setBlendFactor(
         0u, graphics::BlendFactor::SrcAlpha, graphics::BlendFactor::OneMinusSrcAlpha, graphics::BlendFactor::One,
         graphics::BlendFactor::SrcAlpha);
 
-    renderer->drawArraysIndirect(
+    renderer->drawArrays(
         glm::uvec4(0u, 0u, geometryBuffer->size()), m_program, framebuffer, vertexArray,
-        {geometryBuffer, sceneData, shared_from_this()}, utils::PrimitiveType::Triangles, sceneData->screenQuadCommandsBuffer());
+        {geometryBuffer, sceneData, shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u, 4u);
+}
+
+FinalPass::FinalPass(const std::shared_ptr<ProgramsLoader>& programsManager, const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    m_program =
+        programsManager->loadOrGetRenderProgram(resources::FinalPassVertexShaderPath, resources::FinalPassFragmentShaderPath, {});
+}
+
+FinalPass::~FinalPass() = default;
+
+void FinalPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<graphics::IVertexArray>& vertexArray,
+    const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+    const std::shared_ptr<const SceneData>& sceneData)
+{
+
+    auto renderPipeLine = m_renderPipeLine.lock();
+    if (!renderPipeLine)
+    {
+        LOG_CRITICAL << "RenderPipeLine can't be nullptr";
+        return;
+    }
+
+    framebuffer->reset();
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->finalTexture());
+    framebuffer->setColorMask(0u, true);
+
+    renderer->drawArrays(
+        glm::uvec4(0u, 0u, geometryBuffer->size()), m_program, framebuffer, vertexArray, {geometryBuffer, shared_from_this()},
+        utils::PrimitiveType::TriangleStrip, 0u, 4u);
 }
 
 } // namespace core
