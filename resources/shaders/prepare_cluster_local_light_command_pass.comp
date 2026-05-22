@@ -1,0 +1,24 @@
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+#include<camera.glsl>
+#include<counters.glsl>
+#include<indirect_commands.glsl>
+
+layout (std430) buffer ssbo_clusterLocalLightsCommandBuffer { DispatchIndirectCommand clusterLocalLightsCommand; };
+
+void main(void)
+{
+    if (all(lessThan(gl_GlobalInvocationID, uvec3(1u))))
+	{
+		const float countX = float(cameraClusterTotalSize());
+		const float countY = float(countersClusterLocalLightsCount());
+		
+		const float workGroupSizeX = float(CLUSTER_LOCAL_LIGHT_COMPUTE_PROGRAM_WORK_GROUP_SIZE_X);
+		const float workGroupSizeY = float(CLUSTER_LOCAL_LIGHT_COMPUTE_PROGRAM_WORK_GROUP_SIZE_Y);
+		
+		const uint workGroupsCountX = uint(ceil(countX / workGroupSizeX) + 0.5f);
+		const uint workGroupsCountY = uint(ceil(countY / workGroupSizeY) + 0.5f);
+		
+		clusterLocalLightsCommand = DispatchIndirectCommand(workGroupsCountX, workGroupsCountY, 1u);
+	}
+}

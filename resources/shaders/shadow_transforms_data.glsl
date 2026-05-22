@@ -27,7 +27,7 @@ mat4x4 shadowTransformsDataProjectionMatrix(in uint transformsDataOffset, in uin
 
 uvec3 shadowTransformsDataMapCoords(in uint transformsDataOffset, in uint layerID)
 {
-	return uvec3(shadowTransformsData[transformsDataOffset + layerID].mapCoordsAndPackerItemID);
+	return uvec3(shadowTransformsData[transformsDataOffset + layerID].mapCoords);
 }
 
 vec3[FRUSTUM_POINTS_COUNT] shadowTransformsDataFrustumPoints(in uint transformsDataOffset, in uint layerID)

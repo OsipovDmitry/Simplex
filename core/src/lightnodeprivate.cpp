@@ -64,13 +64,7 @@ utils::Range& LightNodePrivate::shadowCullPlanesLimits()
 
 void LightNodePrivate::onChanged()
 {
-    if (m_lightHandler)
-    {
-        if (auto sceneData = m_lightHandler->sceneData().lock())
-        {
-            updateLightInSceneData(*sceneData, m_lightHandler->ID());
-        }
-    }
+    if (m_lightHandler) updateLightInSceneData(*m_lightHandler);
 }
 
 } // namespace core

@@ -32,6 +32,9 @@
 std::weak_ptr<simplex::core::ImageBasedLightNode> IBLNodeWeak;
 std::weak_ptr<simplex::core::DirectionalLightNode> directionalLightNodeWeak;
 std::weak_ptr<simplex::core::DrawableNode> clusterNode;
+std::weak_ptr<simplex::core::PointLightNode> pointLightNode0Weak;
+std::weak_ptr<simplex::core::PointLightNode> pointLightNode1Weak;
+std::weak_ptr<simplex::core::PointLightNode> pointLightNode2Weak;
 
 static std::shared_ptr<simplex::core::Scene> createScene(
     const std::string& name,
@@ -129,11 +132,11 @@ static std::shared_ptr<simplex::core::Scene> createScene(
     spotLightNode->setHalfAngles(glm::quarter_pi<float>() * glm::vec2(.25f, 1.f));
     spotLightNode->setRadiuses(glm::vec2(1.f, 10.f));
     spotLightNode->setShadingEnabled(true);
-    scene->sceneRootNode()->attach(spotLightNode);
+    // scene->sceneRootNode()->attach(spotLightNode);
 
     auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
-    IBLNode->setContribution(.3f);
-    // scene->sceneRootNode()->attach(IBLNode);
+    IBLNode->setContribution(.5f);
+    scene->sceneRootNode()->attach(IBLNode);
     IBLNodeWeak = IBLNode;
 
     return scene;
@@ -155,19 +158,25 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     pointLightNode0->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(6.0f, 3.3f, 0.0f)));
     pointLightNode0->setColor(glm::vec3(3.f, 1.f, 1.f));
     pointLightNode0->setRadiuses(glm::vec2(5.f, 8.f));
-    // scene->sceneRootNode()->attach(pointLightNode0);
+    pointLightNode0->setShadingEnabled(true);
+    scene->sceneRootNode()->attach(pointLightNode0);
+    pointLightNode0Weak = pointLightNode0;
 
     auto pointLightNode1 = std::make_shared<simplex::core::PointLightNode>("");
     pointLightNode1->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(0.0f, 3.3f, 0.0f)));
     pointLightNode1->setColor(glm::vec3(1.f, 3.f, 1.f));
     pointLightNode1->setRadiuses(glm::vec2(5.f, 8.f));
-    // scene->sceneRootNode()->attach(pointLightNode1);
+    pointLightNode1->setShadingEnabled(true);
+    scene->sceneRootNode()->attach(pointLightNode1);
+    pointLightNode1Weak = pointLightNode1;
 
     auto pointLightNode2 = std::make_shared<simplex::core::PointLightNode>("");
     pointLightNode2->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(-6.0f, 3.3f, 0.0f)));
     pointLightNode2->setColor(glm::vec3(1.f, 1.f, 3.f));
     pointLightNode2->setRadiuses(glm::vec2(5.f, 8.f));
-    // scene->sceneRootNode()->attach(pointLightNode2);
+    pointLightNode2->setShadingEnabled(true);
+    scene->sceneRootNode()->attach(pointLightNode2);
+    pointLightNode2Weak = pointLightNode2;
 
     auto spotLightNode = std::make_shared<simplex::core::PointLightNode>("");
     spotLightNode->setTransform(
@@ -177,7 +186,7 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     spotLightNode->setRadiuses(glm::vec2(15.f, 20.f));
     spotLightNode->setShadowCullPlanesLimits(simplex::utils::Range(1.f, 15.0f));
     spotLightNode->setShadingEnabled(true);
-    scene->sceneRootNode()->attach(spotLightNode);
+    // scene->sceneRootNode()->attach(spotLightNode);
 
     auto directionalLightNode = std::make_shared<simplex::core::DirectionalLightNode>("");
     directionalLightNode->setTransform(
@@ -189,12 +198,12 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     // scene->sceneRootNode()->attach(directionalLightNode);
 
     auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
-    IBLNode->setContribution(0.6f);
+    IBLNode->setContribution(0.25f);
     // scene->sceneRootNode()->attach(IBLNode);
     IBLNodeWeak = IBLNode;
 
     auto ambientLightNode = std::make_shared<simplex::core::AmbientLightNode>("");
-    ambientLightNode->setColor(glm::vec3(.07f));
+    ambientLightNode->setColor(glm::vec3(.1f));
     scene->sceneRootNode()->attach(ambientLightNode);
 
     // auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/arabic_city/scene.gltf");
@@ -213,6 +222,57 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     return scene;
 }
 
+static std::weak_ptr<simplex::core::Node> tmpNode;
+
+static std::shared_ptr<simplex::core::Scene> createScene3(
+    const std::string& name,
+    const std::shared_ptr<simplex::core::ScenesLoader>& scenesLoader,
+    const std::shared_ptr<simplex::core::graphics::RendererBase>& renderer)
+{
+    renderer->makeCurrent();
+
+    auto scene = simplex::core::Scene::createEmpty(name);
+
+    auto cameraNode = std::make_shared<simplex::core::CameraNode>("");
+    scene->sceneRootNode()->attach(cameraNode);
+
+    {
+        auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/sponza2/sponza.obj");
+        auto skeletalAnimatedNode = sceneRepresentation->generate("", false, false);
+        skeletalAnimatedNode->setTransform(simplex::utils::Transform::makeScale(.01f));
+        // scene->sceneRootNode()->attach(skeletalAnimatedNode);
+    }
+
+    {
+        auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/dragon/dragon.obj");
+        // auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/bunny/bunny.obj");
+        auto skeletalAnimatedNode = sceneRepresentation->generate("", false, false);
+        const auto& bunnyDrawableNode = skeletalAnimatedNode->children().front()->children().front()->asDrawableNode();
+        const auto& bunnyDrawable = *bunnyDrawableNode->drawables().begin();
+        auto bunnyMesh = std::const_pointer_cast<simplex::core::Mesh>(bunnyDrawable->mesh());
+
+        auto material = std::make_shared<simplex::core::Material>();
+        material->setBaseColor(glm::vec4(2.f, .4f, .4f, .3f));
+        material->setMetalness(0.f);
+        material->setRoughness(.2f);
+
+        auto drawable = std::make_shared<simplex::core::Drawable>(bunnyMesh, material);
+
+        auto drawableNode = std::make_shared<simplex::core::DrawableNode>("");
+        drawableNode->addDrawable(drawable);
+        drawableNode->setTransform(simplex::utils::Transform(1.f, glm::quat(glm::vec3(0.f, .7f, 0.f)), glm::vec3(0.f, 0.f, 0.f)));
+        scene->sceneRootNode()->attach(drawableNode);
+        tmpNode = drawableNode;
+    }
+
+    auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
+    IBLNode->setContribution(.45f);
+    scene->sceneRootNode()->attach(IBLNode);
+    IBLNodeWeak = IBLNode;
+
+    return scene;
+}
+
 static bool isWPressed = false;
 static bool isSPressed = false;
 static bool isAPressed = false;
@@ -225,8 +285,11 @@ static bool isUpPressed = false;
 static bool isDownPressed = false;
 static bool isSpacePressed = false;
 static bool isLShiftPressed = false;
-static glm::vec2 cameraAngles(0.f, -glm::half_pi<float>());
-static glm::vec3 cameraPosition(-8.f, 1.f, 0.f);
+static bool is1Pressed = false;
+static bool is2Pressed = false;
+static bool is3Pressed = false;
+static glm::vec2 cameraAngles(0.f, 0.f);
+static glm::vec3 cameraPosition(0.f, 0.f, 4.0f);
 
 static void keyCallback(
     simplex::core::graphics::KeyState keyState,
@@ -303,6 +366,21 @@ static void keyCallback(
 
             break;
         }
+        case simplex::core::graphics::KeyCode::Key_1:
+        {
+            is1Pressed = keyState == simplex::core::graphics::KeyState::Pressed;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::Key_2:
+        {
+            is2Pressed = keyState == simplex::core::graphics::KeyState::Pressed;
+            break;
+        }
+        case simplex::core::graphics::KeyCode::Key_3:
+        {
+            is3Pressed = keyState == simplex::core::graphics::KeyState::Pressed;
+            break;
+        }
         default:
             break;
     }
@@ -369,12 +447,28 @@ static void updateCallback(uint64_t time, uint32_t dt)
             {
                 isSpacePressed = false;
             }
-        }
-}
 
-static void closeCallback()
-{
-    simplex::core::ApplicationBase::instance().setScene(nullptr);
+            if (is1Pressed)
+            {
+                is1Pressed = false;
+                if (auto pointLightNode = pointLightNode0Weak.lock())
+                    pointLightNode->setLightingEnabled(!pointLightNode->isLightingEnabled());
+            }
+
+            if (is2Pressed)
+            {
+                is2Pressed = false;
+                if (auto pointLightNode = pointLightNode1Weak.lock())
+                    pointLightNode->setLightingEnabled(!pointLightNode->isLightingEnabled());
+            }
+
+            if (is3Pressed)
+            {
+                is3Pressed = false;
+                if (auto pointLightNode = pointLightNode2Weak.lock())
+                    pointLightNode->setLightingEnabled(!pointLightNode->isLightingEnabled());
+            }
+        }
 }
 
 int main(int argc, char* argv[])
@@ -390,15 +484,16 @@ int main(int argc, char* argv[])
     auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene");
     window->setKeyCallback(keyCallback);
     window->setUpdateCallback(updateCallback);
-    window->setCloseCallback(closeCallback);
 
     window->graphicsEngine()->scenesLoader()->registerLoader(
         std::make_shared<simplex::scenes_loader_assimp::AssimpScenesLoader>());
 
     auto& app = simplex::core::ApplicationBase::instance();
+    // app.setScene(createScene("SimpleScene", window->graphicsEngine()->graphicsRenderer()));
+    // app.setScene(
+    //    createScene2("SimpleScene", window->graphicsEngine()->scenesLoader(), window->graphicsEngine()->graphicsRenderer()));
     app.setScene(
         createScene2("SimpleScene", window->graphicsEngine()->scenesLoader(), window->graphicsEngine()->graphicsRenderer()));
-    // app.setScene(createScene("SimpleScene", window->graphicsEngine()->graphicsRenderer()));
 
     app.registerDevice(window);
     app.run();

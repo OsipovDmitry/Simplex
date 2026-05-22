@@ -1,18 +1,16 @@
-#include <core/settings.h>
-#include <core/scene.h>
-
 #include "materialprivate.h"
-#include "scenedata.h"
 
+#include <core/scene.h>
+#include <core/settings.h>
+
+#include "scenedata.h"
 
 namespace simplex
 {
 namespace core
 {
 
-MaterialMapPrivate::MaterialMapPrivate()
-{
-}
+MaterialMapPrivate::MaterialMapPrivate() {}
 
 MaterialMapPrivate::~MaterialMapPrivate() = default;
 
@@ -34,8 +32,7 @@ std::set<std::shared_ptr<MaterialMapHandler>>& MaterialMapPrivate::handlers()
 void MaterialMapPrivate::onChanged()
 {
     for (auto& handler : m_handlers)
-        if (auto sceneData = handler->sceneData().lock())
-            sceneData->onMaterialMapChanged(handler->ID(), m_path, m_image);
+        if (auto sceneData = handler->sceneData().lock()) sceneData->onMaterialMapChanged(*handler, m_path, m_image);
 }
 
 MaterialPrivate::MaterialPrivate()
@@ -131,27 +128,16 @@ void MaterialPrivate::onChanged()
     for (auto& handler : m_handlers)
         if (auto sceneData = handler->sceneData().lock())
             sceneData->onMaterialChanged(
-                handler->ID(),
-                m_baseColor,
-                m_emission,
-                m_roughness,
-                m_metalness,
-                m_alphaCutoff,
+                *handler, m_baseColor, m_emission, m_roughness, m_metalness, m_alphaCutoff,
                 m_maps[castFromMaterialMapTarget(MaterialMapTarget::BaseColor)],
                 m_maps[castFromMaterialMapTarget(MaterialMapTarget::Opacity)],
                 m_maps[castFromMaterialMapTarget(MaterialMapTarget::Emission)],
                 m_maps[castFromMaterialMapTarget(MaterialMapTarget::Occlusion)],
                 m_maps[castFromMaterialMapTarget(MaterialMapTarget::Roughness)],
                 m_maps[castFromMaterialMapTarget(MaterialMapTarget::Metalness)],
-                m_maps[castFromMaterialMapTarget(MaterialMapTarget::Normal)],
-                m_occlusionMapStrength,
-                m_normalMapScale,
-                m_ORMSwizzleMask,
-                m_isLighted,
-                m_isShadowed,
-                m_isShadowCasted,
-                m_isDoubleSided);
+                m_maps[castFromMaterialMapTarget(MaterialMapTarget::Normal)], m_occlusionMapStrength, m_normalMapScale,
+                m_ORMSwizzleMask, m_isLighted, m_isShadowed, m_isShadowCasted, m_isDoubleSided);
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

@@ -17,10 +17,10 @@ DirectionalLightNodePrivate::DirectionalLightNodePrivate(DirectionalLightNode& d
 
 DirectionalLightNodePrivate::~DirectionalLightNodePrivate() = default;
 
-void DirectionalLightNodePrivate::updateLightInSceneData(SceneData& sceneData, utils::IDsGeneratorT<size_t>::value_type lightID)
-    const
+void DirectionalLightNodePrivate::updateLightInSceneData(LightHandler& handler) const
 {
-    sceneData.onDirectionalLightChanged(lightID, d().globalTransform(), m_isLightingEnabled, m_color, m_shadow);
+    if (auto sceneData = handler.sceneData().lock())
+        sceneData->onDirectionalLightChanged(handler, d().globalTransform(), m_isLightingEnabled, m_color, m_shadow);
 }
 
 glm::vec3& DirectionalLightNodePrivate::color()

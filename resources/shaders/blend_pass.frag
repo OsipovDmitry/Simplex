@@ -396,6 +396,6 @@ void main(void)
 		geometryBufferData(OITNodeID, PBRData, depth, OITNodeID);
 		color = blend(proccessLighting(vec3(NDC_XY_ZO, depth), PBRData), color);
 	}
-	
+
 	o_fragColor0 = color;
 }

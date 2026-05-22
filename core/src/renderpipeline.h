@@ -22,6 +22,7 @@ using RenderInfoBuffer = std::shared_ptr<graphics::StructBuffer<RenderInfoDescri
 using CountersBuffer = std::shared_ptr<graphics::StructBuffer<CountersDescription>>;
 using CameraBuffer = std::shared_ptr<graphics::StructBuffer<CameraDescription>>;
 using ClusterNodesBuffer = std::shared_ptr<graphics::VectorBuffer<ClusterNodeDescription>>;
+using ClusterLocalLightsBuffer = std::shared_ptr<graphics::VectorBuffer<ClusterLocalLightDescription>>;
 using LightNodesBuffer = std::shared_ptr<graphics::VectorBuffer<LightNodeDescription>>;
 using SkeletalAnimatedDataToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<SkeletalAnimatedDataToUpdateDescription>>;
 using ShadowsToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowToUpdateDescription>>;
@@ -47,6 +48,7 @@ public:
     CountersBuffer& countersBuffer();
     CameraBuffer& cameraBuffer();
     ClusterNodesBuffer& clusterNodesBuffer();
+    ClusterLocalLightsBuffer& clusterLocalLightsBuffer();
     LightNodesBuffer& lightNodesBuffer();
     SkeletalAnimatedDataToUpdateBuffer& skeletalAnimatedDataToUpdateBuffer();
     ShadowsToUpdateBuffer& shadowsToUpdateBuffer();
@@ -56,6 +58,7 @@ public:
     graphics::PDrawArraysIndirectCommandsBuffer& transparentDrawDataRenderCommandsBuffer();
     graphics::PBufferRange& opaqueDrawDataRenderParameterBuffer();
     graphics::PBufferRange& transparentDrawDataRenderParameterBuffer();
+    graphics::PDispatchComputeIndirectCommandBuffer& clusterLocalLightsCommandBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& shadowDataCullCommandBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& shadowMapBlurCommandsBuffer();
     graphics::PTextureHandle& shadowVarianceBluredTextureHandle();
@@ -89,6 +92,7 @@ private:
     CountersBuffer m_countersBuffer;
     CameraBuffer m_cameraBuffer;
     ClusterNodesBuffer m_clusterNodesBuffer;
+    ClusterLocalLightsBuffer m_clusterLocalLightsBuffer;
     LightNodesBuffer m_lightNodesBuffer;
     SkeletalAnimatedDataToUpdateBuffer m_skeletalAnimatedDataToUpdateBuffer;
     ShadowsToUpdateBuffer m_shadowsToUpdateBuffer;
@@ -98,6 +102,7 @@ private:
     graphics::PDrawArraysIndirectCommandsBuffer m_transparentDrawDataRenderCommandsBuffer;
     graphics::PBufferRange m_opaqueDrawDataRenderParameterBuffer;
     graphics::PBufferRange m_transparentDrawDataRenderParameterBuffer;
+    graphics::PDispatchComputeIndirectCommandBuffer m_clusterLocalLightsCommandBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_shadowDataCullCommandBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_shadowMapBlurCommandsBuffer;
     graphics::PTextureHandle m_shadowVarianceBluredTextureHandle;

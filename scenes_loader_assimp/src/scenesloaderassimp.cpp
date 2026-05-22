@@ -619,8 +619,6 @@ std::shared_ptr<core::SceneRepresentation> AssimpScenesLoader::loadResource(cons
 
     if (!assimpScene) return nullptr;
 
-    assimpScene->findBone(aiString("mixamorig:Hips"));
-
     std::vector<std::shared_ptr<core::Material>> materials;
     if (assimpScene->HasMaterials())
     {

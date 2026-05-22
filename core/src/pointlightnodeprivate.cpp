@@ -37,9 +37,10 @@ std::shared_ptr<LightHandler> PointLightNodePrivate::createLightInSceneData(Scen
     return sceneData.addPointLight(d().globalTransform(), m_isLightingEnabled, m_color, m_radiuses, m_shadow);
 }
 
-void PointLightNodePrivate::updateLightInSceneData(SceneData& sceneData, utils::IDsGeneratorT<size_t>::value_type lightID) const
+void PointLightNodePrivate::updateLightInSceneData(LightHandler& handler) const
 {
-    sceneData.onPointLightChanged(lightID, d().globalTransform(), m_isLightingEnabled, m_color, m_radiuses, m_shadow);
+    if (auto sceneData = handler.sceneData().lock())
+        sceneData->onPointLightChanged(handler, d().globalTransform(), m_isLightingEnabled, m_color, m_radiuses, m_shadow);
 }
 
 } // namespace core

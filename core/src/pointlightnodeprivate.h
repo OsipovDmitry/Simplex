@@ -23,7 +23,7 @@ public:
 
 private:
     std::shared_ptr<LightHandler> createLightInSceneData(SceneData&) const override;
-    void updateLightInSceneData(SceneData&, utils::IDsGeneratorT<size_t>::value_type) const override;
+    void updateLightInSceneData(LightHandler&) const override;
 
     glm::vec3 m_color;
     glm::vec2 m_radiuses;

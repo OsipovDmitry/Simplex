@@ -34,7 +34,7 @@ struct RangeDescription
 
 RangeDescription makeRangeDescription(in Range r)
 {
-	return RangeDescription(r, uint[2u](0.0f, 0.0f));
+	return RangeDescription(r, uint[2u](0u, 0u));
 }
 
 Range toRange(in RangeDescription desc)
@@ -165,6 +165,19 @@ ClusterNodeDescription makeClusterNodeDescription(in BoundingBox bb, in uint fir
 		uint[3u](0u, 0u, 0u));
 }
 
+struct ClusterLocalLightDescription
+{
+    uint lightID;
+
+	// padding
+    uint padding[3u];
+};
+
+ClusterLocalLightDescription makeClusterLocalLightDescription(in uint lightID)
+{
+	return ClusterLocalLightDescription(lightID, uint[3u](0u, 0u, 0u));
+}
+
 struct LightNodeDescription
 {
 	uint lightID;
@@ -220,6 +233,7 @@ struct CountersDescription
 {
     uvec2 ZRange; // uvec2 for atomic operations
     uint firstGlobalLightNodeID;
+	uint clusterLocalLightsCount;
     uint lightNodesCount;
     uint skeletalAnimatedDataToUpdateCount;
     uint shadowsToUpdateCount;
@@ -229,7 +243,7 @@ struct CountersDescription
     uint opaqueShadowDataRenderCommandsCount;
     uint transparentShadowDataRenderCommandsCount;
 
-    uint padding[1u];
+    //uint padding[0u];
 };
 
 struct GBufferDescription
@@ -265,7 +279,6 @@ OITNodeDescription makeOITNodeDescription(in uvec4 PBRData, in float depth, in u
 struct MeshDescription
 {
 	BoundingBoxDescription boundingBox;
-    uint verticesDataSize;
     uint elementsDataSize;
     uint verticesDataOffset;
     uint elementsDataOffset; // draw arrays is used if 0xFFFFFFFFu
@@ -281,7 +294,7 @@ struct MeshDescription
     // 11..18 - alpha cutoff
     // 19..31 - free (13 bits)
     
-	uint padding[3u];
+	//uint padding[0u];
 };
 
 struct MaterialDescription
@@ -341,7 +354,7 @@ struct ShadowTransformsDataDescription
     TransformDescription viewTransform;
     RangeDescription ZRange;
     mat4x4 projectionMatrix;
-    uvec4 mapCoordsAndPackerItemID;
+    uvec4 mapCoords;
 	vec4 frustumPoints[FRUSTUM_POINTS_COUNT];
 	vec4 frustumFaceNormalLinesAndRanges0[FRUSTUM_FACE_NORMAL_LINES_COUNT];
 	vec4 frustumFaceNormalLinesAndRanges1[FRUSTUM_FACE_NORMAL_LINES_COUNT];
@@ -402,9 +415,8 @@ ShadowDataDescription makeShadowDataDescription(in uint drawDataID, in uint shad
 struct SkeletonDescription
 {
     uint dataOffset;
-    uint dataSize;
 	
-    uint padding[2u];
+    uint padding[3u];
 };
 
 struct ShadowMapsDescription
@@ -442,10 +454,9 @@ struct SkeletalAnimatedDataDescription
     uint skeletonID;
     uint currentAnimationID;
     uint bonesTransformsDataOffset;
-    uint bonesTransformsDataSize;
     uint lastUpdateTime;
 
-    uint padding[3u];
+    //uint padding[0u];
 };
 
 struct SkeletalAnimatedDataToUpdateDescription

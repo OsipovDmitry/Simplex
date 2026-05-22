@@ -1,6 +1,7 @@
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 #include<camera.glsl>
+#include<cluster_local_light.glsl>
 #include<cluster_node.glsl>
 #include<counters.glsl>
 #include<light.glsl>
@@ -10,6 +11,7 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 #include<shadow_transforms_data.glsl>
 #include<render_info.glsl>
 
+#include<math/bounding_box.glsl>
 #include<math/classifications.glsl>
 #include<math/clip_space.glsl>
 #include<math/constants.glsl>
@@ -29,52 +31,17 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 	#define SPOT_LIGHT_CULLING_ALGORITHM SUPER_FAST_SPOT_LIGHT_CULLING_ALGORITHM
 #endif
 
-void addLightAsGlobal(in uint lightID)
+void addGlobalLight(in uint lightID)
 {
 	const uint lightNodeID = countersGenerateLightNodeID();
 	const uint nextLightNodeID = countersSetFirstGlobalLightNodeID(lightNodeID);
 	lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
 }
 
-void addPointLightToCluster(in uint lightID, in Sphere s)
+void addLocalLight(in uint lightID)
 {
-	for (uint i = 0u; i < cameraClusterTotalSize(); ++i)
-	{
-		const BoundingBox bb = clusterNodeBoundingBox(i);
-		const bool isCollided = sphereVsBoundingBox(s, bb);
-		
-		if (isCollided)
-		{
-			const uint lightNodeID = countersGenerateLightNodeID();
-			const uint nextLightNodeID = clusterNodeSetFirstLightNodeID(i, lightNodeID);
-			lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
-		}
-	}
-}
-
-void addSpotLightToCluster(in uint lightID, in Pyramid p)
-{
-	for (uint i = 0u; i < cameraClusterTotalSize(); ++i)
-	{
-		const BoundingBox bb = clusterNodeBoundingBox(i);
-		
-		#if (SPOT_LIGHT_CULLING_ALGORITHM == SUPER_FAST_SPOT_LIGHT_CULLING_ALGORITHM)
-			const bool isCollided = pyramidVsBoundingBoxSuperFast(p, bb);
-		#elif (SPOT_LIGHT_CULLING_ALGORITHM == FAST_SPOT_LIGHT_CULLING_ALGORITHM)
-			const bool isCollided = pyramidVsBoundingBoxFast(p, bb);
-		#elif (SPOT_LIGHT_CULLING_ALGORITHM == CORRECT_SPOT_LIGHT_CULLING_ALGORITHM)
-			const bool isCollided = pyramidVsBoundingBox(p, bb);
-		#else
-			error!!!
-		#endif
-		
-		if (isCollided)
-		{
-			const uint lightNodeID = countersGenerateLightNodeID();
-			const uint nextLightNodeID = clusterNodeSetFirstLightNodeID(i, lightNodeID);
-			lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
-		}
-	}
+	const uint clusterLocalLightID = countersGenerateClusterLocalLightID();
+	clusterLocalLightInitialize(clusterLocalLightID, lightID);
 }
 
 void addShadowToUpdate(in uint shadowID)
@@ -222,17 +189,17 @@ void main(void)
 			
 			if (typeID == AmbientLightTypeID)
 			{
-				addLightAsGlobal(lightID);
+				addGlobalLight(lightID);
 			}
 			else if (typeID == ImageBasedLightTypeID)
 			{
-				addLightAsGlobal(lightID);
+				addGlobalLight(lightID);
 			}
 			else if (typeID == DirectionalLightTypeID)
 			{
 				const Transform lightModelTransform = lightTransform(lightID);
 				
-				addLightAsGlobal(lightID);
+				addGlobalLight(lightID);
 				addDirectionalShadow(
 					lightShadowID(lightID),
 					transformInverted(lightModelTransform));
@@ -252,9 +219,9 @@ void main(void)
 					const vec3 fPoints[FRUSTUM_POINTS_COUNT] = cameraFrustumPoints();
 					
 					if (sphereIsFrustumInside(sphere, fPoints))
-						addLightAsGlobal(lightID);
+						addGlobalLight(lightID);
 					else
-						addPointLightToCluster(lightID, sphere);
+						addLocalLight(lightID);
 					
 					addPointShadow(
 						lightShadowID(lightID),
@@ -298,9 +265,9 @@ void main(void)
 				if (isPyramidVisible)
 				{
 					if (pyramidIsFrustumInside(pyramid, fPoints))
-						addLightAsGlobal(lightID);
+						addGlobalLight(lightID);
 					else
-						addSpotLightToCluster(lightID, pyramid);
+						addLocalLight(lightID);
 					
 					addSpotShadow(
 						lightShadowID(lightID),

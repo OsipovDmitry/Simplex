@@ -4,7 +4,6 @@
 
 #include <core/graphicsengine.h>
 #include <core/settings.h>
-#include <core/ssao.h>
 
 namespace simplex
 {
@@ -373,7 +372,7 @@ uint32_t OIT::nodesPerPixel() const
 
 uint32_t OIT::maxNodes() const
 {
-    static const auto s_maxNodes = readUint("MaxNodes", 1920u * 1024u * 4u);
+    static const auto s_maxNodes = readUint("MaxNodes", 1920u * 1080u * 4u);
     return s_maxNodes;
 }
 

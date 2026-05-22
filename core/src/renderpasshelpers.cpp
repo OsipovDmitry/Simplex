@@ -324,14 +324,14 @@ void BuildClusterPass::run(
         glm::uvec3(static_cast<uint32_t>(renderPipeLine->clusterNodesBuffer()->size()), 1u, 1u), m_program, {shared_from_this()});
 }
 
-ClusterLightPass::ClusterLightPass(
+ClusterGlobalLightPass::ClusterGlobalLightPass(
     const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
     const auto spotLightCullingAlgorithm = settings::Settings::instance().graphics().spotLightCullingAlgorithm();
     m_program = programsManager->loadOrGetComputeProgram(
-        resources::ClusterLightPassComputeShaderPath,
+        resources::ClusterGlobalLightPassComputeShaderPath,
         {{"SPOT_LIGHT_CULLING_ALGORITHM", std::to_string(castFromSpotLightCullingAlgorithm(spotLightCullingAlgorithm))}});
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
@@ -346,6 +346,9 @@ ClusterLightPass::ClusterLightPass(
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterNodesBuffer) =
         graphics::BufferRange::create(renderPipeLine->clusterNodesBuffer()->buffer());
 
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterLocalLightsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->clusterLocalLightsBuffer()->buffer());
+
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::LightNodesBuffer) =
         graphics::BufferRange::create(renderPipeLine->lightNodesBuffer()->buffer());
 
@@ -353,9 +356,9 @@ ClusterLightPass::ClusterLightPass(
         graphics::BufferRange::create(renderPipeLine->shadowsToUpdateBuffer()->buffer());
 }
 
-ClusterLightPass::~ClusterLightPass() = default;
+ClusterGlobalLightPass::~ClusterGlobalLightPass() = default;
 
-void ClusterLightPass::run(
+void ClusterGlobalLightPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>&,
     const std::shared_ptr<graphics::IVertexArray>&,
@@ -364,6 +367,90 @@ void ClusterLightPass::run(
 {
     renderer->compute(
         glm::uvec3(static_cast<uint32_t>(sceneData->lightsCount()), 1u, 1u), m_program, {sceneData, shared_from_this()});
+}
+
+PrepareClusterLocalLightsCommandPass::PrepareClusterLocalLightsCommandPass(
+    const std::shared_ptr<ProgramsLoader>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    const auto clusterLocalLightComputeProgram =
+        programsManager->loadOrGetComputeProgram(resources::ClusterLocalLightPassComputeShaderPath, {});
+
+    const auto clusterLocalLightComputeProgramWorkGroupSize = clusterLocalLightComputeProgram->workGroupSize();
+
+    m_program = programsManager->loadOrGetComputeProgram(
+        resources::PrepareClusterLocalLightCommandPassComputeShaderPath,
+        {{"CLUSTER_LOCAL_LIGHT_COMPUTE_PROGRAM_WORK_GROUP_SIZE_X",
+          std::to_string(clusterLocalLightComputeProgramWorkGroupSize.x)},
+         {"CLUSTER_LOCAL_LIGHT_COMPUTE_PROGRAM_WORK_GROUP_SIZE_Y",
+          std::to_string(clusterLocalLightComputeProgramWorkGroupSize.y)}});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
+        graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterLocalLightsCommandBuffer) =
+        graphics::BufferRange::create(renderPipeLine->clusterLocalLightsCommandBuffer()->buffer());
+}
+
+PrepareClusterLocalLightsCommandPass::~PrepareClusterLocalLightsCommandPass() = default;
+
+void PrepareClusterLocalLightsCommandPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>&,
+    const std::shared_ptr<graphics::IVertexArray>&,
+    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>&)
+{
+    renderer->compute(glm::uvec3(1u), m_program, {shared_from_this()});
+}
+
+ClusterLocalLightPass::ClusterLocalLightPass(
+    const std::shared_ptr<ProgramsLoader>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    const auto spotLightCullingAlgorithm = settings::Settings::instance().graphics().spotLightCullingAlgorithm();
+    m_program = programsManager->loadOrGetComputeProgram(
+        resources::ClusterLocalLightPassComputeShaderPath,
+        {{"SPOT_LIGHT_CULLING_ALGORITHM", std::to_string(castFromSpotLightCullingAlgorithm(spotLightCullingAlgorithm))}});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
+        graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterNodesBuffer) =
+        graphics::BufferRange::create(renderPipeLine->clusterNodesBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterLocalLightsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->clusterLocalLightsBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::LightNodesBuffer) =
+        graphics::BufferRange::create(renderPipeLine->lightNodesBuffer()->buffer());
+}
+
+ClusterLocalLightPass::~ClusterLocalLightPass() = default;
+
+void ClusterLocalLightPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>&,
+    const std::shared_ptr<graphics::IVertexArray>&,
+    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>& sceneData)
+{
+    auto renderPipeLine = m_renderPipeLine.lock();
+    if (!renderPipeLine)
+    {
+        LOG_CRITICAL << "RenderPipeLine can't be nullptr";
+        return;
+    }
+
+    renderer->computeIndirect(m_program, {sceneData, shared_from_this()}, renderPipeLine->clusterLocalLightsCommandBuffer());
 }
 
 PrepareShadowDataCullCommnadPass::PrepareShadowDataCullCommnadPass(

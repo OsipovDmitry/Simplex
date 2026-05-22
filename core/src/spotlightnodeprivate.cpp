@@ -42,10 +42,11 @@ std::shared_ptr<LightHandler> SpotLightNodePrivate::createLightInSceneData(Scene
     return sceneData.addSpotLight(d().globalTransform(), m_isLightingEnabled, m_color, m_radiuses, m_halfAngles, m_shadow);
 }
 
-void SpotLightNodePrivate::updateLightInSceneData(SceneData& sceneData, utils::IDsGeneratorT<size_t>::value_type lightID) const
+void SpotLightNodePrivate::updateLightInSceneData(LightHandler& handler) const
 {
-    sceneData.onSpotLightChanged(
-        lightID, d().globalTransform(), m_isLightingEnabled, m_color, m_radiuses, m_halfAngles, m_shadow);
+    if (auto sceneData = handler.sceneData().lock())
+        sceneData->onSpotLightChanged(
+            handler, d().globalTransform(), m_isLightingEnabled, m_color, m_radiuses, m_halfAngles, m_shadow);
 }
 
 } // namespace core

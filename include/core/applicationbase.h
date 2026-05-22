@@ -36,11 +36,12 @@ public:
     static ApplicationBase& instance();
 
     void shutDown();
-    // void update(uint64_t time, uint32_t dt);
 
     std::shared_ptr<Scene> scene();
     std::shared_ptr<const Scene> scene() const;
     void setScene(const std::shared_ptr<Scene>&);
+
+    uint32_t FPS() const;
 
 protected:
     ApplicationBase(const std::string&, ApplicationTimeCallback, ApplicationPollEventsCallback);

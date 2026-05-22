@@ -42,7 +42,7 @@ public:
 
 protected:
     virtual std::shared_ptr<LightHandler> createLightInSceneData(SceneData&) const = 0;
-    virtual void updateLightInSceneData(SceneData&, utils::IDsGeneratorT<size_t>::value_type) const = 0;
+    virtual void updateLightInSceneData(LightHandler&) const = 0;
 
     LightType m_type;
     bool m_isLightingEnabled;

@@ -41,6 +41,8 @@ void RenderPipeLine::run(
     m_clusterNodesBuffer->resize(clusterNodesCount);
 
     const auto lightsCount = sceneData->lightsCount();
+    m_clusterLocalLightsBuffer->resize(lightsCount);
+
     const auto lightNodesCount = clusterNodesCount * lightsCount;
     m_lightNodesBuffer->resize(lightNodesCount);
 
@@ -95,6 +97,11 @@ ClusterNodesBuffer& RenderPipeLine::clusterNodesBuffer()
     return m_clusterNodesBuffer;
 }
 
+ClusterLocalLightsBuffer& RenderPipeLine::clusterLocalLightsBuffer()
+{
+    return m_clusterLocalLightsBuffer;
+}
+
 LightNodesBuffer& RenderPipeLine::lightNodesBuffer()
 {
     return m_lightNodesBuffer;
@@ -138,6 +145,11 @@ graphics::PBufferRange& RenderPipeLine::opaqueDrawDataRenderParameterBuffer()
 graphics::PBufferRange& RenderPipeLine::transparentDrawDataRenderParameterBuffer()
 {
     return m_transparentDrawDataRenderParameterBuffer;
+}
+
+graphics::PDispatchComputeIndirectCommandBuffer& RenderPipeLine::clusterLocalLightsCommandBuffer()
+{
+    return m_clusterLocalLightsCommandBuffer;
 }
 
 graphics::PDispatchComputeIndirectCommandBuffer& RenderPipeLine::shadowDataCullCommandBuffer()
@@ -220,7 +232,9 @@ std::shared_ptr<RenderPipeLine> RenderPipeLine::create(
     passes.push_back(std::make_shared<RenderDrawDataPass>(programsManager, result));
     passes.push_back(std::make_shared<SimplePass>(result, sort));
     passes.push_back(std::make_shared<BuildClusterPass>(programsManager, result));
-    passes.push_back(std::make_shared<ClusterLightPass>(programsManager, result));
+    passes.push_back(std::make_shared<ClusterGlobalLightPass>(programsManager, result));
+    passes.push_back(std::make_shared<PrepareClusterLocalLightsCommandPass>(programsManager, result));
+    passes.push_back(std::make_shared<ClusterLocalLightPass>(programsManager, result));
     passes.push_back(std::make_shared<PrepareShadowDataCullCommnadPass>(programsManager, result));
     passes.push_back(std::make_shared<PrepareShadowMapBlurCommandsPass>(programsManager, result));
     passes.push_back(std::make_shared<CullShadowDataPass>(programsManager, result));
@@ -246,6 +260,7 @@ RenderPipeLine::RenderPipeLine(
     m_countersBuffer = CountersBuffer::element_type::create();
     m_cameraBuffer = CameraBuffer::element_type::create();
     m_clusterNodesBuffer = ClusterNodesBuffer::element_type::create();
+    m_clusterLocalLightsBuffer = ClusterLocalLightsBuffer::element_type::create();
     m_lightNodesBuffer = LightNodesBuffer::element_type::create();
     m_skeletalAnimatedDataToUpdateBuffer = SkeletalAnimatedDataToUpdateBuffer::element_type::create();
     m_shadowsToUpdateBuffer = ShadowsToUpdateBuffer::element_type::create();
@@ -259,6 +274,7 @@ RenderPipeLine::RenderPipeLine(
     m_transparentDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
         m_countersBuffer->buffer(), offsetof(CountersDescription, transparentDrawDataRenderCommandsCount),
         sizeof(CountersDescription::transparentDrawDataRenderCommandsCount));
+    m_clusterLocalLightsCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
     m_shadowDataCullCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
     m_shadowMapBlurCommandsBuffer =
         graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({graphics::DrawArraysIndirectCommand()});

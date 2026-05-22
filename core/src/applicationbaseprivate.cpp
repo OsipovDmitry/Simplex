@@ -7,7 +7,8 @@ namespace core
 
 std::unique_ptr<ApplicationBase> ApplicationBasePrivate::s_instance;
 
-ApplicationBasePrivate::ApplicationBasePrivate(const std::string &name,
+ApplicationBasePrivate::ApplicationBasePrivate(
+    const std::string& name,
     ApplicationTimeCallback timeCallback,
     ApplicationPollEventsCallback pollEventsCallback)
     : m_name(name)
@@ -18,19 +19,21 @@ ApplicationBasePrivate::ApplicationBasePrivate(const std::string &name,
     , m_lastUpdateTime(0u)
     , m_lastFPSTime(0u)
     , m_FPSCounter(0u)
-{}
+    , m_FPS(0u)
+{
+}
 
-std::string &ApplicationBasePrivate::name()
+std::string& ApplicationBasePrivate::name()
 {
     return m_name;
 }
 
-debug::Information &ApplicationBasePrivate::debugInformation()
+debug::Information& ApplicationBasePrivate::debugInformation()
 {
     return m_debugInformation;
 }
 
-std::list<std::shared_ptr<IDevice>> &ApplicationBasePrivate::devices()
+std::list<std::shared_ptr<IDevice>>& ApplicationBasePrivate::devices()
 {
     return m_devices;
 }
@@ -60,6 +63,11 @@ uint32_t& ApplicationBasePrivate::FPSCounter()
     return m_FPSCounter;
 }
 
+uint32_t& ApplicationBasePrivate::FPS()
+{
+    return m_FPS;
+}
+
 ApplicationTimeCallback& ApplicationBasePrivate::timeCallback()
 {
     return m_timeCallback;
@@ -80,5 +88,5 @@ std::unique_ptr<ApplicationBase>& ApplicationBasePrivate::instance()
     return s_instance;
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

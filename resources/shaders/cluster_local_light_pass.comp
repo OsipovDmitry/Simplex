@@ -1,0 +1,73 @@
+layout (local_size_x = 32, local_size_y = 16, local_size_z = 1) in;
+
+#include<camera.glsl>
+#include<cluster_local_light.glsl>
+#include<cluster_node.glsl>
+#include<counters.glsl>
+#include<light.glsl>
+#include<light_node.glsl>
+
+#include<math/bounding_box.glsl>
+#include<math/classifications.glsl>
+#include<math/pyramid.glsl>
+#include<math/sphere.glsl>
+#include<math/transform.glsl>
+
+#define SUPER_FAST_SPOT_LIGHT_CULLING_ALGORITHM 0
+#define FAST_SPOT_LIGHT_CULLING_ALGORITHM 1
+#define CORRECT_SPOT_LIGHT_CULLING_ALGORITHM 2
+
+#ifndef SPOT_LIGHT_CULLING_ALGORITHM
+	#define SPOT_LIGHT_CULLING_ALGORITHM SUPER_FAST_SPOT_LIGHT_CULLING_ALGORITHM
+#endif
+
+void addLightToCluster(in uint clusterNodeID, in uint lightID)
+{
+	const uint lightNodeID = countersGenerateLightNodeID();
+	const uint nextLightNodeID = clusterNodeSetFirstLightNodeID(clusterNodeID, lightNodeID);
+	lightNodeInitialize(lightNodeID, lightID, nextLightNodeID);
+}
+
+void main(void)
+{
+	if (all(lessThan(gl_GlobalInvocationID, uvec3(cameraClusterTotalSize(), countersClusterLocalLightsCount(), 1u))))
+	{
+		const uint clusterNodeID = gl_GlobalInvocationID.x; 
+		const uint clusterLocalLightID = gl_GlobalInvocationID.y;
+		const uint lightID = clusterLocalLightLightID(clusterLocalLightID);
+		const uint typeID = lightTypeID(lightID);
+			
+		if (typeID == PointLightTypeID)
+		{
+			const float outerRadius = pointLightRadiuses(lightID)[1u];
+			const Sphere sphere = transformSphere(
+				transformMult(cameraViewTransform(), lightTransform(lightID)),
+				makeSphere(vec3(0.0f), outerRadius));
+				
+			const bool isCollided = sphereVsBoundingBox(sphere, clusterNodeBoundingBox(clusterNodeID));
+			if (isCollided)
+				addLightToCluster(clusterNodeID, lightID);
+		}
+		else if (typeID == SpotLightTypeID)
+		{
+			const float outerRadius = spotLightRadiuses(lightID)[1u];
+			const float outerHalfAngle = spotLightHalfAngles(lightID)[1u];
+			const Pyramid pyramid = transformPyramid(
+				transformMult(cameraViewTransform(), lightTransform(lightID)),
+				makePyramid(makeIdentityQuat(), vec3(0.0f), outerRadius, outerHalfAngle));
+			
+			#if (SPOT_LIGHT_CULLING_ALGORITHM == SUPER_FAST_SPOT_LIGHT_CULLING_ALGORITHM)
+				const bool isCollided = pyramidVsBoundingBoxSuperFast(pyramid, clusterNodeBoundingBox(clusterNodeID));
+			#elif (SPOT_LIGHT_CULLING_ALGORITHM == FAST_SPOT_LIGHT_CULLING_ALGORITHM)
+				const bool isCollided = pyramidVsBoundingBoxFast(pyramid, clusterNodeBoundingBox(clusterNodeID));
+			#elif (SPOT_LIGHT_CULLING_ALGORITHM == CORRECT_SPOT_LIGHT_CULLING_ALGORITHM)
+				const bool isCollided = pyramidVsBoundingBox(pyramid, clusterNodeBoundingBox(clusterNodeID));
+			#else
+				error!!!
+			#endif
+		
+			if (isCollided)
+				addLightToCluster(clusterNodeID, lightID);
+		}
+	}
+}

@@ -183,10 +183,20 @@ public:
 
     std::weak_ptr<const Mesh>& mesh();
     utils::IDsGenerator::value_type ID() const;
+    uint32_t verticesDataOffset() const;
+    uint32_t verticesDataSize() const;
+    uint32_t elementsDataOffset() const;
+    uint32_t elementsDataSize() const;
+
+    void updateOffsetsAndSizes(uint32_t, uint32_t, uint32_t, uint32_t);
 
 private:
     std::weak_ptr<const Mesh> m_mesh;
-    utils::IDsGenerator::value_type m_ID;
+    utils::IDsGenerator::value_type m_ID = utils::IDsGenerator::last();
+    uint32_t m_verticesDataOffset = utils::IDsGenerator::last();
+    uint32_t m_verticesDataSize = 0u;
+    uint32_t m_elementsDataOffset = utils::IDsGenerator::last();
+    uint32_t m_elementsDataSize = 0u;
 };
 
 class MaterialMapHandler : public ResourceHandler
@@ -201,7 +211,7 @@ public:
 
 private:
     std::weak_ptr<const MaterialMap> m_materialMap;
-    utils::IDsGenerator::value_type m_ID;
+    utils::IDsGenerator::value_type m_ID = utils::IDsGenerator::last();
 };
 
 class MaterialHandler : public ResourceHandler
@@ -216,7 +226,7 @@ public:
 
 private:
     std::weak_ptr<const Material> m_material;
-    utils::IDsGenerator::value_type m_ID;
+    utils::IDsGenerator::value_type m_ID = utils::IDsGenerator::last();
 };
 
 class DrawableHandler : public ResourceHandler
@@ -231,7 +241,7 @@ public:
 
 private:
     std::weak_ptr<const Drawable> m_drawable;
-    utils::IDsGenerator::value_type m_ID;
+    utils::IDsGenerator::value_type m_ID = utils::IDsGenerator::last();
 };
 
 class DrawDataHandler : public ResourceHandler
@@ -244,7 +254,7 @@ public:
     size_t ID() const;
 
 private:
-    size_t m_ID;
+    size_t m_ID = utils::IDsGenerator::last();
 };
 
 class BackgroundHandler : public ResourceHandler
@@ -269,10 +279,16 @@ public:
 
     std::weak_ptr<const Shadow>& shadow();
     utils::IDsGenerator::value_type ID() const;
+    uint32_t shadowTransformsDataOffset() const;
+    const std::vector<std::pair<uint32_t, uint32_t>>& layerPackerIDsAndPackerItemIDs() const;
+
+    void updateOffsetAndIDs(uint32_t, const std::vector<std::pair<uint32_t, uint32_t>>&);
 
 private:
     std::weak_ptr<const Shadow> m_shadow;
-    utils::IDsGenerator::value_type m_ID;
+    utils::IDsGenerator::value_type m_ID = utils::IDsGenerator::last();
+    uint32_t m_shadowTransformsDataOffset = utils::IDsGenerator::last();
+    std::vector<std::pair<uint32_t, uint32_t>> m_layerPackerIDsAndPackerItemIDs;
 };
 
 class LightHandler : public ResourceHandler
@@ -284,7 +300,7 @@ public:
     size_t ID() const;
 
 private:
-    size_t m_ID;
+    size_t m_ID = utils::IDsGenerator::last();
 };
 
 class SkeletonHandler : public ResourceHandler
@@ -296,10 +312,16 @@ public:
 
     std::weak_ptr<const Skeleton>& skeleton();
     utils::IDsGenerator::value_type ID() const;
+    uint32_t dataOffset() const;
+    uint32_t dataSize() const;
+
+    void updateOffsetAndSize(uint32_t, uint32_t);
 
 private:
     std::weak_ptr<const Skeleton> m_skeleton;
-    utils::IDsGenerator::value_type m_ID;
+    utils::IDsGenerator::value_type m_ID = utils::IDsGenerator::last();
+    uint32_t m_dataOffset = utils::IDsGenerator::last();
+    uint32_t m_dataSize = 0u;
 };
 
 class SkeletalAnimatedDataHandler : public ResourceHandler
@@ -310,9 +332,15 @@ public:
     ~SkeletalAnimatedDataHandler() override;
 
     size_t ID() const;
+    uint32_t bonesTransformsDataOffset() const;
+    uint32_t bonesTransformsDataSize() const;
+
+    void updateOffsetAndSize(uint32_t, uint32_t);
 
 private:
-    size_t m_ID;
+    size_t m_ID = utils::IDsGenerator::last();
+    uint32_t m_bonesTransformsDataOffset = utils::IDsGenerator::last();
+    uint32_t m_bonesTransformsDataSize = 0u;
 };
 
 class SceneData : public StateSet, public std::enable_shared_from_this<SceneData>
@@ -365,11 +393,9 @@ public:
     struct AddShadowTransformsDataResult
     {
         uint32_t shadowTransformsDataOffset = utils::IDsGenerator::last();
+        std::vector<std::pair<uint32_t, uint32_t>> layerPackerIDsAndPackerItemIDs;
     };
-    AddShadowTransformsDataResult addShadowTransformsData(
-        uint32_t,
-        const std::array<glm::uvec3, 6u>&,
-        const std::array<utils::RectPacker::ItemID, 6u>&);
+    AddShadowTransformsDataResult addShadowTransformsData(const std::vector<std::pair<glm::uvec3, utils::RectPacker::ItemID>>&);
     void removeShadowTransformsData(uint32_t, uint32_t);
 
     struct AddTextureHandleResult
@@ -392,19 +418,16 @@ public:
 
     std::shared_ptr<MeshHandler> addMesh(const std::shared_ptr<const Mesh>&);
     void removeMesh(const std::shared_ptr<const Mesh>&);
-    void onMeshChanged(utils::IDsGenerator::value_type, const std::shared_ptr<const utils::Mesh>&, const utils::BoundingBox&);
+    void onMeshChanged(MeshHandler&, const std::shared_ptr<const utils::Mesh>&, const utils::BoundingBox&);
 
     std::shared_ptr<MaterialMapHandler> addMaterialMap(const std::shared_ptr<const MaterialMap>&);
     void removeMaterialMap(const std::shared_ptr<const MaterialMap>&);
-    void onMaterialMapChanged(
-        utils::IDsGenerator::value_type,
-        const std::filesystem::path&,
-        const std::shared_ptr<const utils::Image>&);
+    void onMaterialMapChanged(MaterialMapHandler&, const std::filesystem::path&, const std::shared_ptr<const utils::Image>&);
 
     std::shared_ptr<MaterialHandler> addMaterial(const std::shared_ptr<const Material>&);
     void removeMaterial(const std::shared_ptr<const Material>&);
     void onMaterialChanged(
-        utils::IDsGenerator::value_type,
+        MaterialHandler&,
         const glm::vec4& baseColor,
         const glm::vec3& emission,
         float roughness,
@@ -427,10 +450,7 @@ public:
 
     std::shared_ptr<DrawableHandler> addDrawable(const std::shared_ptr<const Drawable>&);
     void removeDrawable(const std::shared_ptr<const Drawable>&);
-    void onDrawableChanged(
-        utils::IDsGenerator::value_type,
-        const std::shared_ptr<const Mesh>&,
-        const std::shared_ptr<const Material>&);
+    void onDrawableChanged(DrawableHandler&, const std::shared_ptr<const Mesh>&, const std::shared_ptr<const Material>&);
 
     void setBackground(const std::shared_ptr<const Background>&);
     void removeBackground(const std::shared_ptr<const Background>&);
@@ -438,11 +458,7 @@ public:
 
     std::shared_ptr<ShadowHandler> addShadow(const std::shared_ptr<const Shadow>&);
     void removeShadow(const std::shared_ptr<const Shadow>&);
-    void onShadowChanged(
-        utils::IDsGenerator::value_type ID,
-        uint32_t mapSize,
-        const utils::Range& cullPlaneLimits,
-        uint32_t layersCount);
+    void onShadowChanged(ShadowHandler&, uint32_t mapSize, const utils::Range& cullPlaneLimits, uint32_t layersCount);
 
     std::shared_ptr<LightHandler> addPointLight(
         const utils::Transform&,
@@ -451,7 +467,7 @@ public:
         const glm::vec2&,
         const std::shared_ptr<const Shadow>&);
     void onPointLightChanged(
-        utils::IDsGenerator::value_type,
+        LightHandler&,
         const utils::Transform&,
         bool,
         const glm::vec3&,
@@ -466,7 +482,7 @@ public:
         const glm::vec2&,
         const std::shared_ptr<const Shadow>&);
     void onSpotLightChanged(
-        utils::IDsGenerator::value_type,
+        LightHandler&,
         const utils::Transform&,
         bool,
         const glm::vec3&,
@@ -480,7 +496,7 @@ public:
         const glm::vec3&,
         const std::shared_ptr<const Shadow>&);
     void onDirectionalLightChanged(
-        utils::IDsGenerator::value_type,
+        LightHandler&,
         const utils::Transform&,
         bool,
         const glm::vec3&,
@@ -494,7 +510,7 @@ public:
         const std::shared_ptr<const MaterialMap>&,
         float);
     void onImageBasedLightChanged(
-        utils::IDsGenerator::value_type,
+        LightHandler&,
         const utils::Transform&,
         bool,
         const std::shared_ptr<const MaterialMap>&,
@@ -503,14 +519,14 @@ public:
         float);
 
     std::shared_ptr<LightHandler> addAmbientLight(bool, const glm::vec3&);
-    void onAmbientLightChanged(utils::IDsGenerator::value_type, bool, const glm::vec3&);
+    void onAmbientLightChanged(LightHandler&, bool, const glm::vec3&);
 
-    void removeLight(utils::IDsGenerator::value_type);
+    void removeLight(LightHandler&);
 
     std::shared_ptr<SkeletonHandler> addSkeleton(const std::shared_ptr<const Skeleton>&);
     void removeSkeleton(const std::shared_ptr<const Skeleton>&);
     void onSkeletonChanged(
-        utils::IDsGenerator::value_type,
+        SkeletonHandler&,
         const std::vector<Bone>&,
         uint32_t,
         const std::map<std::string, std::shared_ptr<Animation>>&);
@@ -519,16 +535,16 @@ public:
         const std::shared_ptr<const Drawable>&,
         const utils::Transform&,
         utils::IDsGenerator::value_type);
-    void removeDrawData(utils::IDsGenerator::value_type);
+    void removeDrawData(DrawDataHandler&);
     void onDrawDataChanged(
-        utils::IDsGenerator::value_type,
+        DrawDataHandler&,
         const std::shared_ptr<const Drawable>&,
         const utils::Transform&,
         utils::IDsGenerator::value_type);
 
     std::shared_ptr<SkeletalAnimatedDataHandler> addSkeletalAnimatedData(const std::shared_ptr<Skeleton>&, const std::string&);
-    void removeSkeletalAnimatedData(utils::IDsGenerator::value_type);
-    void onSkeletalAnimatedDataChanged(utils::IDsGenerator::value_type, const std::shared_ptr<Skeleton>&, const std::string&);
+    void removeSkeletalAnimatedData(SkeletalAnimatedDataHandler&);
+    void onSkeletalAnimatedDataChanged(SkeletalAnimatedDataHandler&, const std::shared_ptr<Skeleton>&, const std::string&);
 
     size_t drawDataCount() const;
     size_t skeletalAnimatedDataCount() const;
@@ -544,7 +560,7 @@ public:
 
 private:
     std::shared_ptr<LightHandler> addLight();
-    void onLightChanged(utils::IDsGenerator::value_type, const LightDescription&);
+    void onLightChanged(LightHandler&, const LightDescription&);
 
     static bool isMaterialTransparent(
         const glm::vec4& baseColor,

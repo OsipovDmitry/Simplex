@@ -24,7 +24,7 @@ public:
 
 private:
     std::shared_ptr<LightHandler> createLightInSceneData(SceneData&) const override;
-    void updateLightInSceneData(SceneData&, utils::IDsGeneratorT<size_t>::value_type) const override;
+    void updateLightInSceneData(LightHandler&) const override;
 
     std::shared_ptr<MaterialMap> m_BRDFLutMap;
     std::shared_ptr<MaterialMap> m_diffuseMap;

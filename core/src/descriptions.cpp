@@ -124,12 +124,11 @@ GBufferDescription GBufferDescription::make(
 MeshDescription MeshDescription::makeEmpty()
 {
     return make(
-        utils::BoundingBox::empty(), 0u, 0u, utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0u, 0u, 0u, 0u, false, 0u);
+        utils::BoundingBox::empty(), 0u, utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0u, 0u, 0u, 0u, false, 0u);
 }
 
 MeshDescription MeshDescription::make(
     const utils::BoundingBox& bb,
-    uint32_t verticesDataSize,
     uint32_t elementsDataSize,
     uint32_t verticesDataOffset,
     uint32_t elementsDataOffset,
@@ -148,7 +147,7 @@ MeshDescription MeshDescription::make(
     flags |= ((hasTangent ? 1u : 0u) & 0x1u) << 9u;
     flags |= (numColorComponents & 0x7u) << 10u;
 
-    return {BoundingBoxDescription::make(bb), verticesDataSize, elementsDataSize, verticesDataOffset, elementsDataOffset, flags};
+    return {BoundingBoxDescription::make(bb), elementsDataSize, verticesDataOffset, elementsDataOffset, flags};
 }
 
 MapDescription MapDescription::makeEmpty()
@@ -244,27 +243,15 @@ ShadowTransformsDataDescription ShadowTransformsDataDescription::make(
     const utils::Transform& viewTransform,
     const utils::Range& ZRange,
     const glm::mat4x4& projectionMatrix,
-    const glm::uvec3& mapCoords,
-    uint32_t packerLayerID)
+    const glm::uvec3& mapCoords)
 {
     return {
-        TransformDescription::make(viewTransform), RangeDescription::make(ZRange), projectionMatrix,
-        glm::uvec4(mapCoords, packerLayerID)};
+        TransformDescription::make(viewTransform), RangeDescription::make(ZRange), projectionMatrix, glm::uvec4(mapCoords, 0u)};
 }
 
-ShadowTransformsDataDescription ShadowTransformsDataDescription::make(const glm::uvec3& mapCoords, uint32_t packerLayerID)
+ShadowTransformsDataDescription ShadowTransformsDataDescription::make(const glm::uvec3& mapCoords)
 {
-    return make(utils::Transform::makeIdentity(), utils::Range(), glm::mat4x4(1.f), mapCoords, packerLayerID);
-}
-
-glm::uvec3 ShadowTransformsDataDescription::mapCoords(const ShadowTransformsDataDescription& desc)
-{
-    return glm::uvec3(desc.mapCoordsAndPackerItemID);
-}
-
-uint32_t ShadowTransformsDataDescription::packerItemID(const ShadowTransformsDataDescription& desc)
-{
-    return desc.mapCoordsAndPackerItemID[3u];
+    return make(utils::Transform::makeIdentity(), utils::Range(), glm::mat4x4(1.f), mapCoords);
 }
 
 BackgroundDescription BackgroundDescription::make(
@@ -381,12 +368,12 @@ LightDescription LightDescription::makeAmbient(bool isEnabled, const glm::vec3& 
 
 SkeletonDescription SkeletonDescription::makeEmpty()
 {
-    return make(utils::IDsGenerator::last(), 0u);
+    return make(utils::IDsGenerator::last());
 }
 
-SkeletonDescription SkeletonDescription::make(uint32_t dataOffset, uint32_t dataSize)
+SkeletonDescription SkeletonDescription::make(uint32_t dataOffset)
 {
-    return {dataOffset, dataSize};
+    return {dataOffset};
 }
 
 ShadowMapsDescription ShadowMapsDescription::makeEmpty()
@@ -406,17 +393,16 @@ ShadowMapsDescription ShadowMapsDescription::make(
 
 SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::makeEmpty()
 {
-    return make(utils::IDsGenerator::last(), utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0u, 0u);
+    return make(utils::IDsGenerator::last(), utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0u);
 }
 
 SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::make(
     uint32_t skeletonID,
     uint32_t currentAnimationID,
     uint32_t bonesTransformsDataOffset,
-    uint32_t bonesTransformsDataSize,
     uint32_t lastUpdateTime)
 {
-    return {skeletonID, currentAnimationID, bonesTransformsDataOffset, bonesTransformsDataSize, lastUpdateTime};
+    return {skeletonID, currentAnimationID, bonesTransformsDataOffset, lastUpdateTime};
 }
 
 } // namespace core

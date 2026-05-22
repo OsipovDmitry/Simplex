@@ -5,7 +5,7 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 #include<render_info.glsl>
 #include<skeletal_animated_data.glsl>
 #include<skeletal_animated_data_to_update.glsl>
-#include<skeletons.glsl>
+#include<skeleton.glsl>
 
 struct BoneInfo
 {

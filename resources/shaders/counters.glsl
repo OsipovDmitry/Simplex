@@ -8,6 +8,7 @@ void countersReset()
 {
     counters.ZRange = uvec2(floatBitsToUint(FLT_MAX), floatBitsToUint(0.0f));
     counters.firstGlobalLightNodeID = 0xFFFFFFFFu;
+	counters.clusterLocalLightsCount = 0u;
     counters.lightNodesCount = 0u;
 	counters.skeletalAnimatedDataToUpdateCount = 0u;
     counters.shadowsToUpdateCount = 0u;
@@ -23,6 +24,12 @@ Range countersZRange()
 	return makeRange(uintBitsToFloat(counters.ZRange[0u]), uintBitsToFloat(counters.ZRange[1u]));
 }
 
+void countersExpandZRange(in Range nearFar)
+{
+	atomicMin(counters.ZRange[0u], floatBitsToUint(rangeStart(nearFar)));
+	atomicMax(counters.ZRange[1u], floatBitsToUint(rangeEnd(nearFar)));
+}
+
 uint countersFirstGlobalLightNodeID()
 {
 	return counters.firstGlobalLightNodeID;
@@ -33,15 +40,19 @@ uint countersSetFirstGlobalLightNodeID(uint lightNodeID)
 	return atomicExchange(counters.firstGlobalLightNodeID, lightNodeID);
 }
 
+uint countersClusterLocalLightsCount()
+{
+	return counters.clusterLocalLightsCount;
+}
+
+uint countersGenerateClusterLocalLightID()
+{
+	return atomicAdd(counters.clusterLocalLightsCount, 1u);
+}
+
 uint countersGenerateLightNodeID()
 {
 	return atomicAdd(counters.lightNodesCount, 1u);
-}
-
-void countersExpandZRange(in Range nearFar)
-{
-	atomicMin(counters.ZRange[0u], floatBitsToUint(rangeStart(nearFar)));
-	atomicMax(counters.ZRange[1u], floatBitsToUint(rangeEnd(nearFar)));
 }
 
 uint countersSkeletalAnimatedDataToUpdateCount()

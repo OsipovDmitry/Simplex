@@ -65,7 +65,7 @@ void SkeletonPrivate::onChanged()
 {
     for (auto& handler : m_handlers)
         if (auto sceneData = handler->sceneData().lock())
-            sceneData->onSkeletonChanged(handler->ID(), m_bones, m_rootBoneID, m_animations);
+            sceneData->onSkeletonChanged(*handler, m_bones, m_rootBoneID, m_animations);
 }
 
 } // namespace core

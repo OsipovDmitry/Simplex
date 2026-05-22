@@ -4,7 +4,6 @@
 #include <utils/meshpainter.h>
 #include <utils/orientedboundingbox.h>
 
-#include <core/background.h>
 #include <core/cameranode.h>
 #include <core/debuginformation.h>
 #include <core/drawablenode.h>
@@ -21,8 +20,6 @@
 #include <core/texturesloader.h>
 #include <core/uniform.h>
 
-#include "backgroundprivate.h"
-#include "blur.h"
 #include "cameranodeprivate.h"
 #include "geometrybuffer.h"
 #include "graphicsengineprivate.h"

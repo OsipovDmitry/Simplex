@@ -173,11 +173,45 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
-class ClusterLightPass : public RenderPass
+class ClusterGlobalLightPass : public RenderPass
 {
 public:
-    ClusterLightPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~ClusterLightPass() override;
+    ClusterGlobalLightPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~ClusterGlobalLightPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+};
+
+class PrepareClusterLocalLightsCommandPass : public RenderPass
+{
+public:
+    PrepareClusterLocalLightsCommandPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~PrepareClusterLocalLightsCommandPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+};
+
+class ClusterLocalLightPass : public RenderPass
+{
+public:
+    ClusterLocalLightPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~ClusterLocalLightPass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,

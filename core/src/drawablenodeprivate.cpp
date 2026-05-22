@@ -96,7 +96,7 @@ void DrawableNodePrivate::changeDrawDataInSceneData()
     for (const auto& handler : m_handlers)
     {
         if (auto sceneData = handler.second->sceneData().lock())
-            sceneData->onDrawDataChanged(handler.second->ID(), handler.first, globalTranform, skeletalAnimatedDataID(sceneData));
+            sceneData->onDrawDataChanged(*(handler.second), handler.first, globalTranform, skeletalAnimatedDataID(sceneData));
     }
 }
 

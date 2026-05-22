@@ -63,8 +63,6 @@ MeshHandler::MeshHandler(
 
 MeshHandler::MeshHandler(const std::weak_ptr<SceneData>& sceneData)
     : ResourceHandler(sceneData)
-    , m_mesh()
-    , m_ID(utils::IDsGenerator::last())
 {
 }
 
@@ -84,6 +82,38 @@ utils::IDsGenerator::value_type MeshHandler::ID() const
     return m_ID;
 }
 
+uint32_t MeshHandler::verticesDataOffset() const
+{
+    return m_verticesDataOffset;
+}
+
+uint32_t MeshHandler::verticesDataSize() const
+{
+    return m_verticesDataSize;
+}
+
+uint32_t MeshHandler::elementsDataOffset() const
+{
+    return m_elementsDataOffset;
+}
+
+uint32_t MeshHandler::elementsDataSize() const
+{
+    return m_elementsDataSize;
+}
+
+void MeshHandler::updateOffsetsAndSizes(
+    uint32_t verticesDataOffset,
+    uint32_t verticesDataSize,
+    uint32_t elementsDataOffset,
+    uint32_t elementsDataSize)
+{
+    m_verticesDataOffset = verticesDataOffset;
+    m_verticesDataSize = verticesDataSize;
+    m_elementsDataOffset = elementsDataOffset;
+    m_elementsDataSize = elementsDataSize;
+}
+
 MaterialMapHandler::MaterialMapHandler(
     const std::weak_ptr<SceneData>& sceneData,
     const std::weak_ptr<const MaterialMap>& materialMap,
@@ -96,7 +126,6 @@ MaterialMapHandler::MaterialMapHandler(
 
 MaterialMapHandler::MaterialMapHandler(const std::weak_ptr<SceneData>& sceneData)
     : ResourceHandler(sceneData)
-    , m_ID(utils::IDsGenerator::last())
 {
 }
 
@@ -128,7 +157,6 @@ MaterialHandler::MaterialHandler(
 
 MaterialHandler::MaterialHandler(const std::weak_ptr<SceneData>& sceneData)
     : ResourceHandler(sceneData)
-    , m_ID(utils::IDsGenerator::last())
 {
 }
 
@@ -160,7 +188,6 @@ DrawableHandler::DrawableHandler(
 
 DrawableHandler::DrawableHandler(const std::weak_ptr<SceneData>& sceneData)
     : ResourceHandler(sceneData)
-    , m_ID(utils::IDsGenerator::last())
 {
 }
 
@@ -188,13 +215,12 @@ DrawDataHandler::DrawDataHandler(const std::weak_ptr<SceneData>& sceneData, size
 
 DrawDataHandler::DrawDataHandler(const std::weak_ptr<SceneData>& sceneData)
     : ResourceHandler(sceneData)
-    , m_ID(utils::IDsGeneratorT<size_t>::last())
 {
 }
 
 DrawDataHandler::~DrawDataHandler()
 {
-    if (auto sceneData = m_sceneData.lock()) sceneData->removeDrawData(m_ID);
+    if (auto sceneData = m_sceneData.lock()) sceneData->removeDrawData(*this);
 }
 
 size_t DrawDataHandler::ID() const
@@ -236,7 +262,6 @@ ShadowHandler::ShadowHandler(
 
 ShadowHandler::ShadowHandler(const std::weak_ptr<SceneData>& sceneData)
     : ResourceHandler(sceneData)
-    , m_ID(utils::IDsGenerator::last())
 {
 }
 
@@ -256,6 +281,24 @@ utils::IDsGenerator::value_type ShadowHandler::ID() const
     return m_ID;
 }
 
+uint32_t ShadowHandler::shadowTransformsDataOffset() const
+{
+    return m_shadowTransformsDataOffset;
+}
+
+const std::vector<std::pair<uint32_t, uint32_t>>& ShadowHandler::layerPackerIDsAndPackerItemIDs() const
+{
+    return m_layerPackerIDsAndPackerItemIDs;
+}
+
+void ShadowHandler::updateOffsetAndIDs(
+    uint32_t shadowTransformsDataOffset,
+    const std::vector<std::pair<uint32_t, uint32_t>>& layerPackerIDsAndPackerItemIDs)
+{
+    m_shadowTransformsDataOffset = shadowTransformsDataOffset;
+    m_layerPackerIDsAndPackerItemIDs = layerPackerIDsAndPackerItemIDs;
+}
+
 LightHandler::LightHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID)
     : ResourceHandler(sceneData)
     , m_ID(ID)
@@ -264,7 +307,7 @@ LightHandler::LightHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID)
 
 LightHandler::~LightHandler()
 {
-    if (auto sceneData = m_sceneData.lock()) sceneData->removeLight(m_ID);
+    if (auto sceneData = m_sceneData.lock()) sceneData->removeLight(*this);
 }
 
 size_t LightHandler::ID() const
@@ -284,7 +327,6 @@ SkeletonHandler::SkeletonHandler(
 
 SkeletonHandler::SkeletonHandler(const std::weak_ptr<SceneData>& sceneData)
     : ResourceHandler(sceneData)
-    , m_ID(utils::IDsGenerator::last())
 {
 }
 
@@ -304,6 +346,22 @@ utils::IDsGenerator::value_type SkeletonHandler::ID() const
     return m_ID;
 }
 
+uint32_t SkeletonHandler::dataOffset() const
+{
+    return m_dataOffset;
+}
+
+uint32_t SkeletonHandler::dataSize() const
+{
+    return m_dataSize;
+}
+
+void SkeletonHandler::updateOffsetAndSize(uint32_t dataOffset, uint32_t dataSize)
+{
+    m_dataOffset = dataOffset;
+    m_dataSize = dataSize;
+}
+
 SkeletalAnimatedDataHandler::SkeletalAnimatedDataHandler(const std::weak_ptr<SceneData>& sceneData, size_t ID)
     : ResourceHandler(sceneData)
     , m_ID(ID)
@@ -312,18 +370,33 @@ SkeletalAnimatedDataHandler::SkeletalAnimatedDataHandler(const std::weak_ptr<Sce
 
 SkeletalAnimatedDataHandler::SkeletalAnimatedDataHandler(const std::weak_ptr<SceneData>& sceneData)
     : ResourceHandler(sceneData)
-    , m_ID(utils::IDsGenerator::last())
 {
 }
 
 SkeletalAnimatedDataHandler::~SkeletalAnimatedDataHandler()
 {
-    if (auto sceneData = m_sceneData.lock()) sceneData->removeSkeletalAnimatedData(m_ID);
+    if (auto sceneData = m_sceneData.lock()) sceneData->removeSkeletalAnimatedData(*this);
 }
 
 size_t SkeletalAnimatedDataHandler::ID() const
 {
     return m_ID;
+}
+
+uint32_t SkeletalAnimatedDataHandler::bonesTransformsDataOffset() const
+{
+    return m_bonesTransformsDataOffset;
+}
+
+uint32_t SkeletalAnimatedDataHandler::bonesTransformsDataSize() const
+{
+    return m_bonesTransformsDataSize;
+}
+
+void SkeletalAnimatedDataHandler::updateOffsetAndSize(uint32_t bonesTransformsDataOffset, uint32_t bonesTransformsDataSize)
+{
+    m_bonesTransformsDataOffset = bonesTransformsDataOffset;
+    m_bonesTransformsDataSize = bonesTransformsDataSize;
 }
 
 SceneData::SceneData()
@@ -810,20 +883,27 @@ void SceneData::removeBonesTransformsData(uint32_t bonesTransformsDataOffset, ui
 }
 
 SceneData::AddShadowTransformsDataResult SceneData::addShadowTransformsData(
-    uint32_t layersCount,
-    const std::array<glm::uvec3, 6u>& mapsCoords,
-    const std::array<utils::RectPacker::ItemID, 6u>& packersItemIDs)
+    const std::vector<std::pair<glm::uvec3, utils::RectPacker::ItemID>>& layers)
 {
+    const auto layersCount = static_cast<uint32_t>(layers.size());
+
     if (!layersCount) return {};
 
-    std::vector<ShadowTransformsDataDescription> shadowTransformsData(layersCount);
-    for (uint32_t i = 0u; i < layersCount; ++i)
+    std::vector<std::pair<uint32_t, uint32_t>> layerPackerIDsAndPackerItemIDs;
+    layerPackerIDsAndPackerItemIDs.reserve(layersCount);
+
+    std::vector<ShadowTransformsDataDescription> shadowTransformsData;
+    shadowTransformsData.reserve(layersCount);
+
+    for (const auto& [mapsCoords, packerItemID] : layers)
     {
-        shadowTransformsData[i] = ShadowTransformsDataDescription::make(mapsCoords[i], packersItemIDs[i]);
+        shadowTransformsData.push_back(ShadowTransformsDataDescription::make(mapsCoords));
+        layerPackerIDsAndPackerItemIDs.push_back({mapsCoords[2u], packerItemID});
     }
 
     const auto shadowTransformsDataOffset = m_shadowTransformsDataBuffer->allocate(layersCount, shadowTransformsData.data());
-    return {static_cast<uint32_t>(shadowTransformsDataOffset)};
+
+    return {static_cast<uint32_t>(shadowTransformsDataOffset), layerPackerIDsAndPackerItemIDs};
 }
 
 void SceneData::removeShadowTransformsData(uint32_t shadowTransformsDataOffset, uint32_t layersCount)
@@ -989,9 +1069,8 @@ std::shared_ptr<MeshHandler> SceneData::addMesh(const std::shared_ptr<const Mesh
             m_meshesBuffer->resize(static_cast<size_t>(meshID) + 1u);
             m_meshesBuffer->set(meshID, MeshDescription::makeEmpty());
 
-            onMeshChanged(meshID, mesh->mesh(), mesh->boundingBox());
-
             result = std::make_shared<MeshHandler>(weak_from_this(), mesh, meshID);
+            onMeshChanged(*result, mesh->mesh(), mesh->boundingBox());
             meshPrivate.handlers().insert(result);
         }
     }
@@ -1007,23 +1086,18 @@ void SceneData::removeMesh(const std::shared_ptr<const Mesh>& mesh)
     {
         if ((*it)->sceneData().lock() == shared_from_this())
         {
-            const auto meshID = (*it)->ID();
-            onMeshChanged(meshID, nullptr, utils::BoundingBox::empty());
-            m_meshIDsGenerator.clear(meshID);
+            onMeshChanged(*(*it), nullptr, utils::BoundingBox::empty());
+            m_meshIDsGenerator.clear((*it)->ID());
             meshHandlers.erase(it);
             break;
         }
     }
 }
 
-void SceneData::onMeshChanged(
-    utils::IDsGenerator::value_type ID,
-    const std::shared_ptr<const utils::Mesh>& mesh,
-    const utils::BoundingBox& bb)
+void SceneData::onMeshChanged(MeshHandler& handler, const std::shared_ptr<const utils::Mesh>& mesh, const utils::BoundingBox& bb)
 {
-    const auto meshDescription = m_meshesBuffer->get(ID);
-    removeVerticeshData(meshDescription.verticesDataOffset, meshDescription.verticesDataSize);
-    removeElementsData(meshDescription.elementsDataOffset, meshDescription.elementsDataSize);
+    removeVerticeshData(handler.verticesDataOffset(), handler.verticesDataSize());
+    removeElementsData(handler.elementsDataOffset(), handler.elementsDataSize());
 
     AddVerticesDataResult addVerticesDataResult;
     AddElementsDataResult addElementsDataResult;
@@ -1035,12 +1109,16 @@ void SceneData::onMeshChanged(
     }
 
     m_meshesBuffer->set(
-        ID, MeshDescription::make(
-                bb, addVerticesDataResult.verticesDataSize, addElementsDataResult.elementsDataSize,
-                addVerticesDataResult.verticesDataOffset, addElementsDataResult.elementsDataOffset,
-                addVerticesDataResult.positionComponentsCount, addVerticesDataResult.normalComponentsCount,
-                addVerticesDataResult.texCoordsComponentsCount, addVerticesDataResult.bonesCount,
-                addVerticesDataResult.hasTangent, addVerticesDataResult.colorComponentsCount));
+        handler.ID(),
+        MeshDescription::make(
+            bb, addElementsDataResult.elementsDataSize, addVerticesDataResult.verticesDataOffset,
+            addElementsDataResult.elementsDataOffset, addVerticesDataResult.positionComponentsCount,
+            addVerticesDataResult.normalComponentsCount, addVerticesDataResult.texCoordsComponentsCount,
+            addVerticesDataResult.bonesCount, addVerticesDataResult.hasTangent, addVerticesDataResult.colorComponentsCount));
+
+    handler.updateOffsetsAndSizes(
+        addVerticesDataResult.verticesDataOffset, addVerticesDataResult.verticesDataSize,
+        addElementsDataResult.elementsDataOffset, addElementsDataResult.elementsDataSize);
 }
 
 std::shared_ptr<MaterialMapHandler> SceneData::addMaterialMap(const std::shared_ptr<const MaterialMap>& materialMap)
@@ -1072,9 +1150,8 @@ std::shared_ptr<MaterialMapHandler> SceneData::addMaterialMap(const std::shared_
             m_textureHandles.resize(static_cast<size_t>(mapID) + 1u);
             m_textureHandles[mapID] = nullptr;
 
-            onMaterialMapChanged(mapID, materialMap->filesystemPath(), materialMap->image());
-
             result = std::make_shared<MaterialMapHandler>(weak_from_this(), materialMap, mapID);
+            onMaterialMapChanged(*result, materialMap->filesystemPath(), materialMap->image());
             materialMapPrivate.handlers().insert(result);
         }
     }
@@ -1090,9 +1167,8 @@ void SceneData::removeMaterialMap(const std::shared_ptr<const MaterialMap>& mate
     {
         if ((*it)->sceneData().lock() == shared_from_this())
         {
-            const auto mapID = (*it)->ID();
-            onMaterialMapChanged(mapID, std::filesystem::path(), nullptr);
-            m_mapIDsGenerator.clear(mapID);
+            onMaterialMapChanged(*(*it), std::filesystem::path(), nullptr);
+            m_mapIDsGenerator.clear((*it)->ID());
             materialMapHandlers.erase(it);
             break;
         }
@@ -1100,7 +1176,7 @@ void SceneData::removeMaterialMap(const std::shared_ptr<const MaterialMap>& mate
 }
 
 void SceneData::onMaterialMapChanged(
-    utils::IDsGenerator::value_type ID,
+    MaterialMapHandler& handler,
     const std::filesystem::path& path,
     const std::shared_ptr<const utils::Image>& image)
 {
@@ -1131,6 +1207,8 @@ void SceneData::onMaterialMapChanged(
         LOG_CRITICAL << "Textures manager can't be nullptr";
         return;
     }
+
+    const auto ID = handler.ID();
 
     removeTextureHandle(ID);
 
@@ -1170,16 +1248,15 @@ std::shared_ptr<MaterialHandler> SceneData::addMaterial(const std::shared_ptr<co
             m_materialsBuffer->resize(static_cast<size_t>(materialID) + 1u);
             m_materialsBuffer->set(materialID, MaterialDescription::makeEmpty());
 
+            result = std::make_shared<MaterialHandler>(weak_from_this(), material, materialID);
             onMaterialChanged(
-                materialID, material->baseColor(), material->emission(), material->roughness(), material->metalness(),
+                *result, material->baseColor(), material->emission(), material->roughness(), material->metalness(),
                 material->alphaCutoff(), material->materialMap(MaterialMapTarget::BaseColor),
                 material->materialMap(MaterialMapTarget::Opacity), material->materialMap(MaterialMapTarget::Emission),
                 material->materialMap(MaterialMapTarget::Occlusion), material->materialMap(MaterialMapTarget::Roughness),
                 material->materialMap(MaterialMapTarget::Metalness), material->materialMap(MaterialMapTarget::Normal),
                 material->occlusionMapStrength(), material->normalMapScale(), material->ORMSwizzleMask(), material->isLighted(),
                 material->isShadowed(), material->isShadowCasted(), material->isDoubleSided());
-
-            result = std::make_shared<MaterialHandler>(weak_from_this(), material, materialID);
             materialPrivate.handlers().insert(result);
         }
     }
@@ -1194,18 +1271,17 @@ void SceneData::removeMaterial(const std::shared_ptr<const Material>& material)
     for (auto it = materialHandlers.begin(); it != materialHandlers.end(); ++it)
         if ((*it)->sceneData().lock() == shared_from_this())
         {
-            const auto materialID = (*it)->ID();
             onMaterialChanged(
-                materialID, glm::vec4(), glm::vec3(), 0.f, 0.f, 0.f, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
-                nullptr, 0.f, 0.f, glm::u32vec3(), false, false, false, false);
-            m_materialIDsGenerator.clear(materialID);
+                *(*it), glm::vec4(), glm::vec3(), 0.f, 0.f, 0.f, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, nullptr,
+                0.f, 0.f, glm::u32vec3(), false, false, false, false);
+            m_materialIDsGenerator.clear((*it)->ID());
             materialHandlers.erase(it);
             break;
         }
 }
 
 void SceneData::onMaterialChanged(
-    utils::IDsGenerator::value_type ID,
+    MaterialHandler& handler,
     const glm::vec4& baseColor,
     const glm::vec3& emission,
     float roughness,
@@ -1227,12 +1303,13 @@ void SceneData::onMaterialChanged(
     bool isDoubleSided)
 {
     m_materialsBuffer->set(
-        ID, MaterialDescription::make(
-                baseColor, emission, addMaterialMap(baseColorMap)->ID(), addMaterialMap(opacityMap)->ID(),
-                addMaterialMap(emissionMap)->ID(), addMaterialMap(occlusionMap)->ID(), addMaterialMap(roughnessMap)->ID(),
-                addMaterialMap(metalnessMap)->ID(), addMaterialMap(normalMap)->ID(), roughness, metalness, occlusionMapStrength,
-                normalMapScale, ORMSwizzleMask, isLighted, isShadowed, isShadowCasted, isDoubleSided,
-                isMaterialTransparent(baseColor, baseColorMap, opacityMap, alphaCutoff), alphaCutoff));
+        handler.ID(),
+        MaterialDescription::make(
+            baseColor, emission, addMaterialMap(baseColorMap)->ID(), addMaterialMap(opacityMap)->ID(),
+            addMaterialMap(emissionMap)->ID(), addMaterialMap(occlusionMap)->ID(), addMaterialMap(roughnessMap)->ID(),
+            addMaterialMap(metalnessMap)->ID(), addMaterialMap(normalMap)->ID(), roughness, metalness, occlusionMapStrength,
+            normalMapScale, ORMSwizzleMask, isLighted, isShadowed, isShadowCasted, isDoubleSided,
+            isMaterialTransparent(baseColor, baseColorMap, opacityMap, alphaCutoff), alphaCutoff));
 }
 
 std::shared_ptr<DrawableHandler> SceneData::addDrawable(const std::shared_ptr<const Drawable>& drawable)
@@ -1262,9 +1339,8 @@ std::shared_ptr<DrawableHandler> SceneData::addDrawable(const std::shared_ptr<co
             m_drawablesBuffer->resize(static_cast<size_t>(drawableID) + 1u);
             m_drawablesBuffer->set(drawableID, DrawableDescription::makeEmpty());
 
-            onDrawableChanged(drawableID, drawable->mesh(), drawable->material());
-
             result = std::make_shared<DrawableHandler>(weak_from_this(), drawable, drawableID);
+            onDrawableChanged(*result, drawable->mesh(), drawable->material());
             drawablePrivate.handlers().insert(result);
         }
     }
@@ -1280,9 +1356,8 @@ void SceneData::removeDrawable(const std::shared_ptr<const Drawable>& drawable)
     {
         if ((*it)->sceneData().lock() == shared_from_this())
         {
-            const auto drawableID = (*it)->ID();
-            onDrawableChanged(drawableID, nullptr, nullptr);
-            m_drawableIDsGenerator.clear(drawableID);
+            onDrawableChanged(*(*it), nullptr, nullptr);
+            m_drawableIDsGenerator.clear((*it)->ID());
             drawableHandlers.erase(it);
             break;
         }
@@ -1290,11 +1365,11 @@ void SceneData::removeDrawable(const std::shared_ptr<const Drawable>& drawable)
 }
 
 void SceneData::onDrawableChanged(
-    utils::IDsGenerator::value_type ID,
+    DrawableHandler& handler,
     const std::shared_ptr<const Mesh>& mesh,
     const std::shared_ptr<const Material>& material)
 {
-    m_drawablesBuffer->set(ID, DrawableDescription::make(addMesh(mesh)->ID(), addMaterial(material)->ID()));
+    m_drawablesBuffer->set(handler.ID(), DrawableDescription::make(addMesh(mesh)->ID(), addMaterial(material)->ID()));
 }
 
 void SceneData::setBackground(const std::shared_ptr<const Background>& background)
@@ -1365,10 +1440,10 @@ std::shared_ptr<ShadowHandler> SceneData::addShadow(const std::shared_ptr<const 
             m_shadowsBuffer->set(shadowID, ShadowDescription::makeEmpty());
 
             const auto& lightNode = shadow->lightNode();
-            onShadowChanged(
-                shadowID, lightNode.shadowMapSize(), lightNode.shadowCullPlanesLimits(), lightNode.m().shadowLayersCount());
 
             result = std::make_shared<ShadowHandler>(weak_from_this(), shadow, shadowID);
+            onShadowChanged(
+                *result, lightNode.shadowMapSize(), lightNode.shadowCullPlanesLimits(), lightNode.m().shadowLayersCount());
             shadow->handler() = result;
         }
     }
@@ -1381,47 +1456,40 @@ void SceneData::removeShadow(const std::shared_ptr<const Shadow>& shadow)
     auto& shadowHandler = shadow->handler();
     if (shadowHandler && (shadowHandler->sceneData().lock() == shared_from_this()))
     {
-        const auto shadowID = shadowHandler->ID();
-        onShadowChanged(shadowID, 0u, utils::Range(), 0u);
-        m_shadowIDsGenerator.clear(shadowID);
+        onShadowChanged(*shadowHandler, 0u, utils::Range(), 0u);
+        m_shadowIDsGenerator.clear(shadowHandler->ID());
         shadowHandler.reset();
     }
 }
 
 void SceneData::onShadowChanged(
-    utils::IDsGenerator::value_type ID,
+    ShadowHandler& handler,
     uint32_t mapSize,
     const utils::Range& cullPlaneLimits,
     uint32_t layersCount)
 {
-    const auto shadowDescription = m_shadowsBuffer->get(ID);
-    const auto descLayersCount = ShadowDescription::layersCount(shadowDescription);
-    const auto descTransformsDataOffset = shadowDescription.transformsDataOffset;
+    for (const auto& [packerID, packerItemID] : handler.layerPackerIDsAndPackerItemIDs())
+        removeShadowRect(packerID, static_cast<utils::RectPacker::ItemID>(packerItemID));
 
-    for (uint32_t i = 0u; i < descLayersCount; ++i)
-    {
-        auto shadowTransformsDataDescription = m_shadowTransformsDataBuffer->get(descTransformsDataOffset + i);
-        const auto descPackerID = ShadowTransformsDataDescription::mapCoords(shadowTransformsDataDescription)[2u];
-        const auto descPackertemID = ShadowTransformsDataDescription::packerItemID(shadowTransformsDataDescription);
-        removeShadowRect(descPackerID, static_cast<utils::RectPacker::ItemID>(descPackertemID));
-    }
+    removeShadowTransformsData(
+        handler.shadowTransformsDataOffset(), static_cast<uint32_t>(handler.layerPackerIDsAndPackerItemIDs().size()));
 
-    removeShadowTransformsData(shadowDescription.transformsDataOffset, descLayersCount);
-
-    std::array<glm::uvec3, 6u> mapsCoords{};
-    std::array<uint32_t, 6u> packersItemIDs{};
+    std::vector<std::pair<glm::uvec3, utils::RectPacker::ItemID>> layers;
+    layers.reserve(layersCount);
     for (uint32_t i = 0u; i < layersCount; ++i)
     {
         const auto addShadowRectResult = addShadowRect(mapSize);
-        mapsCoords[i] = addShadowRectResult.coords;
-        packersItemIDs[i] = static_cast<uint32_t>(addShadowRectResult.itemID);
+        layers.push_back({addShadowRectResult.coords, addShadowRectResult.itemID});
     }
 
-    auto addShadowTransformsDataResult = addShadowTransformsData(layersCount, mapsCoords, packersItemIDs);
+    auto addShadowTransformsDataResult = addShadowTransformsData(layers);
 
     m_shadowsBuffer->set(
-        ID,
+        handler.ID(),
         ShadowDescription::make(mapSize, cullPlaneLimits, layersCount, addShadowTransformsDataResult.shadowTransformsDataOffset));
+
+    handler.updateOffsetAndIDs(
+        addShadowTransformsDataResult.shadowTransformsDataOffset, addShadowTransformsDataResult.layerPackerIDsAndPackerItemIDs);
 }
 
 std::shared_ptr<LightHandler> SceneData::addPointLight(
@@ -1432,19 +1500,19 @@ std::shared_ptr<LightHandler> SceneData::addPointLight(
     const std::shared_ptr<const Shadow>& shadow)
 {
     auto result = addLight();
-    onPointLightChanged(result->ID(), transform, isLightingEnabled, color, radiuses, shadow);
+    onPointLightChanged(*result, transform, isLightingEnabled, color, radiuses, shadow);
     return result;
 }
 
 void SceneData::onPointLightChanged(
-    utils::IDsGenerator::value_type ID,
+    LightHandler& handler,
     const utils::Transform& transform,
     bool isLightingEnabled,
     const glm::vec3& color,
     const glm::vec2& radiuses,
     const std::shared_ptr<const Shadow>& shadow)
 {
-    onLightChanged(ID, LightDescription::makePoint(transform, isLightingEnabled, color, radiuses, addShadow(shadow)->ID()));
+    onLightChanged(handler, LightDescription::makePoint(transform, isLightingEnabled, color, radiuses, addShadow(shadow)->ID()));
 }
 
 std::shared_ptr<LightHandler> SceneData::addSpotLight(
@@ -1456,12 +1524,12 @@ std::shared_ptr<LightHandler> SceneData::addSpotLight(
     const std::shared_ptr<const Shadow>& shadow)
 {
     auto result = addLight();
-    onSpotLightChanged(result->ID(), transform, isLightingEnabled, color, radiuses, halfAngles, shadow);
+    onSpotLightChanged(*result, transform, isLightingEnabled, color, radiuses, halfAngles, shadow);
     return result;
 }
 
 void SceneData::onSpotLightChanged(
-    utils::IDsGenerator::value_type ID,
+    LightHandler& handler,
     const utils::Transform& transform,
     bool isLightingEnabled,
     const glm::vec3& color,
@@ -1470,7 +1538,7 @@ void SceneData::onSpotLightChanged(
     const std::shared_ptr<const Shadow>& shadow)
 {
     onLightChanged(
-        ID, LightDescription::makeSpot(transform, isLightingEnabled, color, radiuses, halfAngles, addShadow(shadow)->ID()));
+        handler, LightDescription::makeSpot(transform, isLightingEnabled, color, radiuses, halfAngles, addShadow(shadow)->ID()));
 }
 
 std::shared_ptr<LightHandler> SceneData::addDirectionalLight(
@@ -1480,18 +1548,18 @@ std::shared_ptr<LightHandler> SceneData::addDirectionalLight(
     const std::shared_ptr<const Shadow>& shadow)
 {
     auto result = addLight();
-    onDirectionalLightChanged(result->ID(), transform, isLightingEnabled, color, shadow);
+    onDirectionalLightChanged(*result, transform, isLightingEnabled, color, shadow);
     return result;
 }
 
 void SceneData::onDirectionalLightChanged(
-    utils::IDsGenerator::value_type ID,
+    LightHandler& handler,
     const utils::Transform& transform,
     bool isLightingEnabled,
     const glm::vec3& color,
     const std::shared_ptr<const Shadow>& shadow)
 {
-    onLightChanged(ID, LightDescription::makeDirectional(transform, isLightingEnabled, color, addShadow(shadow)->ID()));
+    onLightChanged(handler, LightDescription::makeDirectional(transform, isLightingEnabled, color, addShadow(shadow)->ID()));
 }
 
 std::shared_ptr<LightHandler> SceneData::addImageBasedLight(
@@ -1503,12 +1571,12 @@ std::shared_ptr<LightHandler> SceneData::addImageBasedLight(
     float contribution)
 {
     auto result = addLight();
-    onImageBasedLightChanged(result->ID(), transform, isLightingEnabled, BRDFLutMap, diffuseMap, specularMap, contribution);
+    onImageBasedLightChanged(*result, transform, isLightingEnabled, BRDFLutMap, diffuseMap, specularMap, contribution);
     return result;
 }
 
 void SceneData::onImageBasedLightChanged(
-    utils::IDsGenerator::value_type ID,
+    LightHandler& handler,
     const utils::Transform& transform,
     bool isLightingEnabled,
     const std::shared_ptr<const MaterialMap>& BRDFLutMap,
@@ -1517,27 +1585,27 @@ void SceneData::onImageBasedLightChanged(
     float contribution)
 {
     onLightChanged(
-        ID, LightDescription::makeImageBased(
-                transform, isLightingEnabled, addMaterialMap(BRDFLutMap)->ID(), addMaterialMap(diffuseMap)->ID(),
-                addMaterialMap(specularMap)->ID(), contribution));
+        handler, LightDescription::makeImageBased(
+                     transform, isLightingEnabled, addMaterialMap(BRDFLutMap)->ID(), addMaterialMap(diffuseMap)->ID(),
+                     addMaterialMap(specularMap)->ID(), contribution));
 }
 
 std::shared_ptr<LightHandler> SceneData::addAmbientLight(bool isLightingEnabled, const glm::vec3& color)
 {
     auto result = addLight();
-    onAmbientLightChanged(result->ID(), isLightingEnabled, color);
+    onAmbientLightChanged(*result, isLightingEnabled, color);
     return result;
 }
 
-void SceneData::onAmbientLightChanged(utils::IDsGenerator::value_type ID, bool isLightingEnabled, const glm::vec3& color)
+void SceneData::onAmbientLightChanged(LightHandler& handler, bool isLightingEnabled, const glm::vec3& color)
 {
-    onLightChanged(ID, LightDescription::makeAmbient(isLightingEnabled, color));
+    onLightChanged(handler, LightDescription::makeAmbient(isLightingEnabled, color));
 }
 
-void SceneData::removeLight(utils::IDsGenerator::value_type lightID)
+void SceneData::removeLight(LightHandler& handler)
 {
-    onLightChanged(lightID, LightDescription::makeEmpty());
-    m_lightIDsGenerator.clear(lightID);
+    onLightChanged(handler, LightDescription::makeEmpty());
+    m_lightIDsGenerator.clear(handler.ID());
 }
 
 std::shared_ptr<SkeletonHandler> SceneData::addSkeleton(const std::shared_ptr<const Skeleton>& skeleton)
@@ -1567,9 +1635,8 @@ std::shared_ptr<SkeletonHandler> SceneData::addSkeleton(const std::shared_ptr<co
             m_skeletonsBuffer->resize(static_cast<size_t>(skeletonID) + 1u);
             m_skeletonsBuffer->set(skeletonID, SkeletonDescription::makeEmpty());
 
-            onSkeletonChanged(skeletonID, skeleton->bones(), skeleton->rootBoneID(), skeleton->animations());
-
             result = std::make_shared<SkeletonHandler>(weak_from_this(), skeleton, skeletonID);
+            onSkeletonChanged(*result, skeleton->bones(), skeleton->rootBoneID(), skeleton->animations());
             skeletonPrivate.handlers().insert(result);
         }
     }
@@ -1585,28 +1652,26 @@ void SceneData::removeSkeleton(const std::shared_ptr<const Skeleton>& skeleton)
     {
         if ((*it)->sceneData().lock() == shared_from_this())
         {
-            const auto skeletonID = (*it)->ID();
             onSkeletonChanged(
-                skeletonID, std::vector<Bone>(), utils::IDsGenerator::last(),
-                std::map<std::string, std::shared_ptr<Animation>>());
-            m_skeletonIDsGenerator.clear(skeletonID);
+                *(*it), std::vector<Bone>(), utils::IDsGenerator::last(), std::map<std::string, std::shared_ptr<Animation>>());
+            m_skeletonIDsGenerator.clear((*it)->ID());
+            skeletonHandlers.erase(*it);
             break;
         }
     }
 }
 
 void SceneData::onSkeletonChanged(
-    utils::IDsGenerator::value_type ID,
+    SkeletonHandler& handler,
     const std::vector<Bone>& bones,
     uint32_t rootBoneID,
     const std::map<std::string, std::shared_ptr<Animation>>& animations)
 {
-    const auto skeletonDescription = m_skeletonsBuffer->get(ID);
-    removeSkeletonData(skeletonDescription.dataOffset, skeletonDescription.dataSize);
+    removeSkeletonData(handler.dataOffset(), handler.dataSize());
 
     const auto addSkeletonDataResult = addSkeletonData(bones, rootBoneID, animations);
-    m_skeletonsBuffer->set(
-        ID, SkeletonDescription::make(addSkeletonDataResult.skeletonsDataOffset, addSkeletonDataResult.skeletonsDataSize));
+    m_skeletonsBuffer->set(handler.ID(), SkeletonDescription::make(addSkeletonDataResult.skeletonsDataOffset));
+    handler.updateOffsetAndSize(addSkeletonDataResult.skeletonsDataOffset, addSkeletonDataResult.skeletonsDataSize);
 }
 
 std::shared_ptr<DrawDataHandler> SceneData::addDrawData(
@@ -1626,27 +1691,27 @@ std::shared_ptr<DrawDataHandler> SceneData::addDrawData(
         m_drawDataBuffer->resize(static_cast<size_t>(drawDataID) + 1u);
         m_drawDataBuffer->set(drawDataID, DrawDataDescription::makeEmpty());
 
-        onDrawDataChanged(drawDataID, drawable, transform, skeletalAnimatedDataID);
-
         result = std::make_shared<DrawDataHandler>(weak_from_this(), drawDataID);
+        onDrawDataChanged(*result, drawable, transform, skeletalAnimatedDataID);
     }
 
     return result;
 }
 
-void SceneData::removeDrawData(utils::IDsGenerator::value_type ID)
+void SceneData::removeDrawData(DrawDataHandler& handler)
 {
-    onDrawDataChanged(ID, nullptr, utils::Transform::makeIdentity(), utils::IDsGenerator::last());
-    m_drawDataIDsGenerator.clear(ID);
+    onDrawDataChanged(handler, nullptr, utils::Transform::makeIdentity(), utils::IDsGenerator::last());
+    m_drawDataIDsGenerator.clear(handler.ID());
 }
 
 void SceneData::onDrawDataChanged(
-    utils::IDsGenerator::value_type ID,
+    DrawDataHandler& handler,
     const std::shared_ptr<const Drawable>& drawable,
     const utils::Transform& transform,
     utils::IDsGenerator::value_type skeletalAnimatedDataID)
 {
-    m_drawDataBuffer->set(ID, DrawDataDescription::make(transform, addDrawable(drawable)->ID(), skeletalAnimatedDataID));
+    m_drawDataBuffer->set(
+        handler.ID(), DrawDataDescription::make(transform, addDrawable(drawable)->ID(), skeletalAnimatedDataID));
 }
 
 std::shared_ptr<SkeletalAnimatedDataHandler> SceneData::addSkeletalAnimatedData(
@@ -1665,28 +1730,25 @@ std::shared_ptr<SkeletalAnimatedDataHandler> SceneData::addSkeletalAnimatedData(
         m_skeletalAnimatedDataBuffer->resize(static_cast<size_t>(skeletalAnimatedDataID) + 1u);
         m_skeletalAnimatedDataBuffer->set(skeletalAnimatedDataID, SkeletalAnimatedDataDescription::makeEmpty());
 
-        onSkeletalAnimatedDataChanged(skeletalAnimatedDataID, skeleton, currentAnimation);
-
         result = std::make_shared<SkeletalAnimatedDataHandler>(weak_from_this(), skeletalAnimatedDataID);
+        onSkeletalAnimatedDataChanged(*result, skeleton, currentAnimation);
     }
 
     return result;
 }
 
-void SceneData::removeSkeletalAnimatedData(utils::IDsGenerator::value_type skeletalAnimatedDataID)
+void SceneData::removeSkeletalAnimatedData(SkeletalAnimatedDataHandler& handler)
 {
-    onSkeletalAnimatedDataChanged(skeletalAnimatedDataID, nullptr, std::string());
-    m_skeletalAnimatedDataIDsGenerator.clear(skeletalAnimatedDataID);
+    onSkeletalAnimatedDataChanged(handler, nullptr, std::string());
+    m_skeletalAnimatedDataIDsGenerator.clear(handler.ID());
 }
 
 void SceneData::onSkeletalAnimatedDataChanged(
-    utils::IDsGenerator::value_type skeletalAnimatedDataID,
+    SkeletalAnimatedDataHandler& handler,
     const std::shared_ptr<Skeleton>& skeleton,
     const std::string& currentAnimation)
 {
-    const auto skeletalAnimatedDataDescription = m_skeletalAnimatedDataBuffer->get(skeletalAnimatedDataID);
-    removeBonesTransformsData(
-        skeletalAnimatedDataDescription.bonesTransformsDataOffset, skeletalAnimatedDataDescription.bonesTransformsDataSize);
+    removeBonesTransformsData(handler.bonesTransformsDataOffset(), handler.bonesTransformsDataSize());
 
     AddBonesTransformsDataResult addBonesTransformsDataResult;
     auto currentAnimationID = utils::IDsGenerator::last();
@@ -1701,10 +1763,12 @@ void SceneData::onSkeletalAnimatedDataChanged(
     }
 
     m_skeletalAnimatedDataBuffer->set(
-        skeletalAnimatedDataID,
+        handler.ID(),
         SkeletalAnimatedDataDescription::make(
-            addSkeleton(skeleton)->ID(), currentAnimationID, addBonesTransformsDataResult.bonesTransformsDataOffset,
-            addBonesTransformsDataResult.bonesTransformsDataSize, 0u));
+            addSkeleton(skeleton)->ID(), currentAnimationID, addBonesTransformsDataResult.bonesTransformsDataOffset, 0u));
+
+    handler.updateOffsetAndSize(
+        addBonesTransformsDataResult.bonesTransformsDataOffset, addBonesTransformsDataResult.bonesTransformsDataSize);
 }
 
 size_t SceneData::drawDataCount() const
@@ -1765,9 +1829,9 @@ std::shared_ptr<LightHandler> SceneData::addLight()
     return std::make_shared<LightHandler>(weak_from_this(), lightID);
 }
 
-void SceneData::onLightChanged(utils::IDsGenerator::value_type ID, const LightDescription& lightDescription)
+void SceneData::onLightChanged(LightHandler& handler, const LightDescription& lightDescription)
 {
-    m_lightsBuffer->set(ID, lightDescription);
+    m_lightsBuffer->set(handler.ID(), lightDescription);
 }
 
 bool SceneData::isMaterialTransparent(

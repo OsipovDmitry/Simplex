@@ -34,7 +34,7 @@ void Shadow::onChanged()
         if (auto sceneData = m_handler->sceneData().lock())
         {
             sceneData->onShadowChanged(
-                m_handler->ID(), m_lightNode.shadowMapSize(), m_lightNode.shadowCullPlanesLimits(),
+                *m_handler, m_lightNode.shadowMapSize(), m_lightNode.shadowCullPlanesLimits(),
                 m_lightNode.m().shadowLayersCount());
         }
     }

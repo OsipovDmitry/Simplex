@@ -33,7 +33,10 @@ static const std::filesystem::path RenderOpaqueDrawDataPassFragmentShaderPath =
 static const std::filesystem::path RenderTransparentDrawDataPassFragmentShaderPath =
     "./resources/shaders/render_transparent_draw_data_pass.frag";
 static const std::filesystem::path SortOITNodesPassComputeShaderPath = "./resources/shaders/sort_oit_nodes_pass.comp";
-static const std::filesystem::path ClusterLightPassComputeShaderPath = "./resources/shaders/cluster_light_pass.comp";
+static const std::filesystem::path ClusterGlobalLightPassComputeShaderPath = "./resources/shaders/cluster_global_light_pass.comp";
+static const std::filesystem::path PrepareClusterLocalLightCommandPassComputeShaderPath =
+    "./resources/shaders/prepare_cluster_local_light_command_pass.comp";
+static const std::filesystem::path ClusterLocalLightPassComputeShaderPath = "./resources/shaders/cluster_local_light_pass.comp";
 static const std::filesystem::path PrepareShadowDataCullCommandPassComputeShaderPath =
     "./resources/shaders/prepare_shadow_data_cull_command_pass.comp";
 static const std::filesystem::path PrepareShadowMapBlurCommandsComputeShaderPath =

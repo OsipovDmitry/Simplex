@@ -1,5 +1,6 @@
-#include "scenedata.h"
 #include "drawableprivate.h"
+
+#include "scenedata.h"
 
 namespace simplex
 {
@@ -9,7 +10,8 @@ namespace core
 DrawablePrivate::DrawablePrivate(const std::shared_ptr<const Mesh>& mesh, const std::shared_ptr<const Material>& material)
     : m_mesh(mesh)
     , m_material(material)
-{}
+{
+}
 
 DrawablePrivate::~DrawablePrivate() = default;
 
@@ -31,9 +33,8 @@ std::set<std::shared_ptr<DrawableHandler>>& DrawablePrivate::handlers()
 void DrawablePrivate::onChanged()
 {
     for (auto& handler : m_handlers)
-        if (auto sceneData = handler->sceneData().lock())
-            sceneData->onDrawableChanged(handler->ID(), m_mesh, m_material);
+        if (auto sceneData = handler->sceneData().lock()) sceneData->onDrawableChanged(*handler, m_mesh, m_material);
 }
 
-}
-}
+} // namespace core
+} // namespace simplex

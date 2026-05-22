@@ -203,6 +203,7 @@ const std::string& GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
         {ShaderStorageBlockID::SkeletalAnimatedDataToUpdateCommandBuffer, "ssbo_skeletalAnimatedDataToUpdateCommandBuffer"},
         {ShaderStorageBlockID::OpaqueDrawDataRenderCommandsBuffer, "ssbo_opaqueDrawDataRenderCommandsBuffer"},
         {ShaderStorageBlockID::TransparentDrawDataRenderCommandsBuffer, "ssbo_transparentDrawDataRenderCommandsBuffer"},
+        {ShaderStorageBlockID::ClusterLocalLightsCommandBuffer, "ssbo_clusterLocalLightsCommandBuffer"},
         {ShaderStorageBlockID::ShadowDataCullCommandBuffer, "ssbo_shadowDataCullCommandBuffer"},
         {ShaderStorageBlockID::ShadowMapBlurCommandsBuffer, "ssbo_shadowMapBlurCommandsBuffer"},
         {ShaderStorageBlockID::ShadowDataRenderCommandsBuffer, "ssbo_shadowDataRenderCommandsBuffer"},
@@ -211,6 +212,7 @@ const std::string& GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
 
         {ShaderStorageBlockID::CameraBuffer, "ssbo_cameraBuffer"},
         {ShaderStorageBlockID::ClusterNodesBuffer, "ssbo_clusterNodesBuffer"},
+        {ShaderStorageBlockID::ClusterLocalLightsBuffer, "ssbo_clusterLocalLightsBuffer"},
         {ShaderStorageBlockID::LightNodesBuffer, "ssbo_lightNodesBuffer"},
         {ShaderStorageBlockID::RenderInfoBuffer, "ssbo_renderInfoBuffer"},
         {ShaderStorageBlockID::CountersBuffer, "ssbo_countersBuffer"},

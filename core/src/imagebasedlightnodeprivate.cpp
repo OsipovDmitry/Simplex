@@ -48,11 +48,11 @@ std::shared_ptr<LightHandler> ImageBasedLightNodePrivate::createLightInSceneData
         d().globalTransform(), m_isLightingEnabled, m_BRDFLutMap, m_diffuseMap, m_specularMap, m_contribution);
 }
 
-void ImageBasedLightNodePrivate::updateLightInSceneData(SceneData& sceneData, utils::IDsGeneratorT<size_t>::value_type lightID)
-    const
+void ImageBasedLightNodePrivate::updateLightInSceneData(LightHandler& handler) const
 {
-    sceneData.onImageBasedLightChanged(
-        lightID, d().globalTransform(), m_isLightingEnabled, m_BRDFLutMap, m_diffuseMap, m_specularMap, m_contribution);
+    if (auto sceneData = handler.sceneData().lock())
+        sceneData->onImageBasedLightChanged(
+            handler, d().globalTransform(), m_isLightingEnabled, m_BRDFLutMap, m_diffuseMap, m_specularMap, m_contribution);
 }
 
 } // namespace core

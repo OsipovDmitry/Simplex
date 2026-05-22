@@ -113,6 +113,7 @@ ENUMCLASS(
     SkeletalAnimatedDataToUpdateCommandBuffer,
     OpaqueDrawDataRenderCommandsBuffer,
     TransparentDrawDataRenderCommandsBuffer,
+    ClusterLocalLightsCommandBuffer,
     ShadowDataCullCommandBuffer,
     ShadowMapBlurCommandsBuffer,
     ShadowDataRenderCommandsBuffer,
@@ -121,6 +122,7 @@ ENUMCLASS(
 
     CameraBuffer,
     ClusterNodesBuffer,
+    ClusterLocalLightsBuffer,
     LightNodesBuffer,
     RenderInfoBuffer,
     CountersBuffer,

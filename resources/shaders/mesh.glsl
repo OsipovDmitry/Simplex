@@ -8,11 +8,6 @@ BoundingBox meshBoundingBox(in uint meshID)
 	return toBoundingBox(meshes[meshID].boundingBox);
 }
 
-uint meshVerticesDataSize(in uint meshID)
-{
-	return meshes[meshID].verticesDataSize;
-}
-
 uint meshElementsDataSize(in uint meshID)
 {
 	return meshes[meshID].elementsDataSize;

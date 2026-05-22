@@ -103,7 +103,14 @@ struct CameraDescription
 struct ClusterNodeDescription
 {
     BoundingBoxDescription boundingBox;
-    uint32_t firstLightNodeID; // it's stored separately because of atomic access
+    uint32_t firstLightNodeID;
+
+    uint32_t padding[3u];
+};
+
+struct ClusterLocalLightDescription
+{
+    uint32_t lightID;
 
     uint32_t padding[3u];
 };
@@ -175,6 +182,7 @@ struct CountersDescription
 {
     glm::uvec2 ZRange; // uvec2 for atomic operations
     uint32_t firstGlobalLightNodeID;
+    uint32_t clusterLocalLightsCount;
     uint32_t lightNodesCount;
     uint32_t skeletalAnimatedDataToUpdateCount;
     uint32_t shadowsToUpdateCount;
@@ -185,7 +193,7 @@ struct CountersDescription
     uint32_t transparentShadowDataRenderCommandsCount;
 
     // padding
-    uint32_t padding[1u];
+    // uint32_t padding[0u];
 };
 
 struct GBufferDescription
@@ -224,7 +232,6 @@ using ElementsDataDescription = uint32_t;
 struct MeshDescription
 {
     BoundingBoxDescription boundingBox;
-    uint32_t verticesDataSize;
     uint32_t elementsDataSize;
     uint32_t verticesDataOffset;
     uint32_t elementsDataOffset; // draw arrays is used if 0xFFFFFFFFu
@@ -237,12 +244,11 @@ struct MeshDescription
     // 10..12 - color components count [0 - no colors, 1 - grayscale, 2 - grayscale,alpha, 3 - RGB, 4 - RGBA, 5..7 - not used]
     // 13..31 - free (19 bits)
 
-    uint32_t padding[3u];
+    // uint32_t padding[0u];
 
     static MeshDescription makeEmpty();
     static MeshDescription make(
         const utils::BoundingBox&,
-        uint32_t verticesDataSize,
         uint32_t elementsDataSize,
         uint32_t verticesDataOffset,
         uint32_t elementsDataOffset,
@@ -352,7 +358,7 @@ struct ShadowTransformsDataDescription
     TransformDescription viewTransform;
     RangeDescription ZRange;
     glm::mat4x4 projectionMatrix;
-    glm::uvec4 mapCoordsAndPackerItemID;
+    glm::uvec4 mapCoords;
     glm::vec4 frustumPoints[8u];
     glm::vec4 frustumFaceNormalLinesAndRanges0[5u];
     glm::vec4 frustumFaceNormalLinesAndRanges1[5u];
@@ -365,12 +371,8 @@ struct ShadowTransformsDataDescription
         const utils::Transform&,
         const utils::Range&,
         const glm::mat4x4&,
-        const glm::uvec3&,
-        uint32_t);
-    static ShadowTransformsDataDescription make(const glm::uvec3&, uint32_t);
-
-    static glm::uvec3 mapCoords(const ShadowTransformsDataDescription&);
-    static uint32_t packerItemID(const ShadowTransformsDataDescription&);
+        const glm::uvec3&);
+    static ShadowTransformsDataDescription make(const glm::uvec3&);
 };
 
 struct ShadowDescription
@@ -456,12 +458,11 @@ using SkeletonsDataDescription = float;
 struct SkeletonDescription
 {
     uint32_t dataOffset;
-    uint32_t dataSize;
 
-    uint32_t padding[2u];
+    uint32_t padding[3u];
 
     static SkeletonDescription makeEmpty();
-    static SkeletonDescription make(uint32_t dataOffset, uint32_t dataSize);
+    static SkeletonDescription make(uint32_t dataOffset);
 };
 
 struct ShadowMapsDescription
@@ -486,17 +487,15 @@ struct SkeletalAnimatedDataDescription
     uint32_t skeletonID;
     uint32_t currentAnimationID;
     uint32_t bonesTransformsDataOffset;
-    uint32_t bonesTransformsDataSize;
     uint32_t lastUpdateTime;
 
-    uint32_t padding[3u];
+    // uint32_t padding[0u];
 
     static SkeletalAnimatedDataDescription makeEmpty();
     static SkeletalAnimatedDataDescription make(
         uint32_t skeletonID,
         uint32_t currentAnimationID,
         uint32_t bonesTransformsDataOffset,
-        uint32_t bonesTransformsDataSize,
         uint32_t lastUpdateTime);
 };
 

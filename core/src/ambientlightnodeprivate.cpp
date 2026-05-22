@@ -32,9 +32,9 @@ std::shared_ptr<LightHandler> AmbientLightNodePrivate::createLightInSceneData(Sc
     return sceneData.addAmbientLight(m_isLightingEnabled, m_color);
 }
 
-void AmbientLightNodePrivate::updateLightInSceneData(SceneData& sceneData, utils::IDsGeneratorT<size_t>::value_type lightID) const
+void AmbientLightNodePrivate::updateLightInSceneData(LightHandler& handler) const
 {
-    sceneData.onAmbientLightChanged(lightID, m_isLightingEnabled, m_color);
+    if (auto sceneData = handler.sceneData().lock()) sceneData->onAmbientLightChanged(handler, m_isLightingEnabled, m_color);
 }
 
 } // namespace core

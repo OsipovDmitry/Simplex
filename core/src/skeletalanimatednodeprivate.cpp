@@ -53,7 +53,7 @@ void SkeletalAnimatedNodePrivate::onChanged()
     if (m_handler)
     {
         if (auto sceneData = m_handler->sceneData().lock())
-            sceneData->onSkeletalAnimatedDataChanged(m_handler->ID(), m_skeleton, m_currentAnimation);
+            sceneData->onSkeletalAnimatedDataChanged(*m_handler, m_skeleton, m_currentAnimation);
     }
 }
 
