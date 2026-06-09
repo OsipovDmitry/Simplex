@@ -692,6 +692,18 @@ Physics::Physics(const rapidjson::Document::ValueType* value)
 
 Physics::~Physics() = default;
 
+const glm::vec3& Physics::gravity() const
+{
+    static const auto s_gravity(readVec3("Gravity", glm::vec3(0.f, -9.8f, 0.f)));
+    return s_gravity;
+}
+
+uint32_t Physics::simulationTimeStep() const
+{
+    static const auto s_simulationTimeStep(readUint("SimulationTimeStep", 17u));
+    return s_simulationTimeStep;
+}
+
 class SettingsPrivate
 {
 public:

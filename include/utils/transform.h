@@ -1,61 +1,19 @@
 #ifndef UTILS_TRANSFORM_H
 #define UTILS_TRANSFORM_H
 
-#include <utils/forwarddecl.h>
-#include <utils/glm/detail/type_mat2x2.hpp>
-#include <utils/glm/detail/type_mat3x3.hpp>
-#include <utils/glm/detail/type_mat4x4.hpp>
-#include <utils/glm/detail/type_vec1.hpp>
-#include <utils/glm/detail/type_vec2.hpp>
-#include <utils/glm/detail/type_vec3.hpp>
-#include <utils/glm/gtx/quaternion.hpp>
+#include <utils/rigidtransform.h>
 
 namespace simplex
 {
 namespace utils
 {
 
-template <typename T>
-inline glm::vec<3, T> vec3_cast(const glm::vec<1, T>& v)
-{
-    return glm::vec<3, T>(v, 0.f, 0.f);
-}
-template <typename T>
-inline glm::vec<3, T> vec3_cast(const glm::vec<2, T>& v)
-{
-    return glm::vec<3, T>(v, 0.f);
-}
-template <typename T>
-inline glm::vec<3, T> vec3_cast(const glm::vec<3, T>& v)
-{
-    return v;
-}
-
 template <glm::length_t L, typename T>
-inline glm::mat<L + 1, L + 1, T> scaleMatrix(const glm::vec<L, T>& v)
+inline glm::mat<L + 1, L + 1, T> scaleMatrix(T s)
 {
     glm::mat<L + 1, L + 1, T> result(static_cast<T>(1));
     for (glm::length_t i = 0; i < L; ++i)
-        result[i][i] = v[i];
-    return result;
-}
-
-template <glm::length_t L, typename T>
-inline glm::mat<L + 1, L + 1, T> rotationMatrix(const glm::qua<T>& q)
-{
-    const auto mat3x3 = glm::mat3_cast(q);
-    glm::mat<L + 1, L + 1, T> result(static_cast<T>(1));
-    for (glm::length_t i = 0; i < L; ++i)
-        for (glm::length_t j = 0; j < L; ++j)
-            result[i][j] = mat3x3[i][j];
-    return result;
-}
-
-template <glm::length_t L, typename T>
-inline glm::mat<L + 1, L + 1, T> translationMatrix(const glm::vec<L, T>& v)
-{
-    glm::mat<L + 1, L + 1, T> result(static_cast<T>(1));
-    result[L] = glm::vec<L + 1, T>(v, static_cast<T>(1));
+        result[i][i] = s;
     return result;
 }
 
@@ -80,6 +38,7 @@ public:
         T = static_cast<T>(1),
         const QuatType& = QuatType(static_cast<T>(1), PointType(static_cast<T>(0))),
         const PointType& = PointType(static_cast<T>(0)));
+    explicit TransformT(const RigidTransformT<L, T>&);
 
     PointType transformVector(const PointType&) const;
     QuatType transformQuat(const QuatType&) const;
@@ -108,6 +67,14 @@ inline TransformT<L, T>::TransformT(T s, const QuatType& r, const PointType& t)
     : rotation(r)
     , translation(t)
     , scale(s)
+{
+}
+
+template <glm::length_t L, typename T>
+inline TransformT<L, T>::TransformT(const RigidTransformT<L, T>& rt)
+    : rotation(rt.rotation)
+    , translation(rt.translation)
+    , scale(static_cast<T>(1))
 {
 }
 
@@ -174,7 +141,7 @@ inline TransformT<L, T> TransformT<L, T>::inverted() const
 template <glm::length_t L, typename T>
 inline TransformT<L, T>::operator MatrixType() const
 {
-    return translationMatrix(translation) * rotationMatrix<L>(rotation) * scaleMatrix(PointType(scale));
+    return translationMatrix(translation) * rotationMatrix<L>(rotation) * scaleMatrix(scale);
 }
 
 template <glm::length_t L, typename T>

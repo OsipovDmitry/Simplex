@@ -40,7 +40,7 @@
       "Contribution": 0.4
     },
     "Shadow": {
-	  "AtlasSize": 2048,
+	  "AtlasSize": 4096,
       "MapSize": 1024,
 	  "BlurSigma": 3.0,
 	  "LightBleedingAmount": 0.2
@@ -95,5 +95,7 @@
     }
   },
   "Physics": {
+    "Gravity": [0.0, -9.8, 0.0],
+	"SimulationTimeStep": 17
   }
 }

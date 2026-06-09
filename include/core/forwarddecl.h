@@ -94,7 +94,6 @@ struct DrawIndirectCommandsBufferReservedData;
 class RendererBase;
 class BufferRange;
 class Image;
-class VAOMesh;
 template <typename T>
 class StructBuffer;
 template <typename T>
@@ -161,6 +160,21 @@ class RendererBase;
 class IAudioDevice;
 } // namespace audio
 
+namespace physics
+{
+class IBody;
+class IStaticBody;
+class IKinematicBody;
+class IDynamicBody;
+class IConstraint;
+class IFixedConstraint;
+class IPointToPointConstraint;
+class IHingeConstraint;
+class ISliderConstraint;
+class RendererBase;
+class IPhysicsWorld;
+} // namespace physics
+
 class INamedObject;
 
 class IRenderer;
@@ -178,6 +192,7 @@ enum class SpotLightCullingAlgorithm : uint16_t;
 class GraphicsEngine;
 
 class AudioEngine;
+class PhysicsEngine;
 
 class AbstractUniform;
 using PAbstractUniform = std::shared_ptr<AbstractUniform>;
@@ -232,6 +247,10 @@ class AmbientLightNode;
 class SkeletalAnimatedNode;
 class SoundNode;
 class ListenerNode;
+class BodyNode;
+class StaticBodyNode;
+class KinematicBodyNode;
+class DynamicBodyNode;
 
 class NodeVisitor;
 template <typename NodeClass>

@@ -1,10 +1,10 @@
 #include <utils/logger.h>
 
+#include <core/graphicsrendererbase.h>
 #include <core/igraphicswidget.h>
 #include <core/stateset.h>
 
 #include "graphicsrendererbaseprivate.h"
-#include "graphicsrendererbase.h"
 
 namespace simplex
 {
@@ -13,56 +13,117 @@ namespace core
 namespace graphics
 {
 
-core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(uint32_t numComponents,
+core::graphics::PixelInternalFormat pixelNumComponentsAndPixelComponentTypeToPixelInternalFormat(
+    uint32_t numComponents,
     utils::PixelComponentType type)
 {
     PixelInternalFormat result = core::graphics::PixelInternalFormat::Count;
 
     switch (type)
     {
-    case utils::PixelComponentType::Uint8:
-    {
-        switch (numComponents)
+        case utils::PixelComponentType::Uint8:
         {
-        case 1: { result = core::graphics::PixelInternalFormat::R8; break; }
-        case 2: { result = core::graphics::PixelInternalFormat::RG8; break; }
-        case 3: { result = core::graphics::PixelInternalFormat::RGB8; break; }
-        case 4: { result = core::graphics::PixelInternalFormat::RGBA8; break; }
-        default: { break; }
+            switch (numComponents)
+            {
+                case 1:
+                {
+                    result = core::graphics::PixelInternalFormat::R8;
+                    break;
+                }
+                case 2:
+                {
+                    result = core::graphics::PixelInternalFormat::RG8;
+                    break;
+                }
+                case 3:
+                {
+                    result = core::graphics::PixelInternalFormat::RGB8;
+                    break;
+                }
+                case 4:
+                {
+                    result = core::graphics::PixelInternalFormat::RGBA8;
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+            break;
         }
-        break;
-    }
-    case utils::PixelComponentType::Uint16:
-    {
-        switch (numComponents)
+        case utils::PixelComponentType::Uint16:
         {
-        case 1: { result = core::graphics::PixelInternalFormat::R16; break; }
-        case 2: { result = core::graphics::PixelInternalFormat::RG16; break; }
-        case 3: { result = core::graphics::PixelInternalFormat::RGB16; break; }
-        case 4: { result = core::graphics::PixelInternalFormat::RGBA16; break; }
-        default: { break; }
+            switch (numComponents)
+            {
+                case 1:
+                {
+                    result = core::graphics::PixelInternalFormat::R16;
+                    break;
+                }
+                case 2:
+                {
+                    result = core::graphics::PixelInternalFormat::RG16;
+                    break;
+                }
+                case 3:
+                {
+                    result = core::graphics::PixelInternalFormat::RGB16;
+                    break;
+                }
+                case 4:
+                {
+                    result = core::graphics::PixelInternalFormat::RGBA16;
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+            break;
         }
-        break;
-    }
-    case utils::PixelComponentType::Single:
-    {
-        switch (numComponents)
+        case utils::PixelComponentType::Single:
         {
-        case 1: { result = core::graphics::PixelInternalFormat::R16F; break; }
-        case 2: { result = core::graphics::PixelInternalFormat::RG16F; break; }
-        case 3: { result = core::graphics::PixelInternalFormat::RGB16F; break; }
-        case 4: { result = core::graphics::PixelInternalFormat::RGBA16F; break; }
-        default: { break; }
+            switch (numComponents)
+            {
+                case 1:
+                {
+                    result = core::graphics::PixelInternalFormat::R16F;
+                    break;
+                }
+                case 2:
+                {
+                    result = core::graphics::PixelInternalFormat::RG16F;
+                    break;
+                }
+                case 3:
+                {
+                    result = core::graphics::PixelInternalFormat::RGB16F;
+                    break;
+                }
+                case 4:
+                {
+                    result = core::graphics::PixelInternalFormat::RGBA16F;
+                    break;
+                }
+                default:
+                {
+                    break;
+                }
+            }
+            break;
         }
-        break;
-    }
-    default: { break; }
+        default:
+        {
+            break;
+        }
     }
 
     return result;
 }
 
-RendererBase::RendererBase(const std::string &name)
+RendererBase::RendererBase(const std::string& name)
     : m_(std::make_unique<RendererBasePrivate>(name))
 {
 }
@@ -78,23 +139,19 @@ bool RendererBase::makeCurrent()
 {
     auto currentRenderer = current();
 
-    if (currentRenderer == shared_from_this())
-        return true;
+    if (currentRenderer == shared_from_this()) return true;
 
     currentRenderer->doneCurrent();
 
-    bool result = doMakeCurrent();
     RendererBasePrivate::current() = weak_from_this();
-
-    return result;
+    return doMakeCurrent();
 }
 
 bool RendererBase::doneCurrent()
 {
     auto currentRenderer = current();
 
-    if (!currentRenderer)
-        return true;
+    if (!currentRenderer) return true;
 
     RendererBasePrivate::current().reset();
     return doDoneCurrent();
@@ -102,20 +159,20 @@ bool RendererBase::doneCurrent()
 
 std::shared_ptr<RendererBase> RendererBase::current()
 {
-    auto &currentWeak = RendererBasePrivate::current();
+    auto& currentWeak = RendererBasePrivate::current();
 
     return currentWeak.expired() ? nullptr : currentWeak.lock();
 }
 
-bool RendererBase::areShared(const std::shared_ptr<const RendererBase>& renderer1, const std::shared_ptr<const RendererBase>& renderer2)
+bool RendererBase::areShared(
+    const std::shared_ptr<const RendererBase>& renderer1,
+    const std::shared_ptr<const RendererBase>& renderer2)
 {
-    if (!renderer1 || !renderer2)
-        return false;
+    if (!renderer1 || !renderer2) return false;
 
     auto widget1 = renderer1->widget();
     auto widget2 = renderer1->widget();
-    if (!widget1 || !widget2)
-        return false;
+    if (!widget1 || !widget2) return false;
 
     return widget1->shareGroup() == widget2->shareGroup();
 }
@@ -130,7 +187,7 @@ bool RendererBase::registerAttribute(const std::string& name, utils::VertexAttri
         return false;
     }
 
-    attributeIDs.insert({ name, ID });
+    attributeIDs.insert({name, ID});
     return true;
 }
 
@@ -172,7 +229,7 @@ bool RendererBase::registerOutput(const std::string& name, FrameBufferAttachment
         return false;
     }
 
-    outputIDs.insert({ name, ID });
+    outputIDs.insert({name, ID});
     return true;
 }
 
@@ -188,7 +245,6 @@ bool RendererBase::unregisterOutput(const std::string& name)
 
     LOG_ERROR << "Output " << name << " has not been registered";
     return false;
-
 }
 
 FrameBufferAttachment RendererBase::outputByName(const std::string& name) const
@@ -209,7 +265,7 @@ bool RendererBase::registerUniform(const std::string& name, UniformID ID)
         return false;
     }
 
-    uniformIDs.insert({ name, ID });
+    uniformIDs.insert({name, ID});
     return true;
 }
 
@@ -245,7 +301,7 @@ bool RendererBase::registerUniformBlock(const std::string& name, UniformBlockID 
         return false;
     }
 
-    uniformBlockIDs.insert({ name, ID });
+    uniformBlockIDs.insert({name, ID});
     return true;
 }
 
@@ -281,7 +337,7 @@ bool RendererBase::registerShaderStorageBlock(const std::string& name, core::Sha
         return false;
     }
 
-    shaderStorageBlockIDs.insert({ name, ID });
+    shaderStorageBlockIDs.insert({name, ID});
     return true;
 }
 
@@ -342,7 +398,7 @@ size_t BufferRange::size() const
         LOG_CRITICAL << "Offset and size are out of range of the buffer size";
         return 0u;
     }
-    
+
     return result;
 }
 
@@ -384,46 +440,45 @@ uint32_t Image::mipmapLevel() const
 const SupportedImageFormats& Image::supportedImageFormats()
 {
     static const SupportedImageFormats s_supportdFormats{
-        { PixelInternalFormat::RGBA32F, "rgba32f" },
-        { PixelInternalFormat::RGBA16F, "rgba16f" },
-        { PixelInternalFormat::RG32F, "rg32f" },
-        { PixelInternalFormat::RG16F, "rg16f" },
-        { PixelInternalFormat::R11F_G11F_B10F, "r11f_g11f_b10f" },
-        { PixelInternalFormat::R32F, "r32f" },
-        { PixelInternalFormat::R16F, "r16f" },
-        { PixelInternalFormat::RGBA32UI, "rgba32ui" },
-        { PixelInternalFormat::RGBA16UI, "rgba16ui" },
-        { PixelInternalFormat::RGB10_A2UI, "rgb10a2ui" },
-        { PixelInternalFormat::RGBA8UI, "rgba8ui" },
-        { PixelInternalFormat::RG32UI, "rg32ui" },
-        { PixelInternalFormat::RG16UI, "rg16ui" },
-        { PixelInternalFormat::RG8UI, "rg8ui" },
-        { PixelInternalFormat::R32UI, "r32ui" },
-        { PixelInternalFormat::R16UI, "r18ui" },
-        { PixelInternalFormat::R8UI, "r8ui" },
-        { PixelInternalFormat::RGBA32I, "rgba32i" },
-        { PixelInternalFormat::RGBA16I, "rgba16i" },
-        { PixelInternalFormat::RGBA8I, "rgba8i" },
-        { PixelInternalFormat::RG32I, "rg32i" },
-        { PixelInternalFormat::RG16I, "rg16i" },
-        { PixelInternalFormat::RG8I, "rg8i" },
-        { PixelInternalFormat::R32I, "rg32i" },
-        { PixelInternalFormat::R16I, "rg16i" },
-        { PixelInternalFormat::R8I, "r8i" },
-        { PixelInternalFormat::RGBA16, "rgba16" },
-        { PixelInternalFormat::RGB10_A2, "rgb10a2" },
-        { PixelInternalFormat::RGBA8, "rgba8" },
-        { PixelInternalFormat::RG16, "rg16" },
-        { PixelInternalFormat::RG8, "rg8" },
-        { PixelInternalFormat::R16, "r16" },
-        { PixelInternalFormat::R8, "r8" },
-        { PixelInternalFormat::RGBA16_SNORM, "rgba16_snorm" },
-        { PixelInternalFormat::RGBA8_SNORM, "rgba8_snorm" },
-        { PixelInternalFormat::RG16_SNORM, "rg16_snorm" },
-        { PixelInternalFormat::RG8_SNORM, "rg8_snorm" },
-        { PixelInternalFormat::R16_SNORM, "r16_snorm" },
-        { PixelInternalFormat::R8_SNORM, "r8_snorm" }
-    };
+        {PixelInternalFormat::RGBA32F, "rgba32f"},
+        {PixelInternalFormat::RGBA16F, "rgba16f"},
+        {PixelInternalFormat::RG32F, "rg32f"},
+        {PixelInternalFormat::RG16F, "rg16f"},
+        {PixelInternalFormat::R11F_G11F_B10F, "r11f_g11f_b10f"},
+        {PixelInternalFormat::R32F, "r32f"},
+        {PixelInternalFormat::R16F, "r16f"},
+        {PixelInternalFormat::RGBA32UI, "rgba32ui"},
+        {PixelInternalFormat::RGBA16UI, "rgba16ui"},
+        {PixelInternalFormat::RGB10_A2UI, "rgb10a2ui"},
+        {PixelInternalFormat::RGBA8UI, "rgba8ui"},
+        {PixelInternalFormat::RG32UI, "rg32ui"},
+        {PixelInternalFormat::RG16UI, "rg16ui"},
+        {PixelInternalFormat::RG8UI, "rg8ui"},
+        {PixelInternalFormat::R32UI, "r32ui"},
+        {PixelInternalFormat::R16UI, "r18ui"},
+        {PixelInternalFormat::R8UI, "r8ui"},
+        {PixelInternalFormat::RGBA32I, "rgba32i"},
+        {PixelInternalFormat::RGBA16I, "rgba16i"},
+        {PixelInternalFormat::RGBA8I, "rgba8i"},
+        {PixelInternalFormat::RG32I, "rg32i"},
+        {PixelInternalFormat::RG16I, "rg16i"},
+        {PixelInternalFormat::RG8I, "rg8i"},
+        {PixelInternalFormat::R32I, "rg32i"},
+        {PixelInternalFormat::R16I, "rg16i"},
+        {PixelInternalFormat::R8I, "r8i"},
+        {PixelInternalFormat::RGBA16, "rgba16"},
+        {PixelInternalFormat::RGB10_A2, "rgb10a2"},
+        {PixelInternalFormat::RGBA8, "rgba8"},
+        {PixelInternalFormat::RG16, "rg16"},
+        {PixelInternalFormat::RG8, "rg8"},
+        {PixelInternalFormat::R16, "r16"},
+        {PixelInternalFormat::R8, "r8"},
+        {PixelInternalFormat::RGBA16_SNORM, "rgba16_snorm"},
+        {PixelInternalFormat::RGBA8_SNORM, "rgba8_snorm"},
+        {PixelInternalFormat::RG16_SNORM, "rg16_snorm"},
+        {PixelInternalFormat::RG8_SNORM, "rg8_snorm"},
+        {PixelInternalFormat::R16_SNORM, "r16_snorm"},
+        {PixelInternalFormat::R8_SNORM, "r8_snorm"}};
 
     return s_supportdFormats;
 }
@@ -462,143 +517,6 @@ Image::Image(DataAccess access, const PConstTexture& texture, uint32_t mipmapLev
 {
 }
 
-VAOMesh::~VAOMesh() = default;
-
-std::shared_ptr<IVertexArray> VAOMesh::vao()
-{
-    return m_vao;
-}
-
-std::shared_ptr<const IVertexArray> VAOMesh::vao() const
-{
-    return m_vao;
-}
-
-void VAOMesh::addPrimitiveSet(const std::shared_ptr<utils::PrimitiveSet>& primitiveSet)
-{
-    if (!primitiveSet)
-        LOG_CRITICAL << "Primitive set can't be nullptr";
-
-    m_primitiveSets.insert(primitiveSet);
-}
-
-void VAOMesh::removePrimitiveSet(const std::shared_ptr<utils::PrimitiveSet>& primitiveSet)
-{
-    m_primitiveSets.erase(primitiveSet);
-}
-
-const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>>& VAOMesh::primitiveSets() const
-{
-    return m_primitiveSets;
-}
-
-std::shared_ptr<VAOMesh> VAOMesh::create(const std::shared_ptr<const utils::Mesh>& mesh, bool uniteVertexBuffers)
-{
-    auto currentContext = RendererBase::current();
-    if (!currentContext)
-    {
-        LOG_CRITICAL << "No current context";
-        return nullptr;
-    }
-
-    auto vertexArray = currentContext->createVertexArray();
-    auto result = std::shared_ptr<VAOMesh>(new VAOMesh(vertexArray));
-
-    if (mesh)
-    {
-        size_t numVertices = mesh->vertexBuffers().empty() ? 0u : mesh->vertexBuffers().begin()->second->numVertices();
-
-        if (uniteVertexBuffers)
-        {
-            size_t totalSize = 0u;
-            size_t stride = 0u;
-            for (auto const& [attrib, buffer] : mesh->vertexBuffers())
-            {
-                if (numVertices != buffer->numVertices())
-                    LOG_CRITICAL << "Buffers have different size";
-
-                totalSize += buffer->sizeInBytes();
-                stride += buffer->numComponents() * utils::sizeOfVertexComponentType(buffer->componentType());
-            }
-
-            auto buffer = currentContext->createStaticBuffer(totalSize);
-            auto bindingIndex = vertexArray->attachVertexBuffer(buffer, 0u, stride);
-
-            size_t relativeOffset = 0u;
-            auto bufferData = buffer->map(core::graphics::IBuffer::MapAccess::WriteOnly);
-            for (auto const& [attrib, buffer] : mesh->vertexBuffers())
-            {
-                size_t vertexSize = buffer->numComponents() * utils::sizeOfVertexComponentType(buffer->componentType());
-                for (size_t i = 0; i < buffer->numVertices(); ++i)
-                    std::memcpy(static_cast<uint8_t*>(bufferData->get()) + stride * i + relativeOffset, buffer->vertex(i), vertexSize);
-                vertexArray->declareVertexAttribute(attrib, bindingIndex, buffer->numComponents(), buffer->componentType(), relativeOffset);
-                relativeOffset += vertexSize;
-            }
-        }
-        else
-        {
-            for (auto const& [attrib, buffer] : mesh->vertexBuffers())
-            {
-                if (numVertices != buffer->numVertices())
-                    LOG_CRITICAL << "Buffers have different size";
-
-                auto bindingIndex = vertexArray->attachVertexBuffer(currentContext->createStaticBuffer(buffer->sizeInBytes(), buffer->data()),
-                    0u,
-                    buffer->numComponents() * utils::sizeOfVertexComponentType(buffer->componentType()));
-                vertexArray->declareVertexAttribute(attrib, bindingIndex, buffer->numComponents(), buffer->componentType(), 0u);
-            }
-        }
-
-        size_t indexBufferTotalSize = 0u;
-
-        for (auto& primitiveSet : mesh->primitiveSets())
-        {
-            if (auto drawArrays = primitiveSet->asDrawArrays(); drawArrays)
-            {
-                result->addPrimitiveSet(std::make_shared<utils::DrawArrays>(drawArrays->primitiveType(),
-                    drawArrays->first(),
-                    drawArrays->count()));
-            }
-            else if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
-                if (auto drawElementsBuffer = drawElements->asDrawElementsBuffer(); drawElementsBuffer)
-                {
-                    result->addPrimitiveSet(std::make_shared<utils::DrawElements>(drawElementsBuffer->primitiveType(),
-                        drawElementsBuffer->count(),
-                        drawElementsBuffer->indexType(),
-                        indexBufferTotalSize,
-                        drawElementsBuffer->baseVertex()));
-                    indexBufferTotalSize += drawElementsBuffer->sizeInBytes();
-                }
-        }
-
-        if (indexBufferTotalSize)
-        {
-            auto buffer = currentContext->createStaticBuffer(indexBufferTotalSize);
-            vertexArray->attachIndexBuffer(buffer);
-
-            auto bufferData = buffer->map(core::graphics::IBuffer::MapAccess::WriteOnly);
-            size_t offset = 0;
-
-            for (auto& primitiveSet : mesh->primitiveSets())
-            {
-                if (auto drawElements = primitiveSet->asDrawElements(); drawElements)
-                    if (auto drawElementsBuffer = drawElements->asDrawElementsBuffer(); drawElementsBuffer)
-                    {
-                        std::memcpy(static_cast<uint8_t*>(bufferData->get()) + offset, drawElementsBuffer->data(), drawElementsBuffer->sizeInBytes());
-                        offset += drawElementsBuffer->sizeInBytes();
-                    }
-            }
-        }
-    }
-
-    return result;
-}
-
-VAOMesh::VAOMesh(const std::shared_ptr<IVertexArray>& vao)
-    : m_vao(vao)
-{
-}
-
-}
-}
-}
+} // namespace graphics
+} // namespace core
+} // namespace simplex

@@ -24,10 +24,10 @@ class GRAPHICS_GLFW_SHARED_EXPORT GLFWWidget : public core::graphics::IGraphicsW
 public:
     ~GLFWWidget() override;
 
-    const std::string &name() const override;
+    const std::string& name() const override;
 
     bool isInitialized() const override;
-    
+
     void update(const std::shared_ptr<core::Scene>&, uint64_t time, uint32_t dt) override;
 
     std::shared_ptr<core::IEngine> engine() override;
@@ -106,17 +106,13 @@ public:
     static void pollEvents();
     static uint64_t time();
 
-//protected:
-//    void resizeGL(int, int) override;
-//    void paintGL() override;
-
 private:
     GLFWWidget(const std::string&, const std::shared_ptr<core::graphics::ShareGroup>&);
 
     std::unique_ptr<GLFWWidgetPrivate> m_;
 };
 
-}
-}
+} // namespace graphics_glfw
+} // namespace simplex
 
 #endif // GRAPHICS_GLFW_WIDGET_H

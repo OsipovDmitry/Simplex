@@ -53,6 +53,10 @@ struct RangeT;
 using Range = RangeT<float>;
 
 template <glm::length_t L, typename T>
+struct RigidTransformT;
+using RigidTransform = RigidTransformT<3, float>;
+
+template <glm::length_t L, typename T>
 struct TransformT;
 using Transform = TransformT<3, float>;
 

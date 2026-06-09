@@ -43,5 +43,5 @@ void main(void)
     const vec3 c1 = mix(vec3(1.0f), baseColor.rgb, baseColor.a);
     const vec3 c2 = mix(baseColor.rgb, vec3(0.0f), baseColor.a);
     
-    o_fragColor0 = vec4(c1, 1.0f);//vec4(mix(c1, c2, baseColor.a), 1.0f);
+    o_fragColor0 = vec4(mix(c1, c2, baseColor.a), 1.0f);
 }

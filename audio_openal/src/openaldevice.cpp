@@ -2,9 +2,9 @@
 
 #include <utils/logger.h>
 
-#include <audio_openal/openaldevice.h>
-
 #include <core/audioengine.h>
+
+#include <audio_openal/openaldevice.h>
 
 #include "openal_1_1_renderer.h"
 #include "openaldeviceprivate.h"
@@ -16,14 +16,14 @@ namespace audio_openal
 
 OpenALDevice::~OpenALDevice()
 {
-    const auto &deviceName = OpenALDevice::name();
+    const auto& deviceName = OpenALDevice::name();
     if (!alcCloseDevice(m_->device()))
         LOG_ERROR << "Failed to destroy OpenAL device \"" << deviceName << "\"";
     else
         LOG_INFO << "OpenALDevice \"" << deviceName << "\" has been destroyed";
 }
 
-const std::string &OpenALDevice::name() const
+const std::string& OpenALDevice::name() const
 {
     return m_->name();
 }
@@ -58,19 +58,18 @@ std::shared_ptr<const core::AudioEngine> OpenALDevice::audioEngine() const
     return const_cast<OpenALDevice*>(this)->audioEngine();
 }
 
-const std::string &OpenALDevice::defaultDeviceName()
+const std::string& OpenALDevice::defaultDeviceName()
 {
     static const std::string s_defaultDeviceName = alcGetString(nullptr, ALC_DEFAULT_DEVICE_SPECIFIER);
     return s_defaultDeviceName;
 }
 
-const std::list<std::string> &OpenALDevice::devicesNamesList()
+const std::list<std::string>& OpenALDevice::devicesNamesList()
 {
     static std::list<std::string> s_devicesNamesList;
     if (s_devicesNamesList.empty())
     {
-        for (auto devices = static_cast<const char*>(alcGetString(nullptr, ALC_DEVICE_SPECIFIER));
-             devices && *devices != 0;
+        for (auto devices = static_cast<const char*>(alcGetString(nullptr, ALC_DEVICE_SPECIFIER)); devices && *devices != 0;
              devices += strlen(devices) + 1u)
         {
             s_devicesNamesList.push_back(devices);
@@ -79,13 +78,15 @@ const std::list<std::string> &OpenALDevice::devicesNamesList()
     return s_devicesNamesList;
 }
 
-std::shared_ptr<OpenALDevice> OpenALDevice::getOrCreate(const std::string &deviceName)
+std::shared_ptr<OpenALDevice> OpenALDevice::getOrCreate(const std::string& deviceName)
 {
-    auto fullName = deviceName.empty() ? defaultDeviceName() : deviceName;
+    const auto& fullName = deviceName.empty() ? defaultDeviceName() : deviceName;
+
     std::shared_ptr<OpenALDevice> result;
 
-    auto &instances = OpenALDevicePrivate::instances();
-    if (auto it = instances.find_if([&fullName](const std::shared_ptr<OpenALDevice>& value) { return value->name() == fullName; });
+    auto& instances = OpenALDevicePrivate::instances();
+    if (auto it =
+            instances.find_if([&fullName](const std::shared_ptr<OpenALDevice>& value) { return value->name() == fullName; });
         it != instances.end())
     {
         result = it->lock();
@@ -107,23 +108,21 @@ std::shared_ptr<OpenALDevice> OpenALDevice::getOrCreate(const std::string &devic
         ALCint major = -1, minor = -1;
         alcGetIntegerv(resultPrivate.device(), ALC_MAJOR_VERSION, 1u, &major);
         alcGetIntegerv(resultPrivate.device(), ALC_MINOR_VERSION, 1u, &minor);
-        LOG_INFO << "OpenALDevice has been created (Name: \"" << fullName << "\", OpenAL context ver:" << major << "." << minor << ")";
+        LOG_INFO << "OpenALDevice has been created (Name: \"" << fullName << "\", OpenAL context ver:" << major << "." << minor
+                 << ")";
     }
 
     return result;
 }
 
-OpenALDevice::OpenALDevice(const std::string &deviceName)
+OpenALDevice::OpenALDevice(const std::string& deviceName)
     : m_(std::make_unique<OpenALDevicePrivate>(deviceName))
 {
     auto device = alcOpenDevice(deviceName.c_str());
-    if (!device)
-        LOG_CRITICAL << "Failed to create OpenAL device " << deviceName;
+    if (!device) LOG_CRITICAL << "Failed to create OpenAL device " << deviceName;
 
     m_->device() = device;
 }
 
-
-
-}
-}
+} // namespace audio_openal
+} // namespace simplex

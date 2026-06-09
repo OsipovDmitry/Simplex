@@ -6,6 +6,15 @@
 
 #include "scenerepresentationprivate.h"
 
+// tmp
+#include <utils/mesh.h>
+
+#include <core/drawable.h>
+#include <core/mesh.h>
+#include <core/physicsrendererbase.h>
+
+#include <staticbodynode.h>
+
 namespace simplex
 {
 namespace core
@@ -193,6 +202,76 @@ std::shared_ptr<SkeletalAnimatedNode> SceneRepresentation::generate(
 
     result->attach(createNode(
         createNode, result, m_->rootNodeID(), m_->drawables(), m_->nodesRepresentations(), insertCameras, insertLights));
+
+    return result;
+}
+
+std::shared_ptr<StaticBodyNode> SceneRepresentation::tmp(const std::string& name) const
+{
+    static auto addShape = [](auto& const self, std::vector<glm::vec3>& vertices, std::vector<uint32_t>& indices,
+                              const utils::Transform& parentWorldTransform, size_t nodeRepresentationID,
+                              const std::vector<std::shared_ptr<Drawable>>& drawables,
+                              const std::vector<std::shared_ptr<NodeRepresentation>>& nodesRepresentations) -> void
+    {
+        const auto& nodeRepresentation = nodesRepresentations[nodeRepresentationID];
+
+        auto& nodeRepresentationPrivate = nodeRepresentation->m();
+        const auto transform = parentWorldTransform * nodeRepresentationPrivate.transform();
+
+        if (auto drawableNodeRepresentation = nodeRepresentation->asDrawableNodeRepresentation())
+        {
+            auto& drawableNodeRepresentationPrivate = drawableNodeRepresentation->m();
+
+            for (auto drawableID : drawableNodeRepresentationPrivate.drawablesIDs())
+            {
+                const auto& drawable = drawables[drawableID];
+
+                auto mesh = drawable->mesh()->mesh();
+
+                auto verticesBufferIter = mesh->vertexBuffers().find(simplex::utils::VertexAttribute::Position);
+                if (verticesBufferIter == mesh->vertexBuffers().end()) continue;
+
+                auto baseVertex = static_cast<uint32_t>(vertices.size());
+
+                auto& buffer = verticesBufferIter->second;
+                vertices.reserve(baseVertex + buffer->numVertices());
+                for (size_t i = 0u; i < buffer->numVertices(); ++i)
+                {
+                    auto* v = reinterpret_cast<const float*>(buffer->vertex(i));
+                    vertices.push_back(transform.transformPoint(glm::vec3(v[0u], v[1u], v[2u])));
+                }
+
+                for (const auto& primitiveSet : mesh->primitiveSets())
+                {
+                    if (primitiveSet->primitiveType() != simplex::utils::PrimitiveType::Triangles) continue;
+
+                    auto drawElements = primitiveSet->asDrawElements();
+                    if (!drawElements) continue;
+
+                    auto drawElementsBuffer = drawElements->asDrawElementsBuffer();
+                    if (!drawElementsBuffer) continue;
+
+                    indices.reserve(indices.size() + drawElementsBuffer->numIndices());
+
+                    for (size_t i = 0u; i < drawElementsBuffer->numIndices(); ++i)
+                        indices.push_back(baseVertex + *reinterpret_cast<const uint32_t*>(drawElementsBuffer->index(i)));
+                }
+            }
+        }
+
+        for (auto nodeRepresentationChildID : nodeRepresentationPrivate.childrenIDs())
+        {
+            self(self, vertices, indices, transform, nodeRepresentationChildID, drawables, nodesRepresentations);
+        }
+    };
+
+    auto result = std::make_shared<StaticBodyNode>(name);
+
+    std::vector<glm::vec3> vertices;
+    std::vector<uint32_t> indices;
+    addShape(addShape, vertices, indices, utils::Transform(), m_->rootNodeID(), m_->drawables(), m_->nodesRepresentations());
+
+    if (!indices.empty()) result->staticBody()->addTriangleMeshShape(vertices, indices);
 
     return result;
 }

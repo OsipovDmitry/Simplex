@@ -1,41 +1,39 @@
 #ifndef AUDIO_OPENAL_1_1_RENDERER_H
 #define AUDIO_OPENAL_1_1_RENDERER_H
 
-#include <unordered_map>
-#include <alc.h>
-#include <al.h>
-
 #include <utils/noncopyble.h>
 
 #include <core/audiorendererbase.h>
 
+#include <al.h>
+#include <alc.h>
 #include <audio_openal/forwarddecl.h>
 
-#define CURRENT_CONTEXT_INFO \
-    private: \
-        std::shared_ptr<core::audio::RendererBase> m_renderer; \
-    public: \
-        std::shared_ptr<core::audio::RendererBase> renderer() const { return m_renderer; };
+#define CURRENT_CONTEXT_INFO                                                                                                     \
+private:                                                                                                                         \
+    std::shared_ptr<core::audio::RendererBase> m_renderer;                                                                       \
+                                                                                                                                 \
+public:                                                                                                                          \
+    std::shared_ptr<core::audio::RendererBase> renderer() const                                                                  \
+    {                                                                                                                            \
+        return m_renderer;                                                                                                       \
+    };
 
-#define SAVE_CURRENT_CONTEXT \
-    m_renderer = core::audio::RendererBase::current(); \
+#define SAVE_CURRENT_CONTEXT                                                                                                     \
+    m_renderer = core::audio::RendererBase::current();                                                                           \
     if (!m_renderer) LOG_CRITICAL << "No current context";
 
-#define CHECK_CURRENT_CONTEXT \
-    if (m_renderer != core::audio::RendererBase::current()) \
-        LOG_CRITICAL << "Resource was created in anotrher context";
+#define CHECK_CURRENT_CONTEXT                                                                                                    \
+    if (m_renderer != core::audio::RendererBase::current()) LOG_CRITICAL << "Resource was created in anotrher context";
 
-#define CHECK_THIS_CONTEXT \
-    if (shared_from_this() != core::audio::RendererBase::current()) \
-        LOG_CRITICAL << "This context is not current";
+#define CHECK_THIS_CONTEXT                                                                                                       \
+    if (shared_from_this() != core::audio::RendererBase::current()) LOG_CRITICAL << "This context is not current";
 
-#define CHECK_RESOURCE_CONTEXT(resource) \
-    if (shared_from_this() != resource->renderer()) \
-        LOG_CRITICAL << "Resource was created in anotrher context";
+#define CHECK_RESOURCE_CONTEXT(resource)                                                                                         \
+    if (shared_from_this() != resource->renderer()) LOG_CRITICAL << "Resource was created in anotrher context";
 
-#define CHECK_EQUAL_CONTEXTS(resource1, resource2) \
-    if (resource1->renderer() != resource2->renderer()) \
-        LOG_CRITICAL << "Resources were created in different contexts";
+#define CHECK_EQUAL_CONTEXTS(resource1, resource2)                                                                               \
+    if (resource1->renderer() != resource2->renderer()) LOG_CRITICAL << "Resources were created in different contexts";
 
 namespace simplex
 {
@@ -64,10 +62,10 @@ public:
     ALuint id() const;
 
     core::audio::BufferFormat format() const override;
-    const void *data() const override;
+    const void* data() const override;
     size_t dataSize() const override;
     uint16_t frequency() const override;
-    void setData(core::audio::BufferFormat, const void *data, size_t dataSize, uint32_t frequency) override;
+    void setData(core::audio::BufferFormat, const void* data, size_t dataSize, uint32_t frequency) override;
 
     static std::shared_ptr<Buffer_1_1> create();
 
@@ -196,12 +194,11 @@ protected:
 
 private:
     std::weak_ptr<OpenALDevice> m_device;
-    ALCcontext *m_context;
+    ALCcontext* m_context;
     std::shared_ptr<Listener_1_1> m_listener;
-
 };
 
-}
-}
+} // namespace audio_openal
+} // namespace simplex
 
 #endif // AUDIO_OPENAL_1_1_RENDERER_H

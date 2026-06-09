@@ -13,17 +13,17 @@ namespace graphics
 class RendererBasePrivate
 {
 public:
-    RendererBasePrivate(const std::string &name);
+    RendererBasePrivate(const std::string& name);
 
     const const std::string& name();
 
-    std::unordered_map<std::string, utils::VertexAttribute> &attributeIDs();
-    std::unordered_map<std::string, core::graphics::FrameBufferAttachment> &outputIDs();
-    std::unordered_map<std::string, core::UniformID> &uniformIDs();
+    std::unordered_map<std::string, utils::VertexAttribute>& attributeIDs();
+    std::unordered_map<std::string, core::graphics::FrameBufferAttachment>& outputIDs();
+    std::unordered_map<std::string, core::UniformID>& uniformIDs();
     std::unordered_map<std::string, core::UniformBlockID>& uniformBlockIDs();
-    std::unordered_map<std::string, core::ShaderStorageBlockID> &shaderStorageBlockIDs();
+    std::unordered_map<std::string, core::ShaderStorageBlockID>& shaderStorageBlockIDs();
 
-    static std::weak_ptr<RendererBase> &current();
+    static std::weak_ptr<RendererBase>& current();
 
 private:
     std::string m_name;
@@ -37,21 +37,8 @@ private:
     static std::weak_ptr<RendererBase> s_current;
 };
 
-class DynamicBufferBasePrivate
-{
-public:
-    DynamicBufferBasePrivate(const std::shared_ptr<IBuffer>&);
-
-    std::shared_ptr<IBuffer> &buffer();
-    size_t &size();
-
-private:
-    std::shared_ptr<IBuffer> m_buffer;
-    size_t m_size;
-};
-
-}
-}
-}
+} // namespace graphics
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_GRAPHICSRENDERERBASEPRIVATE_H

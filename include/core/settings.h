@@ -257,6 +257,9 @@ class CORE_SHARED_EXPORT Physics : public utils::SettingsComponent
 public:
     Physics(const rapidjson::Document::ValueType*);
     ~Physics() override;
+
+    const glm::vec3& gravity() const;
+    uint32_t simulationTimeStep() const;
 };
 
 class SettingsPrivate;

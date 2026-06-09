@@ -128,6 +128,16 @@ std::shared_ptr<const ListenerNode> Node::asListenerNode() const
     return nullptr;
 }
 
+std::shared_ptr<BodyNode> Node::asBodyNode()
+{
+    return nullptr;
+}
+
+std::shared_ptr<const BodyNode> Node::asBodyNode() const
+{
+    return nullptr;
+}
+
 const utils::Transform& Node::globalTransform() const
 {
     return m_->globalTransform();

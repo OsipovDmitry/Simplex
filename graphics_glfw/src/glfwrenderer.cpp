@@ -3580,13 +3580,13 @@ GLFWRenderer::~GLFWRenderer()
 
 std::shared_ptr<core::graphics::IGraphicsWidget> GLFWRenderer::widget()
 {
-    // No CHECK_THIS_CONTEXT because of recurion calls
+    // No CHECK_THIS_CONTEXT because of recursion calls
     return m_widget.expired() ? nullptr : m_widget.lock();
 }
 
 std::shared_ptr<const core::graphics::IGraphicsWidget> GLFWRenderer::widget() const
 {
-    // No CHECK_THIS_CONTEXT because of recurion calls
+    // No CHECK_THIS_CONTEXT because of recursion calls
     return const_cast<GLFWRenderer*>(this)->widget();
 }
 

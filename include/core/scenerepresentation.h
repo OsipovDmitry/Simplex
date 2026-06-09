@@ -96,6 +96,9 @@ public:
 
     std::shared_ptr<SkeletalAnimatedNode> generate(const std::string& name, bool insertCameras, bool insertLights) const;
 
+    // tmp
+    std::shared_ptr<StaticBodyNode> tmp(const std::string& name) const;
+
 private:
     std::unique_ptr<SceneRepresentationPrivate> m_;
 };

@@ -902,28 +902,6 @@ private:
     PConstTexture m_texture;
 };
 
-class CORE_SHARED_EXPORT VAOMesh final
-{
-    NONCOPYBLE(VAOMesh)
-public:
-    ~VAOMesh();
-
-    std::shared_ptr<IVertexArray> vao();
-    std::shared_ptr<const IVertexArray> vao() const;
-
-    void addPrimitiveSet(const std::shared_ptr<utils::PrimitiveSet>&);
-    void removePrimitiveSet(const std::shared_ptr<utils::PrimitiveSet>&);
-    const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>>& primitiveSets() const;
-
-    static std::shared_ptr<VAOMesh> create(const std::shared_ptr<const utils::Mesh>& = nullptr, bool uniteVertexBuffers = true);
-
-private:
-    VAOMesh(const std::shared_ptr<IVertexArray>&);
-
-    std::shared_ptr<IVertexArray> m_vao;
-    std::unordered_set<std::shared_ptr<utils::PrimitiveSet>> m_primitiveSets;
-};
-
 template <typename T>
 class StructBuffer
 {

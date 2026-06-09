@@ -66,6 +66,9 @@ public:
     virtual std::shared_ptr<ListenerNode> asListenerNode();
     virtual std::shared_ptr<const ListenerNode> asListenerNode() const;
 
+    virtual std::shared_ptr<BodyNode> asBodyNode();
+    virtual std::shared_ptr<const BodyNode> asBodyNode() const;
+
 protected:
     Node(std::unique_ptr<NodePrivate>&&);
 

@@ -1,7 +1,7 @@
 #include <utils/logger.h>
 
-#include <core/scene.h>
 #include <core/audiorendererbase.h>
+#include <core/scene.h>
 #include <core/soundnode.h>
 
 #include "soundnodeprivate.h"
@@ -11,18 +11,13 @@ namespace simplex
 namespace core
 {
 
-SoundNode::SoundNode(const std::string &name)
+SoundNode::SoundNode(const std::string& name)
     : Node(std::make_unique<SoundNodePrivate>(*this, name))
 {
     auto audioRenderer = audio::RendererBase::current();
-    if (!audioRenderer)
-        LOG_CRITICAL << "Audio renderer can't be nullptr";
+    if (!audioRenderer) LOG_CRITICAL << "Audio renderer can't be nullptr";
 
-    auto source = audioRenderer->createSource();
-    if (!source)
-        LOG_CRITICAL << "Audio source can't be nullptr";
-
-    m().source() = source;
+    m().source() = audioRenderer->createSource();
 }
 
 SoundNode::~SoundNode() = default;
@@ -58,5 +53,5 @@ void SoundNode::setState(SoundState value)
     m().state() = value;
 }
 
-}
-}
+} // namespace core
+} // namespace simplex
