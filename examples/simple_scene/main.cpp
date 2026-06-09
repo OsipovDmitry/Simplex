@@ -440,13 +440,14 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     pointLightNode0->setColor(glm::vec3(3.f, 1.f, 1.f));
     pointLightNode0->setRadiuses(glm::vec2(5.f, 8.f));
     pointLightNode0->setShadingEnabled(true);
-    // scene->sceneRootNode()->attach(pointLightNode0);
-    // pointLightNode0Weak = pointLightNode0;
+    pointLightNode0->setLightingEnabled(false);
+    scene->sceneRootNode()->attach(pointLightNode0);
+    pointLightNode0Weak = pointLightNode0;
 
     auto pointLightNode1 = std::make_shared<simplex::core::PointLightNode>("");
     pointLightNode1->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(0.0f, 3.3f, 0.0f)));
     pointLightNode1->setColor(glm::vec3(2.f, 2.f, 2.f));
-    pointLightNode1->setRadiuses(glm::vec2(5.f, 10.f));
+    pointLightNode1->setRadiuses(glm::vec2(5.f, 8.f));
     pointLightNode1->setShadingEnabled(true);
     scene->sceneRootNode()->attach(pointLightNode1);
     pointLightNode1Weak = pointLightNode1;
@@ -456,8 +457,9 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     pointLightNode2->setColor(glm::vec3(1.f, 1.f, 3.f));
     pointLightNode2->setRadiuses(glm::vec2(5.f, 8.f));
     pointLightNode2->setShadingEnabled(true);
-    // scene->sceneRootNode()->attach(pointLightNode2);
-    // pointLightNode2Weak = pointLightNode2;
+    pointLightNode2->setLightingEnabled(false);
+    scene->sceneRootNode()->attach(pointLightNode2);
+    pointLightNode2Weak = pointLightNode2;
 
     auto spotLightNode = std::make_shared<simplex::core::PointLightNode>("");
     spotLightNode->setTransform(

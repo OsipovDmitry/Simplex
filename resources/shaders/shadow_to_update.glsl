@@ -4,7 +4,6 @@
 
 layout (std430) buffer ssbo_shadowsToUpdateBuffer { ShadowToUpdateDescription shadowsToUpdate[]; };
 
-
 uint shadowToUpdateShadowID(in uint shadowToUpdateID)
 {
 	return shadowsToUpdate[shadowToUpdateID].shadowID;

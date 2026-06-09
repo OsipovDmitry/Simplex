@@ -672,6 +672,9 @@ BlurShadowMapPass::BlurShadowMapPass(
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
         graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowsToUpdateBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowsToUpdateBuffer()->buffer());
 }
 
 BlurShadowMapPass::~BlurShadowMapPass() = default;
