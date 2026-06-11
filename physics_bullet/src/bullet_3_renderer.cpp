@@ -574,6 +574,7 @@ BodyBase_3::BodyBase_3(float mass)
     SAVE_CURRENT_CONTEXT;
 
     m_rigidBody = std::make_shared<btRigidBody>(Conversions::float2Bt(mass), nullptr, nullptr);
+    m_rigidBody->setCollisionFlags(m_rigidBody->getCollisionFlags() | btCollisionObject::CF_CUSTOM_MATERIAL_CALLBACK);
 
     m_bodyUserPointer = std::make_shared<BodyUserPointer_3>(*this);
     m_rigidBody->setUserPointer(m_bodyUserPointer.get());
@@ -1277,6 +1278,8 @@ Bullet_3_Renderer::Bullet_3_Renderer(const std::string& name, const std::weak_pt
     m_dynamicWorld = std::make_shared<btDiscreteDynamicsWorld>(
         m_dispatcher.get(), m_overlappingPairCache.get(), m_solver.get(), m_collisionConfiguration.get());
 
+    gContactAddedCallback = collisionCallback;
+
     LOG_INFO << "Physics renderer \"" << Bullet_3_Renderer::name() << "\" has been created";
 }
 
@@ -1481,6 +1484,18 @@ bool Bullet_3_Renderer::doMakeCurrent()
 }
 
 bool Bullet_3_Renderer::doDoneCurrent()
+{
+    return true;
+}
+
+bool Bullet_3_Renderer::collisionCallback(
+    btManifoldPoint& cp,
+    const btCollisionObjectWrapper* colObj0Wrap,
+    int partId0,
+    int index0,
+    const btCollisionObjectWrapper* colObj1Wrap,
+    int partId1,
+    int index1)
 {
     return true;
 }

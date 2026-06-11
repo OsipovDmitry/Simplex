@@ -315,6 +315,49 @@ static std::shared_ptr<simplex::core::DynamicBodyNode> createBox(const glm::vec3
     return dynamicBodyNode;
 }
 
+static std::shared_ptr<simplex::core::StaticBodyNode> createConstraintsSceneNode()
+{
+    std::shared_ptr<simplex::core::StaticBodyNode> result;
+
+    if (auto window = simplex::graphics_glfw::GLFWWidget::getOrCreate("Simple scene"))
+        if (auto graphicsEngine = window->graphicsEngine())
+            if (auto scenesLoader = graphicsEngine->scenesLoader())
+            {
+                auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/constraints/constraints.obj");
+
+                result = sceneRepresentation->tmp("");
+                result->staticBody()->addPlaneShape(simplex::utils::Plane(glm::vec4(0.f, 1.f, 0.f, 0.f)));
+
+                auto skeletalAnimatedNode = sceneRepresentation->generate("", false, false);
+                const auto& drawableNode = skeletalAnimatedNode->children().front()->children().front()->asDrawableNode();
+                const auto& drawable = *drawableNode->drawables().begin();
+                std::const_pointer_cast<simplex::core::Material>(drawable->material())
+                    ->setBaseColor(glm::convertSRGBToLinear(glm::vec4(235.f, 235.f, 35.f, 255.f) / 255.f));
+
+                result->attach(drawableNode);
+
+                simplex::utils::MeshPainter planePainter(simplex::utils::Mesh::createEmptyMesh(
+                    {{simplex::utils::VertexAttribute::Position, {3u, simplex::utils::VertexComponentType::Single}},
+                     {simplex::utils::VertexAttribute::Normal, {3u, simplex::utils::VertexComponentType::Single}}}));
+                planePainter.drawPlane(glm::vec2(50.f, 20.f));
+
+                auto planeMesh = std::make_shared<simplex::core::Mesh>(planePainter.mesh(), planePainter.calculateBoundingBox());
+
+                auto planeMaterial = std::make_shared<simplex::core::Material>();
+                planeMaterial->setBaseColor(glm::convertSRGBToLinear(glm::vec4(35.f, 235.f, 65.f, 255.f) / 255.f));
+                planeMaterial->setMetalness(0.f);
+                planeMaterial->setRoughness(.3f);
+
+                auto planeDrawableNode = std::make_shared<simplex::core::DrawableNode>("");
+                planeDrawableNode->addDrawable(std::make_shared<simplex::core::Drawable>(planeMesh, planeMaterial));
+                planeDrawableNode->setTransform(simplex::utils::Transform(
+                    1.f, glm::quat(glm::vec3(-glm::half_pi<float>(), 0.f, 0.f)), glm::vec3(-5.f, 0.f, 0.f)));
+                result->attach(planeDrawableNode);
+            }
+
+    return result;
+}
+
 static std::shared_ptr<simplex::core::Scene> createScene(
     const std::string& name,
     const std::shared_ptr<simplex::core::graphics::RendererBase>& renderer)
@@ -537,16 +580,16 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     {
         auto bunnyNode = createBunny();
         bunnyNode->setTransform(transform);
-        scene->sceneRootNode()->attach(bunnyNode);
+        // scene->sceneRootNode()->attach(bunnyNode);
     }
 
     auto boxNode1 = createBox(glm::vec3(.5f, .1f, .1f));
     boxNode1->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(-.55f, 2.5f, 0.f)));
-    scene->sceneRootNode()->attach(boxNode1);
+    // scene->sceneRootNode()->attach(boxNode1);
 
     auto boxNode2 = createBox(glm::vec3(.5f, .1f, .1f));
     boxNode2->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(+.55f, 2.5f, 0.f)));
-    scene->sceneRootNode()->attach(boxNode2);
+    // scene->sceneRootNode()->attach(boxNode2);
 
     {
         // boxNode1->dynamicBody()->joinFixed(
@@ -565,8 +608,149 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
         // boxNode1->dynamicBody()->joinHinge(simplex::utils::RigidTransform::makeTranslation(glm::vec3(-.55f, 0.f, 0.f)));
     }
     {
-        auto c = boxNode1->dynamicBody()->joinSlider(simplex::utils::RigidTransform::makeTranslation(glm::vec3(-.55f, 0.f, 0.f)));
-        c->setLinearLimits(simplex::utils::Range(-2.f, 2.f));
+        // auto c = boxNode1->dynamicBody()->joinSlider(simplex::utils::RigidTransform::makeTranslation(glm::vec3(-.55f, 0.f,
+        // 0.f))); c->setLinearLimits(simplex::utils::Range(-2.f, 2.f));
+    }
+
+    return scene;
+}
+
+static std::shared_ptr<simplex::core::Scene> createScene3(
+    const std::string& name,
+    const std::shared_ptr<simplex::core::ScenesLoader>& scenesLoader,
+    const std::shared_ptr<simplex::core::graphics::RendererBase>& renderer,
+    const std::shared_ptr<simplex::core::physics::RendererBase>& world)
+{
+    renderer->makeCurrent();
+    world->makeCurrent();
+
+    auto scene = simplex::core::Scene::createEmpty(name);
+
+    auto cameraNode = std::make_shared<simplex::core::CameraNode>("");
+    scene->sceneRootNode()->attach(cameraNode);
+
+    auto directionalLightNode = std::make_shared<simplex::core::DirectionalLightNode>("");
+    directionalLightNode->setTransform(
+        simplex::utils::Transform::makeLookAt(glm::vec3(0.f, 0.f, .0f), glm::vec3(.35f, -1.0f, .35f), glm::vec3(1.f, 0.f, 0.f))
+            .inverted());
+    directionalLightNode->setColor(glm::vec3(3.f));
+    directionalLightNode->setShadingEnabled(true);
+    directionalLightNode->setShadowCascadesCount(4u);
+    directionalLightNode->setShadowMapSize(2048u);
+    scene->sceneRootNode()->attach(directionalLightNode);
+
+    auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
+    IBLNode->setContribution(0.7f);
+    scene->sceneRootNode()->attach(IBLNode);
+
+    auto constraintsStaticBodyNode = createConstraintsSceneNode();
+    scene->sceneRootNode()->attach(constraintsStaticBodyNode);
+
+    {
+        auto doorNode = createBox(glm::vec3(.37f, .59f, .033f));
+        doorNode->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(-10.026f, 0.589f, 0.f)));
+        scene->sceneRootNode()->attach(doorNode);
+
+        auto constraint = doorNode->dynamicBody()->joinHinge(
+            simplex::utils::RigidTransform(glm::quat(glm::vec3(glm::half_pi<float>(), 0.f, 0.f)), glm::vec3(.37f, 0.f, 0.f)),
+            constraintsStaticBodyNode->staticBody(),
+            simplex::utils::RigidTransform(
+                glm::quat(glm::vec3(glm::half_pi<float>(), 0.f, 0.f)), glm::vec3(-10.026f + .37f, 0.589f, 0.f)));
+        constraint->enableCollisionBetweenLinkedBodies(false);
+        constraint->setAngularLimits(simplex::utils::Range(-glm::half_pi<float>() * 1.5f, glm::half_pi<float>() * 1.5f));
+    }
+
+    {
+        auto slideNode = createBox(glm::vec3(.37f, .59f, .164f));
+        slideNode->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(-16.628f, 0.589f, 0.f)));
+        scene->sceneRootNode()->attach(slideNode);
+
+        auto constraint = slideNode->dynamicBody()->joinSlider(
+            simplex::utils::RigidTransform(), constraintsStaticBodyNode->staticBody(),
+            simplex::utils::RigidTransform::makeTranslation(glm::vec3(-16.628f, 0.589f, 0.f)));
+        constraint->enableCollisionBetweenLinkedBodies(false);
+        constraint->setLinearLimits(simplex::utils::Range(-2.754f + .37f, 2.754f - .37f));
+    }
+
+    static const auto BoxHalfWidth = .065f;
+    static const auto BoxHalfLen = .4f;
+    static const auto StretchedBoxHalfLen = BoxHalfLen * 1.05f;
+
+    {
+        static const auto PivotPoint = glm::vec3(4.971f, 1.93f, 0.f);
+
+        auto boxNode0 = createBox(glm::vec3(BoxHalfWidth, BoxHalfLen, BoxHalfWidth));
+        boxNode0->setTransform(simplex::utils::Transform::makeTranslation(PivotPoint - glm::vec3(0.f, StretchedBoxHalfLen, 0.f)));
+        boxNode0->dynamicBody()->setAngularDamping(.9f);
+        scene->sceneRootNode()->attach(boxNode0);
+
+        auto constraint0 = boxNode0->dynamicBody()->joinPointToPoint(
+            glm::vec3(0.f, StretchedBoxHalfLen, 0.f), constraintsStaticBodyNode->staticBody(), PivotPoint);
+        constraint0->enableCollisionBetweenLinkedBodies(false);
+
+        auto boxNode1 = createBox(glm::vec3(BoxHalfWidth, BoxHalfLen, BoxHalfWidth));
+        boxNode1->setTransform(
+            simplex::utils::Transform::makeTranslation(PivotPoint - 1.5f * glm::vec3(0.f, StretchedBoxHalfLen, 0.f)));
+        boxNode1->dynamicBody()->setAngularDamping(.9f);
+        scene->sceneRootNode()->attach(boxNode1);
+
+        auto constraint1 = boxNode1->dynamicBody()->joinPointToPoint(
+            glm::vec3(0.f, StretchedBoxHalfLen, 0.f), boxNode0->dynamicBody(), glm::vec3(0.f, -StretchedBoxHalfLen, 0.f));
+        constraint1->enableCollisionBetweenLinkedBodies(false);
+    }
+
+    {
+        static const auto PivotPoint = glm::vec3(0.f, 1.93f, 0.f);
+
+        auto boxNode0 = createBox(glm::vec3(BoxHalfWidth, BoxHalfLen, BoxHalfWidth));
+        boxNode0->setTransform(simplex::utils::Transform::makeTranslation(PivotPoint - glm::vec3(0.f, StretchedBoxHalfLen, 0.f)));
+        boxNode0->dynamicBody()->setAngularDamping(.9f);
+        scene->sceneRootNode()->attach(boxNode0);
+
+        auto constraint0 = boxNode0->dynamicBody()->joinPointToPoint(
+            glm::vec3(0.f, StretchedBoxHalfLen, 0.f), constraintsStaticBodyNode->staticBody(), PivotPoint);
+        constraint0->enableCollisionBetweenLinkedBodies(false);
+
+        auto boxNode1 = createBox(glm::vec3(BoxHalfWidth, BoxHalfLen, BoxHalfWidth));
+        boxNode1->setTransform(
+            simplex::utils::Transform::makeTranslation(PivotPoint - 1.5f * glm::vec3(0.f, StretchedBoxHalfLen, 0.f)));
+        boxNode1->dynamicBody()->setAngularDamping(.9f);
+        scene->sceneRootNode()->attach(boxNode1);
+
+        auto constraint1 = boxNode1->dynamicBody()->joinFixed(
+            simplex::utils::RigidTransform::makeTranslation(glm::vec3(0.f, StretchedBoxHalfLen, 0.f)), boxNode0->dynamicBody(),
+            simplex::utils::RigidTransform::makeTranslation(glm::vec3(0.f, -StretchedBoxHalfLen, 0.f)));
+        constraint1->enableCollisionBetweenLinkedBodies(false);
+    }
+
+    {
+        static const auto PivotPoint = glm::vec3(-4.983f, 1.93f, 0.f);
+
+        auto boxNode0 = createBox(glm::vec3(BoxHalfWidth, BoxHalfLen, BoxHalfWidth));
+        boxNode0->setTransform(simplex::utils::Transform::makeTranslation(PivotPoint - glm::vec3(0.f, StretchedBoxHalfLen, 0.f)));
+        boxNode0->dynamicBody()->setAngularDamping(.9f);
+        scene->sceneRootNode()->attach(boxNode0);
+
+        auto constraint0 = boxNode0->dynamicBody()->joinHinge(
+            simplex::utils::RigidTransform(
+                glm::quat(glm::vec3(0.f, glm::half_pi<float>(), 0.f)), glm::vec3(0.f, StretchedBoxHalfLen, 0.f)),
+            constraintsStaticBodyNode->staticBody(),
+            simplex::utils::RigidTransform(glm::quat(glm::vec3(0.f, glm::half_pi<float>(), 0.f)), PivotPoint));
+        constraint0->enableCollisionBetweenLinkedBodies(false);
+
+        auto boxNode1 = createBox(glm::vec3(BoxHalfWidth, BoxHalfLen, BoxHalfWidth));
+        boxNode1->setTransform(
+            simplex::utils::Transform::makeTranslation(PivotPoint - 1.5f * glm::vec3(0.f, StretchedBoxHalfLen, 0.f)));
+        boxNode1->dynamicBody()->setAngularDamping(.9f);
+        scene->sceneRootNode()->attach(boxNode1);
+
+        auto constraint1 = boxNode1->dynamicBody()->joinHinge(
+            simplex::utils::RigidTransform(
+                glm::quat(glm::vec3(0.f, glm::half_pi<float>(), 0.f)), glm::vec3(0.f, StretchedBoxHalfLen, 0.f)),
+            boxNode0->dynamicBody(),
+            simplex::utils::RigidTransform(
+                glm::quat(glm::vec3(0.f, glm::half_pi<float>(), 0.f)), glm::vec3(0.f, -StretchedBoxHalfLen, 0.f)));
+        constraint1->enableCollisionBetweenLinkedBodies(false);
     }
 
     return scene;
@@ -768,7 +952,7 @@ int main(int argc, char* argv[])
     // app.setScene(createScene("SimpleScene", window->graphicsEngine()->graphicsRenderer()));
     // app.setScene(
     //    createScene2("SimpleScene", window->graphicsEngine()->scenesLoader(), window->graphicsEngine()->graphicsRenderer()));
-    app.setScene(createScene2(
+    app.setScene(createScene3(
         "SimpleScene", window->graphicsEngine()->scenesLoader(), window->graphicsEngine()->graphicsRenderer(),
         world->physicsEngine()->physicsRenderer()));
 

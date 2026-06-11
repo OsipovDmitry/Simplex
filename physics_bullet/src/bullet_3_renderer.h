@@ -356,6 +356,15 @@ protected:
     bool doMakeCurrent() override;
     bool doDoneCurrent() override;
 
+    static bool collisionCallback(
+        btManifoldPoint&,
+        const btCollisionObjectWrapper*,
+        int,
+        int,
+        const btCollisionObjectWrapper*,
+        int,
+        int);
+
 private:
     std::weak_ptr<BulletWorld> m_world;
 

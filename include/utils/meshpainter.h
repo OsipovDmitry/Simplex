@@ -60,7 +60,7 @@ public:
     ~MeshPainter() override;
 
     MeshPainter& drawTriangle();
-    MeshPainter& drawPlane();
+    MeshPainter& drawPlane(const glm::vec2& = glm::vec2(1.f));
     MeshPainter& drawTetrahedron();
     MeshPainter& drawCube(const glm::vec3& = glm::vec3(1.f));
     MeshPainter& drawFrustum(const glm::mat4x4&);
