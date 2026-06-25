@@ -25,6 +25,11 @@ mat4x4 shadowTransformsDataProjectionMatrix(in uint transformsDataOffset, in uin
 	return shadowTransformsData[transformsDataOffset + layerID].projectionMatrix;
 }
 
+mat4x4 shadowTransformsDataViewProjectionMatrix(in uint transformsDataOffset, in uint layerID)
+{
+	return shadowTransformsData[transformsDataOffset + layerID].viewProjectionMatrix;
+}
+
 uvec3 shadowTransformsDataMapCoords(in uint transformsDataOffset, in uint layerID)
 {
 	return uvec3(shadowTransformsData[transformsDataOffset + layerID].mapCoords);
@@ -93,6 +98,7 @@ void shadowTransformsDataInitialize(
 	shadowTransformsData[offset].viewTransform = makeTransformDescription(viewTransform);
 	shadowTransformsData[offset].ZRange = makeRangeDescription(ZRange);
 	shadowTransformsData[offset].projectionMatrix = projectionMatrix;
+	shadowTransformsData[offset].viewProjectionMatrix = projectionMatrix * transformMat4x4(viewTransform);
 	
 	vec3 fPoints[FRUSTUM_POINTS_COUNT];
 	for (uint i = 0u; i < FRUSTUM_POINTS_COUNT; ++i)

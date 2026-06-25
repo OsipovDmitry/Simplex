@@ -3,7 +3,7 @@
 
 #include <utils/glm/vec3.hpp>
 
-#include <core/lightnode.h>
+#include <core/coloredlightnode.h>
 
 namespace simplex
 {
@@ -11,7 +11,7 @@ namespace core
 {
 
 class AmbientLightNodePrivate;
-class CORE_SHARED_EXPORT AmbientLightNode : public LightNode
+class CORE_SHARED_EXPORT AmbientLightNode : public ColoredLightNode
 {
     PRIVATE_IMPL(AmbientLightNode)
 public:
@@ -20,9 +20,6 @@ public:
 
     std::shared_ptr<AmbientLightNode> asAmbientLightNode() override;
     std::shared_ptr<const AmbientLightNode> asAmbientLightNode() const override;
-
-    const glm::vec3& color() const;
-    void setColor(const glm::vec3&);
 };
 
 } // namespace core

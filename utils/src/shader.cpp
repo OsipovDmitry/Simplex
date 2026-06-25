@@ -1,8 +1,8 @@
-#include <set>
 #include <optional>
+#include <set>
 
-#include <utils/shader.h>
 #include <utils/logger.h>
+#include <utils/shader.h>
 #include <utils/textfile.h>
 
 namespace simplex
@@ -11,27 +11,36 @@ namespace utils
 {
 
 std::string Shader::s_version = "460 core";
+std::unordered_set<std::string> Shader::s_extensions{"GL_ARB_bindless_texture"};
 bool Shader::s_printDebugShaders = false;
 
-Shader::Shader()
-{
-}
+Shader::Shader() {}
 
 Shader::~Shader() = default;
 
-const std::string &Shader::data() const
+const std::string& Shader::data() const
 {
     return m_data;
 }
 
-const std::string &Shader::version()
+const std::string& Shader::version()
 {
     return s_version;
 }
 
-void Shader::setVersion(const std::string &value)
+void Shader::setVersion(const std::string& value)
 {
     s_version = value;
+}
+
+std::unordered_set<std::string> Shader::extensions()
+{
+    return s_extensions;
+}
+
+void Shader::setExtensions(const std::unordered_set<std::string>& value)
+{
+    s_extensions = value;
 }
 
 bool Shader::printDebugShaders()
@@ -44,25 +53,22 @@ void Shader::setPrintDebugShaders(bool value)
     s_printDebugShaders = value;
 }
 
-std::shared_ptr<Shader> Shader::loadFromData(const std::string &data)
+std::shared_ptr<Shader> Shader::loadFromData(const std::string& data)
 {
     auto result = std::make_shared<Shader>();
     result->m_data = data;
     return result;
 }
 
-std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filename, const ShaderDefines &defines)
+std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path& filename, const ShaderDefines& defines)
 {
     static const std::string versionString = "#version";
     static const std::string includeString = "#include<";
     static const std::string closedBracket = ">";
 
-    static const auto includeProccess = [](
-        const auto& self,
-        const std::string& srcData,
-        const std::filesystem::path& filename,
-        const std::filesystem::path& dir,
-        std::set<std::filesystem::path>& includedFiles) -> std::optional<std::string>
+    static const auto includeProccess = [](const auto& self, const std::string& srcData, const std::filesystem::path& filename,
+                                           const std::filesystem::path& dir,
+                                           std::set<std::filesystem::path>& includedFiles) -> std::optional<std::string>
     {
         std::string result = srcData;
 
@@ -77,9 +83,7 @@ std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filena
 
             auto pos1 = pos + includeString.length();
             auto includedPath = std::filesystem::path(result.substr(pos1, pos2 - pos1));
-            std::filesystem::path includedFilename = includedPath.is_absolute() ?
-                includedPath :
-                dir / includedPath;
+            std::filesystem::path includedFilename = includedPath.is_absolute() ? includedPath : dir / includedPath;
             includedFilename = std::filesystem::canonical(includedFilename);
 
             if (includedFiles.count(includedFilename))
@@ -122,12 +126,8 @@ std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filena
     std::set<std::filesystem::path> includedFiles;
     includedFiles.insert(std::filesystem::canonical(absoluteFilename));
 
-    if (auto includedData = includeProccess(
-        includeProccess,
-        shaderFile->data(),
-        absoluteFilename,
-        absoluteFilename.parent_path(),
-        includedFiles);
+    if (auto includedData =
+            includeProccess(includeProccess, shaderFile->data(), absoluteFilename, absoluteFilename.parent_path(), includedFiles);
         !includedData.has_value())
     {
         LOG_ERROR << "Shader file " << absoluteFilename << " parse error";
@@ -136,16 +136,20 @@ std::shared_ptr<Shader> Shader::loadFromFile(const std::filesystem::path &filena
     else
         result->m_data = std::move(includedData.value());
 
-    for (const auto &define : defines)
+    if (!defines.empty()) result->m_data.insert(0, "\n");
+    for (const auto& define : defines)
         result->m_data.insert(0, "#define " + define.first + " " + define.second + "\n");
+
+    if (!s_extensions.empty()) result->m_data.insert(0, "\n");
+    for (const auto& extension : s_extensions)
+        result->m_data.insert(0, "#extension " + extension + " : enable\n");
 
     result->m_data.insert(0, versionString + " " + s_version + "\n\n");
 
-    if (s_printDebugShaders)
-        TextFile::loadFromData(result->m_data)->saveToFile(std::filesystem::path(filename.filename()));
+    if (s_printDebugShaders) TextFile::loadFromData(result->m_data)->saveToFile(std::filesystem::path(filename.filename()));
 
     return result;
 }
 
-}
-}
+} // namespace utils
+} // namespace simplex

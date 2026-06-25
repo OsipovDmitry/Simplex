@@ -40,9 +40,9 @@
       "Contribution": 0.4
     },
     "Shadow": {
-	  "AtlasSize": 2048,
+	  "AtlasSize": 4096,
       "MapSize": 512,
-	  "BlurSigma": 3.0,
+	  "BlurSigma": 2.0,
 	  "LightBleedingAmount": 0.2
     },
     "SSAO": {

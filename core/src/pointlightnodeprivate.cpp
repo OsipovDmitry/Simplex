@@ -11,7 +11,7 @@ namespace core
 {
 
 PointLightNodePrivate::PointLightNodePrivate(PointLightNode& pointLightNode, const std::string& name)
-    : LightNodePrivate(pointLightNode, name, LightType::Point)
+    : ShadowedLightNodePrivate(pointLightNode, name, LightType::Point)
 {
 }
 
@@ -22,25 +22,22 @@ uint32_t PointLightNodePrivate::shadowLayersCount() const
     return 6u;
 }
 
-glm::vec3& PointLightNodePrivate::color()
-{
-    return m_color;
-}
-
-glm::vec2& PointLightNodePrivate::radiuses()
+utils::Range& PointLightNodePrivate::radiuses()
 {
     return m_radiuses;
 }
 
 std::shared_ptr<LightHandler> PointLightNodePrivate::createLightInSceneData(SceneData& sceneData) const
 {
-    return sceneData.addPointLight(d().globalTransform(), m_isLightingEnabled, m_color, m_radiuses, m_shadow);
+    return sceneData.addPointLight(
+        d().globalTransform(), m_isLightingEnabled, m_color, m_radiuses, m_shadow, m_isVolumetricScatteringEnabled);
 }
 
 void PointLightNodePrivate::updateLightInSceneData(LightHandler& handler) const
 {
     if (auto sceneData = handler.sceneData().lock())
-        sceneData->onPointLightChanged(handler, d().globalTransform(), m_isLightingEnabled, m_color, m_radiuses, m_shadow);
+        sceneData->onPointLightChanged(
+            handler, d().globalTransform(), m_isLightingEnabled, m_color, m_radiuses, m_shadow, m_isVolumetricScatteringEnabled);
 }
 
 } // namespace core

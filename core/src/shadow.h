@@ -15,16 +15,16 @@ class ShadowHandler;
 class Shadow
 {
 public:
-    Shadow(const LightNode&);
+    Shadow(const ShadowedLightNode&);
     ~Shadow();
 
-    const LightNode& lightNode() const;
+    const ShadowedLightNode& shadowedLightNode() const;
     std::shared_ptr<ShadowHandler>& handler() const;
 
     void onChanged();
 
 private:
-    const LightNode& m_lightNode;
+    const ShadowedLightNode& m_shadowedLightNode;
     mutable std::shared_ptr<ShadowHandler> m_handler;
 };
 

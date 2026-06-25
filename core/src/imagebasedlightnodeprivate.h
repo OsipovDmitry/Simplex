@@ -15,8 +15,6 @@ public:
     ImageBasedLightNodePrivate(ImageBasedLightNode&, const std::string& name);
     ~ImageBasedLightNodePrivate() override;
 
-    uint32_t shadowLayersCount() const override;
-
     std::shared_ptr<MaterialMap>& BRDFLutMap();
     std::shared_ptr<MaterialMap>& diffuseMap();
     std::shared_ptr<MaterialMap>& specularMap();

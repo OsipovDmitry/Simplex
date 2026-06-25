@@ -47,21 +47,6 @@ bool& LightNodePrivate::isLightingEnabled()
     return m_isLightingEnabled;
 }
 
-std::shared_ptr<Shadow>& LightNodePrivate::shadow()
-{
-    return m_shadow;
-}
-
-uint32_t& LightNodePrivate::shadowMapSize()
-{
-    return m_shadowMapSize;
-}
-
-utils::Range& LightNodePrivate::shadowCullPlanesLimits()
-{
-    return m_shadowCullPlanesLimits;
-}
-
 void LightNodePrivate::onChanged()
 {
     if (m_lightHandler) updateLightInSceneData(*m_lightHandler);

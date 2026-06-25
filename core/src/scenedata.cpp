@@ -5,21 +5,21 @@
 #include <core/graphicsengine.h>
 #include <core/graphicsrendererbase.h>
 #include <core/igraphicswidget.h>
-#include <core/lightnode.h>
 #include <core/material.h>
 #include <core/mesh.h>
 #include <core/scene.h>
 #include <core/settings.h>
+#include <core/shadowedlightnode.h>
 #include <core/skeletalanimation.h>
 #include <core/texturesloader.h>
 
 #include "backgroundprivate.h"
 #include "drawableprivate.h"
-#include "lightnodeprivate.h"
 #include "materialprivate.h"
 #include "meshprivate.h"
 #include "sceneprivate.h"
 #include "shadow.h"
+#include "shadowedlightnodeprivate.h"
 #include "skeletalanimationprivate.h"
 
 namespace simplex
@@ -946,7 +946,7 @@ SceneData::AddShadowRectResult SceneData::addShadowRect(uint32_t shadowMapSize)
         depthTextureHandle->makeResident();
 
         auto varianceTexture =
-            graphicsRenderer->createTexture2DArrayEmpty(mapSize, mapSize, layersCount, graphics::PixelInternalFormat::RG32F);
+            graphicsRenderer->createTexture2DArrayEmpty(mapSize, mapSize, layersCount, graphics::PixelInternalFormat::RGBA32F);
         varianceTexture->setFilterMode(graphics::TextureFilterMode::Linear);
         varianceTextureHandle = graphicsRenderer->createTextureHandle(varianceTexture);
         varianceTextureHandle->makeResident();
@@ -1026,7 +1026,7 @@ SceneData::AddShadowRectResult SceneData::addShadowRect(uint32_t shadowMapSize)
         return {coords, itemID};
     }
 
-    LOG_CRITICAL << "Can't add shadow to rect packer";
+    LOG_CRITICAL << "Failed to add shadow to rect packer";
     return {};
 }
 
@@ -1439,11 +1439,12 @@ std::shared_ptr<ShadowHandler> SceneData::addShadow(const std::shared_ptr<const 
             m_shadowsBuffer->resize(static_cast<size_t>(shadowID) + 1u);
             m_shadowsBuffer->set(shadowID, ShadowDescription::makeEmpty());
 
-            const auto& lightNode = shadow->lightNode();
+            const auto& shadowedLightNode = shadow->shadowedLightNode();
 
             result = std::make_shared<ShadowHandler>(weak_from_this(), shadow, shadowID);
             onShadowChanged(
-                *result, lightNode.shadowMapSize(), lightNode.shadowCullPlanesLimits(), lightNode.m().shadowLayersCount());
+                *result, shadowedLightNode.shadowMapSize(), shadowedLightNode.shadowCullPlanesLimits(),
+                shadowedLightNode.m().shadowLayersCount());
             shadow->handler() = result;
         }
     }
@@ -1492,63 +1493,27 @@ void SceneData::onShadowChanged(
         addShadowTransformsDataResult.shadowTransformsDataOffset, addShadowTransformsDataResult.layerPackerIDsAndPackerItemIDs);
 }
 
-std::shared_ptr<LightHandler> SceneData::addPointLight(
-    const utils::Transform& transform,
-    bool isLightingEnabled,
-    const glm::vec3& color,
-    const glm::vec2& radiuses,
-    const std::shared_ptr<const Shadow>& shadow)
+std::shared_ptr<LightHandler> SceneData::addAmbientLight(bool isLightingEnabled, const glm::vec3& color)
 {
     auto result = addLight();
-    onPointLightChanged(*result, transform, isLightingEnabled, color, radiuses, shadow);
+    onAmbientLightChanged(*result, isLightingEnabled, color);
     return result;
 }
 
-void SceneData::onPointLightChanged(
-    LightHandler& handler,
-    const utils::Transform& transform,
-    bool isLightingEnabled,
-    const glm::vec3& color,
-    const glm::vec2& radiuses,
-    const std::shared_ptr<const Shadow>& shadow)
+void SceneData::onAmbientLightChanged(LightHandler& handler, bool isLightingEnabled, const glm::vec3& color)
 {
-    onLightChanged(handler, LightDescription::makePoint(transform, isLightingEnabled, color, radiuses, addShadow(shadow)->ID()));
-}
-
-std::shared_ptr<LightHandler> SceneData::addSpotLight(
-    const utils::Transform& transform,
-    bool isLightingEnabled,
-    const glm::vec3& color,
-    const glm::vec2& radiuses,
-    const glm::vec2& halfAngles,
-    const std::shared_ptr<const Shadow>& shadow)
-{
-    auto result = addLight();
-    onSpotLightChanged(*result, transform, isLightingEnabled, color, radiuses, halfAngles, shadow);
-    return result;
-}
-
-void SceneData::onSpotLightChanged(
-    LightHandler& handler,
-    const utils::Transform& transform,
-    bool isLightingEnabled,
-    const glm::vec3& color,
-    const glm::vec2& radiuses,
-    const glm::vec2& halfAngles,
-    const std::shared_ptr<const Shadow>& shadow)
-{
-    onLightChanged(
-        handler, LightDescription::makeSpot(transform, isLightingEnabled, color, radiuses, halfAngles, addShadow(shadow)->ID()));
+    onLightChanged(handler, LightDescription::makeAmbient(isLightingEnabled, color));
 }
 
 std::shared_ptr<LightHandler> SceneData::addDirectionalLight(
     const utils::Transform& transform,
     bool isLightingEnabled,
     const glm::vec3& color,
-    const std::shared_ptr<const Shadow>& shadow)
+    const std::shared_ptr<const Shadow>& shadow,
+    bool isVolumetricScatteringEnabled)
 {
     auto result = addLight();
-    onDirectionalLightChanged(*result, transform, isLightingEnabled, color, shadow);
+    onDirectionalLightChanged(*result, transform, isLightingEnabled, color, shadow, isVolumetricScatteringEnabled);
     return result;
 }
 
@@ -1557,9 +1522,69 @@ void SceneData::onDirectionalLightChanged(
     const utils::Transform& transform,
     bool isLightingEnabled,
     const glm::vec3& color,
-    const std::shared_ptr<const Shadow>& shadow)
+    const std::shared_ptr<const Shadow>& shadow,
+    bool isVolumetricScatteringEnabled)
 {
-    onLightChanged(handler, LightDescription::makeDirectional(transform, isLightingEnabled, color, addShadow(shadow)->ID()));
+    onLightChanged(
+        handler, LightDescription::makeDirectional(
+                     transform, isLightingEnabled, color, addShadow(shadow)->ID(), isVolumetricScatteringEnabled));
+}
+
+std::shared_ptr<LightHandler> SceneData::addPointLight(
+    const utils::Transform& transform,
+    bool isLightingEnabled,
+    const glm::vec3& color,
+    const utils::Range& radiuses,
+    const std::shared_ptr<const Shadow>& shadow,
+    bool isVolumetricScatteringEnabled)
+{
+    auto result = addLight();
+    onPointLightChanged(*result, transform, isLightingEnabled, color, radiuses, shadow, isVolumetricScatteringEnabled);
+    return result;
+}
+
+void SceneData::onPointLightChanged(
+    LightHandler& handler,
+    const utils::Transform& transform,
+    bool isLightingEnabled,
+    const glm::vec3& color,
+    const utils::Range& radiuses,
+    const std::shared_ptr<const Shadow>& shadow,
+    bool isVolumetricScatteringEnabled)
+{
+    onLightChanged(
+        handler, LightDescription::makePoint(
+                     transform, isLightingEnabled, color, radiuses, addShadow(shadow)->ID(), isVolumetricScatteringEnabled));
+}
+
+std::shared_ptr<LightHandler> SceneData::addSpotLight(
+    const utils::Transform& transform,
+    bool isLightingEnabled,
+    const glm::vec3& color,
+    const utils::Range& radiuses,
+    const utils::Range& halfAngles,
+    const std::shared_ptr<const Shadow>& shadow,
+    bool isVolumetricScatteringEnabled)
+{
+    auto result = addLight();
+    onSpotLightChanged(*result, transform, isLightingEnabled, color, radiuses, halfAngles, shadow, isVolumetricScatteringEnabled);
+    return result;
+}
+
+void SceneData::onSpotLightChanged(
+    LightHandler& handler,
+    const utils::Transform& transform,
+    bool isLightingEnabled,
+    const glm::vec3& color,
+    const utils::Range& radiuses,
+    const utils::Range& halfAngles,
+    const std::shared_ptr<const Shadow>& shadow,
+    bool isVolumetricScatteringEnabled)
+{
+    onLightChanged(
+        handler,
+        LightDescription::makeSpot(
+            transform, isLightingEnabled, color, radiuses, halfAngles, addShadow(shadow)->ID(), isVolumetricScatteringEnabled));
 }
 
 std::shared_ptr<LightHandler> SceneData::addImageBasedLight(
@@ -1588,18 +1613,6 @@ void SceneData::onImageBasedLightChanged(
         handler, LightDescription::makeImageBased(
                      transform, isLightingEnabled, addMaterialMap(BRDFLutMap)->ID(), addMaterialMap(diffuseMap)->ID(),
                      addMaterialMap(specularMap)->ID(), contribution));
-}
-
-std::shared_ptr<LightHandler> SceneData::addAmbientLight(bool isLightingEnabled, const glm::vec3& color)
-{
-    auto result = addLight();
-    onAmbientLightChanged(*result, isLightingEnabled, color);
-    return result;
-}
-
-void SceneData::onAmbientLightChanged(LightHandler& handler, bool isLightingEnabled, const glm::vec3& color)
-{
-    onLightChanged(handler, LightDescription::makeAmbient(isLightingEnabled, color));
 }
 
 void SceneData::removeLight(LightHandler& handler)

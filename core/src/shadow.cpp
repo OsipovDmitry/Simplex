@@ -1,25 +1,25 @@
 #include "shadow.h"
 
-#include <core/lightnode.h>
+#include <core/shadowedlightnode.h>
 
-#include "lightnodeprivate.h"
 #include "scenedata.h"
+#include "shadowedlightnodeprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-Shadow::Shadow(const LightNode& lightNode)
-    : m_lightNode(lightNode)
+Shadow::Shadow(const ShadowedLightNode& shadowedLightNode)
+    : m_shadowedLightNode(shadowedLightNode)
 {
 }
 
 Shadow::~Shadow() = default;
 
-const LightNode& Shadow::lightNode() const
+const ShadowedLightNode& Shadow::shadowedLightNode() const
 {
-    return m_lightNode;
+    return m_shadowedLightNode;
 }
 
 std::shared_ptr<ShadowHandler>& Shadow::handler() const
@@ -34,8 +34,8 @@ void Shadow::onChanged()
         if (auto sceneData = m_handler->sceneData().lock())
         {
             sceneData->onShadowChanged(
-                *m_handler, m_lightNode.shadowMapSize(), m_lightNode.shadowCullPlanesLimits(),
-                m_lightNode.m().shadowLayersCount());
+                *m_handler, m_shadowedLightNode.shadowMapSize(), m_shadowedLightNode.shadowCullPlanesLimits(),
+                m_shadowedLightNode.m().shadowLayersCount());
         }
     }
 }

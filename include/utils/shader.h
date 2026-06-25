@@ -1,14 +1,14 @@
 #ifndef UTILS_SHADER_H
 #define UTILS_SHADER_H
 
+#include <filesystem>
 #include <memory>
 #include <string>
-#include <filesystem>
-#include <unordered_map>
+#include <unordered_set>
 
-#include <utils/utilsglobal.h>
-#include <utils/noncopyble.h>
 #include <utils/forwarddecl.h>
+#include <utils/noncopyble.h>
+#include <utils/utilsglobal.h>
 
 namespace simplex
 {
@@ -22,10 +22,13 @@ public:
     Shader();
     ~Shader();
 
-    const std::string &data() const;
+    const std::string& data() const;
 
-    static const std::string &version();
+    static const std::string& version();
     static void setVersion(const std::string&);
+
+    static std::unordered_set<std::string> extensions();
+    static void setExtensions(const std::unordered_set<std::string>&);
 
     static bool printDebugShaders();
     static void setPrintDebugShaders(bool);
@@ -36,11 +39,11 @@ public:
 private:
     std::string m_data;
     static std::string s_version;
+    static std::unordered_set<std::string> s_extensions;
     static bool s_printDebugShaders;
-
 };
 
-}
-}
+} // namespace utils
+} // namespace simplex
 
 #endif // UTILS_SHADER_H

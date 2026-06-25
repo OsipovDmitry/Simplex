@@ -460,47 +460,56 @@ public:
     void removeShadow(const std::shared_ptr<const Shadow>&);
     void onShadowChanged(ShadowHandler&, uint32_t mapSize, const utils::Range& cullPlaneLimits, uint32_t layersCount);
 
-    std::shared_ptr<LightHandler> addPointLight(
-        const utils::Transform&,
-        bool,
-        const glm::vec3&,
-        const glm::vec2&,
-        const std::shared_ptr<const Shadow>&);
-    void onPointLightChanged(
-        LightHandler&,
-        const utils::Transform&,
-        bool,
-        const glm::vec3&,
-        const glm::vec2&,
-        const std::shared_ptr<const Shadow>&);
-
-    std::shared_ptr<LightHandler> addSpotLight(
-        const utils::Transform&,
-        bool,
-        const glm::vec3&,
-        const glm::vec2&,
-        const glm::vec2&,
-        const std::shared_ptr<const Shadow>&);
-    void onSpotLightChanged(
-        LightHandler&,
-        const utils::Transform&,
-        bool,
-        const glm::vec3&,
-        const glm::vec2&,
-        const glm::vec2&,
-        const std::shared_ptr<const Shadow>&);
+    std::shared_ptr<LightHandler> addAmbientLight(bool, const glm::vec3&);
+    void onAmbientLightChanged(LightHandler&, bool, const glm::vec3&);
 
     std::shared_ptr<LightHandler> addDirectionalLight(
         const utils::Transform&,
         bool,
         const glm::vec3&,
-        const std::shared_ptr<const Shadow>&);
+        const std::shared_ptr<const Shadow>&,
+        bool);
     void onDirectionalLightChanged(
         LightHandler&,
         const utils::Transform&,
         bool,
         const glm::vec3&,
-        const std::shared_ptr<const Shadow>&);
+        const std::shared_ptr<const Shadow>&,
+        bool);
+
+    std::shared_ptr<LightHandler> addPointLight(
+        const utils::Transform&,
+        bool,
+        const glm::vec3&,
+        const utils::Range&,
+        const std::shared_ptr<const Shadow>&,
+        bool);
+    void onPointLightChanged(
+        LightHandler&,
+        const utils::Transform&,
+        bool,
+        const glm::vec3&,
+        const utils::Range&,
+        const std::shared_ptr<const Shadow>&,
+        bool);
+
+    std::shared_ptr<LightHandler> addSpotLight(
+        const utils::Transform&,
+        bool,
+        const glm::vec3&,
+        const utils::Range&,
+        const utils::Range&,
+        const std::shared_ptr<const Shadow>&,
+        bool);
+    void onSpotLightChanged(
+        LightHandler&,
+        const utils::Transform&,
+        bool,
+        const glm::vec3&,
+        const utils::Range&,
+        const utils::Range&,
+        const std::shared_ptr<const Shadow>&,
+        bool);
 
     std::shared_ptr<LightHandler> addImageBasedLight(
         const utils::Transform&,
@@ -517,9 +526,6 @@ public:
         const std::shared_ptr<const MaterialMap>&,
         const std::shared_ptr<const MaterialMap>&,
         float);
-
-    std::shared_ptr<LightHandler> addAmbientLight(bool, const glm::vec3&);
-    void onAmbientLightChanged(LightHandler&, bool, const glm::vec3&);
 
     void removeLight(LightHandler&);
 

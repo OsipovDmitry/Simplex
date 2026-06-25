@@ -1,13 +1,32 @@
 #include<descriptions.glsl>
 
 #include<math/transform.glsl>
+#include<math/range.glsl>
 
-const uint PointLightTypeID = 0u;
-const uint SpotLightTypeID = 1u;
-const uint DirectionalLightTypeID = 2u;
-const uint ImageBasedLightTypeID = 3u;
-const uint AmbientLightTypeID = 4u;
+const uint AmbientLightTypeID = 0u;
+const uint DirectionalLightTypeID = 1u;
+const uint PointLightTypeID = 2u;
+const uint SpotLightTypeID = 3u;
+const uint ImageBasedLightTypeID = 4u;
 const uint UndefinedLightTypeID = 0xFFFFFFFFu;
+
+#define IsLightTypeDefined(typeID) \
+	((typeID == AmbientLightTypeID) || \
+	 (typeID == DirectionalLightTypeID) || \
+	 (typeID == PointLightTypeID) || \
+	 (typeID == SpotLightTypeID) || \
+	 (typeID == ImageBasedLightTypeID))
+
+#define IsLightTypeColored(typeID) \
+	((typeID == AmbientLightTypeID) || \
+	 (typeID == DirectionalLightTypeID) || \
+	 (typeID == PointLightTypeID) || \
+	 (typeID == SpotLightTypeID))
+
+#define IsLightTypeShadowed(typeID) \
+	((typeID == DirectionalLightTypeID) || \
+	 (typeID == PointLightTypeID) || \
+	 (typeID == SpotLightTypeID))
 
 layout (std430) readonly buffer ssbo_lightsBuffer { LightDescription lights[]; };
 
@@ -16,77 +35,62 @@ Transform lightTransform(in uint lightID)
 	return toTransform(lights[lightID].transform);
 }
 
-bool lightIsEnabled(in uint lightID)
-{
-	return bitfieldExtract(lights[lightID].flags, 0, 1) != 0u;
-}
-
 uint lightTypeID(in uint lightID)
 {
-	return floatBitsToUint(lights[lightID].params0.w);
+	return lights[lightID].params0[0u];
 }
 
-uint lightShadowID(in uint lightID)
+bool lightIsLightingEnabled(in uint lightID)
 {
-	return lights[lightID].shadowID;
+	return bitfieldExtract(lights[lightID].params2[0u], 0, 1) != 0u;
 }
 
-vec3 pointLightColor(in uint lightID)
+vec3 coloredLightColor(in uint lightID)
 {
-	return lights[lightID].params0.xyz;
+	return uintBitsToFloat(lights[lightID].params0.yzw);
 }
 
-vec2 pointLightRadiuses(in uint lightID)
+uint shadowedLightShadowID(in uint lightID)
 {
-	return lights[lightID].params1.xy;
+	return lights[lightID].params2[1u];
 }
 
-vec3 spotLightColor(in uint lightID)
+bool shadowedLightIsVolumetricScatteringEnabled(in uint lightID)
 {
-	return lights[lightID].params0.xyz;
+	return bitfieldExtract(lights[lightID].params2[0u], 1, 1) != 0u;
 }
 
-vec2 spotLightRadiuses(in uint lightID)
+Range pointLightRadiuses(in uint lightID)
 {
-	return lights[lightID].params1.xy;
+	return makeRange(uintBitsToFloat(lights[lightID].params1.xy));
 }
 
-vec2 spotLightHalfAngles(in uint lightID)
+Range spotLightRadiuses(in uint lightID)
 {
-	return lights[lightID].params1.zw;
+	return makeRange(uintBitsToFloat(lights[lightID].params1.xy));
 }
 
-vec3 directionalLightColor(in uint lightID)
+Range spotLightHalfAngles(in uint lightID)
 {
-	return lights[lightID].params0.xyz;
-}
-
-uint directionalLightShadowCascadesCount(in uint lightID)
-{
-	return floatBitsToUint(lights[lightID].params1.x);
+	return makeRange(uintBitsToFloat(lights[lightID].params1.zw));
 }
 
 uint imageBasedLightBRDFLutMapID(in uint lightID)
 {
-	return floatBitsToUint(lights[lightID].params1.x);
+	return lights[lightID].params1[0u];
 }
 
 uint imageBasedLightDiffuseMapID(in uint lightID)
 {
-	return floatBitsToUint(lights[lightID].params1.y);
+	return lights[lightID].params1[1u];
 }
 
 uint imageBasedLightSpecularMapID(in uint lightID)
 {
-	return floatBitsToUint(lights[lightID].params1.z);
+	return lights[lightID].params1[2u];
 }
 
 float imageBasedLightContribution(in uint lightID)
 {
-	return lights[lightID].params1.w;
-}
-
-vec3 ambientLightColor(in uint lightID)
-{
-	return lights[lightID].params0.xyz;
+	return uintBitsToFloat(lights[lightID].params1[3u]);
 }

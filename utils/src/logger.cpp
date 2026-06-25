@@ -1,8 +1,8 @@
-#include <sstream>
-#include <fstream>
 #include <array>
-#include <ctime>
 #include <cassert>
+#include <ctime>
+#include <fstream>
+#include <sstream>
 
 #include <utils/logger.h>
 
@@ -14,7 +14,7 @@ namespace utils
 class LoggerPrivate
 {
 public:
-    LoggerPrivate(Logger::MessageLevel messageLevel, const std::string &file, int line)
+    LoggerPrivate(Logger::MessageLevel messageLevel, const std::string& file, int line)
         : m_stringStream()
         , m_messageLevel(messageLevel)
         , m_file(file)
@@ -22,15 +22,16 @@ public:
     {
     }
 
-    std::stringstream &stringStream() { return m_stringStream; }
+    std::stringstream& stringStream() { return m_stringStream; }
     Logger::MessageLevel messageLevel() const { return m_messageLevel; }
-    const std::string &file() const { return m_file; }
+    const std::string& file() const { return m_file; }
     int line() const { return m_line; }
 
-    static std::shared_ptr<Logger::Output> &loggerOutput() { return s_output; }
-    static Logger::MessageLevel &loggerMinMessageLevel() { return s_minMessageLevel; }
+    static std::shared_ptr<Logger::Output>& loggerOutput() { return s_output; }
+    static Logger::MessageLevel& loggerMinMessageLevel() { return s_minMessageLevel; }
 
-    static std::string currentDateTimeString() {
+    static std::string currentDateTimeString()
+    {
         std::time_t time = std::time(nullptr);
         std::string result(100, ' ');
         result.resize(std::strftime(result.data(), result.length(), "%d-%m-%y %H.%M.%S", std::localtime(&time)));
@@ -46,53 +47,42 @@ private:
     static Logger::MessageLevel s_minMessageLevel;
 };
 
-std::shared_ptr<Logger::Output> LoggerPrivate::s_output = std::make_shared<Logger::FileOutput>(
-            "Simplex3DEngine" + LoggerPrivate::currentDateTimeString() + ".txt"
-);
+std::shared_ptr<Logger::Output> LoggerPrivate::s_output =
+    std::make_shared<Logger::FileOutput>("Simplex3DEngine" + LoggerPrivate::currentDateTimeString() + ".txt");
 Logger::MessageLevel LoggerPrivate::s_minMessageLevel = Logger::MessageLevel::Info;
 
 class Logger::FileOutputPrivate
 {
 public:
-    FileOutputPrivate(const std::string &fileOutputPrefix)
+    FileOutputPrivate(const std::string& fileOutputPrefix)
         : m_fileOuputName(fileOutputPrefix)
-    {}
+    {
+    }
 
-    const std::string &fileOutputName() const { return m_fileOuputName; }
+    const std::string& fileOutputName() const { return m_fileOuputName; }
 
 private:
     std::string m_fileOuputName;
 };
 
-Logger::Logger(MessageLevel messageLevel, const std::string &file, int line)
+Logger::Logger(MessageLevel messageLevel, const std::string& file, int line)
     : m_(std::make_unique<LoggerPrivate>(messageLevel, file, line))
 {
 }
 
 Logger::~Logger()
-{   
-    static std::array<std::string, numElementsMessageLevel()> s_messageTypesNames {
-        "INFO",
-        "WARNING",
-        "ERROR",
-        "CRITICAL"
-    };
+{
+    static std::array<std::string, numElementsMessageLevel()> s_messageTypesNames{"INFO", "WARNING", "ERROR", "CRITICAL"};
 
     if (auto output = LoggerPrivate::loggerOutput(); output != nullptr)
     {
-        output->operator << (
-                LoggerPrivate::currentDateTimeString() +
-                (m_->file().empty() ? "" : " " + m_->file()) +
-                (m_->line() == -1 ? "" : ":" + std::to_string(m_->line())) +
-                " [" +
-                s_messageTypesNames[castFromMessageLevel(m_->messageLevel())] +
-                "]: " +
-                m_->stringStream().str()
-        );
+        output->operator<<(
+            LoggerPrivate::currentDateTimeString() + (m_->file().empty() ? "" : " " + m_->file()) +
+            (m_->line() == -1 ? "" : ":" + std::to_string(m_->line())) + " [" +
+            s_messageTypesNames[castFromMessageLevel(m_->messageLevel())] + "]: " + m_->stringStream().str());
     }
 
-    if (m_->messageLevel() == MessageLevel::Critical)
-        assert(false);
+    if (m_->messageLevel() == MessageLevel::Critical) assert(false);
 }
 
 void Logger::setOutput(std::shared_ptr<Output> output)
@@ -115,123 +105,103 @@ Logger::MessageLevel Logger::minMessageLevel()
     return LoggerPrivate::loggerMinMessageLevel();
 }
 
-Logger &Logger::operator <<(const char *value)
+Logger& Logger::operator<<(const char* value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(const std::string &value)
+Logger& Logger::operator<<(const std::string& value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-
-Logger &Logger::operator <<(const std::filesystem::path &value)
+Logger& Logger::operator<<(const std::filesystem::path& value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(bool value)
+Logger& Logger::operator<<(bool value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(float value)
+Logger& Logger::operator<<(float value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(double value)
+Logger& Logger::operator<<(double value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(int8_t value)
+Logger& Logger::operator<<(int8_t value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(uint8_t value)
+Logger& Logger::operator<<(uint8_t value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(int16_t value)
+Logger& Logger::operator<<(int16_t value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(uint16_t value)
+Logger& Logger::operator<<(uint16_t value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(int32_t value)
+Logger& Logger::operator<<(int32_t value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(uint32_t value)
+Logger& Logger::operator<<(uint32_t value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(int64_t value)
+Logger& Logger::operator<<(int64_t value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger &Logger::operator <<(uint64_t value)
+Logger& Logger::operator<<(uint64_t value)
 {
-    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel())
-        m_->stringStream() << value;
+    if (m_->messageLevel() >= LoggerPrivate::loggerMinMessageLevel()) m_->stringStream() << value;
     return *this;
 }
 
-Logger::Output::Output()
-{
-}
+Logger::Output::Output() {}
 
 Logger::Output::~Output() = default;
 
-Logger::FileOutput::FileOutput(const std::string &fileOutputPrefix)
+Logger::FileOutput::FileOutput(const std::string& fileOutputPrefix)
     : Output()
     , m_(std::make_unique<Logger::FileOutputPrivate>(fileOutputPrefix))
 {
 }
 
-Logger::FileOutput::~FileOutput()
-{
+Logger::FileOutput::~FileOutput() {}
 
-}
-
-void Logger::FileOutput::operator <<(const std::string &message)
+void Logger::FileOutput::operator<<(const std::string& message)
 {
     std::ofstream file;
     file.open(m_->fileOutputName().c_str(), std::ios::out | std::ios::app);
@@ -242,5 +212,5 @@ void Logger::FileOutput::operator <<(const std::string &message)
     }
 }
 
-}
-}
+} // namespace utils
+} // namespace simplex

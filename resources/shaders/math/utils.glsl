@@ -43,3 +43,11 @@ float gauss(in float x, in float StandardDeviation)
 {
 	return exp(-(x * x) / (2.0f * StandardDeviation * StandardDeviation)) / (StandardDeviation * ROOT_TWO_PI);
 }
+
+float NO2ZO(in float value) { return 0.5f * value + 0.5f; }
+vec2 NO2ZO(in vec2 value) { return 0.5f * value + vec2(0.5f); }
+vec3 NO2ZO(in vec3 value) { return 0.5f * value + vec3(0.5f); }
+
+float ZO2NO(in float value) { return 2.0f * value - 1.0f; }
+vec2 ZO2NO(in vec2 value) { return 2.0f * value - vec2(1.0f); }
+vec3 ZO2NO(in vec3 value) { return 2.0f * value - vec3(1.0f); }

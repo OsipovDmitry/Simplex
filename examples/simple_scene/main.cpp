@@ -39,16 +39,49 @@ static glm::vec2 cameraAngles(-0.4f, 4.7f);
 static glm::vec3 cameraPosition(-10.f, 5.3f, -.6f);
 
 static bool toHitBunny = false;
+static bool toSwitchDirLight = false;
 static bool toSwitchLight1 = false;
 static bool toSwitchLight2 = false;
 static bool toSwitchLight3 = false;
 
 std::weak_ptr<simplex::core::ImageBasedLightNode> IBLNodeWeak;
-std::weak_ptr<simplex::core::DirectionalLightNode> directionalLightNodeWeak;
 std::weak_ptr<simplex::core::DrawableNode> clusterNode;
+std::weak_ptr<simplex::core::DirectionalLightNode> directionalLightNodeWeak;
 std::weak_ptr<simplex::core::PointLightNode> pointLightNode0Weak;
 std::weak_ptr<simplex::core::PointLightNode> pointLightNode1Weak;
 std::weak_ptr<simplex::core::PointLightNode> pointLightNode2Weak;
+uint32_t directionalLightNodeState = 2u;
+uint32_t pointLightNode0State = 0u;
+uint32_t pointLightNode1State = 0u;
+uint32_t pointLightNode2State = 0u;
+
+static void updateLights()
+{
+    static const auto updateLight = [](const std::shared_ptr<simplex::core::ShadowedLightNode>& shadowedLightNode, uint32_t state)
+    {
+        if (state == 0u)
+        {
+            shadowedLightNode->setLightingEnabled(false);
+        }
+        else if (state == 1u)
+        {
+            shadowedLightNode->setLightingEnabled(true);
+            shadowedLightNode->setShadingEnabled(true);
+            shadowedLightNode->setVolumetricScatteringEnabled(false);
+        }
+        else if (state == 2u)
+        {
+            shadowedLightNode->setLightingEnabled(true);
+            shadowedLightNode->setShadingEnabled(true);
+            shadowedLightNode->setVolumetricScatteringEnabled(true);
+        }
+    };
+
+    if (auto ln = directionalLightNodeWeak.lock()) updateLight(ln, directionalLightNodeState);
+    if (auto ln = pointLightNode0Weak.lock()) updateLight(ln, pointLightNode0State);
+    if (auto ln = pointLightNode1Weak.lock()) updateLight(ln, pointLightNode1State);
+    if (auto ln = pointLightNode2Weak.lock()) updateLight(ln, pointLightNode2State);
+}
 
 class DynamicBodyCustomData : public simplex::core::physics::IBody::CustomData
 {
@@ -482,16 +515,13 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     pointLightNode0->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(6.0f, 3.3f, 0.0f)));
     pointLightNode0->setColor(glm::vec3(3.f, 1.f, 1.f));
     pointLightNode0->setRadiuses(glm::vec2(5.f, 8.f));
-    pointLightNode0->setShadingEnabled(true);
-    pointLightNode0->setLightingEnabled(false);
     scene->sceneRootNode()->attach(pointLightNode0);
     pointLightNode0Weak = pointLightNode0;
 
     auto pointLightNode1 = std::make_shared<simplex::core::PointLightNode>("");
     pointLightNode1->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(0.0f, 3.3f, 0.0f)));
-    pointLightNode1->setColor(glm::vec3(2.f, 2.f, 2.f));
+    pointLightNode1->setColor(glm::vec3(3.f));
     pointLightNode1->setRadiuses(glm::vec2(5.f, 8.f));
-    pointLightNode1->setShadingEnabled(true);
     scene->sceneRootNode()->attach(pointLightNode1);
     pointLightNode1Weak = pointLightNode1;
 
@@ -499,8 +529,6 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     pointLightNode2->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(-6.0f, 3.3f, 0.0f)));
     pointLightNode2->setColor(glm::vec3(1.f, 1.f, 3.f));
     pointLightNode2->setRadiuses(glm::vec2(5.f, 8.f));
-    pointLightNode2->setShadingEnabled(true);
-    pointLightNode2->setLightingEnabled(false);
     scene->sceneRootNode()->attach(pointLightNode2);
     pointLightNode2Weak = pointLightNode2;
 
@@ -516,12 +544,15 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
 
     auto directionalLightNode = std::make_shared<simplex::core::DirectionalLightNode>("");
     directionalLightNode->setTransform(
-        simplex::utils::Transform::makeLookAt(glm::vec3(0.f, 0.f, .0f), glm::vec3(.35f, -1.0f, .35f), glm::vec3(1.f, 0.f, 0.f))
+        simplex::utils::Transform::makeLookAt(glm::vec3(0.f, 0.f, .0f), glm::vec3(1.0f, -1.0f, .15f), glm::vec3(0.f, 0.f, 1.f))
             .inverted());
     directionalLightNode->setColor(glm::vec3(7.f));
-    directionalLightNode->setShadingEnabled(true);
     directionalLightNode->setShadowCascadesCount(4u);
-    // scene->sceneRootNode()->attach(directionalLightNode);
+    directionalLightNode->setShadowMapSize(1024u);
+    scene->sceneRootNode()->attach(directionalLightNode);
+    directionalLightNodeWeak = directionalLightNode;
+
+    updateLights();
 
     auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
     IBLNode->setContribution(0.15f);
@@ -536,10 +567,6 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/Sponza/Sponza.gltf");
     auto skeletalAnimatedNode = sceneRepresentation->generate("", false, false);
     scene->sceneRootNode()->attach(skeletalAnimatedNode);
-
-    // auto sceneRepresentation = scenesLoader->loadOrGet("C:/Users/3520136/Downloads/cat_-_walking/scene.gltf");
-    // auto skeletalAnimatedNode = sceneRepresentation->generate("", false, false);
-    // scene->sceneRootNode()->attach(skeletalAnimatedNode);
 
     if (auto skeleton = skeletalAnimatedNode->skeleton())
         if (const auto& anims = skeleton->animations(); !anims.empty())
@@ -581,35 +608,6 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
         auto bunnyNode = createBunny();
         bunnyNode->setTransform(transform);
         // scene->sceneRootNode()->attach(bunnyNode);
-    }
-
-    auto boxNode1 = createBox(glm::vec3(.5f, .1f, .1f));
-    boxNode1->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(-.55f, 2.5f, 0.f)));
-    // scene->sceneRootNode()->attach(boxNode1);
-
-    auto boxNode2 = createBox(glm::vec3(.5f, .1f, .1f));
-    boxNode2->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(+.55f, 2.5f, 0.f)));
-    // scene->sceneRootNode()->attach(boxNode2);
-
-    {
-        // boxNode1->dynamicBody()->joinFixed(
-        //     simplex::utils::RigidTransform::makeTranslation(glm::vec3(.55f, 0.f, 0.f)), boxNode2->dynamicBody(),
-        //     simplex::utils::RigidTransform::makeTranslation(glm::vec3(-.55f, 0.f, 0.f)));
-    }
-    {
-        // boxNode1->dynamicBody()->joinPointToPoint(glm::vec3(.55f, 0.f, 0.f), boxNode2->dynamicBody(), glm::vec3(-.55f, 0.f,
-        // 0.f));
-        // boxNode1->dynamicBody()->joinPointToPoint(glm::vec3(-.55f, 0.f, 0.f));
-    }
-    {
-        // boxNode1->dynamicBody()->joinHinge(
-        //     simplex::utils::RigidTransform::makeTranslation(glm::vec3(.55f, 0.f, 0.f)), boxNode2->dynamicBody(),
-        //     simplex::utils::RigidTransform::makeTranslation(glm::vec3(-.55f, 0.f, 0.f)));
-        // boxNode1->dynamicBody()->joinHinge(simplex::utils::RigidTransform::makeTranslation(glm::vec3(-.55f, 0.f, 0.f)));
-    }
-    {
-        // auto c = boxNode1->dynamicBody()->joinSlider(simplex::utils::RigidTransform::makeTranslation(glm::vec3(-.55f, 0.f,
-        // 0.f))); c->setLinearLimits(simplex::utils::Range(-2.f, 2.f));
     }
 
     return scene;
@@ -787,6 +785,11 @@ static void keyCallback(
             }
             break;
         }
+        case simplex::core::graphics::KeyCode::Key_0:
+        {
+            toSwitchDirLight = keyState == simplex::core::graphics::KeyState::Pressed;
+            break;
+        }
         case simplex::core::graphics::KeyCode::Key_1:
         {
             toSwitchLight1 = keyState == simplex::core::graphics::KeyState::Pressed;
@@ -901,25 +904,32 @@ static void updateCallback(uint64_t time, uint32_t dt)
         hitBody(cameraFowrardDir);
     }
 
+    if (toSwitchDirLight)
+    {
+        toSwitchDirLight = false;
+        directionalLightNodeState = (directionalLightNodeState + 1u) % 3u;
+        updateLights();
+    }
+
     if (toSwitchLight1)
     {
         toSwitchLight1 = false;
-        if (auto pointLightNode = pointLightNode0Weak.lock())
-            pointLightNode->setLightingEnabled(!pointLightNode->isLightingEnabled());
+        pointLightNode0State = (pointLightNode0State + 1u) % 3u;
+        updateLights();
     }
 
     if (toSwitchLight2)
     {
         toSwitchLight2 = false;
-        if (auto pointLightNode = pointLightNode1Weak.lock())
-            pointLightNode->setLightingEnabled(!pointLightNode->isLightingEnabled());
+        pointLightNode1State = (pointLightNode1State + 1u) % 3u;
+        updateLights();
     }
 
     if (toSwitchLight3)
     {
         toSwitchLight3 = false;
-        if (auto pointLightNode = pointLightNode2Weak.lock())
-            pointLightNode->setLightingEnabled(!pointLightNode->isLightingEnabled());
+        pointLightNode2State = (pointLightNode2State + 1u) % 3u;
+        updateLights();
     }
 
     const simplex::utils::LineSegment ls({cameraPosition, cameraPosition + cameraFowrardDir * 5.f});
@@ -952,7 +962,7 @@ int main(int argc, char* argv[])
     // app.setScene(createScene("SimpleScene", window->graphicsEngine()->graphicsRenderer()));
     // app.setScene(
     //    createScene2("SimpleScene", window->graphicsEngine()->scenesLoader(), window->graphicsEngine()->graphicsRenderer()));
-    app.setScene(createScene3(
+    app.setScene(createScene2(
         "SimpleScene", window->graphicsEngine()->scenesLoader(), window->graphicsEngine()->graphicsRenderer(),
         world->physicsEngine()->physicsRenderer()));
 

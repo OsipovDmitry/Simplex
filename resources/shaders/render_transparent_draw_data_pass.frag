@@ -1,5 +1,3 @@
-#extension GL_ARB_bindless_texture : enable
-
 layout (early_fragment_tests) in;
 
 #include<geometry.glsl>

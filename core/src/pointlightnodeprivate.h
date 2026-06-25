@@ -1,14 +1,14 @@
 #ifndef CORE_POINTLIGHTNODEPRIVATE_H
 #define CORE_POINTLIGHTNODEPRIVATE_H
 
-#include "lightnodeprivate.h"
+#include "shadowedlightnodeprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-class PointLightNodePrivate : public LightNodePrivate
+class PointLightNodePrivate : public ShadowedLightNodePrivate
 {
     PUBLIC_IMPL(PointLightNode)
 
@@ -18,15 +18,13 @@ public:
 
     uint32_t shadowLayersCount() const override;
 
-    glm::vec3& color();
-    glm::vec2& radiuses();
+    utils::Range& radiuses();
 
 private:
     std::shared_ptr<LightHandler> createLightInSceneData(SceneData&) const override;
     void updateLightInSceneData(LightHandler&) const override;
 
-    glm::vec3 m_color;
-    glm::vec2 m_radiuses;
+    utils::Range m_radiuses;
 };
 
 } // namespace core

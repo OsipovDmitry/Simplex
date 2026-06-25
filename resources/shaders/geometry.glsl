@@ -70,20 +70,35 @@ void geometryBufferSortOITNodes(in ivec2 fragCoords)
     imageStore(image, fragCoords, uvec4(sortedOITNodeID));
 }
 
-void geometryBufferData(in ivec2 fragCoords, out uvec4 PBRData, out float depth, out uint nextOITNodeID)
+bool geometryBufferData(in ivec2 fragCoords, out uvec4 PBRData, out float depth, out uint nextOITNodeID)
 {
 	PBRData = texelFetch(usampler2DRect(GBuffer.colorTextureHandle), fragCoords);
 	depth = texelFetch(sampler2DRect(GBuffer.depthTextureHandle), fragCoords).r;
 	
 	layout(r32ui) uimage2DRect image = layout(r32ui) uimage2DRect(GBuffer.OITNodeIDImageHandle);
 	nextOITNodeID = imageLoad(image, fragCoords).r;
+	
+	return true;
 }
 
-void geometryBufferData(in uint OITNodeID, out uvec4 PBRData, out float depth, out uint nextOITNodeID)
+bool geometryBufferData(in uint OITNodeID, out uvec4 PBRData, out float depth, out uint nextOITNodeID)
 {
+	if (OITNodeID == 0xFFFFFFFFu)
+		return false;
+
 	PBRData = OITNodes[OITNodeID].PBRData;
 	depth = OITNodes[OITNodeID].depth;
 	nextOITNodeID = OITNodes[OITNodeID].nextID;
+	
+	return true;
+}
+
+float geometryBufferDepth(in uint OITNodeID)
+{
+	if (OITNodeID == 0xFFFFFFFFu)
+		return 0.0f;
+		
+	return OITNodes[OITNodeID].depth;
 }
 
 vec3 geometryBufferFinalColor(in ivec2 fragCoords)

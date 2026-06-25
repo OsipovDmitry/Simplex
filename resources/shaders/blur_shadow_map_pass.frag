@@ -1,5 +1,3 @@
-#extension GL_ARB_bindless_texture : enable
-
 #include<render_info.glsl>
 #include<shadow_maps.glsl>
 
@@ -9,10 +7,26 @@ flat in ivec2 g_maxMapPoint;
 out vec4 o_fragColor0;
 out vec4 o_fragColor1;
 
-vec4 fetchSourceMapTexel(in sampler2DArray sourceTexture, in ivec2 coords)
+vec4 fetchMomentsTexel(in ivec2 coords)
 {
-	const ivec3 clampedCoords = ivec3(clamp(coords, g_minMapPoint, g_maxMapPoint), gl_Layer);
-	return texelFetch(sourceTexture, clampedCoords, 0);
+#if defined(HORIZONTAL_PASS)
+	return shadowMapsFetchMomentsTexel(ivec3(clamp(coords, g_minMapPoint, g_maxMapPoint), gl_Layer));
+#elif defined(VERTICAL_PASS)
+	return renderInfoFetchShadowMapBluredMomentsTexel(ivec3(clamp(coords, g_minMapPoint, g_maxMapPoint), gl_Layer));
+#else
+	error!!!
+#endif
+}
+
+vec3 fetchColorTexel(in ivec2 coords)
+{
+#if defined(HORIZONTAL_PASS)
+	return shadowMapsFetchColorTexel(ivec3(clamp(coords, g_minMapPoint, g_maxMapPoint), gl_Layer));
+#elif defined(VERTICAL_PASS)
+	return renderInfoFetchShadowMapBluredColorTexel(ivec3(clamp(coords, g_minMapPoint, g_maxMapPoint), gl_Layer));
+#else
+	error!!!
+#endif
 }
 
 void main(void)
@@ -21,19 +35,15 @@ void main(void)
 	const int radius = int(renderInfoShadowBlurRadius());
 	
 #if defined(HORIZONTAL_PASS)
-	const sampler2DArray varianceTexture = sampler2DArray(shadowMapsShadowVarianceTextureHandle());
-	const sampler2DArray colorTexture = sampler2DArray(shadowMapsShadowColorTextureHandle());
 	const ivec2 direction = ivec2(1, 0);
 #elif defined(VERTICAL_PASS)
-	const sampler2DArray varianceTexture = sampler2DArray(renderInfoShadowVarianceBluredTextureHandle());
-	const sampler2DArray colorTexture = sampler2DArray(renderInfoShadowColorBluredTextureHandle());
 	const ivec2 direction = ivec2(0, 1);
 #else
 	error!!!
 #endif
 	
-	vec4 variance = fetchSourceMapTexel(varianceTexture, fragCoords);
-	vec4 color = fetchSourceMapTexel(colorTexture, fragCoords);
+	vec4 variance = fetchMomentsTexel(fragCoords);
+	vec3 color = fetchColorTexel(fragCoords);
 	
 	if (radius > 0)
 	{
@@ -49,10 +59,10 @@ void main(void)
 		const ivec2 negTexCoords = fragCoords - direction * r;
 		const ivec2 posTexCoords = fragCoords + direction * r;
 		
-		variance += smpl * (fetchSourceMapTexel(varianceTexture, negTexCoords) + fetchSourceMapTexel(varianceTexture, posTexCoords));
-		color += smpl * (fetchSourceMapTexel(colorTexture, negTexCoords) + fetchSourceMapTexel(colorTexture, posTexCoords));
+		variance += smpl * (fetchMomentsTexel(negTexCoords) + fetchMomentsTexel(posTexCoords));
+		color += smpl * (fetchColorTexel(negTexCoords) + fetchColorTexel(posTexCoords));
 	}
 	
 	o_fragColor0 = variance;
-	o_fragColor1 = color;
+	o_fragColor1 = vec4(color, 1.0f);
 }

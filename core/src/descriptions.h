@@ -358,6 +358,7 @@ struct ShadowTransformsDataDescription
     TransformDescription viewTransform;
     RangeDescription ZRange;
     glm::mat4x4 projectionMatrix;
+    glm::mat4x4 viewProjectionMatrix;
     glm::uvec4 mapCoords;
     glm::vec4 frustumPoints[8u];
     glm::vec4 frustumFaceNormalLinesAndRanges0[5u];
@@ -399,34 +400,35 @@ struct ShadowDescription
 struct LightDescription
 {
     TransformDescription transform;
-    glm::vec4 params0;
-    glm::vec4 params1;
-    uint32_t shadowID;
-    uint32_t flags;
-    //  0.. 0 - is enabled
-    //  1..31 - free (31 bits)
+    glm::uvec4 params0;
+    glm::uvec4 params1;
+    glm::uvec4 params2;
 
-    uint32_t padding[2u];
+    // uint32_t padding[0u];
 
     static LightDescription makeEmpty();
-    static LightDescription makePoint(
-        const utils::Transform& transform,
-        bool isEnabled,
-        const glm::vec3& color,
-        const glm::vec2& radiuses,
-        uint32_t shadowID);
-    static LightDescription makeSpot(
-        const utils::Transform& transform,
-        bool isEnabled,
-        const glm::vec3& color,
-        const glm::vec2& radiuses,
-        const glm::vec2& halfAngles,
-        uint32_t shadowID);
+    static LightDescription makeAmbient(bool isEnabled, const glm::vec3& color);
     static LightDescription makeDirectional(
         const utils::Transform& transform,
         bool isEnabled,
         const glm::vec3& color,
-        uint32_t shadowID);
+        uint32_t shadowID,
+        bool isVolumetricScatteringEnabled);
+    static LightDescription makePoint(
+        const utils::Transform& transform,
+        bool isEnabled,
+        const glm::vec3& color,
+        const utils::Range& radiuses,
+        uint32_t shadowID,
+        bool isVolumetricScatteringEnabled);
+    static LightDescription makeSpot(
+        const utils::Transform& transform,
+        bool isEnabled,
+        const glm::vec3& color,
+        const utils::Range& radiuses,
+        const utils::Range& halfAngles,
+        uint32_t shadowID,
+        bool isVolumetricScatteringEnabled);
     static LightDescription makeImageBased(
         const utils::Transform& transform,
         bool isEnabled,
@@ -434,7 +436,8 @@ struct LightDescription
         uint32_t diffuseMapID,
         uint32_t specularMapID,
         float contribution);
-    static LightDescription makeAmbient(bool isEnabled, const glm::vec3& color);
+
+    static uint32_t makeFlags(bool isEnabled, bool isVolumetricScatteringEnabled);
 };
 
 struct ShadowToUpdateDescription

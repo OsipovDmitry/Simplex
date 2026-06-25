@@ -1,32 +1,26 @@
-#ifndef CORE_IMAGEBASEDLIGHTNODEPRIVATE_H
-#define CORE_IMAGEBASEDLIGHTNODEPRIVATE_H
+#ifndef CORE_AMBIENTLIGHTNODEPRIVATE_H
+#define CORE_AMBIENTLIGHTNODEPRIVATE_H
 
-#include "lightnodeprivate.h"
+#include "coloredlightnodeprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-class AmbientLightNodePrivate : public LightNodePrivate
+class AmbientLightNodePrivate : public ColoredLightNodePrivate
 {
     PUBLIC_IMPL(AmbientLightNode)
 public:
     AmbientLightNodePrivate(AmbientLightNode&, const std::string& name);
     ~AmbientLightNodePrivate() override;
 
-    uint32_t shadowLayersCount() const override;
-
-    glm::vec3& color();
-
 private:
     std::shared_ptr<LightHandler> createLightInSceneData(SceneData&) const override;
     void updateLightInSceneData(LightHandler&) const override;
-
-    glm::vec3 m_color;
 };
 
 } // namespace core
 } // namespace simplex
 
-#endif // CORE_IMAGEBASEDLIGHTNODEPRIVATE_H
+#endif // CORE_AMBIENTLIGHTNODEPRIVATE_H

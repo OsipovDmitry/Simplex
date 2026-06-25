@@ -1,10 +1,6 @@
 #ifndef CORE_LIGHTNODEPRIVATE_H
 #define CORE_LIGHTNODEPRIVATE_H
 
-#include <utils/clipspace.h>
-#include <utils/frustum.h>
-#include <utils/idgenerator.h>
-
 #include <core/lightnode.h>
 
 #include "nodeprivate.h"
@@ -29,14 +25,8 @@ public:
     void onAttachToScene(const std::shared_ptr<Scene>&) override;
     void onDetachFromScene(const std::shared_ptr<Scene>&) override;
 
-    virtual uint32_t shadowLayersCount() const = 0;
-
     LightType& type();
     bool& isLightingEnabled();
-
-    std::shared_ptr<Shadow>& shadow();
-    uint32_t& shadowMapSize();
-    utils::Range& shadowCullPlanesLimits();
 
     void onChanged();
 
@@ -46,10 +36,6 @@ protected:
 
     LightType m_type;
     bool m_isLightingEnabled;
-
-    std::shared_ptr<Shadow> m_shadow;
-    uint32_t m_shadowMapSize;
-    utils::Range m_shadowCullPlanesLimits;
 
 private:
     std::shared_ptr<LightHandler> m_lightHandler;

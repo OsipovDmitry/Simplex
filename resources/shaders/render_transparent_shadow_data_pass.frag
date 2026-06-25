@@ -1,5 +1,3 @@
-#extension GL_ARB_bindless_texture : enable
-
 #include<map.glsl>
 #include<material.glsl>
 #include<mesh.glsl>

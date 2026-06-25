@@ -1,7 +1,6 @@
 #include <utils/logger.h>
 
 #include <core/pointlightnode.h>
-#include <core/scene.h>
 
 #include "graphicsengineprivate.h"
 #include "pointlightnodeprivate.h"
@@ -12,10 +11,9 @@ namespace core
 {
 
 PointLightNode::PointLightNode(const std::string& name)
-    : LightNode(std::make_unique<PointLightNodePrivate>(*this, name))
+    : ShadowedLightNode(std::make_unique<PointLightNodePrivate>(*this, name))
 {
-    setColor(glm::vec3(1.f));
-    setRadiuses(glm::vec2(1.f, 2.f));
+    setRadiuses(utils::Range(1.f, 2.f));
 }
 
 PointLightNode::~PointLightNode() = default;
@@ -31,29 +29,15 @@ std::shared_ptr<const PointLightNode> PointLightNode::asPointLightNode() const
     return const_cast<PointLightNode*>(this)->asPointLightNode();
 }
 
-const glm::vec3& PointLightNode::color() const
-{
-    return m().color();
-}
-
-void PointLightNode::setColor(const glm::vec3& value)
-{
-    auto& mPrivate = m();
-
-    mPrivate.color() = value;
-    mPrivate.onChanged();
-}
-
-const glm::vec2& PointLightNode::radiuses() const
+const utils::Range& PointLightNode::radiuses() const
 {
     return m().radiuses();
 }
 
-void PointLightNode::setRadiuses(const glm::vec2& value)
+void PointLightNode::setRadiuses(const utils::Range& value)
 {
-    if (value[0u] < 0.f) LOG_CRITICAL << "minRadius must be greater or equal than 0.0";
-
-    if (value[1u] <= value[0]) LOG_CRITICAL << "maxRadius must be greater than minRadius";
+    if (value.nearValue() < 0.f) LOG_CRITICAL << "Radiuses' near value must be greater or equal than 0.0";
+    if (value.isEmpty()) LOG_CRITICAL << "Radiuses' range can't be empty";
 
     auto& mPrivate = m();
     mPrivate.radiuses() = value;

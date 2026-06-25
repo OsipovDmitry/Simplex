@@ -14,11 +14,11 @@ namespace simplex
 namespace core
 {
 
+static const uint32_t AmbientLightTypeID = castFromLightType(LightType::Ambient);
+static const uint32_t DirectionalLightTypeID = castFromLightType(LightType::Directional);
 static const uint32_t PointLightTypeID = castFromLightType(LightType::Point);
 static const uint32_t SpotLightTypeID = castFromLightType(LightType::Spot);
-static const uint32_t DirectionalLightTypeID = castFromLightType(LightType::Directional);
 static const uint32_t ImageBasedLightTypeID = castFromLightType(LightType::ImageBased);
-static const uint32_t AmbientLightTypeID = castFromLightType(LightType::Ambient);
 static const uint32_t UndefinedLightTypeID = std::numeric_limits<uint32_t>::max();
 
 QuatDescription QuatDescription::make(const glm::quat& value)
@@ -246,7 +246,8 @@ ShadowTransformsDataDescription ShadowTransformsDataDescription::make(
     const glm::uvec3& mapCoords)
 {
     return {
-        TransformDescription::make(viewTransform), RangeDescription::make(ZRange), projectionMatrix, glm::uvec4(mapCoords, 0u)};
+        TransformDescription::make(viewTransform), RangeDescription::make(ZRange), projectionMatrix,
+        projectionMatrix * viewTransform, glm::uvec4(mapCoords, 0u)};
 }
 
 ShadowTransformsDataDescription ShadowTransformsDataDescription::make(const glm::uvec3& mapCoords)
@@ -287,54 +288,66 @@ uint32_t ShadowDescription::layersCount(const ShadowDescription& desc)
 
 LightDescription LightDescription::makeEmpty()
 {
-    return {
-        TransformDescription::make(utils::Transform::makeIdentity()),
-        glm::vec4(glm::vec3(0.f), glm::uintBitsToFloat(UndefinedLightTypeID)), glm::vec4(0.f), utils::IDsGenerator::last(), 0u};
+    const auto transformDescription = TransformDescription::makeEmpty();
+    const auto params0 = glm::uvec4(UndefinedLightTypeID, glm::uvec3(0u));
+    const auto params1 = glm::uvec4(0u);
+    const auto params2 = glm::uvec4(0u);
+    return {transformDescription, params0, params1, params2};
 }
 
-LightDescription LightDescription::makePoint(
-    const utils::Transform& transform,
-    bool isEnabled,
-    const glm::vec3& color,
-    const glm::vec2& radiuses,
-    uint32_t shadowID)
+LightDescription LightDescription::makeAmbient(bool isEnabled, const glm::vec3& color)
 {
-    uint32_t flags = 0u;
-    flags |= (isEnabled & 0x1u) << 0u;
-
-    return {
-        TransformDescription::make(transform), glm::vec4(color, glm::uintBitsToFloat(PointLightTypeID)),
-        glm::vec4(radiuses, 0.f, 0.f), shadowID, flags};
-}
-
-LightDescription LightDescription::makeSpot(
-    const utils::Transform& transform,
-    bool isEnabled,
-    const glm::vec3& color,
-    const glm::vec2& radiuses,
-    const glm::vec2& halfAngles,
-    uint32_t shadowID)
-{
-    uint32_t flags = 0u;
-    flags |= (isEnabled & 0x1u) << 0u;
-
-    return {
-        TransformDescription::make(transform), glm::vec4(color, glm::uintBitsToFloat(SpotLightTypeID)),
-        glm::vec4(radiuses, halfAngles), shadowID, flags};
+    const auto transformDescription = TransformDescription::makeEmpty();
+    const auto params0 = glm::uvec4(AmbientLightTypeID, glm::floatBitsToUint(color));
+    const auto params1 = glm::uvec4(0u);
+    const auto params2 = glm::uvec4(makeFlags(isEnabled, false), glm::uvec3(0u));
+    return {transformDescription, params0, params1, params2};
 }
 
 LightDescription LightDescription::makeDirectional(
     const utils::Transform& transform,
     bool isEnabled,
     const glm::vec3& color,
-    uint32_t shadowID)
+    uint32_t shadowID,
+    bool isVolumetricScatteringEnabled)
 {
-    uint32_t flags = 0u;
-    flags |= (isEnabled & 0x1u) << 0u;
+    const auto transformDescription = TransformDescription::make(transform);
+    const auto params0 = glm::uvec4(DirectionalLightTypeID, glm::floatBitsToUint(color));
+    const auto params1 = glm::uvec4(0u);
+    const auto params2 = glm::uvec4(makeFlags(isEnabled, isVolumetricScatteringEnabled), shadowID, glm::uvec2(0u));
+    return {transformDescription, params0, params1, params2};
+}
 
-    return {
-        TransformDescription::make(transform), glm::vec4(color, glm::uintBitsToFloat(DirectionalLightTypeID)), glm::vec4(0.f),
-        shadowID, flags};
+LightDescription LightDescription::makePoint(
+    const utils::Transform& transform,
+    bool isEnabled,
+    const glm::vec3& color,
+    const utils::Range& radiuses,
+    uint32_t shadowID,
+    bool isVolumetricScatteringEnabled)
+{
+    const auto transformDescription = TransformDescription::make(transform);
+    const auto params0 = glm::uvec4(PointLightTypeID, glm::floatBitsToUint(color));
+    const auto params1 = glm::uvec4(glm::floatBitsToUint(static_cast<glm::vec2>(radiuses)), glm::uvec2(0u));
+    const auto params2 = glm::uvec4(makeFlags(isEnabled, isVolumetricScatteringEnabled), shadowID, glm::uvec2(0u));
+    return {transformDescription, params0, params1, params2};
+}
+
+LightDescription LightDescription::makeSpot(
+    const utils::Transform& transform,
+    bool isEnabled,
+    const glm::vec3& color,
+    const utils::Range& radiuses,
+    const utils::Range& halfAngles,
+    uint32_t shadowID,
+    bool isVolumetricScatteringEnabled)
+{
+    const auto transformDescription = TransformDescription::make(transform);
+    const auto params0 = glm::uvec4(SpotLightTypeID, glm::floatBitsToUint(color));
+    const auto params1 = glm::uvec4(
+        glm::floatBitsToUint(static_cast<glm::vec2>(radiuses)), glm::floatBitsToUint(static_cast<glm::vec2>(halfAngles)));
+    const auto params2 = glm::uvec4(makeFlags(isEnabled, isVolumetricScatteringEnabled), shadowID, glm::uvec2(0u));
+    return {transformDescription, params0, params1, params2};
 }
 
 LightDescription LightDescription::makeImageBased(
@@ -345,25 +358,20 @@ LightDescription LightDescription::makeImageBased(
     uint32_t specularMapID,
     float contribution)
 {
-    uint32_t flags = 0u;
-    flags |= (isEnabled & 0x1u) << 0u;
-
-    return {
-        TransformDescription::make(transform), glm::vec4(glm::vec3(0.f), glm::uintBitsToFloat(ImageBasedLightTypeID)),
-        glm::vec4(
-            glm::uintBitsToFloat(BRDFLutMapID), glm::uintBitsToFloat(diffuseMapID), glm::uintBitsToFloat(specularMapID),
-            contribution),
-        utils::IDsGenerator::last(), flags};
+    const auto transformDescription = TransformDescription::make(transform);
+    const auto params0 = glm::uvec4(ImageBasedLightTypeID, glm::uvec3(0u));
+    const auto params1 = glm::uvec4(BRDFLutMapID, diffuseMapID, specularMapID, glm::floatBitsToUint(contribution));
+    const auto params2 = glm::uvec4(makeFlags(isEnabled, false), glm::uvec3(0u));
+    return {transformDescription, params0, params1, params2};
 }
 
-LightDescription LightDescription::makeAmbient(bool isEnabled, const glm::vec3& color)
+uint32_t LightDescription::makeFlags(bool isEnabled, bool isVolumetricScatteringEnabled)
 {
     uint32_t flags = 0u;
     flags |= (isEnabled & 0x1u) << 0u;
+    flags |= (isVolumetricScatteringEnabled & 0x1u) << 1u;
 
-    return {
-        TransformDescription::makeEmpty(), glm::vec4(color, glm::uintBitsToFloat(AmbientLightTypeID)), glm::vec4(0.f),
-        utils::IDsGenerator::last(), flags};
+    return flags;
 }
 
 SkeletonDescription SkeletonDescription::makeEmpty()

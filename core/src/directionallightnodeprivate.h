@@ -1,14 +1,14 @@
 #ifndef CORE_DIRECTIONALLIGHTNODEPRIVATE_H
 #define CORE_DIRECTIONALLIGHTNODEPRIVATE_H
 
-#include "lightnodeprivate.h"
+#include "shadowedlightnodeprivate.h"
 
 namespace simplex
 {
 namespace core
 {
 
-class DirectionalLightNodePrivate : public LightNodePrivate
+class DirectionalLightNodePrivate : public ShadowedLightNodePrivate
 {
     PUBLIC_IMPL(DirectionalLightNode)
 
@@ -18,14 +18,12 @@ public:
 
     uint32_t shadowLayersCount() const override;
 
-    glm::vec3& color();
     uint32_t& shadowCascadesCount();
 
 private:
     std::shared_ptr<LightHandler> createLightInSceneData(SceneData&) const override;
     void updateLightInSceneData(LightHandler&) const override;
 
-    glm::vec3 m_color;
     uint32_t m_shadowCascadesCount;
 };
 

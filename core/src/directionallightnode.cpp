@@ -1,7 +1,6 @@
 ﻿#include <utils/logger.h>
 
 #include <core/directionallightnode.h>
-#include <core/scene.h>
 
 #include "directionallightnodeprivate.h"
 #include "shadow.h"
@@ -12,9 +11,8 @@ namespace core
 {
 
 DirectionalLightNode::DirectionalLightNode(const std::string& name)
-    : LightNode(std::make_unique<DirectionalLightNodePrivate>(*this, name))
+    : ShadowedLightNode(std::make_unique<DirectionalLightNodePrivate>(*this, name))
 {
-    setColor(glm::vec3(1.f));
     setShadowCascadesCount(4u);
 }
 
@@ -29,19 +27,6 @@ std::shared_ptr<DirectionalLightNode> DirectionalLightNode::asDirectionalLightNo
 std::shared_ptr<const DirectionalLightNode> DirectionalLightNode::asDirectionalLightNode() const
 {
     return const_cast<DirectionalLightNode*>(this)->asDirectionalLightNode();
-}
-
-const glm::vec3& DirectionalLightNode::color() const
-{
-    return m().color();
-}
-
-void DirectionalLightNode::setColor(const glm::vec3& value)
-{
-    auto& mPrivate = m();
-
-    mPrivate.color() = value;
-    mPrivate.onChanged();
 }
 
 uint32_t DirectionalLightNode::shadowCascadesCount() const

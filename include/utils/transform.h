@@ -141,7 +141,7 @@ inline TransformT<L, T> TransformT<L, T>::inverted() const
 template <glm::length_t L, typename T>
 inline TransformT<L, T>::operator MatrixType() const
 {
-    return translationMatrix(translation) * rotationMatrix<L>(rotation) * scaleMatrix(scale);
+    return translationMatrix(translation) * rotationMatrix<L>(rotation) * scaleMatrix<L>(scale);
 }
 
 template <glm::length_t L, typename T>

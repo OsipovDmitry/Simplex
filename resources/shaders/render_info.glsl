@@ -42,14 +42,14 @@ uint renderInfoLightsCount()
 	return renderInfo.lightsCount;
 }
 
-TextureHandle renderInfoShadowVarianceBluredTextureHandle()
+vec4 renderInfoFetchShadowMapBluredMomentsTexel(in ivec3 coords)
 {
-	return renderInfo.shadowVarianceBluredTextureHandle;
+	return texelFetch(sampler2DArray(renderInfo.shadowVarianceBluredTextureHandle), coords, 0);
 }
 
-TextureHandle renderInfoShadowColorBluredTextureHandle()
+vec3 renderInfoFetchShadowMapBluredColorTexel(in ivec3 coords)
 {
-	return renderInfo.shadowColorBluredTextureHandle;
+	return texelFetch(sampler2DArray(renderInfo.shadowColorBluredTextureHandle), coords, 0).rgb;
 }
 
 float renderInfoShadowBlurKernelSample(in uint radius)

@@ -354,6 +354,7 @@ struct ShadowTransformsDataDescription
     TransformDescription viewTransform;
     RangeDescription ZRange;
     mat4x4 projectionMatrix;
+    mat4x4 viewProjectionMatrix;
     uvec4 mapCoords;
 	vec4 frustumPoints[FRUSTUM_POINTS_COUNT];
 	vec4 frustumFaceNormalLinesAndRanges0[FRUSTUM_FACE_NORMAL_LINES_COUNT];
@@ -379,14 +380,11 @@ struct ShadowDescription
 struct LightDescription
 {
     TransformDescription transform;
-    vec4 params0;
-    vec4 params1;
-    uint shadowID;
-    uint flags;
-    //  0.. 0 - is enabled
-    //  1..31 - free (31 bits)
-    
-	uint padding[2u];
+    uvec4 params0;
+    uvec4 params1;
+    uvec4 params2;
+
+    // uint32_t padding[0u];
 };
 
 struct ShadowToUpdateDescription
@@ -421,7 +419,7 @@ struct SkeletonDescription
 
 struct ShadowMapsDescription
 {
-    TextureHandle shadowDepthMapTextureHandle;
+    TextureHandle shadowDepthTextureHandle;
     TextureHandle shadowVarianceTextureHandle;
     TextureHandle shadowColorTextureHandle;
 

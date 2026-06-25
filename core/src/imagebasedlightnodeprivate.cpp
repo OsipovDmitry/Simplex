@@ -17,11 +17,6 @@ ImageBasedLightNodePrivate::ImageBasedLightNodePrivate(ImageBasedLightNode& iblL
 
 ImageBasedLightNodePrivate::~ImageBasedLightNodePrivate() = default;
 
-uint32_t ImageBasedLightNodePrivate::shadowLayersCount() const
-{
-    return 0u;
-}
-
 std::shared_ptr<MaterialMap>& ImageBasedLightNodePrivate::BRDFLutMap()
 {
     return m_BRDFLutMap;

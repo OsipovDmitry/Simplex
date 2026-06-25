@@ -11,7 +11,7 @@ namespace simplex
 namespace core
 {
 
-ENUMCLASS(LightType, uint16_t, Point, Spot, Directional, ImageBased, Ambient)
+ENUMCLASS(LightType, uint16_t, Ambient, Directional, Point, Spot, ImageBased)
 
 class LightNodePrivate;
 class CORE_SHARED_EXPORT LightNode : public Node
@@ -25,32 +25,14 @@ public:
 
     LightType type() const;
 
-    virtual std::shared_ptr<PointLightNode> asPointLightNode();
-    virtual std::shared_ptr<const PointLightNode> asPointLightNode() const;
-
-    virtual std::shared_ptr<SpotLightNode> asSpotLightNode();
-    virtual std::shared_ptr<const SpotLightNode> asSpotLightNode() const;
-
-    virtual std::shared_ptr<DirectionalLightNode> asDirectionalLightNode();
-    virtual std::shared_ptr<const DirectionalLightNode> asDirectionalLightNode() const;
+    virtual std::shared_ptr<ColoredLightNode> asColoredLightNode();
+    virtual std::shared_ptr<const ColoredLightNode> asColoredLightNode() const;
 
     virtual std::shared_ptr<ImageBasedLightNode> asIBLLightNode();
     virtual std::shared_ptr<const ImageBasedLightNode> asIBLLightNode() const;
 
-    virtual std::shared_ptr<AmbientLightNode> asAmbientLightNode();
-    virtual std::shared_ptr<const AmbientLightNode> asAmbientLightNode() const;
-
     bool isLightingEnabled() const;
     void setLightingEnabled(bool);
-
-    bool isShadingEnabled() const;
-    void setShadingEnabled(bool);
-
-    uint32_t shadowMapSize() const;
-    void setShadowMapSize(uint32_t);
-
-    const utils::Range& shadowCullPlanesLimits() const;
-    void setShadowCullPlanesLimits(const utils::Range&);
 
 protected:
     LightNode(std::unique_ptr<LightNodePrivate>);

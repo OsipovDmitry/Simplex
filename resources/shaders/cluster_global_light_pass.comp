@@ -183,7 +183,7 @@ void main(void)
 	{
 		const uint lightID = gl_GlobalInvocationID.x;
 	
-		if (lightIsEnabled(lightID))
+		if (lightIsLightingEnabled(lightID))
 		{
 			const uint typeID = lightTypeID(lightID);
 			
@@ -201,7 +201,7 @@ void main(void)
 				
 				addGlobalLight(lightID);
 				addDirectionalShadow(
-					lightShadowID(lightID),
+					shadowedLightShadowID(lightID),
 					transformInverted(lightModelTransform));
 			}
 			else if (typeID == PointLightTypeID)
@@ -224,7 +224,7 @@ void main(void)
 						addLocalLight(lightID);
 					
 					addPointShadow(
-						lightShadowID(lightID),
+						shadowedLightShadowID(lightID),
 						transformInverted(lightModelTransform),
 						outerRadius);
 				}
@@ -270,7 +270,7 @@ void main(void)
 						addLocalLight(lightID);
 					
 					addSpotShadow(
-						lightShadowID(lightID),
+						shadowedLightShadowID(lightID),
 						transformInverted(lightModelTransform),
 						outerRadius,
 						outerHalfAngle);

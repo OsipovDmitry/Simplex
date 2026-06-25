@@ -239,6 +239,8 @@ class SceneRootNode;
 class DrawableNode;
 class CameraNode;
 class LightNode;
+class ColoredLightNode;
+class ShadowedLightNode;
 class PointLightNode;
 class SpotLightNode;
 class DirectionalLightNode;

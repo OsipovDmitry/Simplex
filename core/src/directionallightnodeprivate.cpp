@@ -11,21 +11,15 @@ namespace core
 {
 
 DirectionalLightNodePrivate::DirectionalLightNodePrivate(DirectionalLightNode& directionalLightNode, const std::string& name)
-    : LightNodePrivate(directionalLightNode, name, LightType::Directional)
+    : ShadowedLightNodePrivate(directionalLightNode, name, LightType::Directional)
 {
 }
 
 DirectionalLightNodePrivate::~DirectionalLightNodePrivate() = default;
 
-void DirectionalLightNodePrivate::updateLightInSceneData(LightHandler& handler) const
+uint32_t DirectionalLightNodePrivate::shadowLayersCount() const
 {
-    if (auto sceneData = handler.sceneData().lock())
-        sceneData->onDirectionalLightChanged(handler, d().globalTransform(), m_isLightingEnabled, m_color, m_shadow);
-}
-
-glm::vec3& DirectionalLightNodePrivate::color()
-{
-    return m_color;
+    return m_shadowCascadesCount;
 }
 
 uint32_t& DirectionalLightNodePrivate::shadowCascadesCount()
@@ -33,14 +27,17 @@ uint32_t& DirectionalLightNodePrivate::shadowCascadesCount()
     return m_shadowCascadesCount;
 }
 
-uint32_t DirectionalLightNodePrivate::shadowLayersCount() const
-{
-    return m_shadowCascadesCount;
-}
-
 std::shared_ptr<LightHandler> DirectionalLightNodePrivate::createLightInSceneData(SceneData& sceneData) const
 {
-    return sceneData.addDirectionalLight(d().globalTransform(), m_isLightingEnabled, m_color, m_shadow);
+    return sceneData.addDirectionalLight(
+        d().globalTransform(), m_isLightingEnabled, m_color, m_shadow, m_isVolumetricScatteringEnabled);
+}
+
+void DirectionalLightNodePrivate::updateLightInSceneData(LightHandler& handler) const
+{
+    if (auto sceneData = handler.sceneData().lock())
+        sceneData->onDirectionalLightChanged(
+            handler, d().globalTransform(), m_isLightingEnabled, m_color, m_shadow, m_isVolumetricScatteringEnabled);
 }
 
 } // namespace core
