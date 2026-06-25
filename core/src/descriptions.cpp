@@ -140,12 +140,12 @@ MeshDescription MeshDescription::make(
     uint32_t numColorComponents)
 {
     uint32_t flags = 0u;
-    flags |= (numPositionComponents & 0x3u) << 0u;
-    flags |= (numNormalComponents & 0x3u) << 2u;
-    flags |= (numTexCoordsComponents & 0x3u) << 4u;
-    flags |= (numBones & 0x7u) << 6u;
-    flags |= ((hasTangent ? 1u : 0u) & 0x1u) << 9u;
-    flags |= (numColorComponents & 0x7u) << 10u;
+    flags = glm::bitfieldInsert(flags, numPositionComponents, 0, 2);
+    flags = glm::bitfieldInsert(flags, numNormalComponents, 2, 2);
+    flags = glm::bitfieldInsert(flags, numTexCoordsComponents, 4, 2);
+    flags = glm::bitfieldInsert(flags, numBones, 6, 3);
+    flags = glm::bitfieldInsert(flags, (hasTangent ? 1u : 0u), 9, 1);
+    flags = glm::bitfieldInsert(flags, numColorComponents, 10, 3);
 
     return {BoundingBoxDescription::make(bb), elementsDataSize, verticesDataOffset, elementsDataOffset, flags};
 }
@@ -191,21 +191,21 @@ MaterialDescription MaterialDescription::make(
     float alphaCutoff)
 {
     uint32_t flags0 = 0u;
-    flags0 |= (static_cast<uint32_t>(glm::clamp(roughness, 0.f, 1.f) * 255.f) & 0xFF) << 0u;
-    flags0 |= (static_cast<uint32_t>(glm::clamp(metalness, 0.f, 1.f) * 255.f) & 0xFF) << 8u;
-    flags0 |= (static_cast<uint32_t>(glm::clamp(occlusionMapStrength, 0.f, 1.f) * 255.f) & 0xFF) << 16u;
-    flags0 |= (static_cast<uint32_t>(glm::clamp(normalMapScale, 0.f, 1.f) * 255.f) & 0xFF) << 24u;
+    flags0 = glm::bitfieldInsert(flags0, static_cast<uint32_t>(glm::clamp(roughness, 0.f, 1.f) * 255.f), 0, 8);
+    flags0 = glm::bitfieldInsert(flags0, static_cast<uint32_t>(glm::clamp(metalness, 0.f, 1.f) * 255.f), 8, 8);
+    flags0 = glm::bitfieldInsert(flags0, static_cast<uint32_t>(glm::clamp(occlusionMapStrength, 0.f, 1.f) * 255.f), 16, 8);
+    flags0 = glm::bitfieldInsert(flags0, static_cast<uint32_t>(glm::clamp(normalMapScale, 0.f, 1.f) * 255.f), 24, 8);
 
     uint32_t flags1 = 0u;
-    flags1 |= (ORMSwizzleMask.r & 0x3u) << 0u;
-    flags1 |= (ORMSwizzleMask.g & 0x3u) << 2u;
-    flags1 |= (ORMSwizzleMask.b & 0x3u) << 4u;
-    flags1 |= ((isLighted ? 1u : 0u) & 0x1u) << 6u;
-    flags1 |= ((isShadowed ? 1u : 0u) & 0x1u) << 7u;
-    flags1 |= ((isShadowCasted ? 1u : 0u) & 0x1u) << 8u;
-    flags1 |= ((isDoubleSided ? 1u : 0u) & 0x1u) << 9u;
-    flags1 |= ((isTransparent ? 1u : 0u) & 0x1u) << 10u;
-    flags1 |= (static_cast<uint32_t>(glm::clamp(alphaCutoff, 0.f, 1.f) * 255.f) & 0xFF) << 11u;
+    flags1 = glm::bitfieldInsert(flags1, ORMSwizzleMask.r, 0, 2);
+    flags1 = glm::bitfieldInsert(flags1, ORMSwizzleMask.g, 2, 2);
+    flags1 = glm::bitfieldInsert(flags1, ORMSwizzleMask.b, 4, 2);
+    flags1 = glm::bitfieldInsert(flags1, (isLighted ? 1u : 0u), 6, 1);
+    flags1 = glm::bitfieldInsert(flags1, (isShadowed ? 1u : 0u), 7, 1);
+    flags1 = glm::bitfieldInsert(flags1, (isShadowCasted ? 1u : 0u), 8, 1);
+    flags1 = glm::bitfieldInsert(flags1, (isDoubleSided ? 1u : 0u), 9, 1);
+    flags1 = glm::bitfieldInsert(flags1, (isTransparent ? 1u : 0u), 10, 1);
+    flags1 = glm::bitfieldInsert(flags1, static_cast<uint32_t>(glm::clamp(alphaCutoff, 0.f, 1.f) * 255.f), 11, 8);
 
     return {baseColor,      glm::vec4(emission, 1.f), baseColorMapID, opacityMapID, emissionMapID, occlusionMapID,
             roughnessMapID, metalnessMapID,           normalMapID,    flags0,       flags1};
@@ -276,7 +276,7 @@ ShadowDescription ShadowDescription::make(
     uint32_t transformsDataOffset)
 {
     uint32_t flags = 0u;
-    flags |= (layersCount & 0x7u) << 0u;
+    flags = glm::bitfieldInsert(flags, layersCount, 0, 3);
 
     return {RangeDescription::make(cullPlaneLimits), mapSize, transformsDataOffset, flags};
 }
@@ -368,8 +368,8 @@ LightDescription LightDescription::makeImageBased(
 uint32_t LightDescription::makeFlags(bool isEnabled, bool isVolumetricScatteringEnabled)
 {
     uint32_t flags = 0u;
-    flags |= (isEnabled & 0x1u) << 0u;
-    flags |= (isVolumetricScatteringEnabled & 0x1u) << 1u;
+    flags = glm::bitfieldInsert(flags, (isEnabled ? 1u : 0u), 0, 1);
+    flags = glm::bitfieldInsert(flags, (isVolumetricScatteringEnabled ? 1u : 0u), 1, 1);
 
     return flags;
 }

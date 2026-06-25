@@ -252,12 +252,12 @@ struct MeshDescription
         uint32_t elementsDataSize,
         uint32_t verticesDataOffset,
         uint32_t elementsDataOffset,
-        uint32_t numPositionComponents,
-        uint32_t numNormalComponents,
-        uint32_t numTexCoordsComponents,
-        uint32_t numBones,
+        uint32_t positionComponentsCount,
+        uint32_t normalComponentsCount,
+        uint32_t texCoordsComponentsCount,
+        uint32_t bonesCount,
         bool hasTangent,
-        uint32_t numColorComponents);
+        uint32_t colorComponentsCount);
 };
 
 struct MapDescription
