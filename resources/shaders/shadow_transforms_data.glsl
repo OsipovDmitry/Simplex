@@ -124,8 +124,8 @@ void shadowTransformsDataInitialize(
 	for (uint i = 0u; i < 4u; ++i)
 	{
 		vec3 v = fSideEdgeAbsDirection;
-		v.x *= float(i % 2) * 2.0f - 1.0f;
-		v.y *= float(i / 2) * 2.0f - 1.0f;
+		v.x *= ZO2NO(float(i % 2));
+		v.y *= ZO2NO(float(i / 2));
 		shadowTransformsData[offset].frustumEdgeDirections[i] = vec4(v, 0.0f);
 	}
 	shadowTransformsData[offset].frustumEdgeDirections[4u] = vec4(orth(0u), 0.0f);

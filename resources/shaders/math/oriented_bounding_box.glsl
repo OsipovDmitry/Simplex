@@ -55,7 +55,7 @@ vec3 orientedBoundingBoxPoint(in OrientedBoundingBox obb, in uint ID)
 		float(bitfieldExtract(ID, 1, 1)),
 		float(bitfieldExtract(ID, 2, 1)));
 	
-	vec3 result = 2.0f * v - vec3(1.0f);
+	vec3 result = ZO2NO(v);
 	result = result * obb.halfSize;
 	result = rotateVector(obb.rotation, result);
 	result = result + obb.translation;
@@ -74,7 +74,7 @@ vec3[BOUNDING_BOX_POINTS_COUNT] orientedBoundingBoxPoints(in OrientedBoundingBox
 			float(bitfieldExtract(p, 1, 1)),
 			float(bitfieldExtract(p, 2, 1)));
 		
-		vec3 point = 2.0f * v - vec3(1.0f);
+		vec3 point = ZO2NO(v);
 		point = point * obb.halfSize;
 		point = rotateVector(obb.rotation, point);
 		point = point + obb.translation;

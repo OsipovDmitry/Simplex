@@ -166,8 +166,8 @@ void cameraUpdate(in uvec3 clusterSize, in Transform viewTransform, in ClipSpace
 	for (uint i = 0u; i < 4u; ++i)
 	{
 		vec3 v = fSideEdgeAbsDirection;
-		v.x *= float(i % 2) * 2.0f - 1.0f;
-		v.y *= float(i / 2) * 2.0f - 1.0f;
+		v.x *= ZO2NO(float(i % 2));
+		v.y *= ZO2NO(float(i / 2));
 		camera.frustumEdgeDirections[i] = vec4(v, 0.0f);
 	}
 	camera.frustumEdgeDirections[4u] = vec4(orth(0u), 0.0f);
@@ -178,7 +178,7 @@ void cameraUpdate(in uvec3 clusterSize, in Transform viewTransform, in ClipSpace
 
 uint cameraClusterNodeID(in vec3 NDC_ZO)
 {
-	const vec3 texelPosVS = projectPoint(camera.projectionMatrixInverted, 2.0f * NDC_ZO - vec3(1.0f));
+	const vec3 texelPosVS = projectPoint(camera.projectionMatrixInverted, ZO2NO(NDC_ZO));
 	
 	const vec2 depthRange = cameraZRange();
 	const float linearDepth = (-texelPosVS.z - depthRange[0u]) / (depthRange[1u] - depthRange[0u]);

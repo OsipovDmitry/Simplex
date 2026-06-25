@@ -3,6 +3,7 @@
 #include<plane.glsl>
 #include<range.glsl>
 #include<transform.glsl>
+#include<utils.glsl>
 
 vec3 frustumCalculatePoint(in mat4x4 projectionMatrixInverted, in uint ID)
 {
@@ -10,12 +11,12 @@ vec3 frustumCalculatePoint(in mat4x4 projectionMatrixInverted, in uint ID)
 		float(bitfieldExtract(ID, 0, 1)),
 		float(bitfieldExtract(ID, 1, 1)),
 		float(bitfieldExtract(ID, 2, 1)));
-	return projectPoint(projectionMatrixInverted, 2.0f * v - vec3(1.0f));
+	return projectPoint(projectionMatrixInverted, ZO2NO(v));
 }
 
 Plane frustumCalculatePlane(in mat4x4 projectionMatrix, in uint ID)
 {
-	const float sign = float(ID % 2) * 2.0f - 1.0f;
+	const float sign = ZO2NO(float(ID % 2));
 	vec4 coefs;
 	for (uint j = 0; j < 4u; ++j)
 		coefs[j] = projectionMatrix[j][3u] - sign * projectionMatrix[j][ID/2];
@@ -31,7 +32,7 @@ vec3 frustumCalculateSideEdgeAbsDirection(in mat4x4 projectionMatrixInverted)
 
 Line frustumCalculateFaceNormalLine(in mat4x4 projectionMatrix, in uint ID)
 {
-	const float sign = float(ID % 2) * 2.0f - 1.0f;
+	const float sign = ZO2NO(float(ID % 2));
 	
 	vec4 coefs;
 	for (uint j = 0; j < 4u; ++j)

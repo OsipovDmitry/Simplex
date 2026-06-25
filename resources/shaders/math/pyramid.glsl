@@ -53,7 +53,7 @@ void pyramidCalculateFaceNormalLinesAndRanges(
 	for (uint i = 0u; i < 4u; ++i)
 	{
 		const uint orthID = bitfieldExtract(i, 0, 1);
-		const float sign = float(bitfieldExtract(i, 1, 1)) * 2.0f - 1.0f;
+		const float sign = ZO2NO(float(bitfieldExtract(i, 1, 1)));
 		
 		const vec3 pLocalSideNormal = orth(orthID) * pLocalSideNormalXY * sign + orth(2u) * pLocalSideNormalZ;
 		
@@ -74,11 +74,7 @@ vec3[PYRAMID_EDGE_DIRECTIONS_COUNT] pyramidCalculateEdgeDirections(in Pyramid p)
 	
 	for (uint i = 0u; i < 4u; ++i)
 	{
-		const vec3 sign = 2.0f * vec3(
-			float(bitfieldExtract(i, 0, 1)),
-			float(bitfieldExtract(i, 1, 1)),
-			1.0f) - vec3(1.0f);
-		
+		const vec3 sign = ZO2NO(vec3(float(bitfieldExtract(i, 0, 1)), float(bitfieldExtract(i, 1, 1)), 1.0f));
 		result[i] = rotateVector(p.rotation, pLocalSideEdgeAbsDirection * sign);
 	}
 	
@@ -103,7 +99,7 @@ Range pyramidProjectOnLine(in Pyramid p, in Line l)
 			float(bitfieldExtract(i, 0, 1)),
 			float(bitfieldExtract(i, 1, 1)));
 			
-		const vec3 point = p.height * vec3((2.0f * v - vec2(1.0f)) * tanHalfAngle, -1.0f);
+		const vec3 point = p.height * vec3(ZO2NO(v) * tanHalfAngle, -1.0f);
 		result = rangeExpand(result, lineProjectOn(transformedL, point));
 	}
 	
