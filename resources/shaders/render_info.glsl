@@ -44,7 +44,7 @@ uint renderInfoLightsCount()
 
 vec4 renderInfoFetchShadowMapBluredMomentsTexel(in ivec3 coords)
 {
-	return texelFetch(sampler2DArray(renderInfo.shadowVarianceBluredTextureHandle), coords, 0);
+	return texelFetch(sampler2DArray(renderInfo.shadowMomentsBluredTextureHandle), coords, 0);
 }
 
 vec3 renderInfoFetchShadowMapBluredColorTexel(in ivec3 coords)
@@ -65,6 +65,26 @@ uint renderInfoShadowBlurRadius()
 float renderInfoShadowLightBleedingAmount()
 {
 	return renderInfo.shadowLightBleedingAmount;
+}
+
+float renderInfoShadowPositiveExponent()
+{
+	return 20.0f;
+}
+
+float renderInfoShadowNegativeExponent()
+{
+	return 20.0f;
+}
+
+float renderInfoShadowMomentsBias()
+{
+	return 0.000001f;
+}
+
+float renderInfoShadowDepthBiasFactor()
+{
+	return 0.05f;
 }
 
 uint renderInfoShadowAtlasSize()

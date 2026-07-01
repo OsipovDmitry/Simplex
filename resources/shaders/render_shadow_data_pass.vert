@@ -10,6 +10,7 @@
 #include<vertex_data.glsl>
 
 #include<math/transform.glsl>
+#include<math/utils.glsl>
 
 flat out uint v_layerID;
 flat out uint v_meshID;
@@ -118,9 +119,9 @@ void main(void)
 	}
 	
 	vec2 NDC_XY = positionLCS.xy / positionLCS.w;
-	NDC_XY = NDC_XY * 0.5f + vec2(0.5f);
+	NDC_XY = NO2ZO(NDC_XY);
 	NDC_XY = NDC_XY * scale + translation;
-	NDC_XY = NDC_XY * 2.0f - vec2(1.0f);
+	NDC_XY = ZO2NO(NDC_XY);
 	NDC_XY = NDC_XY * positionLCS.w;
 	
 	const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, layerID);

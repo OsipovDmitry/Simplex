@@ -33,7 +33,7 @@ void main(void)
 		for (uint i = 0u; i < 3u; ++i)
 		{
 			gl_Position = vec4(
-				2.0f * (mapScale * gl_in[i].gl_Position.xy + mapTranslation) - vec2(1.0f),
+				ZO2NO((mapScale * gl_in[i].gl_Position.xy + mapTranslation)),
 				0.0f,
 				1.0f);
 			EmitVertex();

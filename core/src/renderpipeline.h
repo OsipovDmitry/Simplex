@@ -61,7 +61,7 @@ public:
     graphics::PDispatchComputeIndirectCommandBuffer& clusterLocalLightsCommandBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& shadowDataCullCommandBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& shadowMapBlurCommandsBuffer();
-    graphics::PTextureHandle& shadowVarianceBluredTextureHandle();
+    graphics::PTextureHandle& shadowMomentsBluredTextureHandle();
     graphics::PTextureHandle& shadowColorBluredTextureHandle();
     graphics::PDrawArraysIndirectCommandsBuffer& opaqueShadowDataRenderCommandsBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& transparentShadowDataRenderCommandsBuffer();
@@ -83,7 +83,7 @@ private:
         const std::shared_ptr<graphics::IFrameBuffer>&,
         const std::shared_ptr<graphics::IVertexArray>&);
 
-    void resizeShadowVarianceBluredTexture(const graphics::PConstTexture&);
+    void resizeShadowMomentsBluredTexture(const graphics::PConstTexture&);
     void resizeShadowColorBluredTexture(const graphics::PConstTexture&);
     void resizeFinalTexture(const glm::uvec2&);
     std::vector<float> calculateShadowBlurKernel(float);
@@ -105,7 +105,7 @@ private:
     graphics::PDispatchComputeIndirectCommandBuffer m_clusterLocalLightsCommandBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_shadowDataCullCommandBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_shadowMapBlurCommandsBuffer;
-    graphics::PTextureHandle m_shadowVarianceBluredTextureHandle;
+    graphics::PTextureHandle m_shadowMomentsBluredTextureHandle;
     graphics::PTextureHandle m_shadowColorBluredTextureHandle;
     graphics::PDrawArraysIndirectCommandsBuffer m_opaqueShadowDataRenderCommandsBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_transparentShadowDataRenderCommandsBuffer;

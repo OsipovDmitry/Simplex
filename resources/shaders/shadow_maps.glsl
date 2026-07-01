@@ -2,18 +2,11 @@
 
 #include<math/shadow_utils.glsl>
 
-#define HAMBURGER_MOMENTS_SHADOW_MAPS_ALGORITHM 0
-#define HAUSFORFF_MOMENTS_SHADOW_MAPS_ALGORITHM 1
-
-#ifndef MOMENTS_SHADOW_MAPS_ALGORITHM
-	#define MOMENTS_SHADOW_MAPS_ALGORITHM HAUSFORFF_MOMENTS_SHADOW_MAPS_ALGORITHM
-#endif
-
 layout (std430) readonly buffer ssbo_shadowMapsBuffer { ShadowMapsDescription shadowMaps; };
 
 vec4 shadowMapsFetchMomentsTexel(in ivec3 coords)
 {
-	return texelFetch(sampler2DArray(shadowMaps.shadowVarianceTextureHandle), coords, 0);
+	return texelFetch(sampler2DArray(shadowMaps.shadowMomentsTextureHandle), coords, 0);
 }
 
 vec3 shadowMapsFetchColorTexel(in ivec3 coords)
@@ -22,24 +15,29 @@ vec3 shadowMapsFetchColorTexel(in ivec3 coords)
 }
 
 vec3 shadowMapsProcessDiscreteShadow(
-	in vec3 NDC_ZO,
+	in vec2 NDC_XY_ZO,
+	in float linearNormalizedDepth,
 	in uvec3 mapCoords,
 	in uint mapSize,
 	in bool isTexelTransparent)
 {
-	const ivec3 texelPosSMS = ivec3(NDC_ZO.xy * float(mapSize - 1u) + vec2(0.5f), 0.0f) + ivec3(mapCoords);	
-	const float refDepth = texelFetch(sampler2DArray(shadowMaps.shadowDepthTextureHandle), texelPosSMS, 0).r;
+	const sampler2DArray momentsTexture = sampler2DArray(shadowMaps.shadowMomentsTextureHandle);
+
+	const ivec2 texelPosSMS = ivec2(NDC_XY_ZO * float(mapSize - 1u) + vec2(0.5f)) + ivec2(mapCoords.xy);
+	const ivec3 texCoords = ivec3(texelPosSMS, int(mapCoords[2u]));
 	
-	vec3 result = vec3(step(NDC_ZO[2u], refDepth));
+	const float refDepth = texelFetch(momentsTexture, texCoords, 0).r;
+	
+	vec3 result = vec3(step(linearNormalizedDepth, refDepth));
 	if (!isTexelTransparent)
 	{
-		result *= texelFetch(sampler2DArray(shadowMaps.shadowColorTextureHandle), texelPosSMS, 0).rgb;
+		result *= texelFetch(sampler2DArray(shadowMaps.shadowColorTextureHandle), texCoords, 0).rgb;
 	}
 	
 	return result;
 }
 
-vec3 shadowMapsProccessVarianceShadow(
+vec3 shadowMapsProccessVSMShadow(
 	in vec2 NDC_XY_ZO,
 	in float linearNormalizedDepth,
 	in uvec3 mapCoords,
@@ -47,10 +45,10 @@ vec3 shadowMapsProccessVarianceShadow(
 	in float lightBleedingAmount,
 	in bool isTexelTransparent)
 {
-	const sampler2DArray momentsTexture = sampler2DArray(shadowMaps.shadowVarianceTextureHandle);
+	const sampler2DArray momentsTexture = sampler2DArray(shadowMaps.shadowMomentsTextureHandle);
 
-	const vec2 texelPosSMS = (NDC_XY_ZO * float(mapSize - 1u) + vec2(0.5f)) + vec2(mapCoords.xy);
-	const vec3 texCoords = vec3(texelPosSMS.xy / textureSize(momentsTexture, 0).xy, float(mapCoords[2u]));
+	const vec2 texelPosSMS = NDC_XY_ZO * float(mapSize - 1u) + vec2(0.5f) + vec2(mapCoords.xy);
+	const vec3 texCoords = vec3(texelPosSMS / vec2(textureSize(momentsTexture, 0).xy), float(mapCoords[2u]));
 	
 	const vec2 moments = texture(momentsTexture, texCoords).rg;
 	
@@ -69,29 +67,32 @@ vec3 shadowMapsProccessVarianceShadow(
 	return result;
 }
 
-vec3 shadowMapsProccessMomentsShadow(
+vec3 shadowMapsProccessEVSMShadow(
 	in vec2 NDC_XY_ZO,
 	in float linearNormalizedDepth,
 	in uvec3 mapCoords,
 	in uint mapSize,
-	in float depthBias,
-	in float momentsBias,
+	in float positiveExponent,
+	in float negativeExponent,
+	in float lightBleedingAmount,
 	in bool isTexelTransparent)
 {
-	const sampler2DArray momentsTexture = sampler2DArray(shadowMaps.shadowVarianceTextureHandle);
+	const sampler2DArray momentsTexture = sampler2DArray(shadowMaps.shadowMomentsTextureHandle);
 
-	const vec2 texelPosSMS = (NDC_XY_ZO * float(mapSize - 1u) + vec2(0.5f)) + vec2(mapCoords.xy);
-	const vec3 texCoords = vec3(texelPosSMS.xy / textureSize(momentsTexture, 0).xy, float(mapCoords[2u]));
+	const vec2 texelPosSMS = NDC_XY_ZO * float(mapSize - 1u) + vec2(0.5f) + vec2(mapCoords.xy);
+	const vec3 texCoords = vec3(texelPosSMS / vec2(textureSize(momentsTexture, 0).xy), float(mapCoords[2u]));
 	
 	const vec4 moments = texture(momentsTexture, texCoords);
+	const vec2 momentsPos = moments.xy;
+	const vec2 momentsNeg = moments.zw;
 	
-	#if (MOMENTS_SHADOW_MAPS_ALGORITHM == HAMBURGER_MOMENTS_SHADOW_MAPS_ALGORITHM)
-		vec3 result = vec3(Hamburger4MSMShadowIntensity(moments, linearNormalizedDepth, depthBias, momentsBias));
-	#elif (MOMENTS_SHADOW_MAPS_ALGORITHM == HAUSFORFF_MOMENTS_SHADOW_MAPS_ALGORITHM)
-		vec3 result = vec3(Hausdorff4MSMShadowIntensity(moments, linearNormalizedDepth, depthBias, momentsBias));
-	#else
-		error!!!
-	#endif
+	const float sampleDepthPos = exp(positiveExponent * linearNormalizedDepth);
+	const float sampleDepthNeg = -exp(-negativeExponent * linearNormalizedDepth);
+	
+	const float pMaxPos = ChebyshevUpperBound(momentsPos, sampleDepthPos, lightBleedingAmount);
+	const float pMaxNeg = ChebyshevUpperBound(momentsNeg, sampleDepthNeg, lightBleedingAmount);
+	
+	vec3 result = vec3(min(pMaxPos, pMaxNeg));
 	
 	if (!isTexelTransparent)
 	{
@@ -101,17 +102,62 @@ vec3 shadowMapsProccessMomentsShadow(
 	return result;
 }
 
-TextureHandle shadowMapsShadowDepthTextureHandle()
+vec3 shadowMapsProccessHamburgerMSMShadow(
+	in vec2 NDC_XY_ZO,
+	in float linearNormalizedDepth,
+	in uvec3 mapCoords,
+	in uint mapSize,
+	in float momentsBias,
+	in bool isTexelTransparent)
 {
-	return shadowMaps.shadowDepthTextureHandle;
+	const sampler2DArray momentsTexture = sampler2DArray(shadowMaps.shadowMomentsTextureHandle);
+
+	const vec2 texelPosSMS = NDC_XY_ZO * float(mapSize - 1u) + vec2(0.5f) + vec2(mapCoords.xy);
+	const vec3 texCoords = vec3(texelPosSMS / vec2(textureSize(momentsTexture, 0).xy), float(mapCoords[2u]));
+	
+	const vec4 moments = texture(momentsTexture, texCoords);
+	vec3 result = vec3(Hamburger4MSMShadowIntensity(moments, linearNormalizedDepth, momentsBias));
+	
+	if (!isTexelTransparent)
+	{
+		result *= texture(sampler2DArray(shadowMaps.shadowColorTextureHandle), texCoords).rgb;
+	}
+	
+	return result;
 }
 
-TextureHandle shadowMapsShadowVarianceTextureHandle()
+vec3 shadowMapsProccessHausdorffMSMShadow(
+	in vec2 NDC_XY_ZO,
+	in float linearNormalizedDepth,
+	in uvec3 mapCoords,
+	in uint mapSize,
+	in float momentsBias,
+	in bool isTexelTransparent)
 {
-	return shadowMaps.shadowVarianceTextureHandle;
+	const sampler2DArray momentsTexture = sampler2DArray(shadowMaps.shadowMomentsTextureHandle);
+
+	const vec2 texelPosSMS = NDC_XY_ZO * float(mapSize - 1u) + vec2(0.5f) + vec2(mapCoords.xy);
+	const vec3 texCoords = vec3(texelPosSMS / vec2(textureSize(momentsTexture, 0).xy), float(mapCoords[2u]));
+	
+	const vec4 moments = texture(momentsTexture, texCoords);
+	vec3 result = vec3(Hausdorff4MSMShadowIntensity(moments, linearNormalizedDepth, momentsBias));
+	
+	if (!isTexelTransparent)
+	{
+		result *= texture(sampler2DArray(shadowMaps.shadowColorTextureHandle), texCoords).rgb;
+	}
+	
+	return result;
 }
 
-TextureHandle shadowMapsShadowColorTextureHandle()
+float shadowMapsProcessVolumetricScattering(
+	in vec3 NDC_ZO,
+	in uvec3 mapCoords,
+	in uint mapSize)
 {
-	return shadowMaps.shadowColorTextureHandle;
+	const ivec2 texelPosSMS = ivec2(NDC_ZO.xy * float(mapSize - 1u) + vec2(0.5f)) + ivec2(mapCoords.xy);
+	const ivec3 texCoords = ivec3(texelPosSMS, int(mapCoords[2u]));
+	
+	const float refDepth = texelFetch(sampler2DArray(shadowMaps.shadowDepthTextureHandle), texCoords, 0).r;
+	return step(NDC_ZO[2u], refDepth);
 }

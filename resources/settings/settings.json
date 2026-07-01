@@ -42,8 +42,12 @@
     "Shadow": {
 	  "AtlasSize": 4096,
       "MapSize": 512,
+	  "Filter": "VSM",
 	  "BlurSigma": 2.0,
-	  "LightBleedingAmount": 0.2
+	  "DepthBiasFactor": 0.05,
+	  "LightBleedingAmount": 0.2,
+	  "PositiveExponent": 20.0,
+	  "NegativeExponent": 20.0
     },
     "SSAO": {
       "Mode": "disabled",

@@ -189,6 +189,7 @@ class IEngine;
 enum class DrawDataCullingAlgorithm : uint16_t;
 enum class ShadowDataCullingAlgorithm : uint16_t;
 enum class SpotLightCullingAlgorithm : uint16_t;
+enum class ShadowFilter : uint16_t;
 class GraphicsEngine;
 
 class AudioEngine;

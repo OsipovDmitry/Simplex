@@ -211,7 +211,7 @@ struct RenderInfoDescription
 	//uint scenePadding[0u];
 	
 	// shadow
-    TextureHandle shadowVarianceBluredTextureHandle;
+    TextureHandle shadowMomentsBluredTextureHandle;
     TextureHandle shadowColorBluredTextureHandle;
 	float shadowBlurKernel[ShadowBlurKernelSize];
     uint shadowBlurRadius;
@@ -420,7 +420,7 @@ struct SkeletonDescription
 struct ShadowMapsDescription
 {
     TextureHandle shadowDepthTextureHandle;
-    TextureHandle shadowVarianceTextureHandle;
+    TextureHandle shadowMomentsTextureHandle;
     TextureHandle shadowColorTextureHandle;
 
     uint padding[2u]; // TextureHandle is uvec2 (uint64_t)

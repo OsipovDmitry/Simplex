@@ -107,8 +107,12 @@ public:
 
     uint32_t atlasSize() const;
     uint32_t mapSize() const;
+    ShadowFilter filter() const;
     float blurSigma() const;
+    float depthBiasFactor() const;
     float lightBleedingAmount() const;
+    float positiveExponent() const;
+    float negativeExponent() const;
 };
 
 class CORE_SHARED_EXPORT SSAO : public utils::SettingsComponent

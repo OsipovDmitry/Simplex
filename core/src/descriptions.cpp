@@ -69,7 +69,7 @@ RenderInfoDescription RenderInfoDescription::make(
     uint32_t skeletalAnimatedDataCount,
     uint32_t shadowsCount,
     uint32_t lightsCount,
-    graphics::TextureHandle shadowVarianceBluredTextureHandle,
+    graphics::TextureHandle shadowMomentsBluredTextureHandle,
     graphics::TextureHandle shadowColorBluredTextureHandle,
     const std::vector<float>& shadowBlurKernel,
     float shadowLightBleedingAmount,
@@ -93,7 +93,7 @@ RenderInfoDescription RenderInfoDescription::make(
     result.lightsCount = lightsCount;
 
     // shadow
-    result.shadowVarianceBluredTextureHandle = shadowVarianceBluredTextureHandle;
+    result.shadowMomentsBluredTextureHandle = shadowMomentsBluredTextureHandle;
     result.shadowColorBluredTextureHandle = shadowColorBluredTextureHandle;
     for (size_t i = 0u; i < shadowBlurKernel.size(); ++i)
         result.shadowBlurKernel[i] = shadowBlurKernel[i];
@@ -393,10 +393,10 @@ ShadowMapsDescription ShadowMapsDescription::makeEmpty()
 
 ShadowMapsDescription ShadowMapsDescription::make(
     graphics::TextureHandle shadowDepthTextureHandle,
-    graphics::TextureHandle shadowVarianceTextureHandle,
+    graphics::TextureHandle shadowMomentsTextureHandle,
     graphics::TextureHandle shadowColorTextureHandle)
 {
-    return {shadowDepthTextureHandle, shadowVarianceTextureHandle, shadowColorTextureHandle};
+    return {shadowDepthTextureHandle, shadowMomentsTextureHandle, shadowColorTextureHandle};
 }
 
 SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::makeEmpty()

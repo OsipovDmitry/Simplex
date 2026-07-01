@@ -561,7 +561,7 @@ public:
     float shadowBlurSigma() const;
     float shadowLightBleedingAmount() const;
     graphics::PConstTexture shadowDepthTexture() const;
-    graphics::PConstTexture shadowVarianceTexture() const;
+    graphics::PConstTexture shadowMomentsTexture() const;
     graphics::PConstTexture shadowColorTexture() const;
 
 private:
@@ -610,7 +610,7 @@ private:
     float m_shadowLightBleedingAmount;
     std::vector<std::shared_ptr<utils::RectPacker>> m_shadowMapsRectPackers;
     graphics::PTextureHandle m_shadowDepthTextureHandle;
-    graphics::PTextureHandle m_shadowVarianceTextureHandle;
+    graphics::PTextureHandle m_shadowMomentsTextureHandle;
     graphics::PTextureHandle m_shadowColorTextureHandle;
 };
 

@@ -15,13 +15,76 @@
 
 #include<math/constants.glsl>
 #include<math/range.glsl>
+#include<math/shadow_utils.glsl>
 #include<math/transform.glsl>
+#include<math/utils.glsl>
 
 out vec4 o_fragColor0;
 
 vec4 blend(in vec4 src, in vec4 dst)
 {
     return vec4(src.rgb * src.a + dst.rgb * (1.0f - src.a), src.a + dst.a * (1.0f - src.a));
+}
+
+float normalizeLinearDepth(in Range ZRange, in float depth)
+{
+	return clamp(
+		(depth - rangeStart(ZRange)) / (rangeEnd(ZRange) - rangeStart(ZRange)),
+		0.0f,
+		1.0f);
+}
+
+vec3 proccessShadow(
+	in vec2 NDC_XY_ZO,
+	in float linearNormalizedDepth,
+	in uvec3 mapCoords,
+	in uint mapSize,
+	in bool isTexelTransparent)
+{	
+	#if (SHADOW_FILTER == DISCRETE_SHADOW_FILTER)
+		return shadowMapsProcessDiscreteShadow(
+			NDC_XY_ZO,
+			linearNormalizedDepth,
+			mapCoords,
+			mapSize,
+			isTexelTransparent);
+	#elif (SHADOW_FILTER == VSM_SHADOW_FILTER)
+		return shadowMapsProccessVSMShadow(
+			NDC_XY_ZO,
+			linearNormalizedDepth,
+			mapCoords,
+			mapSize,
+			renderInfoShadowLightBleedingAmount(),
+			isTexelTransparent);
+	#elif (SHADOW_FILTER == EVSM_SHADOW_FILTER)
+		return shadowMapsProccessEVSMShadow(
+			NDC_XY_ZO,
+			linearNormalizedDepth,
+			mapCoords,
+			mapSize,
+			renderInfoShadowPositiveExponent(),
+			renderInfoShadowNegativeExponent(),
+			renderInfoShadowLightBleedingAmount(),
+			isTexelTransparent);
+	#elif (SHADOW_FILTER == HAMBURGER_MSM_SHADOW_FILTER)
+		return shadowMapsProccessHamburgerMSMShadow(
+			NDC_XY_ZO,
+			linearNormalizedDepth,
+			mapCoords,
+			mapSize,
+			renderInfoShadowMomentsBias(),
+			isTexelTransparent);
+	#elif (SHADOW_FILTER == HAUSDORFF_MSM_SHADOW_FILTER)
+		return shadowMapsProccessHausdorffMSMShadow(
+			NDC_XY_ZO,
+			linearNormalizedDepth,
+			mapCoords,
+			mapSize,
+			renderInfoShadowMomentsBias(),
+			isTexelTransparent);
+	#else
+		error!!!
+	#endif
 }
 
 vec3 proccessAmbientLight(in uint lightID, in vec3 baseColor)
@@ -71,9 +134,9 @@ vec3 proccessDirectionalLight(
 			for (uint i = 0u; i < layersCount; ++i)
 			{
 				texelPosLVS = transformPoint(shadowTransformsDataViewTransform(transformsDataOffset, i), texelPosWS);
-				NDC_ZO = projectPoint(
+				NDC_ZO = NO2ZO(projectPoint(
 					shadowTransformsDataProjectionMatrix(transformsDataOffset, i),
-					texelPosLVS) * 0.5f + vec3(0.5f);
+					texelPosLVS));
 				if (all(lessThanEqual(vec3(0.0f), NDC_ZO)) && all(lessThanEqual(NDC_ZO, vec3(1.0f))))
 				{
 					layerID = i;
@@ -83,16 +146,17 @@ vec3 proccessDirectionalLight(
 			
 			if (layerID != 0xFFFFFFFFu)
 			{
+				const float factor = renderInfoShadowDepthBiasFactor();
+				const float biasScale = max(factor * (1.0f - dot(N, L)), factor * 0.1f);
+					
 				const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, layerID);
-				const float linearNormalizedDepth = (-texelPosLVS[2u] - rangeStart(layerZRange)) / (rangeEnd(layerZRange) - rangeStart(layerZRange));
-			
-				result *= shadowMapsProccessMomentsShadow(
+				const float linearNormalizedDepth = normalizeLinearDepth(layerZRange, -texelPosLVS[2u] - biasScale);
+					
+				result *= proccessShadow(
 					NDC_ZO.xy,
 					linearNormalizedDepth,
 					shadowTransformsDataMapCoords(transformsDataOffset, layerID),
 					shadowMapSize(shadowID),
-					0.0f,
-					0.000001f,
 					isTexelTransparent);
 			}
 		}
@@ -160,20 +224,22 @@ vec3 proccessPointLight(
 			{
 				const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
 				const vec3 texelPosLVS = transformPoint(shadowTransformsDataViewTransform(transformsDataOffset, layerID), texelPosWS);
-				const vec3 NDC_ZO = projectPoint(
+				
+				const vec3 NDC_ZO = NO2ZO(projectPoint(
 					shadowTransformsDataProjectionMatrix(transformsDataOffset, layerID),
-					texelPosLVS) * 0.5f + vec3(0.5f);
+					texelPosLVS));
+				
+				const float factor = renderInfoShadowDepthBiasFactor();
+				const float biasScale = max(factor * (1.0f - dot(N, L)), factor * 0.1f);
 				
 				const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, layerID);
-				const float linearNormalizedDepth = (-texelPosLVS[2u] - rangeStart(layerZRange)) / (rangeEnd(layerZRange) - rangeStart(layerZRange));
-				
-				result *= shadowMapsProccessMomentsShadow(
+				const float linearNormalizedDepth = normalizeLinearDepth(layerZRange, -texelPosLVS[2u] - biasScale);
+					
+				result *= proccessShadow(
 					NDC_ZO.xy,
 					linearNormalizedDepth,
 					shadowTransformsDataMapCoords(transformsDataOffset, layerID),
 					shadowMapSize(shadowID),
-					0.0f,
-					0.000001f,
 					isTexelTransparent);
 			}
 		}
@@ -226,22 +292,23 @@ vec3 proccessSpotLight(
 		{
 			const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
 			const vec3 texelPosLVS = transformPoint(shadowTransformsDataViewTransform(transformsDataOffset, 0u), texelPosWS);
-			const vec3 NDC_ZO = projectPoint(
+			const vec3 NDC_ZO = NO2ZO(projectPoint(
 				shadowTransformsDataProjectionMatrix(transformsDataOffset, 0u),
-				texelPosLVS) * 0.5f + vec3(0.5f);
+				texelPosLVS));
 			
 			if (all(lessThanEqual(vec3(0.0f), NDC_ZO)) && all(lessThanEqual(NDC_ZO, vec3(1.0f))))
 			{
-				const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, 0u);
-				const float linearNormalizedDepth = (-texelPosLVS[2u] - rangeStart(layerZRange)) / (rangeEnd(layerZRange) - rangeStart(layerZRange));
+				const float factor = renderInfoShadowDepthBiasFactor();
+				const float biasScale = max(factor * (1.0f - dot(N, L)), factor * 0.1f);
 				
-				result *= shadowMapsProccessMomentsShadow(
+				const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, 0u);
+				const float linearNormalizedDepth = normalizeLinearDepth(layerZRange, -texelPosLVS[2u] - biasScale);
+				
+				result *= proccessShadow(
 					NDC_ZO.xy,
 					linearNormalizedDepth,
 					shadowTransformsDataMapCoords(transformsDataOffset, 0u),
 					shadowMapSize(shadowID),
-					0.0f,
-					0.000001f,
 					isTexelTransparent);
 			}
 		}
@@ -314,7 +381,7 @@ vec4 proccessLighting(in vec3 NDC_ZO, in uvec4 PBRData, in bool isTexelTranspare
 	
 	if (isLighted)
 	{
-		const vec3 texelPosWS = projectPoint(cameraViewProjectionMatrixInverted(), 2.0f * NDC_ZO - vec3(1.0f));
+		const vec3 texelPosWS = projectPoint(cameraViewProjectionMatrixInverted(), ZO2NO(NDC_ZO));
 		const vec3 F0 = mix(vec3(renderInfoDielectricSpecular()), baseColor, metalness);
 		const vec3 viewWS = normalize(cameraViewPosition() - texelPosWS);
 		
@@ -377,7 +444,10 @@ vec3 proccessDirectionalScattering(in uint lightID, in vec3 texelPosWS)
 		const uint layersCount = shadowLayersCount(shadowID);
 		for (uint i = 0u; i < layersCount; ++i)
 		{
-			NDC_ZO = projectPoint(shadowTransformsDataViewProjectionMatrix(transformsDataOffset, i), texelPosWS) * 0.5f + vec3(0.5f);
+			NDC_ZO = NO2ZO(projectPoint(
+				shadowTransformsDataViewProjectionMatrix(transformsDataOffset, i),
+				texelPosWS));
+				
 			if (all(lessThanEqual(vec3(0.0f), NDC_ZO)) && all(lessThanEqual(NDC_ZO, vec3(1.0f))))
 			{
 				layerID = i;
@@ -387,11 +457,10 @@ vec3 proccessDirectionalScattering(in uint lightID, in vec3 texelPosWS)
 		
 		if (layerID != 0xFFFFFFFFu)
 		{
-			result *= shadowMapsProcessDiscreteShadow(
+			result *= shadowMapsProcessVolumetricScattering(
 				NDC_ZO,
 				shadowTransformsDataMapCoords(transformsDataOffset, layerID),
-				shadowMapSize(shadowID),
-				false);
+				shadowMapSize(shadowID));
 		}
 	}
 	
@@ -434,15 +503,14 @@ vec3 proccessPointScattering(in uint lightID, in vec3 texelPosWS)
 		if (layerID != 0xFFFFFFFFu)
 		{
 			const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
-			const vec3 NDC_ZO = projectPoint(
+			const vec3 NDC_ZO = NO2ZO(projectPoint(
 				shadowTransformsDataViewProjectionMatrix(transformsDataOffset, layerID),
-				texelPosWS) * 0.5f + vec3(0.5f);
+				texelPosWS));
 			
-			result *= shadowMapsProcessDiscreteShadow(
+			result *= shadowMapsProcessVolumetricScattering(
 				NDC_ZO,
 				shadowTransformsDataMapCoords(transformsDataOffset, layerID),
-				shadowMapSize(shadowID),
-				false);
+				shadowMapSize(shadowID));
 		}
 	}
 	
@@ -470,17 +538,16 @@ vec3 proccessSpotScattering(in uint lightID, in vec3 texelPosWS)
 	if (shadowID != 0xFFFFFFFFu)
 	{
 		const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
-		const vec3 NDC_ZO = projectPoint(
+		const vec3 NDC_ZO = NO2ZO(projectPoint(
 			shadowTransformsDataViewProjectionMatrix(transformsDataOffset, 0u),
-			texelPosWS) * 0.5f + vec3(0.5f);
+			texelPosWS));
 		
 		if (all(lessThanEqual(vec3(0.0f), NDC_ZO)) && all(lessThanEqual(NDC_ZO, vec3(1.0f))))
-		{
-			result *= shadowMapsProcessDiscreteShadow(
+		{			
+			result *= shadowMapsProcessVolumetricScattering(
 				NDC_ZO,
 				shadowTransformsDataMapCoords(transformsDataOffset, 0u),
-				shadowMapSize(shadowID),
-				false);
+				shadowMapSize(shadowID));
 		}
 	}
 	
@@ -497,8 +564,8 @@ vec3 proccessScattering(in vec2 NDC_XY_ZO, in float depthFrom, in float depthTo)
 
 	vec3 color = vec3(0.0f);
 	
-	const vec3 pointFromWS = projectPoint(cameraViewProjectionMatrixInverted(), 2.0f * vec3(NDC_XY_ZO, depthFrom) - vec3(1.0f));
-	const vec3 pointToWS = projectPoint(cameraViewProjectionMatrixInverted(), 2.0f * vec3(NDC_XY_ZO, depthTo) - vec3(1.0f));
+	const vec3 pointFromWS = projectPoint(cameraViewProjectionMatrixInverted(), ZO2NO(vec3(NDC_XY_ZO, depthFrom)));
+	const vec3 pointToWS = projectPoint(cameraViewProjectionMatrixInverted(), ZO2NO(vec3(NDC_XY_ZO, depthTo)));
 	const float fromToWSLen = length(pointToWS - pointFromWS);
 	
 	float prevRayDepth = 0.0f;
@@ -509,7 +576,7 @@ vec3 proccessScattering(in vec2 NDC_XY_ZO, in float depthFrom, in float depthTo)
 		prevRayDepth = nextRayDepth;
 		
 		const vec3 texelPosWS = mix(pointFromWS, pointToWS, nextRayDepth / fromToWSLen);
-		const vec3 NDC_ZO = projectPoint(cameraViewProjectionMatrix(), texelPosWS) * 0.5f + vec3(0.5f);
+		const vec3 NDC_ZO = NO2ZO(projectPoint(cameraViewProjectionMatrix(), texelPosWS));
 		
 		const uint firstLightNodeIDs[2u] = uint[2u](
 			countersFirstGlobalLightNodeID(),

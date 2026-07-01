@@ -142,7 +142,7 @@ struct RenderInfoDescription
     // shadow
     static const size_t ShadowBlurKernelSize = 32u; // no affects the padding
 
-    graphics::TextureHandle shadowVarianceBluredTextureHandle;
+    graphics::TextureHandle shadowMomentsBluredTextureHandle;
     graphics::TextureHandle shadowColorBluredTextureHandle;
     float shadowBlurKernel[ShadowBlurKernelSize];
     uint32_t shadowBlurRadius;
@@ -167,7 +167,7 @@ struct RenderInfoDescription
         uint32_t skeletalAnimatedDataCount,
         uint32_t shadowsCount,
         uint32_t lightsCount,
-        graphics::TextureHandle shadowVarianceBluredTextureHandle,
+        graphics::TextureHandle shadowMomentsBluredTextureHandle,
         graphics::TextureHandle shadowColorBluredTextureHandle,
         const std::vector<float>& shadowBlurKernel,
         float shadowLightBleedingAmount,
@@ -471,7 +471,7 @@ struct SkeletonDescription
 struct ShadowMapsDescription
 {
     graphics::TextureHandle shadowDepthTextureHandle;
-    graphics::TextureHandle shadowVarianceTextureHandle;
+    graphics::TextureHandle shadowMomentsTextureHandle;
     graphics::TextureHandle shadowColorTextureHandle;
 
     uint32_t padding[2u]; // graphics::TextureHandle is uvec2 (uint64_t)
@@ -479,7 +479,7 @@ struct ShadowMapsDescription
     static ShadowMapsDescription makeEmpty();
     static ShadowMapsDescription make(
         graphics::TextureHandle shadowDepthTextureHandle,
-        graphics::TextureHandle shadowVarianceTextureHandle,
+        graphics::TextureHandle shadowMomentsTextureHandle,
         graphics::TextureHandle shadowColorTextureHandle);
 };
 

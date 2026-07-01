@@ -936,7 +936,7 @@ SceneData::AddShadowRectResult SceneData::addShadowRect(uint32_t shadowMapSize)
 {
     static const auto recreateShadowMaps =
         [](const std::shared_ptr<graphics::RendererBase>& graphicsRenderer, graphics::PTextureHandle& depthTextureHandle,
-           graphics::PTextureHandle& varianceTextureHandle, graphics::PTextureHandle& colorTextureHandle, uint32_t mapSize,
+           graphics::PTextureHandle& momentsTextureHandle, graphics::PTextureHandle& colorTextureHandle, uint32_t mapSize,
            uint32_t layersCount)
     {
         auto depthTexture =
@@ -945,11 +945,11 @@ SceneData::AddShadowRectResult SceneData::addShadowRect(uint32_t shadowMapSize)
         depthTextureHandle = graphicsRenderer->createTextureHandle(depthTexture);
         depthTextureHandle->makeResident();
 
-        auto varianceTexture =
+        auto momentsTexture =
             graphicsRenderer->createTexture2DArrayEmpty(mapSize, mapSize, layersCount, graphics::PixelInternalFormat::RGBA32F);
-        varianceTexture->setFilterMode(graphics::TextureFilterMode::Linear);
-        varianceTextureHandle = graphicsRenderer->createTextureHandle(varianceTexture);
-        varianceTextureHandle->makeResident();
+        momentsTexture->setFilterMode(graphics::TextureFilterMode::Linear);
+        momentsTextureHandle = graphicsRenderer->createTextureHandle(momentsTexture);
+        momentsTextureHandle->makeResident();
 
         auto colorTexture = graphicsRenderer->createTexture2DArrayEmpty(
             mapSize, mapSize, layersCount, graphics::PixelInternalFormat::R11F_G11F_B10F);
@@ -960,13 +960,13 @@ SceneData::AddShadowRectResult SceneData::addShadowRect(uint32_t shadowMapSize)
 
     static const auto updateShadowMapsBuffer = [](ShadowMapsBuffer& shadowMapsBuffer,
                                                   const graphics::PConstTextureHandle& shadowDepthTextureHandle,
-                                                  const graphics::PConstTextureHandle& shadowVarianceTextureHandle,
+                                                  const graphics::PConstTextureHandle& shadowMomentsTextureHandle,
                                                   const graphics::PConstTextureHandle& shadowColorTextureHandle)
     {
         shadowMapsBuffer->set(ShadowMapsDescription::make(
             shadowDepthTextureHandle ? shadowDepthTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
-            shadowVarianceTextureHandle ? shadowVarianceTextureHandle->handle()
-                                        : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+            shadowMomentsTextureHandle ? shadowMomentsTextureHandle->handle()
+                                       : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
             shadowColorTextureHandle ? shadowColorTextureHandle->handle()
                                      : utils::IDsGeneratorT<graphics::TextureHandle>::last()));
     };
@@ -1018,10 +1018,10 @@ SceneData::AddShadowRectResult SceneData::addShadowRect(uint32_t shadowMapSize)
         itemID != utils::IDsGenerator::last())
     {
         recreateShadowMaps(
-            graphicsRenderer, m_shadowDepthTextureHandle, m_shadowVarianceTextureHandle, m_shadowColorTextureHandle,
+            graphicsRenderer, m_shadowDepthTextureHandle, m_shadowMomentsTextureHandle, m_shadowColorTextureHandle,
             m_shadowAtlasSize, coords[2u] + 1u);
         updateShadowMapsBuffer(
-            m_shadowMapsBuffer, m_shadowDepthTextureHandle, m_shadowVarianceTextureHandle, m_shadowColorTextureHandle);
+            m_shadowMapsBuffer, m_shadowDepthTextureHandle, m_shadowMomentsTextureHandle, m_shadowColorTextureHandle);
 
         return {coords, itemID};
     }
@@ -1824,9 +1824,9 @@ graphics::PConstTexture SceneData::shadowDepthTexture() const
     return m_shadowDepthTextureHandle ? m_shadowDepthTextureHandle->texture() : nullptr;
 }
 
-graphics::PConstTexture SceneData::shadowVarianceTexture() const
+graphics::PConstTexture SceneData::shadowMomentsTexture() const
 {
-    return m_shadowVarianceTextureHandle ? m_shadowVarianceTextureHandle->texture() : nullptr;
+    return m_shadowMomentsTextureHandle ? m_shadowMomentsTextureHandle->texture() : nullptr;
 }
 
 graphics::PConstTexture SceneData::shadowColorTexture() const

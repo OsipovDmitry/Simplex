@@ -60,6 +60,19 @@ static SpotLightCullingAlgorithm string2SpotLightCullingAlgorithm(const std::str
     return (it != s_table.end()) ? it->second : SpotLightCullingAlgorithm::SuperFast;
 }
 
+static ShadowFilter string2ShadowFilter(const std::string& value)
+{
+    static std::unordered_map<std::string, ShadowFilter> s_table{
+        {"discrete", ShadowFilter::Discrete},
+        {"VSM", ShadowFilter::VSM},
+        {"EVSM", ShadowFilter::EVSM},
+        {"HamburgerMSM", ShadowFilter::HamburgerMSM},
+        {"HausdorffMSM", ShadowFilter::HausdorffMSM}};
+
+    auto it = s_table.find(value);
+    return (it != s_table.end()) ? it->second : ShadowFilter::EVSM;
+}
+
 // SSAOMode string2SSAOMode(const std::string &value)
 //{
 //     static std::unordered_map<std::string, SSAOMode> s_table {
@@ -286,16 +299,50 @@ uint32_t Shadow::mapSize() const
     return s_mapSize;
 }
 
+ShadowFilter Shadow::filter() const
+{
+    static auto s_shadowFilter = ShadowFilter::Count;
+
+    if (s_shadowFilter == ShadowFilter::Count)
+    {
+        auto filterString = readString("Filter", "EVSM");
+        for (auto& c : filterString)
+            c = static_cast<char>(std::tolower(c));
+
+        s_shadowFilter = Conversions::string2ShadowFilter(filterString);
+    }
+
+    return s_shadowFilter;
+}
+
 float Shadow::blurSigma() const
 {
     static const auto s_blurSigma = readSingle("BlurSigma", 3.f);
     return s_blurSigma;
 }
 
+float Shadow::depthBiasFactor() const
+{
+    static const auto s_depthBiasFactor = readSingle("DepthBiasFactor", .05f);
+    return s_depthBiasFactor;
+}
+
 float Shadow::lightBleedingAmount() const
 {
     static const auto s_lightBleedingAmount = readSingle("LightBleedingAmount", .2f);
     return s_lightBleedingAmount;
+}
+
+float Shadow::positiveExponent() const
+{
+    static const auto s_positiveExponent = readSingle("PositiveExponent", 20.f);
+    return s_positiveExponent;
+}
+
+float Shadow::negativeExponent() const
+{
+    static const auto s_negativeExponent = readSingle("NegativeExponent", 20.f);
+    return s_negativeExponent;
 }
 
 SSAO::SSAO(const rapidjson::Document::ValueType* value)

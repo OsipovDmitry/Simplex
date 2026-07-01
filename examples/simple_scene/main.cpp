@@ -556,7 +556,7 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
 
     auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
     IBLNode->setContribution(0.15f);
-    scene->sceneRootNode()->attach(IBLNode);
+    // scene->sceneRootNode()->attach(IBLNode);
     IBLNodeWeak = IBLNode;
 
     auto ambientLightNode = std::make_shared<simplex::core::AmbientLightNode>("");

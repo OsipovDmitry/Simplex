@@ -1,13 +1,74 @@
+#include<constants.glsl>
+
+#define DISCRETE_SHADOW_FILTER 0u
+#define VSM_SHADOW_FILTER 1u
+#define EVSM_SHADOW_FILTER 2u
+#define HAMBURGER_MSM_SHADOW_FILTER 3u
+#define HAUSDORFF_MSM_SHADOW_FILTER 4u
+
+#ifndef SHADOW_FILTER
+	#define SHADOW_FILTER EVSM_SHADOW_FILTER
+#endif
+
+vec4 calculateDiscreteMoments(in float linearNormalizedDepth)
+{
+	return vec4(linearNormalizedDepth, 0.0f, 0.0f, 0.0f);
+}
+
+vec4 calculateVSMMoments(in float linearNormalizedDepth)
+{
+	return vec4(
+		linearNormalizedDepth,
+		linearNormalizedDepth * linearNormalizedDepth,
+		0.0f,
+		1.0f);
+}
+
+vec4 calculateEVSMMoments(
+	in float linearNormalizedDepth,
+	in float positiveExponent,
+	in float negativeExponent)
+{
+	const vec2 moments = vec2(
+		exp(positiveExponent * linearNormalizedDepth),
+		-exp(-negativeExponent * linearNormalizedDepth));
+		
+	return vec4(moments[0u], moments[0u] * moments[0u], moments[1u], moments[1u] * moments[1u]);
+}
+
+vec4 calculateMSMMoments(in float linearNormalizedDepth)
+{
+	const float d1 = linearNormalizedDepth;
+	const float d2 = d1 * d1;
+	const float d3 = d2 * d1;
+	const float d4 = d3 * d1;
+	
+	return vec4(d1, d2, d3, d4);
+}
+
+float ChebyshevUpperBound(
+	in vec2 moments,
+	in float mean,
+	in float lightBleedingAmount)
+{
+	if (mean < moments[0u])
+		return 1.0f;
+		
+	const float variance = max(moments[1u] - moments[0u] * moments[0u], EPS);
+	const float d = mean - moments[0u];
+	
+	return smoothstep(lightBleedingAmount, 1.0f, variance / (variance + d * d));
+}
+
 float Hamburger4MSMShadowIntensity(
 	in vec4 _4Moments,
 	in float FragmentDepth,
-	in float DepthBias,
 	in float MomentBias)
 {
 	// Bias input data to avoid artifacts
 	const vec4 b = mix(_4Moments, vec4(0.5f), MomentBias);
 	vec3 z;
-	z[0] = FragmentDepth - DepthBias;
+	z[0] = FragmentDepth;
 	
 	// Compute a Cholesky factorization of the Hankel matrix B storing only
 	// non-trivial entries or related products
@@ -55,13 +116,12 @@ float Hamburger4MSMShadowIntensity(
 float Hausdorff4MSMShadowIntensity(
 	in vec4 _4Moments,
 	in float FragmentDepth,
-	in float DepthBias,
 	in float MomentBias)
 {
 	// Bias input data to avoid artifacts
 	const vec4 b = mix(_4Moments, vec4(0.5f), MomentBias);
 	vec3 z;
-	z[0] = FragmentDepth - DepthBias;
+	z[0] = FragmentDepth;
 	
 	// Compute a Cholesky factorization of the Hankel matrix B storing only
 	// non-trivial entries or related products

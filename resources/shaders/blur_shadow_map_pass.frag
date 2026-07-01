@@ -42,13 +42,13 @@ void main(void)
 	error!!!
 #endif
 	
-	vec4 variance = fetchMomentsTexel(fragCoords);
+	vec4 moments = fetchMomentsTexel(fragCoords);
 	vec3 color = fetchColorTexel(fragCoords);
 	
 	if (radius > 0)
 	{
 		const float smpl0 = renderInfoShadowBlurKernelSample(0u);
-		variance *= smpl0;
+		moments *= smpl0;
 		color *= smpl0;
 	}
 	
@@ -59,10 +59,10 @@ void main(void)
 		const ivec2 negTexCoords = fragCoords - direction * r;
 		const ivec2 posTexCoords = fragCoords + direction * r;
 		
-		variance += smpl * (fetchMomentsTexel(negTexCoords) + fetchMomentsTexel(posTexCoords));
+		moments += smpl * (fetchMomentsTexel(negTexCoords) + fetchMomentsTexel(posTexCoords));
 		color += smpl * (fetchColorTexel(negTexCoords) + fetchColorTexel(posTexCoords));
 	}
 	
-	o_fragColor0 = variance;
+	o_fragColor0 = moments;
 	o_fragColor1 = vec4(color, 1.0f);
 }

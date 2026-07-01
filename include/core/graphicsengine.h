@@ -16,6 +16,7 @@ namespace core
 ENUMCLASS(DrawDataCullingAlgorithm, uint16_t, Disabled, SuperFast, Fast, Correct)
 ENUMCLASS(ShadowDataCullingAlgorithm, uint16_t, Disabled, SuperFast, Fast, Correct)
 ENUMCLASS(SpotLightCullingAlgorithm, uint16_t, SuperFast, Fast, Correct)
+ENUMCLASS(ShadowFilter, uint16_t, Discrete, VSM, EVSM, HamburgerMSM, HausdorffMSM)
 
 class GraphicsEnginePrivate;
 class CORE_SHARED_EXPORT GraphicsEngine : public IEngine

@@ -51,7 +51,7 @@ void RenderPipeLine::run(
     m_opaqueShadowDataRenderCommandsBuffer->resize(shadowDataCount);
     m_transparentShadowDataRenderCommandsBuffer->resize(shadowDataCount);
 
-    resizeShadowVarianceBluredTexture(sceneData->shadowVarianceTexture());
+    resizeShadowMomentsBluredTexture(sceneData->shadowMomentsTexture());
     resizeShadowColorBluredTexture(sceneData->shadowColorTexture());
     resizeFinalTexture(geometryBuffer->size());
 
@@ -59,9 +59,9 @@ void RenderPipeLine::run(
     const auto shadowAtlasSize = sceneData->shadowAtlasSize();
     const auto shadowLightBleedingAmount = sceneData->shadowLightBleedingAmount();
 
-    const graphics::TextureHandle shadowVarianceBluredTextureHandle = m_shadowVarianceBluredTextureHandle
-                                                                          ? m_shadowVarianceBluredTextureHandle->handle()
-                                                                          : utils::IDsGeneratorT<graphics::TextureHandle>::last();
+    const graphics::TextureHandle shadowMomentsBluredTextureHandle = m_shadowMomentsBluredTextureHandle
+                                                                         ? m_shadowMomentsBluredTextureHandle->handle()
+                                                                         : utils::IDsGeneratorT<graphics::TextureHandle>::last();
 
     const graphics::TextureHandle shadowColorBluredTextureHandle = m_shadowColorBluredTextureHandle
                                                                        ? m_shadowColorBluredTextureHandle->handle()
@@ -70,7 +70,7 @@ void RenderPipeLine::run(
     m_renderInfoBuffer->set(RenderInfoDescription::make(
         static_cast<uint32_t>(time), dielectricSpecular, globalBoundingBox, static_cast<uint32_t>(drawDataCount),
         static_cast<uint32_t>(skeletalAnimatedDataCount), static_cast<uint32_t>(shadowsCount), static_cast<uint32_t>(lightsCount),
-        shadowVarianceBluredTextureHandle, shadowColorBluredTextureHandle, shadowBlurKernel, shadowLightBleedingAmount,
+        shadowMomentsBluredTextureHandle, shadowColorBluredTextureHandle, shadowBlurKernel, shadowLightBleedingAmount,
         shadowAtlasSize, clusterSize, viewTransform, clipSpace, cullPlaneLimits));
 
     for (auto& pass : m_passes)
@@ -187,9 +187,9 @@ graphics::PDrawArraysIndirectCommandsBuffer& RenderPipeLine::shadowMapBlurComman
     return m_shadowMapBlurCommandsBuffer;
 }
 
-graphics::PTextureHandle& RenderPipeLine::shadowVarianceBluredTextureHandle()
+graphics::PTextureHandle& RenderPipeLine::shadowMomentsBluredTextureHandle()
 {
-    return m_shadowVarianceBluredTextureHandle;
+    return m_shadowMomentsBluredTextureHandle;
 }
 
 graphics::PTextureHandle& RenderPipeLine::shadowColorBluredTextureHandle()
@@ -288,24 +288,24 @@ RenderPipeLine::RenderPipeLine(
         sizeof(CountersDescription::transparentShadowDataRenderCommandsCount));
 }
 
-void RenderPipeLine::resizeShadowVarianceBluredTexture(const graphics::PConstTexture& shadowVarianceTexture)
+void RenderPipeLine::resizeShadowMomentsBluredTexture(const graphics::PConstTexture& shadowMomentsTexture)
 {
-    if (!shadowVarianceTexture) return;
+    if (!shadowMomentsTexture) return;
 
-    graphics::PConstTexture shadowVarianceBluredTexture;
-    if (m_shadowVarianceBluredTextureHandle) shadowVarianceBluredTexture = m_shadowVarianceBluredTextureHandle->texture();
+    graphics::PConstTexture shadowMomentsBluredTexture;
+    if (m_shadowMomentsBluredTextureHandle) shadowMomentsBluredTexture = m_shadowMomentsBluredTextureHandle->texture();
 
-    const auto shadowVarianceBluredTextureMaxSize = glm::max(
-        shadowVarianceBluredTexture ? shadowVarianceBluredTexture->mipmapSize(0u) : glm::uvec3(0u),
-        shadowVarianceTexture->mipmapSize(0u));
+    const auto shadowMomentsBluredTextureMaxSize = glm::max(
+        shadowMomentsBluredTexture ? shadowMomentsBluredTexture->mipmapSize(0u) : glm::uvec3(0u),
+        shadowMomentsTexture->mipmapSize(0u));
 
-    if ((!shadowVarianceBluredTexture) || (shadowVarianceBluredTexture->mipmapSize(0u) != shadowVarianceBluredTextureMaxSize))
+    if ((!shadowMomentsBluredTexture) || (shadowMomentsBluredTexture->mipmapSize(0u) != shadowMomentsBluredTextureMaxSize))
     {
-        shadowVarianceBluredTexture = m_renderer->createTexture2DArrayEmpty(
-            shadowVarianceBluredTextureMaxSize.x, shadowVarianceBluredTextureMaxSize.y, shadowVarianceBluredTextureMaxSize.z,
-            shadowVarianceTexture->internalFormat());
-        m_shadowVarianceBluredTextureHandle = m_renderer->createTextureHandle(shadowVarianceBluredTexture);
-        m_shadowVarianceBluredTextureHandle->makeResident();
+        shadowMomentsBluredTexture = m_renderer->createTexture2DArrayEmpty(
+            shadowMomentsBluredTextureMaxSize.x, shadowMomentsBluredTextureMaxSize.y, shadowMomentsBluredTextureMaxSize.z,
+            shadowMomentsTexture->internalFormat());
+        m_shadowMomentsBluredTextureHandle = m_renderer->createTextureHandle(shadowMomentsBluredTexture);
+        m_shadowMomentsBluredTextureHandle->makeResident();
     }
 }
 
