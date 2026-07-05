@@ -1,6 +1,8 @@
 #ifndef CORE_GEOMETRYBUFFER_H
 #define CORE_GEOMETRYBUFFER_H
 
+#include <optional>
+
 #include <core/stateset.h>
 
 #include "descriptions.h"
@@ -19,16 +21,24 @@ using PConstGBuffer = std::shared_ptr<const graphics::StructBuffer<GBufferDescri
 class GeometryBuffer : public StateSet, public std::enable_shared_from_this<GeometryBuffer>
 {
 public:
-    GeometryBuffer(const glm::uvec2&);
-    ~GeometryBuffer() = default;
+    GeometryBuffer(const std::optional<glm::uvec2>& fixedSize);
+    ~GeometryBuffer() override;
+
+    void initialize(const std::shared_ptr<ProgramsLoader>&);
+
+    const std::optional<glm::uvec2>& fixedSize() const;
 
     const glm::uvec2& size() const;
     void resize(const glm::uvec2&, const std::shared_ptr<graphics::RendererBase>&);
 
-    void initialize(const std::shared_ptr<ProgramsLoader>&);
-    void clear(
-        const std::shared_ptr<graphics::RendererBase>&,
-        const std::shared_ptr<graphics::IFrameBuffer>&) const;
+    uint32_t maxOITNodesCount() const;
+    uint32_t OITNodesCountPerPixel() const;
+    void setOITNodesCount(
+        uint32_t maxOITNodesCount,
+        uint32_t OITNodesCountPerPixel,
+        const std::shared_ptr<graphics::RendererBase>&);
+
+    void clear(const std::shared_ptr<graphics::RendererBase>&, const std::shared_ptr<graphics::IFrameBuffer>&) const;
     void sortOITNodes(const std::shared_ptr<graphics::RendererBase>&) const;
 
     PConstGBuffer GBuffer() const;
@@ -39,7 +49,15 @@ public:
     graphics::PConstTexture finalTexture() const;
 
 private:
-    glm::uvec2 m_size;
+    void recreateBuffers(const std::shared_ptr<graphics::RendererBase>&);
+
+    std::optional<glm::uvec2> m_fixedSize;
+
+    glm::uvec2 m_size = glm::uvec2(0u);
+    uint32_t m_maxOITNodesCount = 0u;
+    uint32_t m_OITNodesCountPerPixel = 0u;
+
+    bool m_isInitialized = false;
 
     PGBuffer m_GBuffer;
     POITBuffer m_OITBuffer;
@@ -49,12 +67,11 @@ private:
     graphics::PImageHandle m_OITNodeIDImageHandle;
     graphics::PTextureHandle m_finalTextureHandle;
 
-    bool m_isInitialized;
     std::shared_ptr<graphics::IComputeProgram> m_clearOITNodeIDImageProgram;
     std::shared_ptr<graphics::IComputeProgram> m_sortOITNodesProgram;
 };
 
-}
-}
+} // namespace core
+} // namespace simplex
 
 #endif // CORE_GEOMETRYBUFFER_H

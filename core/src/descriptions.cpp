@@ -69,11 +69,6 @@ RenderInfoDescription RenderInfoDescription::make(
     uint32_t skeletalAnimatedDataCount,
     uint32_t shadowsCount,
     uint32_t lightsCount,
-    graphics::TextureHandle shadowMomentsBluredTextureHandle,
-    graphics::TextureHandle shadowColorBluredTextureHandle,
-    const std::vector<float>& shadowBlurKernel,
-    float shadowLightBleedingAmount,
-    uint32_t shadowAtlasSize,
     const glm::uvec3& clusterSize,
     const utils::Transform& viewTransform,
     const utils::ClipSpace& clipSpace,
@@ -91,15 +86,6 @@ RenderInfoDescription RenderInfoDescription::make(
     result.skeletalAnimatedDataCount = skeletalAnimatedDataCount;
     result.shadowsCount = shadowsCount;
     result.lightsCount = lightsCount;
-
-    // shadow
-    result.shadowMomentsBluredTextureHandle = shadowMomentsBluredTextureHandle;
-    result.shadowColorBluredTextureHandle = shadowColorBluredTextureHandle;
-    for (size_t i = 0u; i < shadowBlurKernel.size(); ++i)
-        result.shadowBlurKernel[i] = shadowBlurKernel[i];
-    result.shadowBlurRadius = static_cast<uint32_t>(shadowBlurKernel.size());
-    result.shadowLightBleedingAmount = shadowLightBleedingAmount;
-    result.shadowAtlasSize = shadowAtlasSize;
 
     // camera
     result.clusterSize = glm::uvec4(clusterSize, 0u);
@@ -388,15 +374,41 @@ ShadowMapsDescription ShadowMapsDescription::makeEmpty()
 {
     return ShadowMapsDescription::make(
         utils::IDsGeneratorT<graphics::TextureHandle>::last(), utils::IDsGeneratorT<graphics::TextureHandle>::last(),
-        utils::IDsGeneratorT<graphics::TextureHandle>::last());
+        utils::IDsGeneratorT<graphics::TextureHandle>::last(), utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+        utils::IDsGeneratorT<graphics::TextureHandle>::last(), 0u, 0.f, 1.f, 1.f, 0.f, 0.f, {});
 }
 
 ShadowMapsDescription ShadowMapsDescription::make(
-    graphics::TextureHandle shadowDepthTextureHandle,
-    graphics::TextureHandle shadowMomentsTextureHandle,
-    graphics::TextureHandle shadowColorTextureHandle)
+    graphics::TextureHandle depthTextureHandle,
+    graphics::TextureHandle momentsTextureHandle,
+    graphics::TextureHandle colorTextureHandle,
+    graphics::TextureHandle momentsBluredTextureHandle,
+    graphics::TextureHandle colorBluredTextureHandle,
+    uint32_t atlasSize,
+    float lightBleedingAmount,
+    float positiveExponent,
+    float negativeExponent,
+    float momentsBias,
+    float depthBiasFactor,
+    const std::vector<float>& blurKernel)
 {
-    return {shadowDepthTextureHandle, shadowMomentsTextureHandle, shadowColorTextureHandle};
+    ShadowMapsDescription result;
+    result.depthTextureHandle = depthTextureHandle;
+    result.momentsTextureHandle = momentsTextureHandle;
+    result.colorTextureHandle = colorTextureHandle;
+    result.momentsBluredTextureHandle = momentsBluredTextureHandle;
+    result.colorBluredTextureHandle = colorBluredTextureHandle;
+    result.atlasSize = atlasSize;
+    result.lightBleedingAmount = lightBleedingAmount;
+    result.positiveExponent = positiveExponent;
+    result.negativeExponent = negativeExponent;
+    result.momentsBias = momentsBias;
+    result.depthBiasFactor = depthBiasFactor;
+    for (size_t i = 0u; i < blurKernel.size(); ++i)
+        result.blurKernel[i] = blurKernel[i];
+    result.blurRadius = static_cast<uint32_t>(blurKernel.size());
+
+    return result;
 }
 
 SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::makeEmpty()

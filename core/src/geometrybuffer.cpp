@@ -1,6 +1,7 @@
 #include "geometrybuffer.h"
 
 #include <utils/glm/common.hpp>
+#include <utils/glm/gtx/component_wise.hpp>
 
 #include <core/graphicsrendererbase.h>
 #include <core/programsloader.h>
@@ -14,54 +15,18 @@ namespace simplex
 namespace core
 {
 
-GeometryBuffer::GeometryBuffer(const glm::uvec2& size)
+GeometryBuffer::GeometryBuffer(const std::optional<glm::uvec2>& fixedSize)
     : StateSet()
-    , m_size(0u)
-    , m_isInitialized(false)
+    , m_fixedSize(fixedSize)
 {
+    if (m_fixedSize) m_fixedSize = glm::max(m_fixedSize.value(), glm::uvec2(1u));
+
+    const auto& OITSetings = settings::Settings::instance().graphics().oit();
+    m_maxOITNodesCount = OITSetings.maxNodesCount();
+    m_OITNodesCountPerPixel = OITSetings.nodesCountPerPixel();
 }
 
-const glm::uvec2& GeometryBuffer::size() const
-{
-    return m_size;
-}
-
-void GeometryBuffer::resize(const glm::uvec2& size, const std::shared_ptr<graphics::RendererBase>& graphicsRenderer)
-{
-    if (m_size == size) return;
-
-    m_size = glm::max(size, glm::uvec2(1u, 1u));
-
-    m_colorTextureHandle = graphicsRenderer->createTextureHandle(
-        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA32UI));
-    m_colorTextureHandle->makeResident();
-
-    m_depthTextureHandle = graphicsRenderer->createTextureHandle(
-        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Depth32F));
-    m_depthTextureHandle->makeResident();
-
-    m_OITNodeIDImageHandle = graphicsRenderer->createImageHandle(graphics::Image::create(
-        graphics::Image::DataAccess::ReadWrite,
-        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R32UI)));
-    m_OITNodeIDImageHandle->makeResident();
-
-    m_finalTextureHandle = graphicsRenderer->createTextureHandle(
-        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA16F));
-    m_finalTextureHandle->makeResident();
-
-    static const auto& OITSetings = settings::Settings::instance().graphics().oit();
-    auto OITBufferSize = glm::min(OITSetings.maxNodes(), m_size.x * m_size.y * OITSetings.nodesPerPixel());
-
-    m_GBuffer = PGBuffer::element_type::create(GBufferDescription::make(
-        m_colorTextureHandle->handle(), m_depthTextureHandle->handle(), m_OITNodeIDImageHandle->handle(),
-        m_finalTextureHandle->handle(), m_size, OITBufferSize));
-
-    m_OITBuffer = POITBuffer::element_type::create();
-    m_OITBuffer->resize(OITBufferSize);
-
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::GBuffer) = graphics::BufferRange::create(m_GBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::OITNodesBuffer) = graphics::BufferRange::create(m_OITBuffer->buffer());
-}
+GeometryBuffer::~GeometryBuffer() = default;
 
 void GeometryBuffer::initialize(const std::shared_ptr<ProgramsLoader>& programsLoader)
 {
@@ -71,6 +36,51 @@ void GeometryBuffer::initialize(const std::shared_ptr<ProgramsLoader>& programsL
         programsLoader->loadOrGetComputeProgram(resources::ClearOITNodeIDImagePassComputeShaderPath, {});
 
     m_sortOITNodesProgram = programsLoader->loadOrGetComputeProgram(resources::SortOITNodesPassComputeShaderPath, {});
+
+    m_isInitialized = true;
+}
+
+const std::optional<glm::uvec2>& GeometryBuffer::fixedSize() const
+{
+    return m_fixedSize;
+}
+
+const glm::uvec2& GeometryBuffer::size() const
+{
+    return m_size;
+}
+
+void GeometryBuffer::resize(const glm::uvec2& size, const std::shared_ptr<graphics::RendererBase>& graphicsRenderer)
+{
+    auto newSize = glm::max(size, glm::uvec2(1u, 1u));
+    if (m_fixedSize) newSize = m_fixedSize.value();
+
+    if (m_size == newSize) return;
+
+    m_size = newSize;
+    recreateBuffers(graphicsRenderer);
+}
+
+uint32_t GeometryBuffer::maxOITNodesCount() const
+{
+    return m_maxOITNodesCount;
+}
+
+uint32_t GeometryBuffer::OITNodesCountPerPixel() const
+{
+    return m_OITNodesCountPerPixel;
+}
+
+void GeometryBuffer::setOITNodesCount(
+    uint32_t maxOITNodesCount,
+    uint32_t OITNodesCountPerPixel,
+    const std::shared_ptr<graphics::RendererBase>& graphicsRenderer)
+{
+    if ((m_maxOITNodesCount == maxOITNodesCount) && (m_OITNodesCountPerPixel == OITNodesCountPerPixel)) return;
+
+    m_maxOITNodesCount = maxOITNodesCount;
+    m_OITNodesCountPerPixel = OITNodesCountPerPixel;
+    recreateBuffers(graphicsRenderer);
 }
 
 void GeometryBuffer::clear(
@@ -130,6 +140,38 @@ graphics::PConstTexture GeometryBuffer::depthTexture() const
 graphics::PConstTexture GeometryBuffer::finalTexture() const
 {
     return m_finalTextureHandle->texture();
+}
+
+void GeometryBuffer::recreateBuffers(const std::shared_ptr<graphics::RendererBase>& graphicsRenderer)
+{
+    m_colorTextureHandle = graphicsRenderer->createTextureHandle(
+        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA32UI));
+    m_colorTextureHandle->makeResident();
+
+    m_depthTextureHandle = graphicsRenderer->createTextureHandle(
+        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Depth32F));
+    m_depthTextureHandle->makeResident();
+
+    m_OITNodeIDImageHandle = graphicsRenderer->createImageHandle(graphics::Image::create(
+        graphics::Image::DataAccess::ReadWrite,
+        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R32UI)));
+    m_OITNodeIDImageHandle->makeResident();
+
+    m_finalTextureHandle = graphicsRenderer->createTextureHandle(
+        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA16F));
+    m_finalTextureHandle->makeResident();
+
+    const auto OITBufferSize = glm::min(m_maxOITNodesCount, glm::compMul(m_size) * m_OITNodesCountPerPixel);
+
+    m_GBuffer = PGBuffer::element_type::create(GBufferDescription::make(
+        m_colorTextureHandle->handle(), m_depthTextureHandle->handle(), m_OITNodeIDImageHandle->handle(),
+        m_finalTextureHandle->handle(), m_size, OITBufferSize));
+
+    m_OITBuffer = POITBuffer::element_type::create();
+    m_OITBuffer->resize(OITBufferSize);
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::GBuffer) = graphics::BufferRange::create(m_GBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::OITNodesBuffer) = graphics::BufferRange::create(m_OITBuffer->buffer());
 }
 
 } // namespace core

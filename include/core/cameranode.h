@@ -1,6 +1,9 @@
 #ifndef CORE_CAMERANODE_H
 #define CORE_CAMERANODE_H
 
+#include <optional>
+
+#include <utils/enumclass.h>
 #include <utils/glm/vec3.hpp>
 #include <utils/sortedobject.h>
 
@@ -10,6 +13,11 @@ namespace simplex
 {
 namespace core
 {
+
+ENUMCLASS(DrawDataCullingAlgorithm, uint16_t, Disabled, SuperFast, Fast, Correct)
+ENUMCLASS(ShadowDataCullingAlgorithm, uint16_t, Disabled, SuperFast, Fast, Correct)
+ENUMCLASS(SpotLightCullingAlgorithm, uint16_t, SuperFast, Fast, Correct)
+ENUMCLASS(ShadowFilter, uint16_t, Discrete, VSM, EVSM, HamburgerMSM, HausdorffMSM)
 
 class CameraNodePrivate;
 class CORE_SHARED_EXPORT CameraNode : public Node, public utils::SortedObject
@@ -27,7 +35,7 @@ public:
 
     bool isDefaultFramebufferUsed() const;
     void useDefaultFramebuffer();
-    void useSeparateFramebuffer(const glm::uvec2&);
+    void useSeparateFramebuffer(const std::optional<glm::uvec2>& = std::nullopt);
 
     const utils::ClipSpace& clipSpace() const;
     void setOrthoClipSpace(float height);
@@ -38,6 +46,27 @@ public:
 
     const glm::uvec3& clusterSize() const;
     void setClusterSize(const glm::uvec3&);
+
+    ShadowFilter shadowFilter() const;
+    void setShadowFilter(ShadowFilter);
+
+    float shadowBlurSigma() const;
+    void setShadowBlurSigma(float);
+
+    float shadowLightBleedingAmount() const;
+    void setShadowLightBleedingAmount(float);
+
+    float shadowPositiveExponent() const;
+    void setShadowPositiveExponent(float);
+
+    float shadowNegativeExponent() const;
+    void setShadowNegativeExponent(float);
+
+    float shadowMomentsBias() const;
+    void setShadowMomentsBias(float);
+
+    float shadowDepthBiasFactor() const;
+    void setShadowDepthsBiasFactor(float);
 };
 
 } // namespace core

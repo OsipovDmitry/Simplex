@@ -1,7 +1,7 @@
 #include<map.glsl>
 #include<material.glsl>
 #include<mesh.glsl>
-#include<render_info.glsl>
+#include<shadow_maps.glsl>
 
 #include<math/gamma_correction.glsl>
 #include<math/shadow_utils.glsl>
@@ -50,8 +50,8 @@ void main(void)
 	#elif (SHADOW_FILTER == EVSM_SHADOW_FILTER)
 		o_fragColor0 = calculateEVSMMoments(
 			g_linearNormalizedDepth,
-			renderInfoShadowPositiveExponent(),
-			renderInfoShadowNegativeExponent());
+			shadowMapsPositiveExponent(),
+			shadowMapsNegativeExponent());
 	#elif ((SHADOW_FILTER == HAMBURGER_MSM_SHADOW_FILTER) || (SHADOW_FILTER == HAUSDORFF_MSM_SHADOW_FILTER))
 		o_fragColor0 = calculateMSMMoments(g_linearNormalizedDepth);
 	#else

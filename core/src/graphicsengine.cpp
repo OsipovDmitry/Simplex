@@ -82,9 +82,7 @@ GraphicsEngine::GraphicsEngine(const std::string& name, const std::shared_ptr<gr
 
     m_->frameBuffer() = renderer->createFrameBuffer();
     m_->vertexArray() = renderer->createVertexArray();
-    m_->geometryBuffer() = std::make_shared<GeometryBuffer>(glm::uvec2(0u));
-
-    m_->renderPipeLine() = RenderPipeLine::create(m_->programsLoader(), renderer, m_->frameBuffer(), m_->vertexArray());
+    m_->geometryBuffer() = std::make_shared<GeometryBuffer>(std::nullopt);
 
     m_->dielectricSpecular() = settings.graphics().pbr().dielectricSpecular();
 
@@ -180,10 +178,6 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene, uint64_t time, 
 
     const auto screenSize = widget->size();
 
-    auto& geometryBuffer = m_->geometryBuffer();
-    geometryBuffer->initialize(programsLoader);
-    geometryBuffer->resize(screenSize, renderer);
-
     auto rootNode = scene->sceneRootNode();
     const auto globalBoundingBox = rootNode->globalTransform() * utils::OrientedBoundingBox(rootNode->boundingBox());
 
@@ -197,15 +191,18 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene, uint64_t time, 
 
         if (!camera->isRenderingEnabled()) continue;
 
-        std::shared_ptr<GeometryBuffer> cameraGeometryBuffer = geometryBuffer;
-        if (!camera->isDefaultFramebufferUsed()) cameraGeometryBuffer = cameraPrivate.geometryBuffer();
+        auto& cameraGeometryBuffer = camera->isDefaultFramebufferUsed() ? m_->geometryBuffer() : cameraPrivate.geometryBuffer();
+        cameraGeometryBuffer->initialize(programsLoader);
+        cameraGeometryBuffer->resize(screenSize, renderer);
 
         cameraPrivate.resize(cameraGeometryBuffer->size());
 
-        auto& renderPipeLine = m_->renderPipeLine();
+        auto& renderPipeLine = cameraPrivate.renderPipeLine();
+        renderPipeLine->initialize(programsLoader);
         renderPipeLine->run(
-            cameraGeometryBuffer, scene->m().sceneData(), time, m_->dielectricSpecular(), globalBoundingBox,
-            camera->globalTransform().inverted(), camera->clipSpace(), camera->cullPlanesLimits(), camera->clusterSize());
+            renderer, m_->frameBuffer(), m_->vertexArray(), cameraGeometryBuffer, scene->m().sceneData(), time,
+            m_->dielectricSpecular(), globalBoundingBox, camera->globalTransform().inverted(), camera->clipSpace(),
+            camera->cullPlanesLimits(), camera->clusterSize());
 
         m_->frameBuffer()->detachAll();
         m_->frameBuffer()->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->finalTexture());

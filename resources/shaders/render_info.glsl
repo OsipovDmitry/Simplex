@@ -42,56 +42,6 @@ uint renderInfoLightsCount()
 	return renderInfo.lightsCount;
 }
 
-vec4 renderInfoFetchShadowMapBluredMomentsTexel(in ivec3 coords)
-{
-	return texelFetch(sampler2DArray(renderInfo.shadowMomentsBluredTextureHandle), coords, 0);
-}
-
-vec3 renderInfoFetchShadowMapBluredColorTexel(in ivec3 coords)
-{
-	return texelFetch(sampler2DArray(renderInfo.shadowColorBluredTextureHandle), coords, 0).rgb;
-}
-
-float renderInfoShadowBlurKernelSample(in uint radius)
-{
-	return renderInfo.shadowBlurKernel[radius];
-}
-
-uint renderInfoShadowBlurRadius()
-{
-	return renderInfo.shadowBlurRadius;
-}
-
-float renderInfoShadowLightBleedingAmount()
-{
-	return renderInfo.shadowLightBleedingAmount;
-}
-
-float renderInfoShadowPositiveExponent()
-{
-	return 20.0f;
-}
-
-float renderInfoShadowNegativeExponent()
-{
-	return 20.0f;
-}
-
-float renderInfoShadowMomentsBias()
-{
-	return 0.000001f;
-}
-
-float renderInfoShadowDepthBiasFactor()
-{
-	return 0.05f;
-}
-
-uint renderInfoShadowAtlasSize()
-{
-	return renderInfo.shadowAtlasSize;
-}
-
 uvec3 renderInfoClusterSize()
 {
 	return renderInfo.clusterSize.xyz;

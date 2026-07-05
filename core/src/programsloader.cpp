@@ -18,6 +18,16 @@ ProgramsLoader::ProgramsLoader(const std::string& name, const std::shared_ptr<gr
 
 ProgramsLoader::~ProgramsLoader() = default;
 
+std::shared_ptr<graphics::RendererBase> ProgramsLoader::graphicsRenderer()
+{
+    return m_->renderer();
+}
+
+std::shared_ptr<const graphics::RendererBase> ProgramsLoader::graphicsRenderer() const
+{
+    return const_cast<ProgramsLoader*>(this)->graphicsRenderer();
+}
+
 std::shared_ptr<graphics::IRenderProgram> ProgramsLoader::loadOrGetRenderProgram(
     const std::filesystem::path& vShaderFileName,
     const std::filesystem::path& fShaderFileName,

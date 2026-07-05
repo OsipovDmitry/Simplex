@@ -1,4 +1,3 @@
-#include<render_info.glsl>
 #include<shadow_maps.glsl>
 
 flat in ivec2 g_minMapPoint;
@@ -12,7 +11,7 @@ vec4 fetchMomentsTexel(in ivec2 coords)
 #if defined(HORIZONTAL_PASS)
 	return shadowMapsFetchMomentsTexel(ivec3(clamp(coords, g_minMapPoint, g_maxMapPoint), gl_Layer));
 #elif defined(VERTICAL_PASS)
-	return renderInfoFetchShadowMapBluredMomentsTexel(ivec3(clamp(coords, g_minMapPoint, g_maxMapPoint), gl_Layer));
+	return shadowMapsFetchBluredMomentsTexel(ivec3(clamp(coords, g_minMapPoint, g_maxMapPoint), gl_Layer));
 #else
 	error!!!
 #endif
@@ -23,7 +22,7 @@ vec3 fetchColorTexel(in ivec2 coords)
 #if defined(HORIZONTAL_PASS)
 	return shadowMapsFetchColorTexel(ivec3(clamp(coords, g_minMapPoint, g_maxMapPoint), gl_Layer));
 #elif defined(VERTICAL_PASS)
-	return renderInfoFetchShadowMapBluredColorTexel(ivec3(clamp(coords, g_minMapPoint, g_maxMapPoint), gl_Layer));
+	return shadowMapsFetchBluredColorTexel(ivec3(clamp(coords, g_minMapPoint, g_maxMapPoint), gl_Layer));
 #else
 	error!!!
 #endif
@@ -32,7 +31,7 @@ vec3 fetchColorTexel(in ivec2 coords)
 void main(void)
 {
 	const ivec2 fragCoords = ivec2(gl_FragCoord.xy);
-	const int radius = int(renderInfoShadowBlurRadius());
+	const int radius = int(shadowMapsBlurRadius());
 	
 #if defined(HORIZONTAL_PASS)
 	const ivec2 direction = ivec2(1, 0);
@@ -47,14 +46,14 @@ void main(void)
 	
 	if (radius > 0)
 	{
-		const float smpl0 = renderInfoShadowBlurKernelSample(0u);
+		const float smpl0 = shadowMapsBlurKernelSample(0u);
 		moments *= smpl0;
 		color *= smpl0;
 	}
 	
 	for (int r = 1; r < radius; ++r)
 	{
-		const float smpl = renderInfoShadowBlurKernelSample(uint(r));
+		const float smpl = shadowMapsBlurKernelSample(uint(r));
 		
 		const ivec2 negTexCoords = fragCoords - direction * r;
 		const ivec2 posTexCoords = fragCoords + direction * r;

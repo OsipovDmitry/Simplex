@@ -137,19 +137,7 @@ struct RenderInfoDescription
     uint32_t shadowsCount;
     uint32_t lightsCount;
 
-    // uint32_t scenePadding[0u]; // graphics::TextureHandle is uvec2 (uint64_t)
-
-    // shadow
-    static const size_t ShadowBlurKernelSize = 32u; // no affects the padding
-
-    graphics::TextureHandle shadowMomentsBluredTextureHandle;
-    graphics::TextureHandle shadowColorBluredTextureHandle;
-    float shadowBlurKernel[ShadowBlurKernelSize];
-    uint32_t shadowBlurRadius;
-    float shadowLightBleedingAmount;
-    uint32_t shadowAtlasSize;
-
-    uint32_t shadowPadding[1u]; // graphics::TextureHandle is uvec2 (uint64_t)
+    // uint32_t scenePadding[0u];
 
     // camera
     glm::uvec4 clusterSize;
@@ -167,11 +155,6 @@ struct RenderInfoDescription
         uint32_t skeletalAnimatedDataCount,
         uint32_t shadowsCount,
         uint32_t lightsCount,
-        graphics::TextureHandle shadowMomentsBluredTextureHandle,
-        graphics::TextureHandle shadowColorBluredTextureHandle,
-        const std::vector<float>& shadowBlurKernel,
-        float shadowLightBleedingAmount,
-        uint32_t shadowAtlasSize,
         const glm::uvec3& clusterSize,
         const utils::Transform& viewTransform,
         const utils::ClipSpace& clipSpace,
@@ -470,17 +453,40 @@ struct SkeletonDescription
 
 struct ShadowMapsDescription
 {
-    graphics::TextureHandle shadowDepthTextureHandle;
-    graphics::TextureHandle shadowMomentsTextureHandle;
-    graphics::TextureHandle shadowColorTextureHandle;
+    static const size_t BlurKernelSize = 32u; // no affects the padding
 
-    uint32_t padding[2u]; // graphics::TextureHandle is uvec2 (uint64_t)
+    graphics::TextureHandle depthTextureHandle;
+    graphics::TextureHandle momentsTextureHandle;
+    graphics::TextureHandle colorTextureHandle;
+    graphics::TextureHandle momentsBluredTextureHandle;
+    graphics::TextureHandle colorBluredTextureHandle;
+
+    uint32_t atlasSize;
+    float lightBleedingAmount;
+    float positiveExponent;
+    float negativeExponent;
+    float momentsBias;
+    float depthBiasFactor;
+
+    float blurKernel[BlurKernelSize];
+    uint32_t blurRadius;
+
+    uint32_t padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
 
     static ShadowMapsDescription makeEmpty();
     static ShadowMapsDescription make(
-        graphics::TextureHandle shadowDepthTextureHandle,
-        graphics::TextureHandle shadowMomentsTextureHandle,
-        graphics::TextureHandle shadowColorTextureHandle);
+        graphics::TextureHandle depthTextureHandle,
+        graphics::TextureHandle momentsTextureHandle,
+        graphics::TextureHandle colorTextureHandle,
+        graphics::TextureHandle momentsBluredTextureHandle,
+        graphics::TextureHandle colorBluredTextureHandle,
+        uint32_t atlasSize,
+        float lightBleedingAmount,
+        float positiveExponent,
+        float negativeExponent,
+        float momentsBias,
+        float depthBiasFactor,
+        const std::vector<float>& blurKernel);
 };
 
 using BonesTransformsDataDescription = TransformDescription;

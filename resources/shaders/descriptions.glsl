@@ -192,7 +192,6 @@ LightNodeDescription makeLightNodeDescription(in uint lightID, in uint nextLight
 	return LightNodeDescription(lightID, nextLightNodeID, uint[2u](0u, 0u));
 }
 
-const uint ShadowBlurKernelSize = 32u;
 struct RenderInfoDescription
 {
     // global
@@ -209,16 +208,6 @@ struct RenderInfoDescription
     uint lightsCount;
 	
 	//uint scenePadding[0u];
-	
-	// shadow
-    TextureHandle shadowMomentsBluredTextureHandle;
-    TextureHandle shadowColorBluredTextureHandle;
-	float shadowBlurKernel[ShadowBlurKernelSize];
-    uint shadowBlurRadius;
-    float shadowLightBleedingAmount;
-	uint shadowAtlasSize;
-
-    uint shadowPadding[1u]; // graphics::TextureHandle is uvec2 (uint64_t)
 
     // camera
     uvec4 clusterSize;
@@ -417,13 +406,26 @@ struct SkeletonDescription
     uint padding[3u];
 };
 
+const uint ShadowMapsBlurKernelSize = 32u;
 struct ShadowMapsDescription
 {
-    TextureHandle shadowDepthTextureHandle;
-    TextureHandle shadowMomentsTextureHandle;
-    TextureHandle shadowColorTextureHandle;
+    TextureHandle depthTextureHandle;
+    TextureHandle momentsTextureHandle;
+    TextureHandle colorTextureHandle;
+	TextureHandle momentsBluredTextureHandle;
+	TextureHandle colorBluredTextureHandle;
 
-    uint padding[2u]; // TextureHandle is uvec2 (uint64_t)
+	uint atlasSize;
+	float lightBleedingAmount;
+    float positiveExponent;
+    float negativeExponent;
+    float momentsBias;
+    float depthBiasFactor;
+
+	float blurKernel[ShadowMapsBlurKernelSize];
+	uint blurRadius;
+
+	uint padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
 };
 
 struct BlurInfoDescription

@@ -2,9 +2,9 @@
 #include<drawable.glsl>
 #include<draw_data.glsl>
 #include<mesh.glsl>
-#include<render_info.glsl>
 #include<shadow.glsl>
 #include<shadow_data.glsl>
+#include<shadow_maps.glsl>
 #include<shadow_transforms_data.glsl>
 #include<skeletal_animated_data.glsl>
 #include<vertex_data.glsl>
@@ -104,7 +104,7 @@ void main(void)
 	const uint mapSize = shadowMapSize(shadowID);
 	const uvec3 mapCoords = shadowTransformsDataMapCoords(transformsDataOffset, layerID);
 	
-	const uint shadowAtlasSize = renderInfoShadowAtlasSize();
+	const uint shadowAtlasSize = shadowMapsAtlasSize();
 	const float scale = float(mapSize) / float(shadowAtlasSize);
 	const vec2 translation = vec2(mapCoords.xy) / float(shadowAtlasSize);
 	

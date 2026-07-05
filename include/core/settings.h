@@ -65,15 +65,6 @@ public:
     float blurPower() const;
 };
 
-class CORE_SHARED_EXPORT Flat : public utils::SettingsComponent
-{
-public:
-    Flat(const rapidjson::Document::ValueType*);
-    ~Flat() override;
-
-    const glm::vec4& color() const;
-};
-
 class CORE_SHARED_EXPORT PBR : public utils::SettingsComponent
 {
 public:
@@ -109,10 +100,11 @@ public:
     uint32_t mapSize() const;
     ShadowFilter filter() const;
     float blurSigma() const;
-    float depthBiasFactor() const;
     float lightBleedingAmount() const;
     float positiveExponent() const;
     float negativeExponent() const;
+    float momentsBias() const;
+    float depthBiasFactor() const;
 };
 
 class CORE_SHARED_EXPORT SSAO : public utils::SettingsComponent
@@ -144,8 +136,8 @@ public:
     OIT(const rapidjson::Document::ValueType*);
     ~OIT() override;
 
-    uint32_t nodesPerPixel() const;
-    uint32_t maxNodes() const;
+    uint32_t nodesCountPerPixel() const;
+    uint32_t maxNodesCount() const;
 };
 
 class CORE_SHARED_EXPORT NodeBoundingBox : public utils::SettingsComponent
@@ -212,7 +204,6 @@ public:
     SpotLightCullingAlgorithm spotLightCullingAlgorithm() const;
     const Camera& camera() const;
     const Background& background() const;
-    const Flat& flat() const;
     const PBR& pbr() const;
     const IBL& ibl() const;
     const Shadow& shadow() const;

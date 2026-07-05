@@ -41,11 +41,6 @@ std::shared_ptr<ScenesLoader>& GraphicsEnginePrivate::scenesLoader()
     return m_scenesLoader;
 }
 
-std::shared_ptr<RenderPipeLine>& GraphicsEnginePrivate::renderPipeLine()
-{
-    return m_renderPipeLine;
-}
-
 std::shared_ptr<graphics::IFrameBuffer>& GraphicsEnginePrivate::frameBuffer()
 {
     return m_frameBuffer;

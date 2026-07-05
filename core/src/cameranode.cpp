@@ -6,6 +6,7 @@
 
 #include "cameranodeprivate.h"
 #include "geometrybuffer.h"
+#include "renderpipeline.h"
 
 namespace simplex
 {
@@ -20,6 +21,7 @@ CameraNode::CameraNode(const std::string& name)
 
     const auto& graphicsSettings = settings::Settings::instance().graphics();
     const auto& cameraSettings = graphicsSettings.camera();
+    const auto& shadowSettings = graphicsSettings.shadow();
 
     (cameraSettings.clipSpace().type() == utils::ClipSpaceType::Perspective)
         ? setPerspectiveClipSpace(cameraSettings.clipSpace().perspectiveFOV())
@@ -27,6 +29,13 @@ CameraNode::CameraNode(const std::string& name)
 
     setCullPlanesLimits(graphicsSettings.cullPlaneLimits());
     setClusterSize(cameraSettings.clusterSize());
+    setShadowFilter(shadowSettings.filter());
+    setShadowBlurSigma(shadowSettings.blurSigma());
+    setShadowLightBleedingAmount(shadowSettings.lightBleedingAmount());
+    setShadowPositiveExponent(shadowSettings.positiveExponent());
+    setShadowNegativeExponent(shadowSettings.negativeExponent());
+    setShadowMomentsBias(shadowSettings.momentsBias());
+    setShadowDepthsBiasFactor(shadowSettings.depthBiasFactor());
 }
 
 CameraNode::~CameraNode() = default;
@@ -62,7 +71,7 @@ void CameraNode::useDefaultFramebuffer()
     m().geometryBuffer() = nullptr;
 }
 
-void CameraNode::useSeparateFramebuffer(const glm::uvec2& size)
+void CameraNode::useSeparateFramebuffer(const std::optional<glm::uvec2>& size)
 {
     m().geometryBuffer() = std::make_shared<GeometryBuffer>(size);
 }
@@ -110,6 +119,146 @@ const glm::uvec3& CameraNode::clusterSize() const
 void CameraNode::setClusterSize(const glm::uvec3& value)
 {
     m().clusterSize() = value;
+}
+
+ShadowFilter CameraNode::shadowFilter() const
+{
+    return m().shadowFilter();
+}
+
+void CameraNode::setShadowFilter(ShadowFilter value)
+{
+    auto& mPrivate = m();
+    if (mPrivate.shadowFilter() != value)
+    {
+        mPrivate.shadowFilter() = value;
+
+        if (auto& renderPipeLine = mPrivate.renderPipeLine())
+        {
+            renderPipeLine->shadowFilter() = mPrivate.shadowFilter();
+            renderPipeLine->deinitialize();
+        }
+    }
+}
+
+float CameraNode::shadowBlurSigma() const
+{
+    return m().shadowBlurSigma();
+}
+
+void CameraNode::setShadowBlurSigma(float value)
+{
+    auto& mPrivate = m();
+    if (mPrivate.shadowBlurSigma() != value)
+    {
+        mPrivate.shadowBlurSigma() = value;
+
+        if (auto& renderPipeLine = mPrivate.renderPipeLine())
+        {
+            renderPipeLine->shadowBlurSigma() = mPrivate.shadowBlurSigma();
+            renderPipeLine->deinitialize();
+        }
+    }
+}
+
+float CameraNode::shadowLightBleedingAmount() const
+{
+    return m().shadowLightBleedingAmount();
+}
+
+void CameraNode::setShadowLightBleedingAmount(float value)
+{
+    auto& mPrivate = m();
+    if (mPrivate.shadowLightBleedingAmount() != value)
+    {
+        mPrivate.shadowLightBleedingAmount() = value;
+
+        if (auto& renderPipeLine = mPrivate.renderPipeLine())
+        {
+            renderPipeLine->shadowLightBleedingAmount() = mPrivate.shadowLightBleedingAmount();
+            renderPipeLine->deinitialize();
+        }
+    }
+}
+
+float CameraNode::shadowPositiveExponent() const
+{
+    return m().shadowPositiveExponent();
+}
+
+void CameraNode::setShadowPositiveExponent(float value)
+{
+    auto& mPrivate = m();
+    if (mPrivate.shadowPositiveExponent() != value)
+    {
+        mPrivate.shadowPositiveExponent() = value;
+
+        if (auto& renderPipeLine = mPrivate.renderPipeLine())
+        {
+            renderPipeLine->shadowPositiveExponent() = mPrivate.shadowPositiveExponent();
+            renderPipeLine->deinitialize();
+        }
+    }
+}
+
+float CameraNode::shadowNegativeExponent() const
+{
+    return m().shadowNegativeExponent();
+}
+
+void CameraNode::setShadowNegativeExponent(float value)
+{
+    auto& mPrivate = m();
+    if (mPrivate.shadowNegativeExponent() != value)
+    {
+        mPrivate.shadowNegativeExponent() = value;
+
+        if (auto& renderPipeLine = mPrivate.renderPipeLine())
+        {
+            renderPipeLine->shadowNegativeExponent() = mPrivate.shadowNegativeExponent();
+            renderPipeLine->deinitialize();
+        }
+    }
+}
+
+float CameraNode::shadowMomentsBias() const
+{
+    return m().shadowMomentsBias();
+}
+
+void CameraNode::setShadowMomentsBias(float value)
+{
+    auto& mPrivate = m();
+    if (mPrivate.shadowMomentsBias() != value)
+    {
+        mPrivate.shadowMomentsBias() = value;
+
+        if (auto& renderPipeLine = mPrivate.renderPipeLine())
+        {
+            renderPipeLine->shadowMomentsBias() = mPrivate.shadowMomentsBias();
+            renderPipeLine->deinitialize();
+        }
+    }
+}
+
+float CameraNode::shadowDepthBiasFactor() const
+{
+    return m().shadowDepthBiasFactor();
+}
+
+void CameraNode::setShadowDepthsBiasFactor(float value)
+{
+    auto& mPrivate = m();
+    if (mPrivate.shadowDepthBiasFactor() != value)
+    {
+        mPrivate.shadowDepthBiasFactor() = value;
+
+        if (auto& renderPipeLine = mPrivate.renderPipeLine())
+        {
+            renderPipeLine->shadowDepthBiasFactor() = mPrivate.shadowDepthBiasFactor();
+            renderPipeLine->deinitialize();
+        }
+    }
 }
 
 } // namespace core

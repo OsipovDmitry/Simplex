@@ -1,9 +1,11 @@
 #include "renderpipeline.h"
 
+#include <utils/glm/gtx/component_wise.hpp>
 #include <utils/glm/gtx/functions.hpp>
 #include <utils/logger.h>
 
 #include <core/graphicsrendererbase.h>
+#include <core/programsloader.h>
 
 #include "geometrybuffer.h"
 #include "renderpasshelpers.h"
@@ -14,9 +16,101 @@ namespace simplex
 namespace core
 {
 
+RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
+    : m_shadowAtlasSize(shadowAtlasSize)
+{
+    m_renderInfoBuffer = RenderInfoBuffer::element_type::create();
+    m_countersBuffer = CountersBuffer::element_type::create();
+    m_cameraBuffer = CameraBuffer::element_type::create();
+    m_clusterNodesBuffer = ClusterNodesBuffer::element_type::create();
+    m_clusterLocalLightsBuffer = ClusterLocalLightsBuffer::element_type::create();
+    m_lightNodesBuffer = LightNodesBuffer::element_type::create();
+    m_skeletalAnimatedDataToUpdateBuffer = SkeletalAnimatedDataToUpdateBuffer::element_type::create();
+    m_shadowsToUpdateBuffer = ShadowsToUpdateBuffer::element_type::create();
+    m_shadowDataBuffer = ShadowDataBuffer::element_type::create();
+    m_shadowMapsBuffer = ShadowMapsBuffer::element_type::create(ShadowMapsDescription::makeEmpty());
+    m_bonesTransformsDataCalculateCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
+    m_opaqueDrawDataRenderCommandsBuffer = graphics::DrawArraysIndirectCommandsBuffer::create();
+    m_transparentDrawDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
+    m_opaqueDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
+        m_countersBuffer->buffer(), offsetof(CountersDescription, opaqueDrawDataRenderCommandsCount),
+        sizeof(CountersDescription::opaqueDrawDataRenderCommandsCount));
+    m_transparentDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
+        m_countersBuffer->buffer(), offsetof(CountersDescription, transparentDrawDataRenderCommandsCount),
+        sizeof(CountersDescription::transparentDrawDataRenderCommandsCount));
+    m_clusterLocalLightsCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
+    m_shadowDataCullCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
+    m_shadowMapBlurCommandsBuffer =
+        graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({graphics::DrawArraysIndirectCommand()});
+    m_opaqueShadowDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
+    m_transparentShadowDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
+    m_opaqueShadowDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
+        m_countersBuffer->buffer(), offsetof(CountersDescription, opaqueShadowDataRenderCommandsCount),
+        sizeof(CountersDescription::opaqueShadowDataRenderCommandsCount));
+    m_transparentShadowDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
+        m_countersBuffer->buffer(), offsetof(CountersDescription, transparentShadowDataRenderCommandsCount),
+        sizeof(CountersDescription::transparentShadowDataRenderCommandsCount));
+}
+
 RenderPipeLine::~RenderPipeLine() = default;
 
+void RenderPipeLine::initialize(const std::shared_ptr<ProgramsLoader>& programsLoader)
+{
+    static const auto clear =
+        [](const std::shared_ptr<graphics::RendererBase>& renderer, const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
+           const std::shared_ptr<graphics::IVertexArray>&, const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+           const std::shared_ptr<const SceneData>&)
+    {
+        geometryBuffer->clear(renderer, frameBuffer);
+    };
+
+    static const auto sort = [](const std::shared_ptr<graphics::RendererBase>& renderer,
+                                const std::shared_ptr<graphics::IFrameBuffer>&, const std::shared_ptr<graphics::IVertexArray>&,
+                                const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+                                const std::shared_ptr<const SceneData>&)
+    {
+        geometryBuffer->sortOITNodes(renderer);
+    };
+
+    if (m_isInitialized) return;
+
+    auto sharedThis = shared_from_this();
+
+    m_passes.clear();
+    m_passes.push_back(std::make_shared<InitializeCameraPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<CullDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<CollectSkeletalAnimatedDataToUpdatePass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<UpdateCameraPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<PrepareBonesTransformsDataCalculateCommandPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<CalculateBonesTransformsDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<SimplePass>(sharedThis, clear));
+    m_passes.push_back(std::make_shared<RenderDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<SimplePass>(sharedThis, sort));
+    m_passes.push_back(std::make_shared<BuildClusterPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<ClusterGlobalLightPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<PrepareClusterLocalLightsCommandPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<ClusterLocalLightPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<PrepareShadowDataCullCommnadPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<PrepareShadowMapBlurCommandsPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<CullShadowDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<RenderShadowDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<BlurShadowMapPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<RenderBackgroundPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<BlendPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<FinalPass>(programsLoader, sharedThis));
+
+    m_isInitialized = true;
+}
+
+void RenderPipeLine::deinitialize()
+{
+    m_isInitialized = false;
+}
+
 void RenderPipeLine::run(
+    const std::shared_ptr<graphics::RendererBase>& graphicsRenderer,
+    const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
+    const std::shared_ptr<graphics::IVertexArray>& vertexArray,
     const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
     const std::shared_ptr<const SceneData>& sceneData,
     uint64_t time,
@@ -51,30 +145,56 @@ void RenderPipeLine::run(
     m_opaqueShadowDataRenderCommandsBuffer->resize(shadowDataCount);
     m_transparentShadowDataRenderCommandsBuffer->resize(shadowDataCount);
 
-    resizeShadowMomentsBluredTexture(sceneData->shadowMomentsTexture());
-    resizeShadowColorBluredTexture(sceneData->shadowColorTexture());
-    resizeFinalTexture(geometryBuffer->size());
-
-    const auto shadowBlurKernel = calculateShadowBlurKernel(sceneData->shadowBlurSigma());
-    const auto shadowAtlasSize = sceneData->shadowAtlasSize();
-    const auto shadowLightBleedingAmount = sceneData->shadowLightBleedingAmount();
-
-    const graphics::TextureHandle shadowMomentsBluredTextureHandle = m_shadowMomentsBluredTextureHandle
-                                                                         ? m_shadowMomentsBluredTextureHandle->handle()
-                                                                         : utils::IDsGeneratorT<graphics::TextureHandle>::last();
-
-    const graphics::TextureHandle shadowColorBluredTextureHandle = m_shadowColorBluredTextureHandle
-                                                                       ? m_shadowColorBluredTextureHandle->handle()
-                                                                       : utils::IDsGeneratorT<graphics::TextureHandle>::last();
-
     m_renderInfoBuffer->set(RenderInfoDescription::make(
         static_cast<uint32_t>(time), dielectricSpecular, globalBoundingBox, static_cast<uint32_t>(drawDataCount),
         static_cast<uint32_t>(skeletalAnimatedDataCount), static_cast<uint32_t>(shadowsCount), static_cast<uint32_t>(lightsCount),
-        shadowMomentsBluredTextureHandle, shadowColorBluredTextureHandle, shadowBlurKernel, shadowLightBleedingAmount,
-        shadowAtlasSize, clusterSize, viewTransform, clipSpace, cullPlaneLimits));
+        clusterSize, viewTransform, clipSpace, cullPlaneLimits));
+
+    resizeShadowTextures(graphicsRenderer, sceneData->shadowMapsLayersCount());
+    resizeFinalTexture(graphicsRenderer, geometryBuffer->size());
 
     for (auto& pass : m_passes)
-        pass->run(m_renderer, m_frameBuffer, m_vertexArray, geometryBuffer, sceneData);
+        pass->run(graphicsRenderer, frameBuffer, vertexArray, geometryBuffer, sceneData);
+}
+
+uint32_t RenderPipeLine::shadowAtlasSize() const
+{
+    return m_shadowAtlasSize;
+}
+
+ShadowFilter& RenderPipeLine::shadowFilter()
+{
+    return m_shadowFilter;
+}
+
+float& RenderPipeLine::shadowBlurSigma()
+{
+    return m_shadowBlurSigma;
+}
+
+float& RenderPipeLine::shadowLightBleedingAmount()
+{
+    return m_shadowLightBleedingAmount;
+}
+
+float& RenderPipeLine::shadowPositiveExponent()
+{
+    return m_shadowPositiveExponent;
+}
+
+float& RenderPipeLine::shadowNegativeExponent()
+{
+    return m_shadowNegativeExponent;
+}
+
+float& RenderPipeLine::shadowMomentsBias()
+{
+    return m_shadowMomentsBias;
+}
+
+float& RenderPipeLine::shadowDepthBiasFactor()
+{
+    return m_shadowDepthBiasFactor;
 }
 
 RenderInfoBuffer& RenderPipeLine::renderInfoBuffer()
@@ -120,6 +240,11 @@ ShadowsToUpdateBuffer& RenderPipeLine::shadowsToUpdateBuffer()
 ShadowDataBuffer& RenderPipeLine::shadowDataBuffer()
 {
     return m_shadowDataBuffer;
+}
+
+ShadowMapsBuffer& RenderPipeLine::shadowMapsBuffer()
+{
+    return m_shadowMapsBuffer;
 }
 
 graphics::PDispatchComputeIndirectCommandBuffer& RenderPipeLine::bonesTransformsDataCalculateCommandBuffer()
@@ -177,6 +302,31 @@ graphics::PBufferRange& RenderPipeLine::transparentShadowDataRenderParameterBuff
     return m_transparentShadowDataRenderParameterBuffer;
 }
 
+graphics::PConstTexture RenderPipeLine::shadowDepthTexture() const
+{
+    return m_shadowDepthTextureHandle ? m_shadowDepthTextureHandle->texture() : nullptr;
+}
+
+graphics::PConstTexture RenderPipeLine::shadowMomentsTexture() const
+{
+    return m_shadowMomentsTextureHandle ? m_shadowMomentsTextureHandle->texture() : nullptr;
+}
+
+graphics::PConstTexture RenderPipeLine::shadowColorTexture() const
+{
+    return m_shadowColorTextureHandle ? m_shadowColorTextureHandle->texture() : nullptr;
+}
+
+graphics::PConstTexture RenderPipeLine::shadowMomentsBluredTexture() const
+{
+    return m_shadowMomentsBluredTextureHandle ? m_shadowMomentsBluredTextureHandle->texture() : nullptr;
+}
+
+graphics::PConstTexture RenderPipeLine::shadowColorBluredTexture() const
+{
+    return m_shadowColorBluredTextureHandle ? m_shadowColorBluredTextureHandle->texture() : nullptr;
+}
+
 graphics::PConstTexture RenderPipeLine::finalTexture() const
 {
     return m_finalTexture;
@@ -187,179 +337,122 @@ graphics::PDrawArraysIndirectCommandsBuffer& RenderPipeLine::shadowMapBlurComman
     return m_shadowMapBlurCommandsBuffer;
 }
 
-graphics::PTextureHandle& RenderPipeLine::shadowMomentsBluredTextureHandle()
+graphics::PixelInternalFormat RenderPipeLine::shadowMomentsTextureInternalFormat() const
 {
-    return m_shadowMomentsBluredTextureHandle;
+    static std::unordered_map<ShadowFilter, graphics::PixelInternalFormat> s_table{
+        {ShadowFilter::Discrete, graphics::PixelInternalFormat::R32F},
+        {ShadowFilter::VSM, graphics::PixelInternalFormat::RG32F},
+        {ShadowFilter::EVSM, graphics::PixelInternalFormat::RGBA32F},
+        {ShadowFilter::HamburgerMSM, graphics::PixelInternalFormat::RGBA32F},
+        {ShadowFilter::HausdorffMSM, graphics::PixelInternalFormat::RGBA32F}};
+
+    auto it = s_table.find(m_shadowFilter);
+    return (it != s_table.end()) ? it->second : graphics::PixelInternalFormat::Count;
 }
 
-graphics::PTextureHandle& RenderPipeLine::shadowColorBluredTextureHandle()
+std::vector<float> RenderPipeLine::calculateShadowBlurKernel() const
 {
-    return m_shadowColorBluredTextureHandle;
-}
+    static constexpr auto SampleEPS = 1e-2f;
 
-std::shared_ptr<RenderPipeLine> RenderPipeLine::create(
-    const std::shared_ptr<ProgramsLoader>& programsManager,
-    const std::shared_ptr<graphics::RendererBase>& renderer,
-    const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
-    const std::shared_ptr<graphics::IVertexArray>& vertexArray)
-{
-    static const auto clear =
-        [](const std::shared_ptr<graphics::RendererBase>& renderer, const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
-           const std::shared_ptr<graphics::IVertexArray>&, const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
-           const std::shared_ptr<const SceneData>&)
+    std::vector<float> result;
+    for (size_t i = 0u; i < ShadowMapsDescription::BlurKernelSize; ++i)
     {
-        geometryBuffer->clear(renderer, frameBuffer);
-    };
+        const float sample = glm::gauss(static_cast<float>(i), 0.0f, m_shadowBlurSigma);
+        if (sample < SampleEPS) break;
+        result.push_back(sample);
+    }
 
-    static const auto sort = [](const std::shared_ptr<graphics::RendererBase>& renderer,
-                                const std::shared_ptr<graphics::IFrameBuffer>&, const std::shared_ptr<graphics::IVertexArray>&,
-                                const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
-                                const std::shared_ptr<const SceneData>&)
-    {
-        geometryBuffer->sortOITNodes(renderer);
-    };
+    auto samplesSum = 0.0f;
+    if (!result.empty()) samplesSum += result[0u];
+    for (size_t i = 1u; i < result.size(); ++i)
+        samplesSum += 2.0f * result[i];
 
-    auto result = std::shared_ptr<RenderPipeLine>(new RenderPipeLine(programsManager, renderer, frameBuffer, vertexArray));
-
-    auto& passes = result->m_passes;
-    passes.push_back(std::make_shared<InitializeCameraPass>(programsManager, result));
-    passes.push_back(std::make_shared<CullDrawDataPass>(programsManager, result));
-    passes.push_back(std::make_shared<CollectSkeletalAnimatedDataToUpdatePass>(programsManager, result));
-    passes.push_back(std::make_shared<UpdateCameraPass>(programsManager, result));
-    passes.push_back(std::make_shared<PrepareBonesTransformsDataCalculateCommandPass>(programsManager, result));
-    passes.push_back(std::make_shared<CalculateBonesTransformsDataPass>(programsManager, result));
-    passes.push_back(std::make_shared<SimplePass>(result, clear));
-    passes.push_back(std::make_shared<RenderDrawDataPass>(programsManager, result));
-    passes.push_back(std::make_shared<SimplePass>(result, sort));
-    passes.push_back(std::make_shared<BuildClusterPass>(programsManager, result));
-    passes.push_back(std::make_shared<ClusterGlobalLightPass>(programsManager, result));
-    passes.push_back(std::make_shared<PrepareClusterLocalLightsCommandPass>(programsManager, result));
-    passes.push_back(std::make_shared<ClusterLocalLightPass>(programsManager, result));
-    passes.push_back(std::make_shared<PrepareShadowDataCullCommnadPass>(programsManager, result));
-    passes.push_back(std::make_shared<PrepareShadowMapBlurCommandsPass>(programsManager, result));
-    passes.push_back(std::make_shared<CullShadowDataPass>(programsManager, result));
-    passes.push_back(std::make_shared<RenderShadowDataPass>(programsManager, result));
-    passes.push_back(std::make_shared<BlurShadowMapPass>(programsManager, result));
-    passes.push_back(std::make_shared<RenderBackgroundPass>(programsManager, result));
-    passes.push_back(std::make_shared<BlendPass>(programsManager, result));
-    passes.push_back(std::make_shared<FinalPass>(programsManager, result));
+    for (auto& sample : result)
+        sample /= samplesSum;
 
     return result;
 }
 
-RenderPipeLine::RenderPipeLine(
-    const std::shared_ptr<ProgramsLoader>& programsManager,
-    const std::shared_ptr<graphics::RendererBase>& renderer,
-    const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
-    const std::shared_ptr<graphics::IVertexArray>& vertexArray)
-    : m_renderer(renderer)
-    , m_frameBuffer(frameBuffer)
-    , m_vertexArray(vertexArray)
+void RenderPipeLine::resizeShadowTextures(const std::shared_ptr<graphics::RendererBase>& renderer, uint32_t shadowMapsLayersCount)
 {
-    m_renderInfoBuffer = RenderInfoBuffer::element_type::create();
-    m_countersBuffer = CountersBuffer::element_type::create();
-    m_cameraBuffer = CameraBuffer::element_type::create();
-    m_clusterNodesBuffer = ClusterNodesBuffer::element_type::create();
-    m_clusterLocalLightsBuffer = ClusterLocalLightsBuffer::element_type::create();
-    m_lightNodesBuffer = LightNodesBuffer::element_type::create();
-    m_skeletalAnimatedDataToUpdateBuffer = SkeletalAnimatedDataToUpdateBuffer::element_type::create();
-    m_shadowsToUpdateBuffer = ShadowsToUpdateBuffer::element_type::create();
-    m_shadowDataBuffer = ShadowDataBuffer::element_type::create();
-    m_bonesTransformsDataCalculateCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
-    m_opaqueDrawDataRenderCommandsBuffer = graphics::DrawArraysIndirectCommandsBuffer::create();
-    m_transparentDrawDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
-    m_opaqueDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
-        m_countersBuffer->buffer(), offsetof(CountersDescription, opaqueDrawDataRenderCommandsCount),
-        sizeof(CountersDescription::opaqueDrawDataRenderCommandsCount));
-    m_transparentDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
-        m_countersBuffer->buffer(), offsetof(CountersDescription, transparentDrawDataRenderCommandsCount),
-        sizeof(CountersDescription::transparentDrawDataRenderCommandsCount));
-    m_clusterLocalLightsCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
-    m_shadowDataCullCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
-    m_shadowMapBlurCommandsBuffer =
-        graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({graphics::DrawArraysIndirectCommand()});
-    m_opaqueShadowDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
-    m_transparentShadowDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
-    m_opaqueShadowDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
-        m_countersBuffer->buffer(), offsetof(CountersDescription, opaqueShadowDataRenderCommandsCount),
-        sizeof(CountersDescription::opaqueShadowDataRenderCommandsCount));
-    m_transparentShadowDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
-        m_countersBuffer->buffer(), offsetof(CountersDescription, transparentShadowDataRenderCommandsCount),
-        sizeof(CountersDescription::transparentShadowDataRenderCommandsCount));
-}
+    const graphics::PConstTexture shadowDepthTexture =
+        m_shadowDepthTextureHandle ? m_shadowDepthTextureHandle->texture() : nullptr;
 
-void RenderPipeLine::resizeShadowMomentsBluredTexture(const graphics::PConstTexture& shadowMomentsTexture)
-{
-    if (!shadowMomentsTexture) return;
+    if (const auto oldLayersCount = shadowDepthTexture ? shadowDepthTexture->mipmapSize()[2u] : 0u;
+        oldLayersCount == shadowMapsLayersCount)
+        return;
 
-    graphics::PConstTexture shadowMomentsBluredTexture;
-    if (m_shadowMomentsBluredTextureHandle) shadowMomentsBluredTexture = m_shadowMomentsBluredTextureHandle->texture();
-
-    const auto shadowMomentsBluredTextureMaxSize = glm::max(
-        shadowMomentsBluredTexture ? shadowMomentsBluredTexture->mipmapSize(0u) : glm::uvec3(0u),
-        shadowMomentsTexture->mipmapSize(0u));
-
-    if ((!shadowMomentsBluredTexture) || (shadowMomentsBluredTexture->mipmapSize(0u) != shadowMomentsBluredTextureMaxSize))
+    if (!shadowMapsLayersCount)
     {
-        shadowMomentsBluredTexture = m_renderer->createTexture2DArrayEmpty(
-            shadowMomentsBluredTextureMaxSize.x, shadowMomentsBluredTextureMaxSize.y, shadowMomentsBluredTextureMaxSize.z,
-            shadowMomentsTexture->internalFormat());
-        m_shadowMomentsBluredTextureHandle = m_renderer->createTextureHandle(shadowMomentsBluredTexture);
-        m_shadowMomentsBluredTextureHandle->makeResident();
+        m_shadowDepthTextureHandle.reset();
+        m_shadowMomentsTextureHandle.reset();
+        m_shadowColorTextureHandle.reset();
+        m_shadowMomentsBluredTextureHandle.reset();
+        m_shadowColorBluredTextureHandle.reset();
     }
-}
-
-void RenderPipeLine::resizeShadowColorBluredTexture(const graphics::PConstTexture& shadowColorTexture)
-{
-    if (!shadowColorTexture) return;
-
-    graphics::PConstTexture shadowColorBluredTexture;
-    if (m_shadowColorBluredTextureHandle) shadowColorBluredTexture = m_shadowColorBluredTextureHandle->texture();
-
-    const auto shadowColorBluredTextureMaxSize = glm::max(
-        shadowColorBluredTexture ? shadowColorBluredTexture->mipmapSize(0u) : glm::uvec3(0u), shadowColorTexture->mipmapSize(0u));
-
-    if ((!shadowColorBluredTexture) || (shadowColorBluredTexture->mipmapSize(0u) != shadowColorBluredTextureMaxSize))
+    else
     {
-        shadowColorBluredTexture = m_renderer->createTexture2DArrayEmpty(
-            shadowColorBluredTextureMaxSize.x, shadowColorBluredTextureMaxSize.y, shadowColorBluredTextureMaxSize.z,
-            shadowColorTexture->internalFormat());
-        m_shadowColorBluredTextureHandle = m_renderer->createTextureHandle(shadowColorBluredTexture);
+        auto depthTexture = renderer->createTexture2DArrayEmpty(
+            m_shadowAtlasSize, m_shadowAtlasSize, shadowMapsLayersCount, graphics::PixelInternalFormat::Depth32F);
+        m_shadowDepthTextureHandle = renderer->createTextureHandle(depthTexture);
+        m_shadowDepthTextureHandle->makeResident();
+
+        auto momentsTextureInternalFormat = shadowMomentsTextureInternalFormat();
+        if (momentsTextureInternalFormat == graphics::PixelInternalFormat::Count)
+        {
+            LOG_CRITICAL << "Undefined shadow moments texture internal format";
+            return;
+        }
+
+        auto momentsTexture = renderer->createTexture2DArrayEmpty(
+            m_shadowAtlasSize, m_shadowAtlasSize, shadowMapsLayersCount, momentsTextureInternalFormat);
+        m_shadowMomentsTextureHandle = renderer->createTextureHandle(momentsTexture);
+        m_shadowMomentsTextureHandle->makeResident();
+
+        auto momentsBluredTexture = renderer->createTexture2DArrayEmpty(
+            m_shadowAtlasSize, m_shadowAtlasSize, shadowMapsLayersCount, momentsTextureInternalFormat);
+        m_shadowMomentsBluredTextureHandle = renderer->createTextureHandle(momentsBluredTexture);
+        m_shadowMomentsBluredTextureHandle->makeResident();
+
+        auto colorTexture = renderer->createTexture2DArrayEmpty(
+            m_shadowAtlasSize, m_shadowAtlasSize, shadowMapsLayersCount, graphics::PixelInternalFormat::R11F_G11F_B10F);
+        m_shadowColorTextureHandle = renderer->createTextureHandle(colorTexture);
+        m_shadowColorTextureHandle->makeResident();
+
+        auto colorBluredTexture = renderer->createTexture2DArrayEmpty(
+            m_shadowAtlasSize, m_shadowAtlasSize, shadowMapsLayersCount, graphics::PixelInternalFormat::R11F_G11F_B10F);
+        m_shadowColorBluredTextureHandle = renderer->createTextureHandle(colorBluredTexture);
         m_shadowColorBluredTextureHandle->makeResident();
     }
+
+    updateShadowMapsBuffer();
 }
 
-void RenderPipeLine::resizeFinalTexture(const glm::uvec2& geometryBufferSize)
+void RenderPipeLine::updateShadowMapsBuffer()
 {
-    if (const auto finalTextureMaxSize = glm::max(m_finalTexture ? m_finalTexture->size() : glm::uvec2(0u), geometryBufferSize);
-        !m_finalTexture || (m_finalTexture->size() != finalTextureMaxSize))
-    {
-        m_finalTexture = m_renderer->createTextureRectEmpty(
-            finalTextureMaxSize.x, finalTextureMaxSize.y, graphics::PixelInternalFormat::RGBA8);
-    }
+    m_shadowMapsBuffer->set(ShadowMapsDescription::make(
+        m_shadowDepthTextureHandle ? m_shadowDepthTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+        m_shadowMomentsTextureHandle ? m_shadowMomentsTextureHandle->handle()
+                                     : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+        m_shadowColorTextureHandle ? m_shadowColorTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+        m_shadowMomentsBluredTextureHandle ? m_shadowMomentsBluredTextureHandle->handle()
+                                           : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+        m_shadowColorBluredTextureHandle ? m_shadowColorBluredTextureHandle->handle()
+                                         : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+        m_shadowAtlasSize, m_shadowLightBleedingAmount, m_shadowPositiveExponent, m_shadowNegativeExponent, m_shadowMomentsBias,
+        m_shadowDepthBiasFactor, calculateShadowBlurKernel()));
 }
 
-std::vector<float> RenderPipeLine::calculateShadowBlurKernel(float sigma)
+void RenderPipeLine::resizeFinalTexture(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const glm::uvec2& geometryBufferSize)
 {
-    static constexpr auto shadowBlurSampleEPS = 1e-2f;
+    const auto newSize = glm::max(geometryBufferSize, glm::uvec2(1u));
 
-    std::vector<float> shadowBlurKernel;
-    for (size_t i = 0u; i < RenderInfoDescription::ShadowBlurKernelSize; ++i)
+    if (const auto size = m_finalTexture ? m_finalTexture->size() : glm::uvec2(0u); !m_finalTexture || (size != newSize))
     {
-        const float sample = glm::gauss(static_cast<float>(i), 0.0f, sigma);
-        if (sample < shadowBlurSampleEPS) break;
-        shadowBlurKernel.push_back(sample);
+        m_finalTexture = renderer->createTextureRectEmpty(newSize.x, newSize.y, graphics::PixelInternalFormat::RGBA8);
     }
-
-    float samplesSum = 0.0f;
-    if (!shadowBlurKernel.empty()) samplesSum += shadowBlurKernel[0u];
-    for (size_t i = 1u; i < shadowBlurKernel.size(); ++i)
-        samplesSum += 2.0f * shadowBlurKernel[i];
-
-    for (auto& sample : shadowBlurKernel)
-        sample /= samplesSum;
-
-    return shadowBlurKernel;
 }
 
 } // namespace core

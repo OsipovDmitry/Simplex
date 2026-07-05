@@ -8,7 +8,6 @@ namespace simplex
 namespace core
 {
 
-class RenderPipeLine;
 class GeometryBuffer;
 class Scene;
 
@@ -23,8 +22,6 @@ public:
     std::shared_ptr<TexturesLoader>& texturesLoader();
     std::shared_ptr<ProgramsLoader>& programsLoader();
     std::shared_ptr<ScenesLoader>& scenesLoader();
-
-    std::shared_ptr<RenderPipeLine>& renderPipeLine();
 
     std::shared_ptr<graphics::IFrameBuffer>& frameBuffer();
     std::shared_ptr<graphics::IVertexArray>& vertexArray();
@@ -45,8 +42,6 @@ private:
     std::shared_ptr<TexturesLoader> m_texturesLoader;
     std::shared_ptr<ProgramsLoader> m_programsLoader;
     std::shared_ptr<ScenesLoader> m_scenesLoader;
-
-    std::shared_ptr<RenderPipeLine> m_renderPipeLine;
 
     std::shared_ptr<graphics::IFrameBuffer> m_frameBuffer;
     std::shared_ptr<graphics::IVertexArray> m_vertexArray;

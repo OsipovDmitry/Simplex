@@ -2,7 +2,7 @@
 #include <utils/epsilon.h>
 #include <utils/range.h>
 
-#include <core/graphicsengine.h>
+#include <core/cameranode.h>
 #include <core/settings.h>
 
 namespace simplex
@@ -199,19 +199,6 @@ float Background::blurPower() const
     return s_blurPower;
 }
 
-Flat::Flat(const rapidjson::Document::ValueType* value)
-    : utils::SettingsComponent(value)
-{
-}
-
-Flat::~Flat() = default;
-
-const glm::vec4& Flat::color() const
-{
-    static const auto s_color = readVec4("Color", glm::vec4(1.f));
-    return s_color;
-}
-
 PBR::PBR(const rapidjson::Document::ValueType* value)
     : utils::SettingsComponent(value)
 {
@@ -321,12 +308,6 @@ float Shadow::blurSigma() const
     return s_blurSigma;
 }
 
-float Shadow::depthBiasFactor() const
-{
-    static const auto s_depthBiasFactor = readSingle("DepthBiasFactor", .05f);
-    return s_depthBiasFactor;
-}
-
 float Shadow::lightBleedingAmount() const
 {
     static const auto s_lightBleedingAmount = readSingle("LightBleedingAmount", .2f);
@@ -343,6 +324,18 @@ float Shadow::negativeExponent() const
 {
     static const auto s_negativeExponent = readSingle("NegativeExponent", 20.f);
     return s_negativeExponent;
+}
+
+float Shadow::momentsBias() const
+{
+    static const auto s_momentsBias = readSingle("MomentsBias", .000001f);
+    return s_momentsBias;
+}
+
+float Shadow::depthBiasFactor() const
+{
+    static const auto s_depthBiasFactor = readSingle("DepthBiasFactor", .05f);
+    return s_depthBiasFactor;
 }
 
 SSAO::SSAO(const rapidjson::Document::ValueType* value)
@@ -411,15 +404,15 @@ OIT::OIT(const rapidjson::Document::ValueType* value)
 
 OIT::~OIT() = default;
 
-uint32_t OIT::nodesPerPixel() const
+uint32_t OIT::nodesCountPerPixel() const
 {
-    static const auto s_nodesPerPixel = readUint("NodesPerPixel", 4u);
+    static const auto s_nodesPerPixel = readUint("NodesCountPerPixel", 4u);
     return s_nodesPerPixel;
 }
 
-uint32_t OIT::maxNodes() const
+uint32_t OIT::maxNodesCount() const
 {
-    static const auto s_maxNodes = readUint("MaxNodes", 1920u * 1080u * 4u);
+    static const auto s_maxNodes = readUint("MaxNodesCount", 1920u * 1080u * 4u);
     return s_maxNodes;
 }
 
@@ -601,12 +594,6 @@ const Background& Graphics::background() const
 {
     static const Background s_background(read("Background"));
     return s_background;
-}
-
-const Flat& Graphics::flat() const
-{
-    static const Flat s_flat(read("Flat"));
-    return s_flat;
 }
 
 const PBR& Graphics::pbr() const

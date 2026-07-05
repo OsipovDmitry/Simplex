@@ -399,10 +399,9 @@ void SkeletalAnimatedDataHandler::updateOffsetAndSize(uint32_t bonesTransformsDa
     m_bonesTransformsDataSize = bonesTransformsDataSize;
 }
 
-SceneData::SceneData()
+SceneData::SceneData(uint32_t shadowAtlasSize)
+    : m_shadowAtlasSize(shadowAtlasSize)
 {
-    const auto& settings = settings::Settings::instance();
-
     m_verticesDataBuffer = VerticesDataBuffer::element_type::create();
     m_elementsDataBuffer = ElementsDataBuffer::element_type::create();
     m_skeletonsDataBuffer = SkeletonsDataBuffer::element_type::create();
@@ -417,7 +416,6 @@ SceneData::SceneData()
     m_lightsBuffer = LightsBuffer::element_type::create();
     m_shadowsBuffer = ShadowsBuffer::element_type::create();
     m_skeletonsBuffer = SkeletonsBuffer::element_type::create();
-    m_shadowMapsBuffer = ShadowMapsBuffer::element_type::create(ShadowMapsDescription::makeEmpty());
 
     m_drawDataBuffer = DrawDataBuffer::element_type::create();
     m_skeletalAnimatedDataBuffer = SkeletalAnimatedDataBuffer::element_type::create();
@@ -445,18 +443,11 @@ SceneData::SceneData()
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowsBuffer) = graphics::BufferRange::create(m_shadowsBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::SkeletonsBuffer) =
         graphics::BufferRange::create(m_skeletonsBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowMapsBuffer) =
-        graphics::BufferRange::create(m_shadowMapsBuffer->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::DrawDataBuffer) =
         graphics::BufferRange::create(m_drawDataBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::SkeletalAnimatedDataBuffer) =
         graphics::BufferRange::create(m_skeletalAnimatedDataBuffer->buffer());
-
-    const auto& shadowSettings = settings.graphics().shadow();
-    m_shadowAtlasSize = shadowSettings.atlasSize();
-    m_shadowBlurSigma = shadowSettings.blurSigma();
-    m_shadowLightBleedingAmount = shadowSettings.lightBleedingAmount();
 }
 
 SceneData::~SceneData() = default;
@@ -934,42 +925,6 @@ void SceneData::removeTextureHandle(uint32_t materialMapID)
 
 SceneData::AddShadowRectResult SceneData::addShadowRect(uint32_t shadowMapSize)
 {
-    static const auto recreateShadowMaps =
-        [](const std::shared_ptr<graphics::RendererBase>& graphicsRenderer, graphics::PTextureHandle& depthTextureHandle,
-           graphics::PTextureHandle& momentsTextureHandle, graphics::PTextureHandle& colorTextureHandle, uint32_t mapSize,
-           uint32_t layersCount)
-    {
-        auto depthTexture =
-            graphicsRenderer->createTexture2DArrayEmpty(mapSize, mapSize, layersCount, graphics::PixelInternalFormat::Depth32F);
-        depthTexture->setFilterMode(graphics::TextureFilterMode::Point);
-        depthTextureHandle = graphicsRenderer->createTextureHandle(depthTexture);
-        depthTextureHandle->makeResident();
-
-        auto momentsTexture =
-            graphicsRenderer->createTexture2DArrayEmpty(mapSize, mapSize, layersCount, graphics::PixelInternalFormat::RGBA32F);
-        momentsTexture->setFilterMode(graphics::TextureFilterMode::Linear);
-        momentsTextureHandle = graphicsRenderer->createTextureHandle(momentsTexture);
-        momentsTextureHandle->makeResident();
-
-        auto colorTexture = graphicsRenderer->createTexture2DArrayEmpty(
-            mapSize, mapSize, layersCount, graphics::PixelInternalFormat::R11F_G11F_B10F);
-        colorTexture->setFilterMode(graphics::TextureFilterMode::Linear);
-        colorTextureHandle = graphicsRenderer->createTextureHandle(colorTexture);
-        colorTextureHandle->makeResident();
-    };
-
-    static const auto updateShadowMapsBuffer = [](ShadowMapsBuffer& shadowMapsBuffer,
-                                                  const graphics::PConstTextureHandle& shadowDepthTextureHandle,
-                                                  const graphics::PConstTextureHandle& shadowMomentsTextureHandle,
-                                                  const graphics::PConstTextureHandle& shadowColorTextureHandle)
-    {
-        shadowMapsBuffer->set(ShadowMapsDescription::make(
-            shadowDepthTextureHandle ? shadowDepthTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
-            shadowMomentsTextureHandle ? shadowMomentsTextureHandle->handle()
-                                       : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
-            shadowColorTextureHandle ? shadowColorTextureHandle->handle()
-                                     : utils::IDsGeneratorT<graphics::TextureHandle>::last()));
-    };
 
     static const auto addRectToPackers = [](std::vector<std::shared_ptr<utils::RectPacker>>& packers,
                                             uint32_t mapSize) -> std::pair<glm::uvec3, utils::RectPacker::ItemID>
@@ -1017,12 +972,6 @@ SceneData::AddShadowRectResult SceneData::addShadowRect(uint32_t shadowMapSize)
     if (const auto [coords, itemID] = addRectToNewPacker(m_shadowMapsRectPackers, m_shadowAtlasSize, shadowMapSize);
         itemID != utils::IDsGenerator::last())
     {
-        recreateShadowMaps(
-            graphicsRenderer, m_shadowDepthTextureHandle, m_shadowMomentsTextureHandle, m_shadowColorTextureHandle,
-            m_shadowAtlasSize, coords[2u] + 1u);
-        updateShadowMapsBuffer(
-            m_shadowMapsBuffer, m_shadowDepthTextureHandle, m_shadowMomentsTextureHandle, m_shadowColorTextureHandle);
-
         return {coords, itemID};
     }
 
@@ -1804,34 +1753,9 @@ size_t SceneData::lightsCount() const
     return m_lightsBuffer->size();
 }
 
-uint32_t SceneData::shadowAtlasSize() const
+size_t SceneData::shadowMapsLayersCount() const
 {
-    return m_shadowAtlasSize;
-}
-
-float SceneData::shadowBlurSigma() const
-{
-    return m_shadowBlurSigma;
-}
-
-float SceneData::shadowLightBleedingAmount() const
-{
-    return m_shadowLightBleedingAmount;
-}
-
-graphics::PConstTexture SceneData::shadowDepthTexture() const
-{
-    return m_shadowDepthTextureHandle ? m_shadowDepthTextureHandle->texture() : nullptr;
-}
-
-graphics::PConstTexture SceneData::shadowMomentsTexture() const
-{
-    return m_shadowMomentsTextureHandle ? m_shadowMomentsTextureHandle->texture() : nullptr;
-}
-
-graphics::PConstTexture SceneData::shadowColorTexture() const
-{
-    return m_shadowColorTextureHandle ? m_shadowColorTextureHandle->texture() : nullptr;
+    return m_shadowMapsRectPackers.size();
 }
 
 std::shared_ptr<LightHandler> SceneData::addLight()

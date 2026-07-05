@@ -54,7 +54,7 @@ vec3 proccessShadow(
 			linearNormalizedDepth,
 			mapCoords,
 			mapSize,
-			renderInfoShadowLightBleedingAmount(),
+			shadowMapsLightBleedingAmount(),
 			isTexelTransparent);
 	#elif (SHADOW_FILTER == EVSM_SHADOW_FILTER)
 		return shadowMapsProccessEVSMShadow(
@@ -62,9 +62,9 @@ vec3 proccessShadow(
 			linearNormalizedDepth,
 			mapCoords,
 			mapSize,
-			renderInfoShadowPositiveExponent(),
-			renderInfoShadowNegativeExponent(),
-			renderInfoShadowLightBleedingAmount(),
+			shadowMapsPositiveExponent(),
+			shadowMapsNegativeExponent(),
+			shadowMapsLightBleedingAmount(),
 			isTexelTransparent);
 	#elif (SHADOW_FILTER == HAMBURGER_MSM_SHADOW_FILTER)
 		return shadowMapsProccessHamburgerMSMShadow(
@@ -72,7 +72,7 @@ vec3 proccessShadow(
 			linearNormalizedDepth,
 			mapCoords,
 			mapSize,
-			renderInfoShadowMomentsBias(),
+			shadowMapsMomentsBias(),
 			isTexelTransparent);
 	#elif (SHADOW_FILTER == HAUSDORFF_MSM_SHADOW_FILTER)
 		return shadowMapsProccessHausdorffMSMShadow(
@@ -80,7 +80,7 @@ vec3 proccessShadow(
 			linearNormalizedDepth,
 			mapCoords,
 			mapSize,
-			renderInfoShadowMomentsBias(),
+			shadowMapsMomentsBias(),
 			isTexelTransparent);
 	#else
 		error!!!
@@ -146,7 +146,7 @@ vec3 proccessDirectionalLight(
 			
 			if (layerID != 0xFFFFFFFFu)
 			{
-				const float factor = renderInfoShadowDepthBiasFactor();
+				const float factor = shadowMapsDepthBiasFactor();
 				const float biasScale = max(factor * (1.0f - dot(N, L)), factor * 0.1f);
 					
 				const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, layerID);
@@ -229,7 +229,7 @@ vec3 proccessPointLight(
 					shadowTransformsDataProjectionMatrix(transformsDataOffset, layerID),
 					texelPosLVS));
 				
-				const float factor = renderInfoShadowDepthBiasFactor();
+				const float factor = shadowMapsDepthBiasFactor();
 				const float biasScale = max(factor * (1.0f - dot(N, L)), factor * 0.1f);
 				
 				const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, layerID);
@@ -298,7 +298,7 @@ vec3 proccessSpotLight(
 			
 			if (all(lessThanEqual(vec3(0.0f), NDC_ZO)) && all(lessThanEqual(NDC_ZO, vec3(1.0f))))
 			{
-				const float factor = renderInfoShadowDepthBiasFactor();
+				const float factor = shadowMapsDepthBiasFactor();
 				const float biasScale = max(factor * (1.0f - dot(N, L)), factor * 0.1f);
 				
 				const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, 0u);

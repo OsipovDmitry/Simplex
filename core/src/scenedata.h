@@ -154,7 +154,6 @@ using BackgroundBuffer = std::shared_ptr<graphics::StructBuffer<BackgroundDescri
 using LightsBuffer = std::shared_ptr<graphics::VectorBuffer<LightDescription>>;
 using ShadowsBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowDescription>>;
 using SkeletonsBuffer = std::shared_ptr<graphics::VectorBuffer<SkeletonDescription>>;
-using ShadowMapsBuffer = std::shared_ptr<graphics::StructBuffer<ShadowMapsDescription>>;
 
 using DrawDataBuffer = std::shared_ptr<graphics::VectorBuffer<DrawDataDescription>>;
 using SkeletalAnimatedDataBuffer = std::shared_ptr<graphics::VectorBuffer<SkeletalAnimatedDataDescription>>;
@@ -346,7 +345,7 @@ private:
 class SceneData : public StateSet, public std::enable_shared_from_this<SceneData>
 {
 public:
-    SceneData();
+    SceneData(uint32_t shadowAtlasSize);
     ~SceneData();
 
     struct AddVerticesDataResult
@@ -556,13 +555,7 @@ public:
     size_t skeletalAnimatedDataCount() const;
     size_t shadowsCount() const;
     size_t lightsCount() const;
-
-    uint32_t shadowAtlasSize() const;
-    float shadowBlurSigma() const;
-    float shadowLightBleedingAmount() const;
-    graphics::PConstTexture shadowDepthTexture() const;
-    graphics::PConstTexture shadowMomentsTexture() const;
-    graphics::PConstTexture shadowColorTexture() const;
+    size_t shadowMapsLayersCount() const;
 
 private:
     std::shared_ptr<LightHandler> addLight();
@@ -589,7 +582,6 @@ private:
     LightsBuffer m_lightsBuffer;
     ShadowsBuffer m_shadowsBuffer;
     SkeletonsBuffer m_skeletonsBuffer;
-    ShadowMapsBuffer m_shadowMapsBuffer;
 
     DrawDataBuffer m_drawDataBuffer;
     SkeletalAnimatedDataBuffer m_skeletalAnimatedDataBuffer;
@@ -605,13 +597,8 @@ private:
     utils::IDsGenerator m_drawDataIDsGenerator;
     utils::IDsGenerator m_skeletalAnimatedDataIDsGenerator;
 
-    uint32_t m_shadowAtlasSize;
-    float m_shadowBlurSigma;
-    float m_shadowLightBleedingAmount;
+    uint32_t m_shadowAtlasSize = 0u;
     std::vector<std::shared_ptr<utils::RectPacker>> m_shadowMapsRectPackers;
-    graphics::PTextureHandle m_shadowDepthTextureHandle;
-    graphics::PTextureHandle m_shadowMomentsTextureHandle;
-    graphics::PTextureHandle m_shadowColorTextureHandle;
 };
 
 } // namespace core

@@ -1,8 +1,8 @@
 layout (triangles) in;
 layout (triangle_strip, max_vertices=18) out;
 
-#include<render_info.glsl>
 #include<shadow.glsl>
+#include<shadow_maps.glsl>
 #include<shadow_transforms_data.glsl>
 
 flat in uint v_shadowID[];
@@ -12,7 +12,7 @@ flat out ivec2 g_maxMapPoint;
 
 void main(void)
 {
-	const uint atlasSize = renderInfoShadowAtlasSize();
+	const uint atlasSize = shadowMapsAtlasSize();
 	
 	const uint mapSize = shadowMapSize(v_shadowID[0u]);
 	const float mapScale = float(mapSize) / float(atlasSize);

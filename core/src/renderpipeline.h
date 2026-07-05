@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+#include <core/cameranode.h>
 #include <core/forwarddecl.h>
 
 #include "descriptions.h"
@@ -27,13 +28,21 @@ using LightNodesBuffer = std::shared_ptr<graphics::VectorBuffer<LightNodeDescrip
 using SkeletalAnimatedDataToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<SkeletalAnimatedDataToUpdateDescription>>;
 using ShadowsToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowToUpdateDescription>>;
 using ShadowDataBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowDataDescription>>;
+using ShadowMapsBuffer = std::shared_ptr<graphics::StructBuffer<ShadowMapsDescription>>;
 
-class RenderPipeLine
+class RenderPipeLine : public std::enable_shared_from_this<RenderPipeLine>
 {
 public:
+    RenderPipeLine(uint32_t shadowAtlasSize);
     ~RenderPipeLine();
 
+    void initialize(const std::shared_ptr<ProgramsLoader>&);
+    void deinitialize();
+
     void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
         const std::shared_ptr<const GeometryBuffer>&,
         const std::shared_ptr<const SceneData>&,
         uint64_t time,
@@ -44,6 +53,15 @@ public:
         const utils::Range&,
         const glm::uvec3&);
 
+    uint32_t shadowAtlasSize() const;
+    ShadowFilter& shadowFilter();
+    float& shadowBlurSigma();
+    float& shadowLightBleedingAmount();
+    float& shadowPositiveExponent();
+    float& shadowNegativeExponent();
+    float& shadowMomentsBias();
+    float& shadowDepthBiasFactor();
+
     RenderInfoBuffer& renderInfoBuffer();
     CountersBuffer& countersBuffer();
     CameraBuffer& cameraBuffer();
@@ -53,6 +71,7 @@ public:
     SkeletalAnimatedDataToUpdateBuffer& skeletalAnimatedDataToUpdateBuffer();
     ShadowsToUpdateBuffer& shadowsToUpdateBuffer();
     ShadowDataBuffer& shadowDataBuffer();
+    ShadowMapsBuffer& shadowMapsBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& bonesTransformsDataCalculateCommandBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& opaqueDrawDataRenderCommandsBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& transparentDrawDataRenderCommandsBuffer();
@@ -61,32 +80,36 @@ public:
     graphics::PDispatchComputeIndirectCommandBuffer& clusterLocalLightsCommandBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& shadowDataCullCommandBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& shadowMapBlurCommandsBuffer();
-    graphics::PTextureHandle& shadowMomentsBluredTextureHandle();
-    graphics::PTextureHandle& shadowColorBluredTextureHandle();
     graphics::PDrawArraysIndirectCommandsBuffer& opaqueShadowDataRenderCommandsBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& transparentShadowDataRenderCommandsBuffer();
     graphics::PBufferRange& opaqueShadowDataRenderParameterBuffer();
     graphics::PBufferRange& transparentShadowDataRenderParameterBuffer();
 
+    graphics::PConstTexture shadowDepthTexture() const;
+    graphics::PConstTexture shadowMomentsTexture() const;
+    graphics::PConstTexture shadowColorTexture() const;
+    graphics::PConstTexture shadowMomentsBluredTexture() const;
+    graphics::PConstTexture shadowColorBluredTexture() const;
     graphics::PConstTexture finalTexture() const;
 
-    static std::shared_ptr<RenderPipeLine> create(
-        const std::shared_ptr<ProgramsLoader>&,
-        const std::shared_ptr<graphics::RendererBase>&,
-        const std::shared_ptr<graphics::IFrameBuffer>&,
-        const std::shared_ptr<graphics::IVertexArray>&);
-
 private:
-    RenderPipeLine(
-        const std::shared_ptr<ProgramsLoader>&,
-        const std::shared_ptr<graphics::RendererBase>&,
-        const std::shared_ptr<graphics::IFrameBuffer>&,
-        const std::shared_ptr<graphics::IVertexArray>&);
+    graphics::PixelInternalFormat shadowMomentsTextureInternalFormat() const;
+    std::vector<float> calculateShadowBlurKernel() const;
 
-    void resizeShadowMomentsBluredTexture(const graphics::PConstTexture&);
-    void resizeShadowColorBluredTexture(const graphics::PConstTexture&);
-    void resizeFinalTexture(const glm::uvec2&);
-    std::vector<float> calculateShadowBlurKernel(float);
+    void resizeShadowTextures(const std::shared_ptr<graphics::RendererBase>&, uint32_t);
+    void updateShadowMapsBuffer();
+
+    void resizeFinalTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
+
+    bool m_isInitialized = false;
+    uint32_t m_shadowAtlasSize = 0u;
+    ShadowFilter m_shadowFilter = ShadowFilter::Discrete;
+    float m_shadowBlurSigma = 1.f;
+    float m_shadowLightBleedingAmount = .2f;
+    float m_shadowPositiveExponent = 1.f;
+    float m_shadowNegativeExponent = 1.f;
+    float m_shadowMomentsBias = 0.f;
+    float m_shadowDepthBiasFactor = 0.f;
 
     RenderInfoBuffer m_renderInfoBuffer;
     CountersBuffer m_countersBuffer;
@@ -97,6 +120,7 @@ private:
     SkeletalAnimatedDataToUpdateBuffer m_skeletalAnimatedDataToUpdateBuffer;
     ShadowsToUpdateBuffer m_shadowsToUpdateBuffer;
     ShadowDataBuffer m_shadowDataBuffer;
+    ShadowMapsBuffer m_shadowMapsBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_bonesTransformsDataCalculateCommandBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_opaqueDrawDataRenderCommandsBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_transparentDrawDataRenderCommandsBuffer;
@@ -105,17 +129,17 @@ private:
     graphics::PDispatchComputeIndirectCommandBuffer m_clusterLocalLightsCommandBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_shadowDataCullCommandBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_shadowMapBlurCommandsBuffer;
-    graphics::PTextureHandle m_shadowMomentsBluredTextureHandle;
-    graphics::PTextureHandle m_shadowColorBluredTextureHandle;
     graphics::PDrawArraysIndirectCommandsBuffer m_opaqueShadowDataRenderCommandsBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_transparentShadowDataRenderCommandsBuffer;
     graphics::PBufferRange m_opaqueShadowDataRenderParameterBuffer;
     graphics::PBufferRange m_transparentShadowDataRenderParameterBuffer;
-    graphics::PTexture m_finalTexture;
 
-    std::shared_ptr<graphics::RendererBase> m_renderer;
-    std::shared_ptr<graphics::IFrameBuffer> m_frameBuffer;
-    std::shared_ptr<graphics::IVertexArray> m_vertexArray;
+    graphics::PTextureHandle m_shadowDepthTextureHandle;
+    graphics::PTextureHandle m_shadowMomentsTextureHandle;
+    graphics::PTextureHandle m_shadowColorTextureHandle;
+    graphics::PTextureHandle m_shadowMomentsBluredTextureHandle;
+    graphics::PTextureHandle m_shadowColorBluredTextureHandle;
+    graphics::PTexture m_finalTexture;
 
     std::vector<std::shared_ptr<RenderPass>> m_passes;
 };

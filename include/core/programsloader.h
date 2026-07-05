@@ -18,6 +18,9 @@ public:
     ProgramsLoader(const std::string&, const std::shared_ptr<graphics::RendererBase>&);
     ~ProgramsLoader();
 
+    std::shared_ptr<graphics::RendererBase> graphicsRenderer();
+    std::shared_ptr<const graphics::RendererBase> graphicsRenderer() const;
+
     std::shared_ptr<graphics::IRenderProgram> loadOrGetRenderProgram(
         const std::filesystem::path&,
         const std::filesystem::path&,

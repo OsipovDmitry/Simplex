@@ -1,6 +1,6 @@
 #include "renderpasshelpers.h"
 
-#include <core/graphicsengine.h>
+#include <core/cameranode.h>
 #include <core/graphicsrendererbase.h>
 #include <core/programsloader.h>
 #include <core/settings.h>
@@ -569,22 +569,20 @@ RenderShadowDataPass::RenderShadowDataPass(
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
-    const auto shadowFilter = settings::Settings::instance().graphics().shadow().filter();
-
     m_opaqueProgram = programsManager->loadOrGetRenderProgram(
         resources::RenderShadowDataPassVertexShaderPath, resources::RenderShadowDataPassGeometryShaderPath,
         resources::RenderOpaqueShadowDataPassFragmentShaderPath,
-        {{"SHADOW_FILTER", std::to_string(castFromShadowFilter(shadowFilter))}});
+        {{"SHADOW_FILTER", std::to_string(castFromShadowFilter(renderPipeLine->shadowFilter()))}});
 
     m_transparentProgram = programsManager->loadOrGetRenderProgram(
         resources::RenderShadowDataPassVertexShaderPath, resources::RenderShadowDataPassGeometryShaderPath,
         resources::RenderTransparentShadowDataPassFragmentShaderPath, {});
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
-        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
-
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowDataBuffer) =
         graphics::BufferRange::create(renderPipeLine->shadowDataBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowMapsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowMapsBuffer()->buffer());
 }
 
 RenderShadowDataPass::~RenderShadowDataPass() = default;
@@ -603,66 +601,59 @@ void RenderShadowDataPass::run(
         return;
     }
 
-    const auto shadowDepthTexture = sceneData->shadowDepthTexture();
-    const auto shadowMomentsTexture = sceneData->shadowMomentsTexture();
-    const auto shadowColorTexture = sceneData->shadowColorTexture();
+    const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(renderPipeLine->shadowAtlasSize()));
 
-    if (shadowDepthTexture && shadowMomentsTexture && shadowColorTexture)
-    {
-        const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(sceneData->shadowAtlasSize()));
+    framebuffer->reset();
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowMomentsTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Color1, renderPipeLine->shadowColorTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Depth, renderPipeLine->shadowDepthTexture());
 
-        framebuffer->reset();
-        framebuffer->attach(graphics::FrameBufferAttachment::Color0, shadowMomentsTexture);
-        framebuffer->attach(graphics::FrameBufferAttachment::Color1, shadowColorTexture);
-        framebuffer->attach(graphics::FrameBufferAttachment::Depth, shadowDepthTexture);
+    // tmp
+    auto max_pos = glm::exp(20.0f);
+    auto max_neg = -glm::exp(-20.0f);
 
-        // tmp
-        auto max_pos = glm::exp(20.0f);
-        auto max_neg = -glm::exp(-20.0f);
+    framebuffer->setClearColor(0u, glm::vec4(max_pos, max_pos * max_pos, max_neg, max_neg * max_neg));
+    framebuffer->setClearColor(1u, glm::vec4(1.0f));
+    framebuffer->setColorMask(0u, true);
+    framebuffer->setColorMask(1u, true);
+    framebuffer->setDepthMask(true);
 
-        framebuffer->setClearColor(0u, glm::vec4(max_pos, max_pos * max_pos, max_neg, max_neg * max_neg));
-        framebuffer->setClearColor(1u, glm::vec4(1.0f));
-        framebuffer->setColorMask(0u, true);
-        framebuffer->setColorMask(1u, true);
-        framebuffer->setDepthMask(true);
+    framebuffer->clear(
+        {graphics::FrameBufferAttachment::Color0, graphics::FrameBufferAttachment::Color1,
+         core::graphics::FrameBufferAttachment::Depth});
 
-        framebuffer->clear(
-            {graphics::FrameBufferAttachment::Color0, graphics::FrameBufferAttachment::Color1,
-             core::graphics::FrameBufferAttachment::Depth});
+    framebuffer->reset();
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowMomentsTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Depth, renderPipeLine->shadowDepthTexture());
+    framebuffer->setColorMask(0u, true);
+    framebuffer->setDepthTest(true);
+    framebuffer->setDepthMask(true);
 
-        framebuffer->reset();
-        framebuffer->attach(graphics::FrameBufferAttachment::Color0, shadowMomentsTexture);
-        framebuffer->attach(graphics::FrameBufferAttachment::Depth, shadowDepthTexture);
-        framebuffer->setColorMask(0u, true);
-        framebuffer->setDepthTest(true);
-        framebuffer->setDepthMask(true);
+    for (uint32_t i = 0; i < 6u; ++i)
+        framebuffer->setClipDistance(i, true);
 
-        for (uint32_t i = 0; i < 6u; ++i)
-            framebuffer->setClipDistance(i, true);
+    renderer->multiDrawArraysIndirectCount(
+        viewport, m_opaqueProgram, framebuffer, vertexArray, {sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
+        renderPipeLine->opaqueShadowDataRenderCommandsBuffer(), renderPipeLine->opaqueShadowDataRenderParameterBuffer());
 
-        renderer->multiDrawArraysIndirectCount(
-            viewport, m_opaqueProgram, framebuffer, vertexArray, {sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
-            renderPipeLine->opaqueShadowDataRenderCommandsBuffer(), renderPipeLine->opaqueShadowDataRenderParameterBuffer());
+    framebuffer->reset();
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowColorTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Depth, renderPipeLine->shadowDepthTexture());
+    framebuffer->setColorMask(0u, true);
+    framebuffer->setDepthTest(true);
+    framebuffer->setBlending(true);
+    framebuffer->setBlendEquation(0u, graphics::BlendEquation::Add, graphics::BlendEquation::Add);
+    framebuffer->setBlendFactor(
+        0u, graphics::BlendFactor::Zero, graphics::BlendFactor::SrcColor, graphics::BlendFactor::Zero,
+        graphics::BlendFactor::One);
 
-        framebuffer->reset();
-        framebuffer->attach(graphics::FrameBufferAttachment::Color0, shadowColorTexture);
-        framebuffer->attach(graphics::FrameBufferAttachment::Depth, shadowDepthTexture);
-        framebuffer->setColorMask(0u, true);
-        framebuffer->setDepthTest(true);
-        framebuffer->setBlending(true);
-        framebuffer->setBlendEquation(0u, graphics::BlendEquation::Add, graphics::BlendEquation::Add);
-        framebuffer->setBlendFactor(
-            0u, graphics::BlendFactor::Zero, graphics::BlendFactor::SrcColor, graphics::BlendFactor::Zero,
-            graphics::BlendFactor::One);
+    for (uint32_t i = 0; i < 6u; ++i)
+        framebuffer->setClipDistance(i, true);
 
-        for (uint32_t i = 0; i < 6u; ++i)
-            framebuffer->setClipDistance(i, true);
-
-        renderer->multiDrawArraysIndirectCount(
-            viewport, m_transparentProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
-            utils::PrimitiveType::Triangles, renderPipeLine->transparentShadowDataRenderCommandsBuffer(),
-            renderPipeLine->transparentShadowDataRenderParameterBuffer());
-    }
+    renderer->multiDrawArraysIndirectCount(
+        viewport, m_transparentProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
+        utils::PrimitiveType::Triangles, renderPipeLine->transparentShadowDataRenderCommandsBuffer(),
+        renderPipeLine->transparentShadowDataRenderParameterBuffer());
 }
 
 BlurShadowMapPass::BlurShadowMapPass(
@@ -678,11 +669,11 @@ BlurShadowMapPass::BlurShadowMapPass(
         resources::BlurShadowMapPassVertexShaderPath, resources::BlurShadowMapPassGeometryShaderPath,
         resources::BlurShadowMapPassFragmentShaderPath, {{"VERTICAL_PASS", ""}});
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
-        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
-
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowsToUpdateBuffer) =
         graphics::BufferRange::create(renderPipeLine->shadowsToUpdateBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowMapsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowMapsBuffer()->buffer());
 }
 
 BlurShadowMapPass::~BlurShadowMapPass() = default;
@@ -701,34 +692,25 @@ void BlurShadowMapPass::run(
         return;
     }
 
-    const auto shadowMomentsTexture = sceneData->shadowMomentsTexture();
-    const auto shadowColorTexture = sceneData->shadowColorTexture();
+    const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(renderPipeLine->shadowAtlasSize()));
 
-    if (shadowMomentsTexture && shadowColorTexture)
-    {
-        const auto& shadowMomentsBluredTextureHandle = renderPipeLine->shadowMomentsBluredTextureHandle();
-        const auto& shadowColorBluredTextureHandle = renderPipeLine->shadowColorBluredTextureHandle();
+    framebuffer->reset();
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowMomentsBluredTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Color1, renderPipeLine->shadowColorBluredTexture());
+    framebuffer->setColorMask(0u, true);
+    framebuffer->setColorMask(1u, true);
+    renderer->drawArraysIndirect(
+        viewport, m_horizontalProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
+        utils::PrimitiveType::TriangleStrip, renderPipeLine->shadowMapBlurCommandsBuffer());
 
-        const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(sceneData->shadowAtlasSize()));
-
-        framebuffer->reset();
-        framebuffer->attach(graphics::FrameBufferAttachment::Color0, shadowMomentsBluredTextureHandle->texture());
-        framebuffer->attach(graphics::FrameBufferAttachment::Color1, shadowColorBluredTextureHandle->texture());
-        framebuffer->setColorMask(0u, true);
-        framebuffer->setColorMask(1u, true);
-        renderer->drawArraysIndirect(
-            viewport, m_horizontalProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
-            utils::PrimitiveType::TriangleStrip, renderPipeLine->shadowMapBlurCommandsBuffer());
-
-        framebuffer->reset();
-        framebuffer->attach(graphics::FrameBufferAttachment::Color0, shadowMomentsTexture);
-        framebuffer->attach(graphics::FrameBufferAttachment::Color1, shadowColorTexture);
-        framebuffer->setColorMask(0u, true);
-        framebuffer->setColorMask(1u, true);
-        renderer->drawArraysIndirect(
-            viewport, m_verticalProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
-            utils::PrimitiveType::TriangleStrip, renderPipeLine->shadowMapBlurCommandsBuffer());
-    }
+    framebuffer->reset();
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowMomentsTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Color1, renderPipeLine->shadowColorTexture());
+    framebuffer->setColorMask(0u, true);
+    framebuffer->setColorMask(1u, true);
+    renderer->drawArraysIndirect(
+        viewport, m_verticalProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
+        utils::PrimitiveType::TriangleStrip, renderPipeLine->shadowMapBlurCommandsBuffer());
 }
 
 RenderBackgroundPass::RenderBackgroundPass(
@@ -764,11 +746,9 @@ void RenderBackgroundPass::run(
 BlendPass::BlendPass(const std::shared_ptr<ProgramsLoader>& programsManager, const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
-    const auto shadowFilter = settings::Settings::instance().graphics().shadow().filter();
-
     m_program = programsManager->loadOrGetRenderProgram(
         resources::BlendPassVertexShaderPath, resources::BlendPassFragmentShaderPath,
-        {{"SHADOW_FILTER", std::to_string(castFromShadowFilter(shadowFilter))}});
+        {{"SHADOW_FILTER", std::to_string(castFromShadowFilter(renderPipeLine->shadowFilter()))}});
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
         graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
@@ -784,6 +764,9 @@ BlendPass::BlendPass(const std::shared_ptr<ProgramsLoader>& programsManager, con
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::LightNodesBuffer) =
         graphics::BufferRange::create(renderPipeLine->lightNodesBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowMapsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowMapsBuffer()->buffer());
 }
 
 BlendPass::~BlendPass() = default;

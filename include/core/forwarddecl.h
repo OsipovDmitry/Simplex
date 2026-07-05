@@ -31,7 +31,6 @@ namespace settings
 class Application;
 class Camera;
 class Background;
-class Flat;
 class PBR;
 class IBL;
 class Shadow;
