@@ -332,6 +332,55 @@ graphics::PConstTexture RenderPipeLine::finalTexture() const
     return m_finalTexture;
 }
 
+glm::vec4 RenderPipeLine::shadowMomentsTextureClearColor() const
+{
+    glm::vec4 result(0.f);
+
+    switch (m_shadowFilter)
+    {
+        case ShadowFilter::Discrete:
+        {
+            result = glm::vec4(1.f, 0.f, 0.f, 0.f);
+            break;
+        }
+        case ShadowFilter::VSM:
+        {
+            result = glm::vec4(1.f, 1.f, 0.f, 0.f);
+            break;
+        }
+        case ShadowFilter::EVSM:
+        {
+            const auto expPos = glm::exp(m_shadowPositiveExponent);
+            const auto expNeg = -glm::exp(m_shadowNegativeExponent);
+            result = glm::vec4(expPos, expPos * expPos, expNeg, expNeg * expNeg);
+            break;
+        }
+        case ShadowFilter::HamburgerMSM:
+        case ShadowFilter::HausdorffMSM:
+        {
+            result = glm::vec4(1.f, 0.f, 0.f, 0.f);
+            break;
+        }
+        default:
+            break;
+    }
+
+    return result;
+}
+
+bool RenderPipeLine::shadowIsBlurPassNeeded() const
+{
+    static std::unordered_map<ShadowFilter, bool> s_table{
+        {ShadowFilter::Discrete, false},
+        {ShadowFilter::VSM, true},
+        {ShadowFilter::EVSM, true},
+        {ShadowFilter::HamburgerMSM, true},
+        {ShadowFilter::HausdorffMSM, true}};
+
+    auto it = s_table.find(m_shadowFilter);
+    return (it != s_table.end()) ? it->second : false;
+}
+
 graphics::PDrawArraysIndirectCommandsBuffer& RenderPipeLine::shadowMapBlurCommandsBuffer()
 {
     return m_shadowMapBlurCommandsBuffer;
@@ -375,12 +424,21 @@ std::vector<float> RenderPipeLine::calculateShadowBlurKernel() const
 
 void RenderPipeLine::resizeShadowTextures(const std::shared_ptr<graphics::RendererBase>& renderer, uint32_t shadowMapsLayersCount)
 {
-    const graphics::PConstTexture shadowDepthTexture =
-        m_shadowDepthTextureHandle ? m_shadowDepthTextureHandle->texture() : nullptr;
+    const graphics::PConstTexture shadowMomentsTexture =
+        m_shadowMomentsTextureHandle ? m_shadowMomentsTextureHandle->texture() : nullptr;
 
-    if (const auto oldLayersCount = shadowDepthTexture ? shadowDepthTexture->mipmapSize()[2u] : 0u;
-        oldLayersCount == shadowMapsLayersCount)
+    const auto oldLayersCount = shadowMomentsTexture ? shadowMomentsTexture->mipmapSize()[2u] : 0u;
+    const auto oldMomentsTextureInternalFormat =
+        shadowMomentsTexture ? shadowMomentsTexture->internalFormat() : graphics::PixelInternalFormat::Count;
+
+    auto momentsTextureInternalFormat = shadowMomentsTextureInternalFormat();
+    if (momentsTextureInternalFormat == graphics::PixelInternalFormat::Count)
+    {
+        LOG_CRITICAL << "Undefined shadow moments texture internal format";
         return;
+    }
+
+    if ((oldLayersCount == shadowMapsLayersCount) && (oldMomentsTextureInternalFormat == momentsTextureInternalFormat)) return;
 
     if (!shadowMapsLayersCount)
     {
@@ -396,13 +454,6 @@ void RenderPipeLine::resizeShadowTextures(const std::shared_ptr<graphics::Render
             m_shadowAtlasSize, m_shadowAtlasSize, shadowMapsLayersCount, graphics::PixelInternalFormat::Depth32F);
         m_shadowDepthTextureHandle = renderer->createTextureHandle(depthTexture);
         m_shadowDepthTextureHandle->makeResident();
-
-        auto momentsTextureInternalFormat = shadowMomentsTextureInternalFormat();
-        if (momentsTextureInternalFormat == graphics::PixelInternalFormat::Count)
-        {
-            LOG_CRITICAL << "Undefined shadow moments texture internal format";
-            return;
-        }
 
         auto momentsTexture = renderer->createTexture2DArrayEmpty(
             m_shadowAtlasSize, m_shadowAtlasSize, shadowMapsLayersCount, momentsTextureInternalFormat);

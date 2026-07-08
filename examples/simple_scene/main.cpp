@@ -43,6 +43,7 @@ static bool toSwitchDirLight = false;
 static bool toSwitchLight1 = false;
 static bool toSwitchLight2 = false;
 static bool toSwitchLight3 = false;
+static bool toChangeShadowType = false;
 
 std::weak_ptr<simplex::core::ImageBasedLightNode> IBLNodeWeak;
 std::weak_ptr<simplex::core::DrawableNode> clusterNode;
@@ -561,7 +562,7 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
 
     auto ambientLightNode = std::make_shared<simplex::core::AmbientLightNode>("");
     ambientLightNode->setColor(glm::vec3(.1f));
-    // scene->sceneRootNode()->attach(ambientLightNode);
+    scene->sceneRootNode()->attach(ambientLightNode);
 
     // auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/arabic_city/scene.gltf");
     auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/Sponza/Sponza.gltf");
@@ -785,6 +786,11 @@ static void keyCallback(
             }
             break;
         }
+        case simplex::core::graphics::KeyCode::Enter:
+        {
+            toChangeShadowType = keyState == simplex::core::graphics::KeyState::Pressed;
+            break;
+        }
         case simplex::core::graphics::KeyCode::Key_0:
         {
             toSwitchDirLight = keyState == simplex::core::graphics::KeyState::Pressed;
@@ -896,7 +902,18 @@ static void updateCallback(uint64_t time, uint32_t dt)
     auto scene = simplex::core::ApplicationBase::instance().scene();
     simplex::core::NodeCollector<simplex::core::CameraNode> cameraCollector;
     scene->sceneRootNode()->acceptDown(cameraCollector);
-    cameraCollector.nodes().front()->setTransform(cameraTransform);
+    auto camera = cameraCollector.nodes().front();
+    camera->setTransform(cameraTransform);
+
+    if (toChangeShadowType)
+    {
+        toChangeShadowType = false;
+        auto currIdx = simplex::core::castFromShadowFilter(camera->shadowFilter());
+        ++currIdx;
+        currIdx %= simplex::core::numElementsShadowFilter();
+
+        camera->setShadowFilter(simplex::core::castToShadowFilter(currIdx));
+    }
 
     if (toHitBunny)
     {

@@ -92,6 +92,9 @@ public:
     graphics::PConstTexture shadowColorBluredTexture() const;
     graphics::PConstTexture finalTexture() const;
 
+    glm::vec4 shadowMomentsTextureClearColor() const;
+    bool shadowIsBlurPassNeeded() const;
+
 private:
     graphics::PixelInternalFormat shadowMomentsTextureInternalFormat() const;
     std::vector<float> calculateShadowBlurKernel() const;

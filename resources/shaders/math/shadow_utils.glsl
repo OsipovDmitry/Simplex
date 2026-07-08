@@ -21,7 +21,7 @@ vec4 calculateVSMMoments(in float linearNormalizedDepth)
 		linearNormalizedDepth,
 		linearNormalizedDepth * linearNormalizedDepth,
 		0.0f,
-		1.0f);
+		0.0f);
 }
 
 vec4 calculateEVSMMoments(
@@ -29,11 +29,10 @@ vec4 calculateEVSMMoments(
 	in float positiveExponent,
 	in float negativeExponent)
 {
-	const vec2 moments = vec2(
-		exp(positiveExponent * linearNormalizedDepth),
-		-exp(-negativeExponent * linearNormalizedDepth));
+	const float pos = exp(positiveExponent * linearNormalizedDepth);
+	const float neg = -exp(-negativeExponent * linearNormalizedDepth);
 		
-	return vec4(moments[0u], moments[0u] * moments[0u], moments[1u], moments[1u] * moments[1u]);
+	return vec4(pos, pos * pos, neg, neg * neg);
 }
 
 vec4 calculateMSMMoments(in float linearNormalizedDepth)

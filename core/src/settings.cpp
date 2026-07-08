@@ -64,10 +64,10 @@ static ShadowFilter string2ShadowFilter(const std::string& value)
 {
     static std::unordered_map<std::string, ShadowFilter> s_table{
         {"discrete", ShadowFilter::Discrete},
-        {"VSM", ShadowFilter::VSM},
-        {"EVSM", ShadowFilter::EVSM},
-        {"HamburgerMSM", ShadowFilter::HamburgerMSM},
-        {"HausdorffMSM", ShadowFilter::HausdorffMSM}};
+        {"vsm", ShadowFilter::VSM},
+        {"evsm", ShadowFilter::EVSM},
+        {"hamburgermsm", ShadowFilter::HamburgerMSM},
+        {"hausdorffmsm", ShadowFilter::HausdorffMSM}};
 
     auto it = s_table.find(value);
     return (it != s_table.end()) ? it->second : ShadowFilter::EVSM;

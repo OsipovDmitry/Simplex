@@ -102,12 +102,7 @@ vec3 shadowMapsProccessVSMShadow(
 	
 	const vec2 moments = texture(momentsTexture, texCoords).rg;
 	
-	const float variance = max(moments.y - moments.x * moments.x, EPS);
-	const float d = linearNormalizedDepth - moments.x;
-	const float p_max = smoothstep(lightBleedingAmount, 1.0f, variance / (variance + d * d));
-	
-	const float p = step(linearNormalizedDepth, moments.x);
-	vec3 result = vec3(max(p, p_max));
+	vec3 result = vec3(ChebyshevUpperBound(moments, linearNormalizedDepth, lightBleedingAmount));
 	
 	if (!isTexelTransparent)
 	{

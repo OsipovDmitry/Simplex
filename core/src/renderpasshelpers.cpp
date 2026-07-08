@@ -608,11 +608,7 @@ void RenderShadowDataPass::run(
     framebuffer->attach(graphics::FrameBufferAttachment::Color1, renderPipeLine->shadowColorTexture());
     framebuffer->attach(graphics::FrameBufferAttachment::Depth, renderPipeLine->shadowDepthTexture());
 
-    // tmp
-    auto max_pos = glm::exp(20.0f);
-    auto max_neg = -glm::exp(-20.0f);
-
-    framebuffer->setClearColor(0u, glm::vec4(max_pos, max_pos * max_pos, max_neg, max_neg * max_neg));
+    framebuffer->setClearColor(0u, renderPipeLine->shadowMomentsTextureClearColor());
     framebuffer->setClearColor(1u, glm::vec4(1.0f));
     framebuffer->setColorMask(0u, true);
     framebuffer->setColorMask(1u, true);
@@ -692,25 +688,28 @@ void BlurShadowMapPass::run(
         return;
     }
 
-    const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(renderPipeLine->shadowAtlasSize()));
+    if (renderPipeLine->shadowIsBlurPassNeeded())
+    {
+        const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(renderPipeLine->shadowAtlasSize()));
 
-    framebuffer->reset();
-    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowMomentsBluredTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::Color1, renderPipeLine->shadowColorBluredTexture());
-    framebuffer->setColorMask(0u, true);
-    framebuffer->setColorMask(1u, true);
-    renderer->drawArraysIndirect(
-        viewport, m_horizontalProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
-        utils::PrimitiveType::TriangleStrip, renderPipeLine->shadowMapBlurCommandsBuffer());
+        framebuffer->reset();
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowMomentsBluredTexture());
+        framebuffer->attach(graphics::FrameBufferAttachment::Color1, renderPipeLine->shadowColorBluredTexture());
+        framebuffer->setColorMask(0u, true);
+        framebuffer->setColorMask(1u, true);
+        renderer->drawArraysIndirect(
+            viewport, m_horizontalProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
+            utils::PrimitiveType::TriangleStrip, renderPipeLine->shadowMapBlurCommandsBuffer());
 
-    framebuffer->reset();
-    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowMomentsTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::Color1, renderPipeLine->shadowColorTexture());
-    framebuffer->setColorMask(0u, true);
-    framebuffer->setColorMask(1u, true);
-    renderer->drawArraysIndirect(
-        viewport, m_verticalProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
-        utils::PrimitiveType::TriangleStrip, renderPipeLine->shadowMapBlurCommandsBuffer());
+        framebuffer->reset();
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowMomentsTexture());
+        framebuffer->attach(graphics::FrameBufferAttachment::Color1, renderPipeLine->shadowColorTexture());
+        framebuffer->setColorMask(0u, true);
+        framebuffer->setColorMask(1u, true);
+        renderer->drawArraysIndirect(
+            viewport, m_verticalProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
+            utils::PrimitiveType::TriangleStrip, renderPipeLine->shadowMapBlurCommandsBuffer());
+    }
 }
 
 RenderBackgroundPass::RenderBackgroundPass(
