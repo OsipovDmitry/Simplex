@@ -22,6 +22,8 @@ CameraNodePrivate::~CameraNodePrivate() = default;
 
 void CameraNodePrivate::onAttachToScene(const std::shared_ptr<Scene>& scene)
 {
+    if (!m_isDefaultFrameBufferUsed) m_geometryBuffer = std::make_shared<GeometryBuffer>(m_separateFramebufferFixedSize);
+
     m_renderPipeLine = std::make_shared<RenderPipeLine>(scene->m().shadowAtlasSize());
     m_renderPipeLine->shadowFilter() = m_shadowFilter;
     m_renderPipeLine->shadowBlurSigma() = m_shadowBlurSigma;
@@ -35,6 +37,7 @@ void CameraNodePrivate::onAttachToScene(const std::shared_ptr<Scene>& scene)
 void CameraNodePrivate::onDetachFromScene(const std::shared_ptr<Scene>&)
 {
     m_renderPipeLine.reset();
+    m_geometryBuffer.reset();
 }
 
 bool& CameraNodePrivate::isRenderingEnabled()
@@ -75,6 +78,16 @@ utils::Range& CameraNodePrivate::cullPlanesLimits()
 glm::uvec3& CameraNodePrivate::clusterSize()
 {
     return m_clusterSize;
+}
+
+bool& CameraNodePrivate::isDefaultFrameBufferUsed()
+{
+    return m_isDefaultFrameBufferUsed;
+}
+
+std::optional<glm::uvec2>& CameraNodePrivate::separateFramebufferFixedSize()
+{
+    return m_separateFramebufferFixedSize;
 }
 
 ShadowFilter& CameraNodePrivate::shadowFilter()

@@ -1,6 +1,8 @@
 #ifndef CORE_CAMERANODEPRIVATE_H
 #define CORE_CAMERANODEPRIVATE_H
 
+#include <optional>
+
 #include <utils/clipspace.h>
 
 #include <core/cameranode.h>
@@ -36,6 +38,9 @@ public:
     utils::Range& cullPlanesLimits();
     glm::uvec3& clusterSize();
 
+    bool& isDefaultFrameBufferUsed();
+    std::optional<glm::uvec2>& separateFramebufferFixedSize();
+
     ShadowFilter& shadowFilter();
     float& shadowBlurSigma();
     float& shadowLightBleedingAmount();
@@ -60,6 +65,9 @@ private:
 
     utils::Range m_cullPlanesLimits = utils::Range();
     glm::uvec3 m_clusterSize = glm::uvec3();
+
+    bool m_isDefaultFrameBufferUsed = true;
+    std::optional<glm::uvec2> m_separateFramebufferFixedSize;
 
     ShadowFilter m_shadowFilter = ShadowFilter::Discrete;
     float m_shadowBlurSigma = 1.f;

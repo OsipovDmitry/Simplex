@@ -34,6 +34,7 @@ public:
     void setRenderingEnabled(bool);
 
     bool isDefaultFramebufferUsed() const;
+    const std::optional<glm::uvec2>& separateFrameBufferFixedSize() const;
     void useDefaultFramebuffer();
     void useSeparateFramebuffer(const std::optional<glm::uvec2>& = std::nullopt);
 

@@ -17,7 +17,6 @@ CameraNode::CameraNode(const std::string& name)
     : Node(std::make_unique<CameraNodePrivate>(*this, name))
 {
     setRenderingEnabled(true);
-    useDefaultFramebuffer();
 
     const auto& graphicsSettings = settings::Settings::instance().graphics();
     const auto& cameraSettings = graphicsSettings.camera();
@@ -29,6 +28,7 @@ CameraNode::CameraNode(const std::string& name)
 
     setCullPlanesLimits(graphicsSettings.cullPlaneLimits());
     setClusterSize(cameraSettings.clusterSize());
+    useDefaultFramebuffer();
     setShadowFilter(shadowSettings.filter());
     setShadowBlurSigma(shadowSettings.blurSigma());
     setShadowLightBleedingAmount(shadowSettings.lightBleedingAmount());
@@ -63,17 +63,34 @@ void CameraNode::setRenderingEnabled(bool value)
 
 bool CameraNode::isDefaultFramebufferUsed() const
 {
-    return m().geometryBuffer() == nullptr;
+    return m().isDefaultFrameBufferUsed();
+}
+
+const std::optional<glm::uvec2>& CameraNode::separateFrameBufferFixedSize() const
+{
+    return m().separateFramebufferFixedSize();
 }
 
 void CameraNode::useDefaultFramebuffer()
 {
-    m().geometryBuffer() = nullptr;
+    auto& mPrivate = m();
+    if (!mPrivate.isDefaultFrameBufferUsed())
+    {
+        mPrivate.isDefaultFrameBufferUsed() = true;
+        mPrivate.separateFramebufferFixedSize().reset();
+        mPrivate.geometryBuffer().reset();
+    }
 }
 
 void CameraNode::useSeparateFramebuffer(const std::optional<glm::uvec2>& size)
 {
-    m().geometryBuffer() = std::make_shared<GeometryBuffer>(size);
+    auto& mPrivate = m();
+    if (mPrivate.isDefaultFrameBufferUsed() || (mPrivate.separateFramebufferFixedSize() != size))
+    {
+        mPrivate.isDefaultFrameBufferUsed() = false;
+        mPrivate.separateFramebufferFixedSize() = size;
+        mPrivate.geometryBuffer() = std::make_shared<GeometryBuffer>(mPrivate.separateFramebufferFixedSize());
+    }
 }
 
 const utils::ClipSpace& CameraNode::clipSpace() const
