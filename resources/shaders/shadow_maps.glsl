@@ -54,6 +54,16 @@ float shadowMapsDepthBiasFactor()
 	return shadowMaps.depthBiasFactor;
 }
 
+float shadowMapsCascadesBlendDistanceFactor()
+{
+	return shadowMaps.cascadesBlendDistanceFactor;
+}
+
+float shadowMapsCascadesDistancePower()
+{
+	return shadowMaps.cascadesDistancePower;
+}
+
 float shadowMapsBlurKernelSample(in uint radius)
 {
 	return shadowMaps.blurKernel[radius];
@@ -141,7 +151,7 @@ vec3 shadowMapsProccessEVSMShadow(
 	
 	if (!isTexelTransparent)
 	{
-		result *= texture(sampler2DArray(shadowMaps.colorTextureHandle), texCoords).rgb;
+		//result *= texture(sampler2DArray(shadowMaps.colorTextureHandle), texCoords).rgb;
 	}
 	
 	return result;

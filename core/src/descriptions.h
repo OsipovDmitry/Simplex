@@ -460,6 +460,7 @@ struct ShadowMapsDescription
     graphics::TextureHandle colorTextureHandle;
     graphics::TextureHandle momentsBluredTextureHandle;
     graphics::TextureHandle colorBluredTextureHandle;
+    uint32_t padding0[2u]; // graphics::TextureHandle is uvec2 (uint64_t)
 
     uint32_t atlasSize;
     float lightBleedingAmount;
@@ -467,11 +468,13 @@ struct ShadowMapsDescription
     float negativeExponent;
     float momentsBias;
     float depthBiasFactor;
+    float cascadesBlendDistanceFactor;
+    float cascadesDistancePower;
+    // uint32_t padding1[0u];
 
     float blurKernel[BlurKernelSize];
     uint32_t blurRadius;
-
-    uint32_t padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
+    uint32_t padding2[3u];
 
     static ShadowMapsDescription makeEmpty();
     static ShadowMapsDescription make(
@@ -486,6 +489,8 @@ struct ShadowMapsDescription
         float negativeExponent,
         float momentsBias,
         float depthBiasFactor,
+        float cascadesBlendDistanceFactor,
+        float cascadesDistancePower,
         const std::vector<float>& blurKernel);
 };
 

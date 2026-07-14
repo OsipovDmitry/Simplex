@@ -1,4 +1,5 @@
 #include<constants.glsl>
+#include<range.glsl>
 
 #define DISCRETE_SHADOW_FILTER 0u
 #define VSM_SHADOW_FILTER 1u
@@ -9,6 +10,39 @@
 #ifndef SHADOW_FILTER
 	#define SHADOW_FILTER EVSM_SHADOW_FILTER
 #endif
+
+float calculateCascadeDepth(in Range ZRange, in uint cascadeID, in uint cascadesCount, in float power)
+{
+	return rangeMix(ZRange, pow(float(cascadeID) / float(cascadesCount), power));
+}
+
+Range calculateCascadeRange(in Range ZRange, in uint cascadeID, in uint cascadesCount, in float power)
+{
+	return makeRange(
+		calculateCascadeDepth(ZRange, cascadeID, cascadesCount, power),
+		calculateCascadeDepth(ZRange, cascadeID + 1u, cascadesCount, power));
+}
+
+Range calculateExpandedCascadeRange(in Range ZRange, in uint cascadeID, in uint cascadesCount, in float power, in float blendDistanceFactor)
+{	
+	float currentCascadeDepth = calculateCascadeDepth(ZRange, cascadeID, cascadesCount, power);
+	if (cascadeID > 0u)
+	{
+		currentCascadeDepth = mix(
+			calculateCascadeDepth(ZRange, cascadeID - 1u, cascadesCount, power),
+			currentCascadeDepth,
+			1.0f - blendDistanceFactor);
+	}
+	
+	return makeRange(
+		currentCascadeDepth,
+		calculateCascadeDepth(ZRange, cascadeID + 1u, cascadesCount, power));
+}
+
+uint calculateCascadeID(in Range ZRange, in float depth, in uint cascadesCount, in float power)
+{
+	return uint(pow(rangeProjectOn(ZRange, depth), 1.0f / power) * float(cascadesCount));
+}
 
 vec4 calculateDiscreteMoments(in float linearNormalizedDepth)
 {

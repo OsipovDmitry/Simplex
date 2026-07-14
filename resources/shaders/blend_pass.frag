@@ -125,40 +125,75 @@ vec3 proccessDirectionalLight(
 		const uint shadowID = shadowedLightShadowID(lightID);
 		if (shadowID != 0xFFFFFFFFu)
 		{
-			uint layerID = 0xFFFFFFFFu;
-			vec3 texelPosLVS;
-			vec3 NDC_ZO;
+			const vec3 texelPosVS = transformPoint(cameraViewTransform(), texelPosWS);
+			const float texelDepthVS = -texelPosVS[2u];
 			
-			const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
+			const Range camZRange = cameraZRange();
 			const uint layersCount = shadowLayersCount(shadowID);
-			for (uint i = 0u; i < layersCount; ++i)
-			{
-				texelPosLVS = transformPoint(shadowTransformsDataViewTransform(transformsDataOffset, i), texelPosWS);
-				NDC_ZO = NO2ZO(projectPoint(
-					shadowTransformsDataProjectionMatrix(transformsDataOffset, i),
-					texelPosLVS));
-				if (all(lessThanEqual(vec3(0.0f), NDC_ZO)) && all(lessThanEqual(NDC_ZO, vec3(1.0f))))
-				{
-					layerID = i;
-					break;
-				}
-			}
+			const float cascadesDistancePower = shadowMapsCascadesDistancePower();
+			const uint layerID = calculateCascadeID(camZRange, texelDepthVS, layersCount, cascadesDistancePower);
 			
-			if (layerID != 0xFFFFFFFFu)
+			const float biasFactor = shadowMapsDepthBiasFactor();
+			const float biasScale = max(biasFactor * (1.0f - dot(N, L)), biasFactor * 0.1f);
+
+			const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
+			vec3 shadow = vec3(1.0f);
 			{
-				const float factor = shadowMapsDepthBiasFactor();
-				const float biasScale = max(factor * (1.0f - dot(N, L)), factor * 0.1f);
+				const vec3 texelPosLVS = transformPoint(shadowTransformsDataViewTransform(transformsDataOffset, layerID), texelPosWS);
+				const vec3 NDC_ZO = NO2ZO(projectPoint(
+					shadowTransformsDataProjectionMatrix(transformsDataOffset, layerID),
+					texelPosLVS));
 					
 				const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, layerID);
 				const float linearNormalizedDepth = normalizeLinearDepth(layerZRange, -texelPosLVS[2u] - biasScale);
 					
-				result *= proccessShadow(
+				shadow = proccessShadow(
 					NDC_ZO.xy,
 					linearNormalizedDepth,
 					shadowTransformsDataMapCoords(transformsDataOffset, layerID),
 					shadowMapSize(shadowID),
 					isTexelTransparent);
 			}
+			
+			const Range cascadeRange = calculateCascadeRange(camZRange, layerID, layersCount, cascadesDistancePower);
+			const float cascadeBlendRangeStart = rangeMix(cascadeRange, 1.0f - shadowMapsCascadesBlendDistanceFactor());
+			const float cascadeBlendFactor = clamp(
+				rangeProjectOn(makeRange(cascadeBlendRangeStart, rangeEnd(cascadeRange)), texelDepthVS),
+				0.0f,
+				1.0f);
+
+			const uint nextLayerID = layerID + 1u;
+			if ((cascadeBlendFactor > 0.0f) && (nextLayerID < layersCount))
+			{
+				const vec3 texelPosLVS = transformPoint(shadowTransformsDataViewTransform(transformsDataOffset, nextLayerID), texelPosWS);
+				const vec3 NDC_ZO = NO2ZO(projectPoint(
+					shadowTransformsDataProjectionMatrix(transformsDataOffset, nextLayerID),
+					texelPosLVS));
+					
+				const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, nextLayerID);
+				const float linearNormalizedDepth = normalizeLinearDepth(layerZRange, -texelPosLVS[2u] - biasScale);
+					
+				const vec3 nextLayerShadow = proccessShadow(
+					NDC_ZO.xy,
+					linearNormalizedDepth,
+					shadowTransformsDataMapCoords(transformsDataOffset, nextLayerID),
+					shadowMapSize(shadowID),
+					isTexelTransparent);
+					
+				shadow = mix(shadow, nextLayerShadow, cascadeBlendFactor);
+			}
+			
+			result *= shadow;
+				
+			// tmp
+			const vec3 colors[6u] = vec3[6u](
+				vec3(1,0,0),
+				vec3(0,1,0),
+				vec3(0,0,1),
+				vec3(1,1,0),
+				vec3(1,0,1),
+				vec3(0,1,1));
+			//result = mix(result, mix(colors[layerID], colors[nextLayerID], cascadeBlendFactor), 0.5f);
 		}
 	}
 	
@@ -224,13 +259,12 @@ vec3 proccessPointLight(
 			{
 				const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
 				const vec3 texelPosLVS = transformPoint(shadowTransformsDataViewTransform(transformsDataOffset, layerID), texelPosWS);
-				
 				const vec3 NDC_ZO = NO2ZO(projectPoint(
 					shadowTransformsDataProjectionMatrix(transformsDataOffset, layerID),
 					texelPosLVS));
 				
-				const float factor = shadowMapsDepthBiasFactor();
-				const float biasScale = max(factor * (1.0f - dot(N, L)), factor * 0.1f);
+				const float biasFactor = shadowMapsDepthBiasFactor();
+				const float biasScale = max(biasFactor * (1.0f - dot(N, L)), biasFactor * 0.1f);
 				
 				const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, layerID);
 				const float linearNormalizedDepth = normalizeLinearDepth(layerZRange, -texelPosLVS[2u] - biasScale);
@@ -298,8 +332,8 @@ vec3 proccessSpotLight(
 			
 			if (all(lessThanEqual(vec3(0.0f), NDC_ZO)) && all(lessThanEqual(NDC_ZO, vec3(1.0f))))
 			{
-				const float factor = shadowMapsDepthBiasFactor();
-				const float biasScale = max(factor * (1.0f - dot(N, L)), factor * 0.1f);
+				const float biasFactor = shadowMapsDepthBiasFactor();
+				const float biasScale = max(biasFactor * (1.0f - dot(N, L)), biasFactor * 0.1f);
 				
 				const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, 0u);
 				const float linearNormalizedDepth = normalizeLinearDepth(layerZRange, -texelPosLVS[2u] - biasScale);

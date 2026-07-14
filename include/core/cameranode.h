@@ -68,6 +68,12 @@ public:
 
     float shadowDepthBiasFactor() const;
     void setShadowDepthsBiasFactor(float);
+
+    float shadowCascadesBlendDistanceFactor() const;
+    void setShadowCascadesBlendDistanceFactor(float) const;
+
+    float shadowCascadesDistancePower() const;
+    void setShadowCascadesDistancePower(float) const;
 };
 
 } // namespace core

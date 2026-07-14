@@ -22,7 +22,11 @@ CameraNodePrivate::~CameraNodePrivate() = default;
 
 void CameraNodePrivate::onAttachToScene(const std::shared_ptr<Scene>& scene)
 {
-    if (!m_isDefaultFrameBufferUsed) m_geometryBuffer = std::make_shared<GeometryBuffer>(m_separateFramebufferFixedSize);
+    if (!m_isDefaultFrameBufferUsed)
+    {
+        m_geometryBuffer = std::make_shared<GeometryBuffer>();
+        m_geometryBuffer->setFixedSize(m_separateFramebufferFixedSize);
+    }
 
     m_renderPipeLine = std::make_shared<RenderPipeLine>(scene->m().shadowAtlasSize());
     m_renderPipeLine->shadowFilter() = m_shadowFilter;
@@ -32,6 +36,8 @@ void CameraNodePrivate::onAttachToScene(const std::shared_ptr<Scene>& scene)
     m_renderPipeLine->shadowNegativeExponent() = m_shadowNegativeExponent;
     m_renderPipeLine->shadowMomentsBias() = m_shadowMomentsBias;
     m_renderPipeLine->shadowDepthBiasFactor() = m_shadowDepthBiasFactor;
+    m_renderPipeLine->shadowCascadesBlendDistanceFactor() = m_shadowCascadesBlendDistanceFactor;
+    m_renderPipeLine->shadowCascadesDistancePower() = m_shadowCascadesDistancePower;
 }
 
 void CameraNodePrivate::onDetachFromScene(const std::shared_ptr<Scene>&)
@@ -122,6 +128,16 @@ float& CameraNodePrivate::shadowMomentsBias()
 float& CameraNodePrivate::shadowDepthBiasFactor()
 {
     return m_shadowDepthBiasFactor;
+}
+
+float& CameraNodePrivate::shadowCascadesBlendDistanceFactor()
+{
+    return m_shadowCascadesBlendDistanceFactor;
+}
+
+float& CameraNodePrivate::shadowCascadesDistancePower()
+{
+    return m_shadowCascadesDistancePower;
 }
 
 void CameraNodePrivate::resize(const glm::uvec2& size)

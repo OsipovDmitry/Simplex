@@ -15,9 +15,8 @@ namespace simplex
 namespace core
 {
 
-GeometryBuffer::GeometryBuffer(const std::optional<glm::uvec2>& fixedSize)
+GeometryBuffer::GeometryBuffer()
     : StateSet()
-    , m_fixedSize(fixedSize)
 {
     if (m_fixedSize) m_fixedSize = glm::max(m_fixedSize.value(), glm::uvec2(1u));
 
@@ -43,6 +42,18 @@ void GeometryBuffer::initialize(const std::shared_ptr<ProgramsLoader>& programsL
 const std::optional<glm::uvec2>& GeometryBuffer::fixedSize() const
 {
     return m_fixedSize;
+}
+
+void GeometryBuffer::setFixedSize(const std::optional<glm::uvec2>& value)
+{
+    std::optional<glm::uvec2> newFixedSize;
+    if (value) newFixedSize = glm::max(value.value(), glm::uvec2(1u));
+
+    if (m_fixedSize != newFixedSize)
+    {
+        m_fixedSize = newFixedSize;
+        m_size = glm::uvec2(0u); // it'll affect buffers recreating next frame
+    }
 }
 
 const glm::uvec2& GeometryBuffer::size() const

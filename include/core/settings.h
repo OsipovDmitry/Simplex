@@ -105,6 +105,8 @@ public:
     float negativeExponent() const;
     float momentsBias() const;
     float depthBiasFactor() const;
+    float cascadesBlendDistanceFactor() const;
+    float cascadesDistancePower() const;
 };
 
 class CORE_SHARED_EXPORT SSAO : public utils::SettingsComponent

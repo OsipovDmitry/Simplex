@@ -375,7 +375,7 @@ ShadowMapsDescription ShadowMapsDescription::makeEmpty()
     return ShadowMapsDescription::make(
         utils::IDsGeneratorT<graphics::TextureHandle>::last(), utils::IDsGeneratorT<graphics::TextureHandle>::last(),
         utils::IDsGeneratorT<graphics::TextureHandle>::last(), utils::IDsGeneratorT<graphics::TextureHandle>::last(),
-        utils::IDsGeneratorT<graphics::TextureHandle>::last(), 0u, 0.f, 1.f, 1.f, 0.f, 0.f, {});
+        utils::IDsGeneratorT<graphics::TextureHandle>::last(), 0u, 0.f, 1.f, 1.f, 0.f, 0.f, 0.f, 1.0f, {});
 }
 
 ShadowMapsDescription ShadowMapsDescription::make(
@@ -390,6 +390,8 @@ ShadowMapsDescription ShadowMapsDescription::make(
     float negativeExponent,
     float momentsBias,
     float depthBiasFactor,
+    float cascadesBlendDistanceFactor,
+    float cascadesDistancePower,
     const std::vector<float>& blurKernel)
 {
     ShadowMapsDescription result;
@@ -404,6 +406,8 @@ ShadowMapsDescription ShadowMapsDescription::make(
     result.negativeExponent = negativeExponent;
     result.momentsBias = momentsBias;
     result.depthBiasFactor = depthBiasFactor;
+    result.cascadesBlendDistanceFactor = cascadesBlendDistanceFactor;
+    result.cascadesDistancePower = cascadesDistancePower;
     for (size_t i = 0u; i < blurKernel.size(); ++i)
         result.blurKernel[i] = blurKernel[i];
     result.blurRadius = static_cast<uint32_t>(blurKernel.size());

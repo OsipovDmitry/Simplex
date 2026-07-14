@@ -354,6 +354,9 @@ ClusterGlobalLightPass::ClusterGlobalLightPass(
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowsToUpdateBuffer) =
         graphics::BufferRange::create(renderPipeLine->shadowsToUpdateBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowMapsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowMapsBuffer()->buffer());
 }
 
 ClusterGlobalLightPass::~ClusterGlobalLightPass() = default;
@@ -796,6 +799,10 @@ FinalPass::FinalPass(const std::shared_ptr<ProgramsLoader>& programsManager, con
 {
     m_program =
         programsManager->loadOrGetRenderProgram(resources::FinalPassVertexShaderPath, resources::FinalPassFragmentShaderPath, {});
+
+    // tmp
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowMapsBuffer) =
+        graphics::BufferRange::create(renderPipeLine->shadowMapsBuffer()->buffer());
 }
 
 FinalPass::~FinalPass() = default;

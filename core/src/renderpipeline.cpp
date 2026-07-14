@@ -197,6 +197,16 @@ float& RenderPipeLine::shadowDepthBiasFactor()
     return m_shadowDepthBiasFactor;
 }
 
+float& RenderPipeLine::shadowCascadesBlendDistanceFactor()
+{
+    return m_shadowCascadesBlendDistanceFactor;
+}
+
+float& RenderPipeLine::shadowCascadesDistancePower()
+{
+    return m_shadowCascadesDistancePower;
+}
+
 RenderInfoBuffer& RenderPipeLine::renderInfoBuffer()
 {
     return m_renderInfoBuffer;
@@ -491,7 +501,8 @@ void RenderPipeLine::updateShadowMapsBuffer()
         m_shadowColorBluredTextureHandle ? m_shadowColorBluredTextureHandle->handle()
                                          : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
         m_shadowAtlasSize, m_shadowLightBleedingAmount, m_shadowPositiveExponent, m_shadowNegativeExponent, m_shadowMomentsBias,
-        m_shadowDepthBiasFactor, calculateShadowBlurKernel()));
+        m_shadowDepthBiasFactor, m_shadowCascadesBlendDistanceFactor, m_shadowCascadesDistancePower,
+        calculateShadowBlurKernel()));
 }
 
 void RenderPipeLine::resizeFinalTexture(

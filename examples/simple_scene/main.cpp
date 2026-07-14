@@ -51,7 +51,7 @@ std::weak_ptr<simplex::core::DirectionalLightNode> directionalLightNodeWeak;
 std::weak_ptr<simplex::core::PointLightNode> pointLightNode0Weak;
 std::weak_ptr<simplex::core::PointLightNode> pointLightNode1Weak;
 std::weak_ptr<simplex::core::PointLightNode> pointLightNode2Weak;
-uint32_t directionalLightNodeState = 2u;
+uint32_t directionalLightNodeState = 1u;
 uint32_t pointLightNode0State = 0u;
 uint32_t pointLightNode1State = 0u;
 uint32_t pointLightNode2State = 0u;
@@ -514,21 +514,21 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
 
     auto pointLightNode0 = std::make_shared<simplex::core::PointLightNode>("");
     pointLightNode0->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(6.0f, 3.3f, 0.0f)));
-    pointLightNode0->setColor(glm::vec3(3.f, 1.f, 1.f));
+    pointLightNode0->setColor(glm::vec3(2.5f));
     pointLightNode0->setRadiuses(glm::vec2(5.f, 8.f));
     scene->sceneRootNode()->attach(pointLightNode0);
     pointLightNode0Weak = pointLightNode0;
 
     auto pointLightNode1 = std::make_shared<simplex::core::PointLightNode>("");
     pointLightNode1->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(0.0f, 3.3f, 0.0f)));
-    pointLightNode1->setColor(glm::vec3(3.f));
+    pointLightNode1->setColor(glm::vec3(2.5f));
     pointLightNode1->setRadiuses(glm::vec2(5.f, 8.f));
     scene->sceneRootNode()->attach(pointLightNode1);
     pointLightNode1Weak = pointLightNode1;
 
     auto pointLightNode2 = std::make_shared<simplex::core::PointLightNode>("");
     pointLightNode2->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(-6.0f, 3.3f, 0.0f)));
-    pointLightNode2->setColor(glm::vec3(1.f, 1.f, 3.f));
+    pointLightNode2->setColor(glm::vec3(2.5f));
     pointLightNode2->setRadiuses(glm::vec2(5.f, 8.f));
     scene->sceneRootNode()->attach(pointLightNode2);
     pointLightNode2Weak = pointLightNode2;
@@ -549,7 +549,7 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
             .inverted());
     directionalLightNode->setColor(glm::vec3(7.f));
     directionalLightNode->setShadowCascadesCount(4u);
-    directionalLightNode->setShadowMapSize(1024u);
+    // directionalLightNode->setShadowMapSize(1024u);
     scene->sceneRootNode()->attach(directionalLightNode);
     directionalLightNodeWeak = directionalLightNode;
 
@@ -561,7 +561,7 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     IBLNodeWeak = IBLNode;
 
     auto ambientLightNode = std::make_shared<simplex::core::AmbientLightNode>("");
-    ambientLightNode->setColor(glm::vec3(.1f));
+    ambientLightNode->setColor(glm::vec3(.05f));
     scene->sceneRootNode()->attach(ambientLightNode);
 
     // auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/arabic_city/scene.gltf");

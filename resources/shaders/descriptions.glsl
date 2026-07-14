@@ -414,6 +414,7 @@ struct ShadowMapsDescription
     TextureHandle colorTextureHandle;
 	TextureHandle momentsBluredTextureHandle;
 	TextureHandle colorBluredTextureHandle;
+	uint padding0[2u]; // graphics::TextureHandle is uvec2 (uint64_t)
 
 	uint atlasSize;
 	float lightBleedingAmount;
@@ -421,11 +422,13 @@ struct ShadowMapsDescription
     float negativeExponent;
     float momentsBias;
     float depthBiasFactor;
+    float cascadesBlendDistanceFactor;
+    float cascadesDistancePower;
+    //uint padding1[0u];
 
 	float blurKernel[ShadowMapsBlurKernelSize];
 	uint blurRadius;
-
-	uint padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
+	uint padding2[3u];
 };
 
 struct BlurInfoDescription

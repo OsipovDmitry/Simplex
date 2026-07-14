@@ -7,6 +7,7 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 #include<light.glsl>
 #include<light_node.glsl>
 #include<shadow.glsl>
+#include<shadow_maps.glsl>
 #include<shadow_to_update.glsl>
 #include<shadow_transforms_data.glsl>
 #include<render_info.glsl>
@@ -19,6 +20,7 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 #include<math/oriented_bounding_box.glsl>
 #include<math/pyramid.glsl>
 #include<math/range.glsl>
+#include<math/shadow_utils.glsl>
 #include<math/sphere.glsl>
 #include<math/transform.glsl>
 #include<math/utils.glsl>
@@ -65,29 +67,30 @@ void addDirectionalShadow(
 		const Transform translatedLightViewTransform = transformMult(
 			makeTransform(-orth(2u) * rangeEnd(globalBoundingBoxRangeLVS)),
 			lightViewTransform);
-			
-		const Transform camViewTransformInverted = cameraViewTransformInverted();
+		const Transform VS2TranslatedLVSTransform = transformMult(translatedLightViewTransform, cameraViewTransformInverted());
+
 		const ClipSpace camClipSpace = cameraClipSpace();
 		const Range camZRange = cameraZRange();
-		const float camZNear = rangeStart(camZRange);
-		const float camZFar = rangeEnd(camZRange);
+		const float cascadesBlendDistanceFactor = shadowMapsCascadesBlendDistanceFactor();
+		const float cascadesDistancePower = shadowMapsCascadesDistancePower();
 		
 		const uint transformsDataOffset = shadowTransformsDataOffset(shadowID);
 		const uint layersCount = shadowLayersCount(shadowID);
 		for (uint layerID = 0u; layerID < layersCount; ++layerID)
 		{
-			const Range camLayerZRange = makeRange(
-				mix(camZNear, camZFar, pow(float(layerID) / float(layersCount), 1.5f)),
-				mix(camZNear, camZFar, pow(float(layerID + 1u) / float(layersCount), 1.5f)));
-				
+			const Range camLayerZRange = calculateExpandedCascadeRange(
+				camZRange,
+				layerID,
+				layersCount,
+				cascadesDistancePower,
+				cascadesBlendDistanceFactor);
 			const mat4x4 camLayerProjectionMatrixInverted = inverse(clipSpaceProjectionMatrix(camClipSpace, camLayerZRange));
 			BoundingBox layerBoundingBoxLVS = makeEmptyBoundingBox();
 			
 			for (uint pointID = 0u; pointID < FRUSTUM_POINTS_COUNT; ++pointID)
 			{
 				const vec3 pointVS = frustumCalculatePoint(camLayerProjectionMatrixInverted, pointID);
-				const vec3 pointWS = transformPoint(camViewTransformInverted, pointVS);
-				const vec3 pointLVS = transformPoint(translatedLightViewTransform, pointWS);
+				const vec3 pointLVS = transformPoint(VS2TranslatedLVSTransform, pointVS);
 				layerBoundingBoxLVS = boundingBoxExpand(layerBoundingBoxLVS, pointLVS);
 			}
 			

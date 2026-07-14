@@ -40,13 +40,14 @@
 	  "AtlasSize": 4096,
       "MapSize": 512,
 	  "Filter": "EVSM",
-	  "BlurSigma": 2.0,
-	  "DepthBiasFactor": 0.05,
+	  "BlurSigma": 5.0,
 	  "LightBleedingAmount": 0.2,
 	  "PositiveExponent": 20.0,
 	  "NegativeExponent": 20.0,
 	  "MomentsBias": 0.000001,
-	  "DepthBiasFactor": 0.05
+	  "DepthBiasFactor": 0.05,
+	  "CascadesBlendDistanceFactor": 0.15,
+	  "CascadesDistancePower": 1.5
     },
     "SSAO": {
       "Mode": "disabled",

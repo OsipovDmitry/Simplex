@@ -82,7 +82,7 @@ GraphicsEngine::GraphicsEngine(const std::string& name, const std::shared_ptr<gr
 
     m_->frameBuffer() = renderer->createFrameBuffer();
     m_->vertexArray() = renderer->createVertexArray();
-    m_->geometryBuffer() = std::make_shared<GeometryBuffer>(std::nullopt);
+    m_->geometryBuffer() = std::make_shared<GeometryBuffer>();
 
     m_->dielectricSpecular() = settings.graphics().pbr().dielectricSpecular();
 

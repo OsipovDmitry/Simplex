@@ -338,6 +338,18 @@ float Shadow::depthBiasFactor() const
     return s_depthBiasFactor;
 }
 
+float Shadow::cascadesBlendDistanceFactor() const
+{
+    static const auto s_cascadesBlendDistanceFactor = readSingle("CascadesBlendDistanceFactor", .15f);
+    return s_cascadesBlendDistanceFactor;
+}
+
+float Shadow::cascadesDistancePower() const
+{
+    static const auto s_cascadesDistancePower = readSingle("CascadesDistancePower", 1.5f);
+    return s_cascadesDistancePower;
+}
+
 SSAO::SSAO(const rapidjson::Document::ValueType* value)
     : utils::SettingsComponent(value)
 {

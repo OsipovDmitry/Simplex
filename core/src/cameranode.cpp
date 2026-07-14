@@ -36,6 +36,8 @@ CameraNode::CameraNode(const std::string& name)
     setShadowNegativeExponent(shadowSettings.negativeExponent());
     setShadowMomentsBias(shadowSettings.momentsBias());
     setShadowDepthsBiasFactor(shadowSettings.depthBiasFactor());
+    setShadowCascadesBlendDistanceFactor(shadowSettings.cascadesBlendDistanceFactor());
+    setShadowCascadesDistancePower(shadowSettings.cascadesDistancePower());
 }
 
 CameraNode::~CameraNode() = default;
@@ -89,7 +91,11 @@ void CameraNode::useSeparateFramebuffer(const std::optional<glm::uvec2>& size)
     {
         mPrivate.isDefaultFrameBufferUsed() = false;
         mPrivate.separateFramebufferFixedSize() = size;
-        mPrivate.geometryBuffer() = std::make_shared<GeometryBuffer>(mPrivate.separateFramebufferFixedSize());
+
+        if (auto& geometryBuffer = mPrivate.geometryBuffer())
+        {
+            geometryBuffer->setFixedSize(mPrivate.separateFramebufferFixedSize());
+        }
     }
 }
 
@@ -273,6 +279,64 @@ void CameraNode::setShadowDepthsBiasFactor(float value)
         if (auto& renderPipeLine = mPrivate.renderPipeLine())
         {
             renderPipeLine->shadowDepthBiasFactor() = mPrivate.shadowDepthBiasFactor();
+            renderPipeLine->deinitialize();
+        }
+    }
+}
+
+float CameraNode::shadowCascadesBlendDistanceFactor() const
+{
+    return m().shadowCascadesBlendDistanceFactor();
+}
+
+void CameraNode::setShadowCascadesBlendDistanceFactor(float value) const
+{
+    if (value < 0.f)
+    {
+        LOG_CRITICAL << "Cascades blend distance factor can't be less than 0.0";
+        return;
+    }
+
+    if (value > 1.f)
+    {
+        LOG_CRITICAL << "Cascades blend distance factor can't be more than 1.0";
+        return;
+    }
+
+    auto& mPrivate = m();
+    if (mPrivate.shadowCascadesBlendDistanceFactor() != value)
+    {
+        mPrivate.shadowCascadesBlendDistanceFactor() = value;
+
+        if (auto& renderPipeLine = mPrivate.renderPipeLine())
+        {
+            renderPipeLine->shadowCascadesBlendDistanceFactor() = mPrivate.shadowCascadesBlendDistanceFactor();
+            renderPipeLine->deinitialize();
+        }
+    }
+}
+
+float CameraNode::shadowCascadesDistancePower() const
+{
+    return m().shadowCascadesDistancePower();
+}
+
+void CameraNode::setShadowCascadesDistancePower(float value) const
+{
+    if (value <= 0.f)
+    {
+        LOG_CRITICAL << "Cascades distance power can't be less or equal than 0.0";
+        return;
+    }
+
+    auto& mPrivate = m();
+    if (mPrivate.shadowCascadesDistancePower() != value)
+    {
+        mPrivate.shadowCascadesDistancePower() = value;
+
+        if (auto& renderPipeLine = mPrivate.renderPipeLine())
+        {
+            renderPipeLine->shadowCascadesDistancePower() = mPrivate.shadowCascadesDistancePower();
             renderPipeLine->deinitialize();
         }
     }

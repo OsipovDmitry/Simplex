@@ -48,6 +48,8 @@ public:
     float& shadowNegativeExponent();
     float& shadowMomentsBias();
     float& shadowDepthBiasFactor();
+    float& shadowCascadesBlendDistanceFactor();
+    float& shadowCascadesDistancePower();
 
     void resize(const glm::uvec2&);
     void updateClipSpace();
@@ -76,6 +78,8 @@ private:
     float m_shadowNegativeExponent = 1.f;
     float m_shadowMomentsBias = 0.f;
     float m_shadowDepthBiasFactor = 0.f;
+    float m_shadowCascadesBlendDistanceFactor = .15f;
+    float m_shadowCascadesDistancePower = 1.5f;
 };
 
 } // namespace core

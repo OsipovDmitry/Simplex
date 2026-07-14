@@ -21,12 +21,13 @@ using PConstGBuffer = std::shared_ptr<const graphics::StructBuffer<GBufferDescri
 class GeometryBuffer : public StateSet, public std::enable_shared_from_this<GeometryBuffer>
 {
 public:
-    GeometryBuffer(const std::optional<glm::uvec2>& fixedSize);
+    GeometryBuffer();
     ~GeometryBuffer() override;
 
     void initialize(const std::shared_ptr<ProgramsLoader>&);
 
     const std::optional<glm::uvec2>& fixedSize() const;
+    void setFixedSize(const std::optional<glm::uvec2>&);
 
     const glm::uvec2& size() const;
     void resize(const glm::uvec2&, const std::shared_ptr<graphics::RendererBase>&);

@@ -52,6 +52,16 @@ float rangeHalfSize(in Range r)
 	return 0.5f * (r[1u] - r[0u]);
 }
 
+float rangeMix(in Range r, in float t)
+{
+	return mix(r[0u], r[1u],  t);
+}
+
+float rangeProjectOn(in Range r, in float t)
+{
+	return (t - r[0u]) / (r[1u] - r[0u]);
+}
+
 Range rangeExpand(in Range r, in float t)
 {
 	return makeRange(min(r[0u], t), max(r[1u], t));
