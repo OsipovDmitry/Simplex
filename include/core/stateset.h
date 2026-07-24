@@ -102,7 +102,6 @@ ENUMCLASS(
     LightsBuffer,
     ShadowsBuffer,
     SkeletonsBuffer,
-    ShadowMapsBuffer,
 
     DrawDataBuffer,
     SkeletalAnimatedDataBuffer,
@@ -128,6 +127,8 @@ ENUMCLASS(
     CountersBuffer,
     GBuffer,
     OITNodesBuffer,
+    ShadowMapsBuffer,
+    BloomBuffer,
 
     LayeredShadowMatrices,
     SSAOKernel,

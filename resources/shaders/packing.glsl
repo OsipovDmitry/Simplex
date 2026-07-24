@@ -182,3 +182,8 @@ void unpackPBRData(
 	isLighted = flags[0u];
 	isShadowed = flags[1u];
 }
+
+vec3 unpackEmissionFromPBRData(in uvec4 PBRData)
+{
+	return unpackF2x11_1x10(PBRData[1u]);
+}

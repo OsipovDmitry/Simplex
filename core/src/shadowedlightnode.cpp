@@ -108,6 +108,7 @@ ShadowedLightNode::ShadowedLightNode(std::unique_ptr<ShadowedLightNodePrivate> s
     : ColoredLightNode(std::move(shadowedLightNodePrivate))
 {
     setShadingEnabled(false);
+    setVolumetricScatteringEnabled(false);
 
     const auto& graphicsSettings = settings::Settings::instance().graphics();
     const auto& shadowSettings = graphicsSettings.shadow();

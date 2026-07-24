@@ -4,8 +4,8 @@
 #include <memory>
 #include <vector>
 
-#include <core/cameranode.h>
 #include <core/forwarddecl.h>
+#include <core/shadowssettings.h>
 
 #include "descriptions.h"
 
@@ -29,6 +29,7 @@ using SkeletalAnimatedDataToUpdateBuffer = std::shared_ptr<graphics::VectorBuffe
 using ShadowsToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowToUpdateDescription>>;
 using ShadowDataBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowDataDescription>>;
 using ShadowMapsBuffer = std::shared_ptr<graphics::StructBuffer<ShadowMapsDescription>>;
+using BloomBuffer = std::shared_ptr<graphics::StructBuffer<BloomDescription>>;
 
 class RenderPipeLine : public std::enable_shared_from_this<RenderPipeLine>
 {
@@ -37,7 +38,6 @@ public:
     ~RenderPipeLine();
 
     void initialize(const std::shared_ptr<ProgramsLoader>&);
-    void deinitialize();
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,
@@ -54,15 +54,22 @@ public:
         const glm::uvec3&);
 
     uint32_t shadowAtlasSize() const;
-    ShadowFilter& shadowFilter();
-    float& shadowBlurSigma();
-    float& shadowLightBleedingAmount();
-    float& shadowPositiveExponent();
-    float& shadowNegativeExponent();
-    float& shadowMomentsBias();
-    float& shadowDepthBiasFactor();
-    float& shadowCascadesBlendDistanceFactor();
-    float& shadowCascadesDistancePower();
+    ShadowFilter shadowFilter() const;
+
+    void setShadowFilter(ShadowFilter);
+    void setShadowBlurSigma(float);
+    void setShadowLightBleedingAmount(float);
+    void setShadowPositiveExponent(float);
+    void setShadowNegativeExponent(float);
+    void setShadowMomentsBias(float);
+    void setShadowDepthBiasFactor(float);
+    void setShadowCascadesBlendDistanceFactor(float);
+    void setShadowCascadesDistancePower(float);
+
+    void setBloomEnabled(bool);
+    void setBloomContribution(float);
+    void setBloomPassesCount(uint32_t);
+    void setBloomUpSamplePassBlurRadius(float);
 
     RenderInfoBuffer& renderInfoBuffer();
     CountersBuffer& countersBuffer();
@@ -74,6 +81,7 @@ public:
     ShadowsToUpdateBuffer& shadowsToUpdateBuffer();
     ShadowDataBuffer& shadowDataBuffer();
     ShadowMapsBuffer& shadowMapsBuffer();
+    BloomBuffer& bloomBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& bonesTransformsDataCalculateCommandBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& opaqueDrawDataRenderCommandsBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& transparentDrawDataRenderCommandsBuffer();
@@ -92,21 +100,32 @@ public:
     graphics::PConstTexture shadowColorTexture() const;
     graphics::PConstTexture shadowMomentsBluredTexture() const;
     graphics::PConstTexture shadowColorBluredTexture() const;
+    graphics::PConstTexture bloomTexture() const;
     graphics::PConstTexture finalTexture() const;
 
     glm::vec4 shadowMomentsTextureClearColor() const;
-    bool shadowIsBlurPassNeeded() const;
 
 private:
+    void deinitialize();
+    void dirtyShadowMapsBuffer();
+    void dirtyBloomBuffer();
+
+    bool isShadowBlurPassNeeded() const;
     graphics::PixelInternalFormat shadowMomentsTextureInternalFormat() const;
     std::vector<float> calculateShadowBlurKernel() const;
 
     void resizeShadowTextures(const std::shared_ptr<graphics::RendererBase>&, uint32_t);
     void updateShadowMapsBuffer();
 
+    void resizeBloomTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
+    void updateBloomBuffer();
+
     void resizeFinalTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
 
     bool m_isInitialized = false;
+    bool m_isShadowMapsBufferDirty = true;
+    bool m_isBloomBufferDirty = true;
+
     uint32_t m_shadowAtlasSize = 0u;
     ShadowFilter m_shadowFilter = ShadowFilter::Discrete;
     float m_shadowBlurSigma = 1.f;
@@ -118,6 +137,11 @@ private:
     float m_shadowCascadesBlendDistanceFactor = .15f;
     float m_shadowCascadesDistancePower = 1.5f;
 
+    bool m_isBloomEnabled = false;
+    float m_bloomContribution = .05f;
+    uint32_t m_bloomPassesCount = 4u;
+    float m_bloomUpSamplePassBlurRadius = 2.f;
+
     RenderInfoBuffer m_renderInfoBuffer;
     CountersBuffer m_countersBuffer;
     CameraBuffer m_cameraBuffer;
@@ -128,6 +152,7 @@ private:
     ShadowsToUpdateBuffer m_shadowsToUpdateBuffer;
     ShadowDataBuffer m_shadowDataBuffer;
     ShadowMapsBuffer m_shadowMapsBuffer;
+    BloomBuffer m_bloomBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_bonesTransformsDataCalculateCommandBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_opaqueDrawDataRenderCommandsBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_transparentDrawDataRenderCommandsBuffer;
@@ -146,6 +171,7 @@ private:
     graphics::PTextureHandle m_shadowColorTextureHandle;
     graphics::PTextureHandle m_shadowMomentsBluredTextureHandle;
     graphics::PTextureHandle m_shadowColorBluredTextureHandle;
+    graphics::PTextureHandle m_bloomTextureHandle;
     graphics::PTexture m_finalTexture;
 
     std::vector<std::shared_ptr<RenderPass>> m_passes;

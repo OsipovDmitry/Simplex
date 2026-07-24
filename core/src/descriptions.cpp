@@ -415,6 +415,11 @@ ShadowMapsDescription ShadowMapsDescription::make(
     return result;
 }
 
+BloomDescription BloomDescription::make(graphics::TextureHandle textureHandle, float contribution, float upSamplePassBlurRadius)
+{
+    return {textureHandle, contribution, upSamplePassBlurRadius, 0u};
+}
+
 SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::makeEmpty()
 {
     return make(utils::IDsGenerator::last(), utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0u);

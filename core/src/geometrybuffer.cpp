@@ -155,21 +155,23 @@ graphics::PConstTexture GeometryBuffer::finalTexture() const
 
 void GeometryBuffer::recreateBuffers(const std::shared_ptr<graphics::RendererBase>& graphicsRenderer)
 {
-    m_colorTextureHandle = graphicsRenderer->createTextureHandle(
-        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA32UI));
+    auto colorTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA32UI);
+    m_colorTextureHandle = graphicsRenderer->createTextureHandle(colorTexture);
     m_colorTextureHandle->makeResident();
 
-    m_depthTextureHandle = graphicsRenderer->createTextureHandle(
-        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Depth32F));
+    auto depthTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Depth32F);
+    m_depthTextureHandle = graphicsRenderer->createTextureHandle(depthTexture);
     m_depthTextureHandle->makeResident();
 
-    m_OITNodeIDImageHandle = graphicsRenderer->createImageHandle(graphics::Image::create(
-        graphics::Image::DataAccess::ReadWrite,
-        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R32UI)));
+    auto OITNodeIDTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::R32UI);
+    auto OITNodeIDImage = graphics::Image::create(graphics::Image::DataAccess::ReadWrite, OITNodeIDTexture);
+    m_OITNodeIDImageHandle = graphicsRenderer->createImageHandle(OITNodeIDImage);
     m_OITNodeIDImageHandle->makeResident();
 
-    m_finalTextureHandle = graphicsRenderer->createTextureHandle(
-        graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA16F));
+    auto finalTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA16F);
+    finalTexture->setFilterMode(graphics::TextureFilterMode::Linear);
+    finalTexture->setWrapMode(graphics::TextureWrapMode::ClampToEdge);
+    m_finalTextureHandle = graphicsRenderer->createTextureHandle(finalTexture);
     m_finalTextureHandle->makeResident();
 
     const auto OITBufferSize = glm::min(m_maxOITNodesCount, glm::compMul(m_size) * m_OITNodesCountPerPixel);

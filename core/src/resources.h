@@ -55,6 +55,9 @@ static const std::filesystem::path RenderBackgroundPassVertexShaderPath = "./res
 static const std::filesystem::path RenderBackgroundPassFragmentShaderPath = "./resources/shaders/render_background_pass.frag";
 static const std::filesystem::path BlendPassVertexShaderPath = "./resources/shaders/blend_pass.vert";
 static const std::filesystem::path BlendPassFragmentShaderPath = "./resources/shaders/blend_pass.frag";
+static const std::filesystem::path BloomPassVertexShaderPath = "./resources/shaders/bloom_pass.vert";
+static const std::filesystem::path BloomDownSamplePassFragmentShaderPath = "./resources/shaders/bloom_down_sample_pass.frag";
+static const std::filesystem::path BloomUpSamplePassFragmentShaderPath = "./resources/shaders/bloom_up_sample_pass.frag";
 static const std::filesystem::path FinalPassVertexShaderPath = "./resources/shaders/final_pass.vert";
 static const std::filesystem::path FinalPassFragmentShaderPath = "./resources/shaders/final_pass.frag";
 

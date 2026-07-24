@@ -101,7 +101,12 @@ float geometryBufferDepth(in uint OITNodeID)
 	return OITNodes[OITNodeID].depth;
 }
 
-vec3 geometryBufferFinalColor(in ivec2 fragCoords)
+vec3 geometryBufferFetchFinalColor(in ivec2 fragCoords)
 {
 	return texelFetch(sampler2DRect(GBuffer.finalTextureHandle), fragCoords).rgb;
+}
+
+vec3 geometryBufferFinalColor(in vec2 fragCoords)
+{
+	return texture(sampler2DRect(GBuffer.finalTextureHandle), fragCoords).rgb;
 }

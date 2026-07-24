@@ -5,8 +5,6 @@
 
 #include <utils/clipspace.h>
 
-#include <core/cameranode.h>
-
 #include "nodeprivate.h"
 
 namespace simplex
@@ -41,15 +39,8 @@ public:
     bool& isDefaultFrameBufferUsed();
     std::optional<glm::uvec2>& separateFramebufferFixedSize();
 
-    ShadowFilter& shadowFilter();
-    float& shadowBlurSigma();
-    float& shadowLightBleedingAmount();
-    float& shadowPositiveExponent();
-    float& shadowNegativeExponent();
-    float& shadowMomentsBias();
-    float& shadowDepthBiasFactor();
-    float& shadowCascadesBlendDistanceFactor();
-    float& shadowCascadesDistancePower();
+    std::unique_ptr<ShadowsSettings>& shadowsSettings();
+    std::unique_ptr<Bloom>& bloom();
 
     void resize(const glm::uvec2&);
     void updateClipSpace();
@@ -71,15 +62,8 @@ private:
     bool m_isDefaultFrameBufferUsed = true;
     std::optional<glm::uvec2> m_separateFramebufferFixedSize;
 
-    ShadowFilter m_shadowFilter = ShadowFilter::Discrete;
-    float m_shadowBlurSigma = 1.f;
-    float m_shadowLightBleedingAmount = .2f;
-    float m_shadowPositiveExponent = 1.f;
-    float m_shadowNegativeExponent = 1.f;
-    float m_shadowMomentsBias = 0.f;
-    float m_shadowDepthBiasFactor = 0.f;
-    float m_shadowCascadesBlendDistanceFactor = .15f;
-    float m_shadowCascadesDistancePower = 1.5f;
+    std::unique_ptr<ShadowsSettings> m_shadowsSettings;
+    std::unique_ptr<Bloom> m_bloom;
 };
 
 } // namespace core

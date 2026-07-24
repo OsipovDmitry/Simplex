@@ -2,7 +2,10 @@
 
 #include <utils/logger.h>
 
+#include <core/bloom.h>
+#include <core/cameranode.h>
 #include <core/scene.h>
+#include <core/shadowssettings.h>
 
 #include "geometrybuffer.h"
 #include "renderpipeline.h"
@@ -15,6 +18,7 @@ namespace core
 
 CameraNodePrivate::CameraNodePrivate(CameraNode& cameraNode, const std::string& name)
     : NodePrivate(cameraNode, name)
+
 {
 }
 
@@ -29,15 +33,21 @@ void CameraNodePrivate::onAttachToScene(const std::shared_ptr<Scene>& scene)
     }
 
     m_renderPipeLine = std::make_shared<RenderPipeLine>(scene->m().shadowAtlasSize());
-    m_renderPipeLine->shadowFilter() = m_shadowFilter;
-    m_renderPipeLine->shadowBlurSigma() = m_shadowBlurSigma;
-    m_renderPipeLine->shadowLightBleedingAmount() = m_shadowLightBleedingAmount;
-    m_renderPipeLine->shadowPositiveExponent() = m_shadowPositiveExponent;
-    m_renderPipeLine->shadowNegativeExponent() = m_shadowNegativeExponent;
-    m_renderPipeLine->shadowMomentsBias() = m_shadowMomentsBias;
-    m_renderPipeLine->shadowDepthBiasFactor() = m_shadowDepthBiasFactor;
-    m_renderPipeLine->shadowCascadesBlendDistanceFactor() = m_shadowCascadesBlendDistanceFactor;
-    m_renderPipeLine->shadowCascadesDistancePower() = m_shadowCascadesDistancePower;
+
+    m_renderPipeLine->setShadowFilter(m_shadowsSettings->filter());
+    m_renderPipeLine->setShadowBlurSigma(m_shadowsSettings->blurSigma());
+    m_renderPipeLine->setShadowLightBleedingAmount(m_shadowsSettings->lightBleedingAmount());
+    m_renderPipeLine->setShadowPositiveExponent(m_shadowsSettings->positiveExponent());
+    m_renderPipeLine->setShadowNegativeExponent(m_shadowsSettings->negativeExponent());
+    m_renderPipeLine->setShadowMomentsBias(m_shadowsSettings->momentsBias());
+    m_renderPipeLine->setShadowDepthBiasFactor(m_shadowsSettings->depthBiasFactor());
+    m_renderPipeLine->setShadowCascadesBlendDistanceFactor(m_shadowsSettings->cascadesBlendDistanceFactor());
+    m_renderPipeLine->setShadowCascadesDistancePower(m_shadowsSettings->cascadesDistancePower());
+
+    m_renderPipeLine->setBloomEnabled(m_bloom->isEnabled());
+    m_renderPipeLine->setBloomContribution(m_bloom->contribution());
+    m_renderPipeLine->setBloomPassesCount(m_bloom->passesCount());
+    m_renderPipeLine->setBloomUpSamplePassBlurRadius(m_bloom->upSamplePassBlurRadius());
 }
 
 void CameraNodePrivate::onDetachFromScene(const std::shared_ptr<Scene>&)
@@ -96,48 +106,14 @@ std::optional<glm::uvec2>& CameraNodePrivate::separateFramebufferFixedSize()
     return m_separateFramebufferFixedSize;
 }
 
-ShadowFilter& CameraNodePrivate::shadowFilter()
+std::unique_ptr<ShadowsSettings>& CameraNodePrivate::shadowsSettings()
 {
-    return m_shadowFilter;
+    return m_shadowsSettings;
 }
 
-float& CameraNodePrivate::shadowBlurSigma()
+std::unique_ptr<Bloom>& CameraNodePrivate::bloom()
 {
-    return m_shadowBlurSigma;
-}
-
-float& CameraNodePrivate::shadowLightBleedingAmount()
-{
-    return m_shadowLightBleedingAmount;
-}
-float& CameraNodePrivate::shadowPositiveExponent()
-{
-    return m_shadowPositiveExponent;
-}
-
-float& CameraNodePrivate::shadowNegativeExponent()
-{
-    return m_shadowNegativeExponent;
-}
-
-float& CameraNodePrivate::shadowMomentsBias()
-{
-    return m_shadowMomentsBias;
-}
-
-float& CameraNodePrivate::shadowDepthBiasFactor()
-{
-    return m_shadowDepthBiasFactor;
-}
-
-float& CameraNodePrivate::shadowCascadesBlendDistanceFactor()
-{
-    return m_shadowCascadesBlendDistanceFactor;
-}
-
-float& CameraNodePrivate::shadowCascadesDistancePower()
-{
-    return m_shadowCascadesDistancePower;
+    return m_bloom;
 }
 
 void CameraNodePrivate::resize(const glm::uvec2& size)

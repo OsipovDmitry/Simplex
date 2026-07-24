@@ -109,6 +109,18 @@ public:
     float cascadesDistancePower() const;
 };
 
+class CORE_SHARED_EXPORT Bloom : public utils::SettingsComponent
+{
+public:
+    Bloom(const rapidjson::Document::ValueType*);
+    ~Bloom() override;
+
+    bool isEnabled() const;
+    float contribution() const;
+    uint32_t passesCount() const;
+    float upSamplePassBlurRadius() const;
+};
+
 class CORE_SHARED_EXPORT SSAO : public utils::SettingsComponent
 {
 public:
@@ -209,6 +221,7 @@ public:
     const PBR& pbr() const;
     const IBL& ibl() const;
     const Shadow& shadow() const;
+    const Bloom& bloom() const;
     const SSAO& ssao() const;
     const Blur& blur() const;
     const OIT& oit() const;

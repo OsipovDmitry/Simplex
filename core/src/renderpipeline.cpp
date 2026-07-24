@@ -2,6 +2,7 @@
 
 #include <utils/glm/gtx/component_wise.hpp>
 #include <utils/glm/gtx/functions.hpp>
+#include <utils/glm/gtx/texture.hpp>
 #include <utils/logger.h>
 
 #include <core/graphicsrendererbase.h>
@@ -42,6 +43,7 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_shadowDataCullCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
     m_shadowMapBlurCommandsBuffer =
         graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({graphics::DrawArraysIndirectCommand()});
+    m_bloomBuffer = BloomBuffer::element_type::create();
     m_opaqueShadowDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
     m_transparentShadowDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
     m_opaqueShadowDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
@@ -94,17 +96,13 @@ void RenderPipeLine::initialize(const std::shared_ptr<ProgramsLoader>& programsL
     m_passes.push_back(std::make_shared<PrepareShadowMapBlurCommandsPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<CullShadowDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<RenderShadowDataPass>(programsLoader, sharedThis));
-    m_passes.push_back(std::make_shared<BlurShadowMapPass>(programsLoader, sharedThis));
+    if (isShadowBlurPassNeeded()) m_passes.push_back(std::make_shared<BlurShadowMapPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<RenderBackgroundPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<BlendPass>(programsLoader, sharedThis));
+    if (m_isBloomEnabled) m_passes.push_back(std::make_shared<BloomPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<FinalPass>(programsLoader, sharedThis));
 
     m_isInitialized = true;
-}
-
-void RenderPipeLine::deinitialize()
-{
-    m_isInitialized = false;
 }
 
 void RenderPipeLine::run(
@@ -151,6 +149,11 @@ void RenderPipeLine::run(
         clusterSize, viewTransform, clipSpace, cullPlaneLimits));
 
     resizeShadowTextures(graphicsRenderer, sceneData->shadowMapsLayersCount());
+    updateShadowMapsBuffer();
+
+    resizeBloomTexture(graphicsRenderer, geometryBuffer->size());
+    updateBloomBuffer();
+
     resizeFinalTexture(graphicsRenderer, geometryBuffer->size());
 
     for (auto& pass : m_passes)
@@ -162,49 +165,126 @@ uint32_t RenderPipeLine::shadowAtlasSize() const
     return m_shadowAtlasSize;
 }
 
-ShadowFilter& RenderPipeLine::shadowFilter()
+ShadowFilter RenderPipeLine::shadowFilter() const
 {
     return m_shadowFilter;
 }
 
-float& RenderPipeLine::shadowBlurSigma()
+void RenderPipeLine::setShadowFilter(ShadowFilter value)
 {
-    return m_shadowBlurSigma;
+    if (m_shadowFilter != value)
+    {
+        m_shadowFilter = value;
+        deinitialize(); // need to recreate shaders 'cause "shadow filter" is a define parameter (not a shadow maps buffer member)
+    }
 }
 
-float& RenderPipeLine::shadowLightBleedingAmount()
+void RenderPipeLine::setShadowBlurSigma(float value)
 {
-    return m_shadowLightBleedingAmount;
+    if (m_shadowBlurSigma != value)
+    {
+        m_shadowBlurSigma = value;
+        dirtyShadowMapsBuffer();
+    }
 }
 
-float& RenderPipeLine::shadowPositiveExponent()
+void RenderPipeLine::setShadowLightBleedingAmount(float value)
 {
-    return m_shadowPositiveExponent;
+    if (m_shadowLightBleedingAmount != value)
+    {
+        m_shadowLightBleedingAmount = value;
+        dirtyShadowMapsBuffer();
+    }
 }
 
-float& RenderPipeLine::shadowNegativeExponent()
+void RenderPipeLine::setShadowPositiveExponent(float value)
 {
-    return m_shadowNegativeExponent;
+    if (m_shadowPositiveExponent != value)
+    {
+        m_shadowPositiveExponent = value;
+        dirtyShadowMapsBuffer();
+    }
 }
 
-float& RenderPipeLine::shadowMomentsBias()
+void RenderPipeLine::setShadowNegativeExponent(float value)
 {
-    return m_shadowMomentsBias;
+    if (m_shadowNegativeExponent != value)
+    {
+        m_shadowNegativeExponent = value;
+        dirtyShadowMapsBuffer();
+    }
 }
 
-float& RenderPipeLine::shadowDepthBiasFactor()
+void RenderPipeLine::setShadowMomentsBias(float value)
 {
-    return m_shadowDepthBiasFactor;
+    if (m_shadowMomentsBias != value)
+    {
+        m_shadowMomentsBias = value;
+        dirtyShadowMapsBuffer();
+    }
 }
 
-float& RenderPipeLine::shadowCascadesBlendDistanceFactor()
+void RenderPipeLine::setShadowDepthBiasFactor(float value)
 {
-    return m_shadowCascadesBlendDistanceFactor;
+    if (m_shadowDepthBiasFactor != value)
+    {
+        m_shadowDepthBiasFactor = value;
+        dirtyShadowMapsBuffer();
+    }
 }
 
-float& RenderPipeLine::shadowCascadesDistancePower()
+void RenderPipeLine::setShadowCascadesBlendDistanceFactor(float value)
 {
-    return m_shadowCascadesDistancePower;
+    if (m_shadowCascadesBlendDistanceFactor != value)
+    {
+        m_shadowCascadesBlendDistanceFactor = value;
+        dirtyShadowMapsBuffer();
+    }
+}
+
+void RenderPipeLine::setShadowCascadesDistancePower(float value)
+{
+    if (m_shadowCascadesDistancePower != value)
+    {
+        m_shadowCascadesDistancePower = value;
+        dirtyShadowMapsBuffer();
+    }
+}
+
+void RenderPipeLine::setBloomEnabled(bool value)
+{
+    if (m_isBloomEnabled != value)
+    {
+        m_isBloomEnabled = value;
+        deinitialize(); // need to recreate passes 'cause bloom pass will be created if only m_isBloomEnabled flag is set
+    }
+}
+
+void RenderPipeLine::setBloomContribution(float value)
+{
+    if (m_bloomContribution != value)
+    {
+        m_bloomContribution = value;
+        dirtyBloomBuffer();
+    }
+}
+
+void RenderPipeLine::setBloomPassesCount(uint32_t value)
+{
+    if (m_bloomPassesCount != value)
+    {
+        m_bloomPassesCount = value;
+        // no need any additional actions 'cause bloom texture will be recreated next frame
+    }
+}
+
+void RenderPipeLine::setBloomUpSamplePassBlurRadius(float value)
+{
+    if (m_bloomUpSamplePassBlurRadius != value)
+    {
+        m_bloomUpSamplePassBlurRadius = value;
+        dirtyBloomBuffer();
+    }
 }
 
 RenderInfoBuffer& RenderPipeLine::renderInfoBuffer()
@@ -255,6 +335,11 @@ ShadowDataBuffer& RenderPipeLine::shadowDataBuffer()
 ShadowMapsBuffer& RenderPipeLine::shadowMapsBuffer()
 {
     return m_shadowMapsBuffer;
+}
+
+BloomBuffer& RenderPipeLine::bloomBuffer()
+{
+    return m_bloomBuffer;
 }
 
 graphics::PDispatchComputeIndirectCommandBuffer& RenderPipeLine::bonesTransformsDataCalculateCommandBuffer()
@@ -337,6 +422,11 @@ graphics::PConstTexture RenderPipeLine::shadowColorBluredTexture() const
     return m_shadowColorBluredTextureHandle ? m_shadowColorBluredTextureHandle->texture() : nullptr;
 }
 
+graphics::PConstTexture RenderPipeLine::bloomTexture() const
+{
+    return m_bloomTextureHandle ? m_bloomTextureHandle->texture() : nullptr;
+}
+
 graphics::PConstTexture RenderPipeLine::finalTexture() const
 {
     return m_finalTexture;
@@ -378,7 +468,29 @@ glm::vec4 RenderPipeLine::shadowMomentsTextureClearColor() const
     return result;
 }
 
-bool RenderPipeLine::shadowIsBlurPassNeeded() const
+graphics::PDrawArraysIndirectCommandsBuffer& RenderPipeLine::shadowMapBlurCommandsBuffer()
+{
+    return m_shadowMapBlurCommandsBuffer;
+}
+
+void RenderPipeLine::deinitialize()
+{
+    m_isInitialized = false;
+    dirtyShadowMapsBuffer();
+    dirtyBloomBuffer();
+}
+
+void RenderPipeLine::dirtyShadowMapsBuffer()
+{
+    m_isShadowMapsBufferDirty = true;
+}
+
+void RenderPipeLine::dirtyBloomBuffer()
+{
+    m_isBloomBufferDirty = true;
+}
+
+bool RenderPipeLine::isShadowBlurPassNeeded() const
 {
     static std::unordered_map<ShadowFilter, bool> s_table{
         {ShadowFilter::Discrete, false},
@@ -389,11 +501,6 @@ bool RenderPipeLine::shadowIsBlurPassNeeded() const
 
     auto it = s_table.find(m_shadowFilter);
     return (it != s_table.end()) ? it->second : false;
-}
-
-graphics::PDrawArraysIndirectCommandsBuffer& RenderPipeLine::shadowMapBlurCommandsBuffer()
-{
-    return m_shadowMapBlurCommandsBuffer;
 }
 
 graphics::PixelInternalFormat RenderPipeLine::shadowMomentsTextureInternalFormat() const
@@ -486,11 +593,13 @@ void RenderPipeLine::resizeShadowTextures(const std::shared_ptr<graphics::Render
         m_shadowColorBluredTextureHandle->makeResident();
     }
 
-    updateShadowMapsBuffer();
+    dirtyShadowMapsBuffer();
 }
 
 void RenderPipeLine::updateShadowMapsBuffer()
 {
+    if (!m_isShadowMapsBufferDirty) return;
+
     m_shadowMapsBuffer->set(ShadowMapsDescription::make(
         m_shadowDepthTextureHandle ? m_shadowDepthTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
         m_shadowMomentsTextureHandle ? m_shadowMomentsTextureHandle->handle()
@@ -503,6 +612,42 @@ void RenderPipeLine::updateShadowMapsBuffer()
         m_shadowAtlasSize, m_shadowLightBleedingAmount, m_shadowPositiveExponent, m_shadowNegativeExponent, m_shadowMomentsBias,
         m_shadowDepthBiasFactor, m_shadowCascadesBlendDistanceFactor, m_shadowCascadesDistancePower,
         calculateShadowBlurKernel()));
+
+    m_isShadowMapsBufferDirty = false;
+}
+
+void RenderPipeLine::resizeBloomTexture(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const glm::uvec2& geometryBufferSize)
+{
+    const auto newSize = glm::max(geometryBufferSize / 2u, glm::uvec2(1u));
+    const auto newLevelsCount = glm::min(glm::levels(newSize), m_bloomPassesCount);
+
+    const graphics::PConstTexture bloomTexture = m_bloomTextureHandle ? m_bloomTextureHandle->texture() : nullptr;
+    const auto oldSize = bloomTexture ? bloomTexture->size() : glm::uvec2(0u);
+    const auto oldLevelCount = bloomTexture ? bloomTexture->numMipmapLevels() : 0u;
+
+    if ((newSize == oldSize) && (newLevelsCount == oldLevelCount)) return;
+
+    auto texture =
+        renderer->createTexture2DEmpty(newSize.x, newSize.y, graphics::PixelInternalFormat::R11F_G11F_B10F, newLevelsCount);
+    texture->setFilterMode(graphics::TextureFilterMode::Bilinear);
+    texture->setWrapMode(graphics::TextureWrapMode::ClampToEdge);
+    m_bloomTextureHandle = renderer->createTextureHandle(texture);
+    m_bloomTextureHandle->makeResident();
+
+    dirtyBloomBuffer();
+}
+
+void RenderPipeLine::updateBloomBuffer()
+{
+    if (!m_isBloomBufferDirty) return;
+
+    m_bloomBuffer->set(BloomDescription::make(
+        m_bloomTextureHandle ? m_bloomTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+        m_bloomContribution, m_bloomUpSamplePassBlurRadius));
+
+    m_isBloomBufferDirty = false;
 }
 
 void RenderPipeLine::resizeFinalTexture(

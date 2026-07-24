@@ -7,6 +7,7 @@
 #include <core/ambientlightnode.h>
 #include <core/applicationbase.h>
 #include <core/background.h>
+#include <core/bloom.h>
 #include <core/cameranode.h>
 #include <core/directionallightnode.h>
 #include <core/drawable.h>
@@ -25,6 +26,7 @@
 #include <core/scenerepresentation.h>
 #include <core/scenerootnode.h>
 #include <core/scenesloader.h>
+#include <core/shadowssettings.h>
 #include <core/skeletalanimatednode.h>
 #include <core/skeletalanimation.h>
 #include <core/spotlightnode.h>
@@ -51,7 +53,7 @@ std::weak_ptr<simplex::core::DirectionalLightNode> directionalLightNodeWeak;
 std::weak_ptr<simplex::core::PointLightNode> pointLightNode0Weak;
 std::weak_ptr<simplex::core::PointLightNode> pointLightNode1Weak;
 std::weak_ptr<simplex::core::PointLightNode> pointLightNode2Weak;
-uint32_t directionalLightNodeState = 1u;
+uint32_t directionalLightNodeState = 0u;
 uint32_t pointLightNode0State = 0u;
 uint32_t pointLightNode1State = 0u;
 uint32_t pointLightNode2State = 0u;
@@ -278,12 +280,23 @@ static std::shared_ptr<simplex::core::DynamicBodyNode> createBunny()
                 }
     }
 
-    auto material = std::make_shared<simplex::core::Material>();
-    material->setBaseColor(glm::vec4(
+    const auto color = glm::vec3(
         static_cast<float>(rand()) / static_cast<float>(RAND_MAX), static_cast<float>(rand()) / static_cast<float>(RAND_MAX),
-        static_cast<float>(rand()) / static_cast<float>(RAND_MAX), 1.f));
-    material->setMetalness(0.f);
-    material->setRoughness(.2f);
+        static_cast<float>(rand()) / static_cast<float>(RAND_MAX));
+
+    auto emission = color;
+    const int idx = rand() % 3;
+    emission[idx] *= 30.f;
+    emission[(idx + 1) % 3] *= 30.f;
+
+    auto material = std::make_shared<simplex::core::Material>();
+    // material->setBaseColor(glm::vec4(color, 1.f));
+    // material->setMetalness(0.f);
+    // material->setRoughness(.2f);
+    material->setEmission(emission);
+    material->setLighted(false);
+    material->setShadowed(false);
+    material->setShadowCasted(false);
 
     auto drawableNode = std::make_shared<simplex::core::DrawableNode>("");
     drawableNode->addDrawable(std::make_shared<simplex::core::Drawable>(mesh, material));
@@ -312,6 +325,11 @@ static std::shared_ptr<simplex::core::DynamicBodyNode> createBunny()
     }
 
     dynamicBodyNode->attach(drawableNode);
+
+    auto pointLightNode = std::make_shared<simplex::core::PointLightNode>("");
+    pointLightNode->setColor(emission / 15.0f);
+    pointLightNode->setRadiuses(simplex::utils::Range(4.f, 8.f));
+    dynamicBodyNode->attach(pointLightNode);
 
     return dynamicBodyNode;
 }
@@ -561,7 +579,7 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     IBLNodeWeak = IBLNode;
 
     auto ambientLightNode = std::make_shared<simplex::core::AmbientLightNode>("");
-    ambientLightNode->setColor(glm::vec3(.05f));
+    ambientLightNode->setColor(glm::vec3(.1f));
     scene->sceneRootNode()->attach(ambientLightNode);
 
     // auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/arabic_city/scene.gltf");
@@ -608,7 +626,7 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     {
         auto bunnyNode = createBunny();
         bunnyNode->setTransform(transform);
-        // scene->sceneRootNode()->attach(bunnyNode);
+        scene->sceneRootNode()->attach(bunnyNode);
     }
 
     return scene;
@@ -908,11 +926,11 @@ static void updateCallback(uint64_t time, uint32_t dt)
     if (toChangeShadowType)
     {
         toChangeShadowType = false;
-        auto currIdx = simplex::core::castFromShadowFilter(camera->shadowFilter());
+
+        auto currIdx = simplex::core::castFromShadowFilter(camera->shadowsSettings().filter());
         ++currIdx;
         currIdx %= simplex::core::numElementsShadowFilter();
-
-        camera->setShadowFilter(simplex::core::castToShadowFilter(currIdx));
+        camera->shadowsSettings().setFilter(simplex::core::castToShadowFilter(currIdx));
     }
 
     if (toHitBunny)

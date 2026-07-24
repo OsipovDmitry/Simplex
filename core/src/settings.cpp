@@ -4,6 +4,7 @@
 
 #include <core/cameranode.h>
 #include <core/settings.h>
+#include <core/shadowssettings.h>
 
 namespace simplex
 {
@@ -350,6 +351,36 @@ float Shadow::cascadesDistancePower() const
     return s_cascadesDistancePower;
 }
 
+Bloom::Bloom(const rapidjson::Document::ValueType* value)
+    : utils::SettingsComponent(value)
+{
+}
+Bloom::~Bloom() = default;
+
+bool Bloom::isEnabled() const
+{
+    static const auto s_isEnabled = readBool("IsEnabled", false);
+    return s_isEnabled;
+}
+
+float Bloom::contribution() const
+{
+    static const auto s_contribution = readSingle("Contribution", .05f);
+    return s_contribution;
+}
+
+uint32_t Bloom::passesCount() const
+{
+    static const auto s_passesCount = readUint("PassesCount", 4u);
+    return s_passesCount;
+}
+
+float Bloom::upSamplePassBlurRadius() const
+{
+    static const auto s_upSamplePassBlurRadius = readSingle("UpSamplePassBlurRadius", 2.f);
+    return s_upSamplePassBlurRadius;
+}
+
 SSAO::SSAO(const rapidjson::Document::ValueType* value)
     : utils::SettingsComponent(value)
 {
@@ -624,6 +655,12 @@ const Shadow& Graphics::shadow() const
 {
     static const Shadow s_shadow(read("Shadow"));
     return s_shadow;
+}
+
+const Bloom& Graphics::bloom() const
+{
+    static const Bloom s_bloom(read("Bloom"));
+    return s_bloom;
 }
 
 const SSAO& Graphics::ssao() const

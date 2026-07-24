@@ -3902,6 +3902,8 @@ void GLFWRenderer::drawArrays(
     setupRender(viewport, renderProgram, framebuffer, VAO, stateSetList);
 
     glDrawArrays(Conversions::PrimitiveType2GL(primitiveType), static_cast<GLint>(first), static_cast<GLsizei>(count));
+
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
 void GLFWRenderer::drawElements(

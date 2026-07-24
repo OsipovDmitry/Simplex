@@ -431,6 +431,16 @@ struct ShadowMapsDescription
 	uint padding2[3u];
 };
 
+struct BloomDescription
+{
+    TextureHandle textureHandle;
+    float contribution;
+    float upSamplePassBlurRadius;
+    uint passIndex;
+
+    uint padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
+};
+
 struct BlurInfoDescription
 {
     TextureHandle sourceTextureHandle;

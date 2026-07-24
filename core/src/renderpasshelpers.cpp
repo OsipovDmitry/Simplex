@@ -604,55 +604,62 @@ void RenderShadowDataPass::run(
         return;
     }
 
-    const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(renderPipeLine->shadowAtlasSize()));
+    auto momentsTexture = renderPipeLine->shadowMomentsTexture();
+    auto colorTexture = renderPipeLine->shadowColorTexture();
+    auto depthTexture = renderPipeLine->shadowDepthTexture();
 
-    framebuffer->reset();
-    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowMomentsTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::Color1, renderPipeLine->shadowColorTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::Depth, renderPipeLine->shadowDepthTexture());
+    if (momentsTexture && colorTexture && depthTexture)
+    {
+        const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(renderPipeLine->shadowAtlasSize()));
 
-    framebuffer->setClearColor(0u, renderPipeLine->shadowMomentsTextureClearColor());
-    framebuffer->setClearColor(1u, glm::vec4(1.0f));
-    framebuffer->setColorMask(0u, true);
-    framebuffer->setColorMask(1u, true);
-    framebuffer->setDepthMask(true);
+        framebuffer->reset();
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, momentsTexture);
+        framebuffer->attach(graphics::FrameBufferAttachment::Color1, colorTexture);
+        framebuffer->attach(graphics::FrameBufferAttachment::Depth, depthTexture);
 
-    framebuffer->clear(
-        {graphics::FrameBufferAttachment::Color0, graphics::FrameBufferAttachment::Color1,
-         core::graphics::FrameBufferAttachment::Depth});
+        framebuffer->setClearColor(0u, renderPipeLine->shadowMomentsTextureClearColor());
+        framebuffer->setClearColor(1u, glm::vec4(1.0f));
+        framebuffer->setColorMask(0u, true);
+        framebuffer->setColorMask(1u, true);
+        framebuffer->setDepthMask(true);
 
-    framebuffer->reset();
-    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowMomentsTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::Depth, renderPipeLine->shadowDepthTexture());
-    framebuffer->setColorMask(0u, true);
-    framebuffer->setDepthTest(true);
-    framebuffer->setDepthMask(true);
+        framebuffer->clear(
+            {graphics::FrameBufferAttachment::Color0, graphics::FrameBufferAttachment::Color1,
+             core::graphics::FrameBufferAttachment::Depth});
 
-    for (uint32_t i = 0; i < 6u; ++i)
-        framebuffer->setClipDistance(i, true);
+        framebuffer->reset();
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, momentsTexture);
+        framebuffer->attach(graphics::FrameBufferAttachment::Depth, depthTexture);
+        framebuffer->setColorMask(0u, true);
+        framebuffer->setDepthTest(true);
+        framebuffer->setDepthMask(true);
 
-    renderer->multiDrawArraysIndirectCount(
-        viewport, m_opaqueProgram, framebuffer, vertexArray, {sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
-        renderPipeLine->opaqueShadowDataRenderCommandsBuffer(), renderPipeLine->opaqueShadowDataRenderParameterBuffer());
+        for (uint32_t i = 0; i < 6u; ++i)
+            framebuffer->setClipDistance(i, true);
 
-    framebuffer->reset();
-    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowColorTexture());
-    framebuffer->attach(graphics::FrameBufferAttachment::Depth, renderPipeLine->shadowDepthTexture());
-    framebuffer->setColorMask(0u, true);
-    framebuffer->setDepthTest(true);
-    framebuffer->setBlending(true);
-    framebuffer->setBlendEquation(0u, graphics::BlendEquation::Add, graphics::BlendEquation::Add);
-    framebuffer->setBlendFactor(
-        0u, graphics::BlendFactor::Zero, graphics::BlendFactor::SrcColor, graphics::BlendFactor::Zero,
-        graphics::BlendFactor::One);
+        renderer->multiDrawArraysIndirectCount(
+            viewport, m_opaqueProgram, framebuffer, vertexArray, {sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
+            renderPipeLine->opaqueShadowDataRenderCommandsBuffer(), renderPipeLine->opaqueShadowDataRenderParameterBuffer());
 
-    for (uint32_t i = 0; i < 6u; ++i)
-        framebuffer->setClipDistance(i, true);
+        framebuffer->reset();
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, colorTexture);
+        framebuffer->attach(graphics::FrameBufferAttachment::Depth, depthTexture);
+        framebuffer->setColorMask(0u, true);
+        framebuffer->setDepthTest(true);
+        framebuffer->setBlending(true);
+        framebuffer->setBlendEquation(0u, graphics::BlendEquation::Add, graphics::BlendEquation::Add);
+        framebuffer->setBlendFactor(
+            0u, graphics::BlendFactor::Zero, graphics::BlendFactor::SrcColor, graphics::BlendFactor::Zero,
+            graphics::BlendFactor::One);
 
-    renderer->multiDrawArraysIndirectCount(
-        viewport, m_transparentProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
-        utils::PrimitiveType::Triangles, renderPipeLine->transparentShadowDataRenderCommandsBuffer(),
-        renderPipeLine->transparentShadowDataRenderParameterBuffer());
+        for (uint32_t i = 0; i < 6u; ++i)
+            framebuffer->setClipDistance(i, true);
+
+        renderer->multiDrawArraysIndirectCount(
+            viewport, m_transparentProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
+            utils::PrimitiveType::Triangles, renderPipeLine->transparentShadowDataRenderCommandsBuffer(),
+            renderPipeLine->transparentShadowDataRenderParameterBuffer());
+    }
 }
 
 BlurShadowMapPass::BlurShadowMapPass(
@@ -691,7 +698,10 @@ void BlurShadowMapPass::run(
         return;
     }
 
-    if (renderPipeLine->shadowIsBlurPassNeeded())
+    auto momentsTexture = renderPipeLine->shadowMomentsTexture();
+    auto colorTexture = renderPipeLine->shadowColorTexture();
+
+    if (momentsTexture && colorTexture)
     {
         const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(renderPipeLine->shadowAtlasSize()));
 
@@ -705,8 +715,8 @@ void BlurShadowMapPass::run(
             utils::PrimitiveType::TriangleStrip, renderPipeLine->shadowMapBlurCommandsBuffer());
 
         framebuffer->reset();
-        framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->shadowMomentsTexture());
-        framebuffer->attach(graphics::FrameBufferAttachment::Color1, renderPipeLine->shadowColorTexture());
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, momentsTexture);
+        framebuffer->attach(graphics::FrameBufferAttachment::Color1, colorTexture);
         framebuffer->setColorMask(0u, true);
         framebuffer->setColorMask(1u, true);
         renderer->drawArraysIndirect(
@@ -794,6 +804,84 @@ void BlendPass::run(
         {geometryBuffer, sceneData, shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u, 4u);
 }
 
+BloomPass::BloomPass(const std::shared_ptr<ProgramsLoader>& programsManager, const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    m_downSampleFirstPassProgram = programsManager->loadOrGetRenderProgram(
+        resources::BloomPassVertexShaderPath, resources::BloomDownSamplePassFragmentShaderPath, {{"FIRST_PASS", ""}});
+    m_downSampleOtherPassesProgram = programsManager->loadOrGetRenderProgram(
+        resources::BloomPassVertexShaderPath, resources::BloomDownSamplePassFragmentShaderPath, {});
+    m_upSampleLastPassProgram = programsManager->loadOrGetRenderProgram(
+        resources::BloomPassVertexShaderPath, resources::BloomUpSamplePassFragmentShaderPath, {{"LAST_PASS", ""}});
+    m_upSampleOtherPassesProgram = programsManager->loadOrGetRenderProgram(
+        resources::BloomPassVertexShaderPath, resources::BloomUpSamplePassFragmentShaderPath, {});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::BloomBuffer) =
+        graphics::BufferRange::create(renderPipeLine->bloomBuffer()->buffer());
+}
+
+BloomPass::~BloomPass() = default;
+
+void BloomPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
+    const std::shared_ptr<graphics::IVertexArray>& vertexArray,
+    const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+    const std::shared_ptr<const SceneData>&)
+{
+    auto renderPipeLine = m_renderPipeLine.lock();
+    if (!renderPipeLine)
+    {
+        LOG_CRITICAL << "RenderPipeLine can't be nullptr";
+        return;
+    }
+
+    const auto bloomTexture = renderPipeLine->bloomTexture();
+    const auto& bloomBuffer = renderPipeLine->bloomBuffer();
+    if (bloomTexture && bloomBuffer)
+    {
+        framebuffer->reset();
+        framebuffer->setColorMask(0u, true);
+
+        const auto levelsCount = bloomTexture->numMipmapLevels();
+        for (uint32_t passIndex = 0u; passIndex < levelsCount; ++passIndex)
+        {
+            framebuffer->attach(graphics::FrameBufferAttachment::Color0, bloomTexture, passIndex);
+            bloomBuffer->setField(offsetof(BloomDescription, passIndex), passIndex);
+
+            const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(bloomTexture->mipmapSize(passIndex)));
+            const auto& renderProgram = (passIndex == 0u) ? m_downSampleFirstPassProgram : m_downSampleOtherPassesProgram;
+
+            renderer->drawArrays(
+                viewport, renderProgram, framebuffer, vertexArray, {geometryBuffer, shared_from_this()},
+                utils::PrimitiveType::TriangleStrip, 0u, 4u);
+        }
+
+        framebuffer->setBlending(true);
+        framebuffer->setBlendEquation(0u, graphics::BlendEquation::Add, graphics::BlendEquation::Add);
+        framebuffer->setBlendFactor(
+            0u, graphics::BlendFactor::One, graphics::BlendFactor::One, graphics::BlendFactor::Zero, graphics::BlendFactor::One);
+
+        for (int32_t passIndex = static_cast<int32_t>(levelsCount) - 2; passIndex >= 0; --passIndex)
+        {
+            framebuffer->attach(graphics::FrameBufferAttachment::Color0, bloomTexture, static_cast<uint32_t>(passIndex));
+            bloomBuffer->setField(offsetof(BloomDescription, passIndex), static_cast<uint32_t>(passIndex));
+
+            const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(bloomTexture->mipmapSize(static_cast<uint32_t>(passIndex))));
+            renderer->drawArrays(
+                viewport, m_upSampleOtherPassesProgram, framebuffer, vertexArray, {geometryBuffer, shared_from_this()},
+                utils::PrimitiveType::TriangleStrip, 0u, 4u);
+        }
+
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->finalTexture());
+        bloomBuffer->setField(offsetof(BloomDescription, passIndex), 0u);
+
+        renderer->drawArrays(
+            glm::uvec4(0u, 0u, geometryBuffer->size()), m_upSampleLastPassProgram, framebuffer, vertexArray,
+            {geometryBuffer, shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u, 4u);
+    }
+}
+
 FinalPass::FinalPass(const std::shared_ptr<ProgramsLoader>& programsManager, const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
@@ -801,8 +889,8 @@ FinalPass::FinalPass(const std::shared_ptr<ProgramsLoader>& programsManager, con
         programsManager->loadOrGetRenderProgram(resources::FinalPassVertexShaderPath, resources::FinalPassFragmentShaderPath, {});
 
     // tmp
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ShadowMapsBuffer) =
-        graphics::BufferRange::create(renderPipeLine->shadowMapsBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::BloomBuffer) =
+        graphics::BufferRange::create(renderPipeLine->bloomBuffer()->buffer());
 }
 
 FinalPass::~FinalPass() = default;

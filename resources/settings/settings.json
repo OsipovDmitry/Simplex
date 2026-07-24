@@ -15,7 +15,7 @@
       "ClipSpace": {
         "OrthoHeight": 1.0,
         "PerspectiveFOV": 1.047198,
-        "Type": "perspective"
+        "Type": "Perspective"
       },
       "ClusterSize": [ 16, 8, 32 ]
     },
@@ -49,6 +49,12 @@
 	  "CascadesBlendDistanceFactor": 0.15,
 	  "CascadesDistancePower": 1.5
     },
+	"Bloom": {
+		"IsEnabled": true,
+		"Contribution": 0.035,
+		"PassesCount": 4,
+		"UpSamplePassBlurRadius": 1.5
+	},
     "SSAO": {
       "Mode": "disabled",
       "ViewportDenominator": 1.0,

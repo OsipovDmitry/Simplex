@@ -411,7 +411,7 @@ vec4 proccessLighting(in vec3 NDC_ZO, in uvec4 PBRData, in bool isTexelTranspare
 	bool isShadowed;
 	unpackPBRData(PBRData, baseColor, emission, occlusion, roughness, metalness, alpha, normalWS, isLighted, isShadowed);
 	
-	vec3 color = emission;
+	vec3 color = vec3(0.0f);
 	
 	if (isLighted)
 	{
@@ -455,10 +455,6 @@ vec4 proccessLighting(in vec3 NDC_ZO, in uvec4 PBRData, in bool isTexelTranspare
 				}
 			}
 		}
-	}
-	else
-	{
-		color += baseColor;
 	}
 	
 	return vec4(color /** occlusion*/, alpha);
@@ -659,6 +655,7 @@ void main(void)
 	
 	geometryBufferData(fragCoords, PBRData, depth, OITNodeID);
 	vec4 color = proccessLighting(vec3(NDC_XY_ZO, depth), PBRData, false);
+	color.rgb += unpackEmissionFromPBRData(PBRData);
 	color.rgb += proccessScattering(NDC_XY_ZO, depth, geometryBufferDepth(OITNodeID));
 	
 	while (geometryBufferData(OITNodeID, PBRData, depth, OITNodeID))
@@ -667,6 +664,7 @@ void main(void)
 		color = blend(fragColor, color);
 		color.rgb += proccessScattering(NDC_XY_ZO, depth, geometryBufferDepth(OITNodeID));
 	}
+	
 
 	o_fragColor0 = color;
 }

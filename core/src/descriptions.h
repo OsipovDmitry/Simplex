@@ -494,6 +494,18 @@ struct ShadowMapsDescription
         const std::vector<float>& blurKernel);
 };
 
+struct BloomDescription
+{
+    graphics::TextureHandle textureHandle;
+    float contribution;
+    float upSamplePassBlurRadius;
+    uint32_t passIndex;
+
+    uint32_t padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
+
+    static BloomDescription make(graphics::TextureHandle textureHandle, float contribution, float upSamplePassBlurRadius);
+};
+
 using BonesTransformsDataDescription = TransformDescription;
 
 struct SkeletalAnimatedDataDescription

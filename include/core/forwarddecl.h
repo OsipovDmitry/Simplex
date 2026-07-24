@@ -35,6 +35,7 @@ class PBR;
 class IBL;
 class Shadow;
 class SSAO;
+class Bloom;
 class Blur;
 class NodeBoundingBox;
 class DrawableNodeLocalBoundingBox;
@@ -220,8 +221,9 @@ enum class MaterialMapTarget : uint16_t;
 class Material;
 
 class Drawable;
-using DrawableComponentSet = std::set<UniformID>;
 
+class ShadowsSettings;
+class Bloom;
 class Background;
 class SSAO;
 enum class SSAOMode : uint16_t;
