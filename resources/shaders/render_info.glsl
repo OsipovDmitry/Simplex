@@ -12,6 +12,11 @@ uint renderInfoTime()
 	return renderInfo.time;
 }
 
+uint renderInfoDt()
+{
+	return renderInfo.dt;
+}
+
 float renderInfoDielectricSpecular()
 {
 	return renderInfo.dielectricSpecular;

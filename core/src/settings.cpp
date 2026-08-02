@@ -355,6 +355,7 @@ Bloom::Bloom(const rapidjson::Document::ValueType* value)
     : utils::SettingsComponent(value)
 {
 }
+
 Bloom::~Bloom() = default;
 
 bool Bloom::isEnabled() const
@@ -379,6 +380,54 @@ float Bloom::upSamplePassBlurRadius() const
 {
     static const auto s_upSamplePassBlurRadius = readSingle("UpSamplePassBlurRadius", 2.f);
     return s_upSamplePassBlurRadius;
+}
+
+ToneMapping::ToneMapping(const rapidjson::Document::ValueType* value)
+    : utils::SettingsComponent(value)
+{
+}
+
+ToneMapping::~ToneMapping() = default;
+
+const utils::Range& ToneMapping::luminanceRange() const
+{
+    static const auto s_luminanceRange = utils::Range(readVec2("LuminanceRange", glm::vec2(0.03125f, 1024.0f)));
+    return s_luminanceRange;
+}
+
+const utils::Range& ToneMapping::luminanceClampRange() const
+{
+    static const auto s_luminanceClampRange = utils::Range(readVec2("LuminanceClampRange", glm::vec2(0.02f, 12.0f)));
+    return s_luminanceClampRange;
+}
+
+const std::pair<float, float>& ToneMapping::pixelsFractionToTrim() const
+{
+    static std::pair<float, float> s_pixelsFractionToTrim{-1.f, -1.f};
+    if (s_pixelsFractionToTrim.first < 0.f)
+    {
+        const auto value = readVec2("PixelsFractionToTrim", glm::vec2(0.05f));
+        s_pixelsFractionToTrim = std::make_pair(value[0u], value[1u]);
+    }
+    return s_pixelsFractionToTrim;
+}
+
+float ToneMapping::tauLight() const
+{
+    static const auto s_tauLight = readSingle("TauLight", 2.f);
+    return s_tauLight;
+}
+
+float ToneMapping::tauDark() const
+{
+    static const auto s_tauDark = readSingle("TauDark", .5f);
+    return s_tauDark;
+}
+
+float ToneMapping::baseLuminance() const
+{
+    static const auto s_baseLuminance = readSingle("BaseLuminance", .18f);
+    return s_baseLuminance;
 }
 
 SSAO::SSAO(const rapidjson::Document::ValueType* value)
@@ -661,6 +710,12 @@ const Bloom& Graphics::bloom() const
 {
     static const Bloom s_bloom(read("Bloom"));
     return s_bloom;
+}
+
+const ToneMapping& Graphics::toneMapping() const
+{
+    static const ToneMapping s_toneMapping(read("ToneMapping"));
+    return s_toneMapping;
 }
 
 const SSAO& Graphics::ssao() const

@@ -44,6 +44,7 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_shadowMapBlurCommandsBuffer =
         graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({graphics::DrawArraysIndirectCommand()});
     m_bloomBuffer = BloomBuffer::element_type::create();
+    m_toneMappingBuffer = ToneMappingBuffer::element_type::create();
     m_opaqueShadowDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
     m_transparentShadowDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
     m_opaqueShadowDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
@@ -99,6 +100,7 @@ void RenderPipeLine::initialize(const std::shared_ptr<ProgramsLoader>& programsL
     if (isShadowBlurPassNeeded()) m_passes.push_back(std::make_shared<BlurShadowMapPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<RenderBackgroundPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<BlendPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<ToneMappingPass>(programsLoader, sharedThis));
     if (m_isBloomEnabled) m_passes.push_back(std::make_shared<BloomPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<FinalPass>(programsLoader, sharedThis));
 
@@ -112,6 +114,7 @@ void RenderPipeLine::run(
     const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
     const std::shared_ptr<const SceneData>& sceneData,
     uint64_t time,
+    uint32_t dt,
     float dielectricSpecular,
     const utils::OrientedBoundingBox& globalBoundingBox,
     const utils::Transform& viewTransform,
@@ -144,7 +147,7 @@ void RenderPipeLine::run(
     m_transparentShadowDataRenderCommandsBuffer->resize(shadowDataCount);
 
     m_renderInfoBuffer->set(RenderInfoDescription::make(
-        static_cast<uint32_t>(time), dielectricSpecular, globalBoundingBox, static_cast<uint32_t>(drawDataCount),
+        static_cast<uint32_t>(time), dt, dielectricSpecular, globalBoundingBox, static_cast<uint32_t>(drawDataCount),
         static_cast<uint32_t>(skeletalAnimatedDataCount), static_cast<uint32_t>(shadowsCount), static_cast<uint32_t>(lightsCount),
         clusterSize, viewTransform, clipSpace, cullPlaneLimits));
 
@@ -153,6 +156,8 @@ void RenderPipeLine::run(
 
     resizeBloomTexture(graphicsRenderer, geometryBuffer->size());
     updateBloomBuffer();
+
+    updateToneMappingBuffer();
 
     resizeFinalTexture(graphicsRenderer, geometryBuffer->size());
 
@@ -287,6 +292,60 @@ void RenderPipeLine::setBloomUpSamplePassBlurRadius(float value)
     }
 }
 
+void RenderPipeLine::setToneMappingLuminanceRange(const utils::Range& value)
+{
+    if (m_toneMappingLuminanceRange != value)
+    {
+        m_toneMappingLuminanceRange = value;
+        dirtyToneMappingBuffer();
+    }
+}
+
+void RenderPipeLine::setToneMappingLuminanceClampRange(const utils::Range& value)
+{
+    if (m_toneMappingLuminanceClampRange != value)
+    {
+        m_toneMappingLuminanceClampRange = value;
+        dirtyToneMappingBuffer();
+    }
+}
+
+void RenderPipeLine::setToneMappingPixelsFractionToTrim(const std::pair<float, float>& value)
+{
+    if (m_toneMappingPixelsFractionToTrim != value)
+    {
+        m_toneMappingPixelsFractionToTrim = value;
+        dirtyToneMappingBuffer();
+    }
+}
+
+void RenderPipeLine::setToneMappingTauLight(float value)
+{
+    if (m_toneMappingTauLight != value)
+    {
+        m_toneMappingTauLight = value;
+        dirtyToneMappingBuffer();
+    }
+}
+
+void RenderPipeLine::setToneMappingTauDark(float value)
+{
+    if (m_toneMappingTauDark != value)
+    {
+        m_toneMappingTauDark = value;
+        dirtyToneMappingBuffer();
+    }
+}
+
+void RenderPipeLine::setToneMappingBaseLumiance(float value)
+{
+    if (m_toneMappingBaseLuminance != value)
+    {
+        m_toneMappingBaseLuminance = value;
+        dirtyToneMappingBuffer();
+    }
+}
+
 RenderInfoBuffer& RenderPipeLine::renderInfoBuffer()
 {
     return m_renderInfoBuffer;
@@ -340,6 +399,11 @@ ShadowMapsBuffer& RenderPipeLine::shadowMapsBuffer()
 BloomBuffer& RenderPipeLine::bloomBuffer()
 {
     return m_bloomBuffer;
+}
+
+ToneMappingBuffer& RenderPipeLine::toneMappingBuffer()
+{
+    return m_toneMappingBuffer;
 }
 
 graphics::PDispatchComputeIndirectCommandBuffer& RenderPipeLine::bonesTransformsDataCalculateCommandBuffer()
@@ -478,6 +542,7 @@ void RenderPipeLine::deinitialize()
     m_isInitialized = false;
     dirtyShadowMapsBuffer();
     dirtyBloomBuffer();
+    dirtyToneMappingBuffer();
 }
 
 void RenderPipeLine::dirtyShadowMapsBuffer()
@@ -488,6 +553,11 @@ void RenderPipeLine::dirtyShadowMapsBuffer()
 void RenderPipeLine::dirtyBloomBuffer()
 {
     m_isBloomBufferDirty = true;
+}
+
+void RenderPipeLine::dirtyToneMappingBuffer()
+{
+    m_isToneMappingBufferDirty = true;
 }
 
 bool RenderPipeLine::isShadowBlurPassNeeded() const
@@ -648,6 +718,17 @@ void RenderPipeLine::updateBloomBuffer()
         m_bloomContribution, m_bloomUpSamplePassBlurRadius));
 
     m_isBloomBufferDirty = false;
+}
+
+void RenderPipeLine::updateToneMappingBuffer()
+{
+    if (!m_isToneMappingBufferDirty) return;
+
+    m_toneMappingBuffer->set(ToneMappingDescription::make(
+        m_toneMappingLuminanceRange, m_toneMappingLuminanceClampRange, m_toneMappingPixelsFractionToTrim,
+        m_toneMappingBaseLuminance, m_toneMappingTauLight, m_toneMappingTauDark));
+
+    m_isToneMappingBufferDirty = false;
 }
 
 void RenderPipeLine::resizeFinalTexture(

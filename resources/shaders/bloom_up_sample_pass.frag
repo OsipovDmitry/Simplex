@@ -1,4 +1,5 @@
 #include<bloom.glsl>
+#include<tone_mapping.glsl>
 
 in vec2 v_fragCoords;
 
@@ -39,14 +40,15 @@ void main(void)
     const vec3 h = sourceTextureColor(fragCoords + radius * vec2(0.0f, -y));
     const vec3 i = sourceTextureColor(fragCoords + radius * vec2(  +x, -y));
 	
-	const vec3 result =
+	vec3 result =
 		0.25f * e +
 		0.0625f * (a + c + g + i) + 
 		0.125f * (b + d + f + h);
 	
 #ifdef LAST_PASS
-	o_fragColor0 = vec4(result * bloomContribution(), 0.0f);
-#else
-	o_fragColor0 = vec4(result, 0.0f);
+	result *= bloomContribution();
+	toneMappingApplyInvertedExposure(result);
 #endif
+
+	o_fragColor0 = vec4(result, 0.0f);
 }

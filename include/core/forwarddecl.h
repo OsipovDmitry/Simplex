@@ -36,6 +36,7 @@ class IBL;
 class Shadow;
 class SSAO;
 class Bloom;
+class ToneMapping;
 class Blur;
 class NodeBoundingBox;
 class DrawableNodeLocalBoundingBox;
@@ -224,6 +225,7 @@ class Drawable;
 
 class ShadowsSettings;
 class Bloom;
+class ToneMapping;
 class Background;
 class SSAO;
 enum class SSAOMode : uint16_t;

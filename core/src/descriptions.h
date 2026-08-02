@@ -126,9 +126,10 @@ struct RenderInfoDescription
 {
     // global
     uint32_t time;
+    uint32_t dt;
     float dielectricSpecular;
 
-    uint32_t globalPadding[2u];
+    uint32_t globalPadding[1u];
 
     // scene
     OrientedBoundingBoxDescription globalBoundingBox;
@@ -149,6 +150,7 @@ struct RenderInfoDescription
 
     static RenderInfoDescription make(
         uint32_t time,
+        uint32_t dt,
         float dielectricSpecular,
         const utils::OrientedBoundingBox& globalBoundingBox,
         uint32_t drawDataCount,
@@ -504,6 +506,35 @@ struct BloomDescription
     uint32_t padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
 
     static BloomDescription make(graphics::TextureHandle textureHandle, float contribution, float upSamplePassBlurRadius);
+};
+
+struct ToneMappingDescription
+{
+    static const size_t BinsCount = 256u; // no affects the padding
+    static_assert(BinsCount > 0u);
+
+    uint32_t bins[BinsCount];
+    float minLogLuminance;
+    float rangeInverseLogLuminance;
+    float minClampLuminance;
+    float maxClampLuminance;
+    float pixelsFractionToTrimAtStart;
+    float pixelsFractionToTrimAtEnd;
+    float luminancePrevFrame;
+    float baseLuminance;
+    float tauLight;
+    float tauDark;
+    float exposure;
+
+    uint32_t padding[1u];
+
+    static ToneMappingDescription make(
+        const utils::Range& luminanceRange,
+        const utils::Range& luminanceClampRange,
+        const std::pair<float, float>& pixelsFractionToTrim,
+        float baseLuminance,
+        float tauLight,
+        float tauDark);
 };
 
 using BonesTransformsDataDescription = TransformDescription;

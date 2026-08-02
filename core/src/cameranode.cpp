@@ -4,12 +4,15 @@
 #include <core/bloom.h>
 #include <core/cameranode.h>
 #include <core/settings.h>
+#include <core/shadowssettings.h>
+#include <core/tonemapping.h>
 
 #include "bloomprivate.h"
 #include "cameranodeprivate.h"
 #include "geometrybuffer.h"
 #include "renderpipeline.h"
 #include "shadowssettingsprivate.h"
+#include "tonemappingprivate.h"
 
 namespace simplex
 {
@@ -22,6 +25,7 @@ CameraNode::CameraNode(const std::string& name)
     auto& mPrivate = m();
     mPrivate.shadowsSettings() = std::make_unique<ShadowsSettings>(std::make_unique<ShadowsSettingsPrivate>(*this));
     mPrivate.bloom() = std::make_unique<Bloom>(std::make_unique<BloomPrivate>(*this));
+    mPrivate.toneMapping() = std::make_unique<ToneMapping>(std::make_unique<ToneMappingPrivate>(*this));
 
     setRenderingEnabled(true);
 

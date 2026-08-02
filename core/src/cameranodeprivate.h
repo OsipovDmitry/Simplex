@@ -41,6 +41,7 @@ public:
 
     std::unique_ptr<ShadowsSettings>& shadowsSettings();
     std::unique_ptr<Bloom>& bloom();
+    std::unique_ptr<ToneMapping>& toneMapping();
 
     void resize(const glm::uvec2&);
     void updateClipSpace();
@@ -64,6 +65,7 @@ private:
 
     std::unique_ptr<ShadowsSettings> m_shadowsSettings;
     std::unique_ptr<Bloom> m_bloom;
+    std::unique_ptr<ToneMapping> m_toneMapping;
 };
 
 } // namespace core

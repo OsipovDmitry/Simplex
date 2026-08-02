@@ -49,6 +49,9 @@ public:
     RangeT<T>& operator+=(const RangeT<T>& range);
     RangeT<T>& operator*=(const RangeT<T>& range);
 
+    bool operator==(const RangeT<T>& range) const;
+    bool operator!=(const RangeT<T>& range) const;
+
 private:
     BaseType m_range;
 };
@@ -147,6 +150,18 @@ inline RangeT<T>& RangeT<T>::operator*=(const RangeT<T>& range)
 {
     *this = *this * range;
     return *this;
+}
+
+template <typename T>
+inline bool RangeT<T>::operator==(const RangeT<T>& range) const
+{
+    return m_range == range.m_range;
+}
+
+template <typename T>
+inline bool RangeT<T>::operator!=(const RangeT<T>& range) const
+{
+    return m_range != range.m_range;
 }
 
 } // namespace utils

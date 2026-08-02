@@ -349,6 +349,24 @@ private:
     std::shared_ptr<graphics::IRenderProgram> m_program;
 };
 
+class ToneMappingPass : public RenderPass
+{
+public:
+    ToneMappingPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~ToneMappingPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_calculateHistogramsProgram;
+    std::shared_ptr<graphics::IComputeProgram> m_calculateExposureProgram;
+};
+
 class BloomPass : public RenderPass
 {
 public:

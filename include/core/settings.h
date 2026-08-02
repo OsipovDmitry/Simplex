@@ -121,6 +121,20 @@ public:
     float upSamplePassBlurRadius() const;
 };
 
+class CORE_SHARED_EXPORT ToneMapping : public utils::SettingsComponent
+{
+public:
+    ToneMapping(const rapidjson::Document::ValueType*);
+    ~ToneMapping() override;
+
+    const utils::Range& luminanceRange() const;
+    const utils::Range& luminanceClampRange() const;
+    const std::pair<float, float>& pixelsFractionToTrim() const;
+    float tauLight() const;
+    float tauDark() const;
+    float baseLuminance() const;
+};
+
 class CORE_SHARED_EXPORT SSAO : public utils::SettingsComponent
 {
 public:
@@ -222,6 +236,7 @@ public:
     const IBL& ibl() const;
     const Shadow& shadow() const;
     const Bloom& bloom() const;
+    const ToneMapping& toneMapping() const;
     const SSAO& ssao() const;
     const Blur& blur() const;
     const OIT& oit() const;

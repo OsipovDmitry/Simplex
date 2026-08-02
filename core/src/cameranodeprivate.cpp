@@ -6,6 +6,7 @@
 #include <core/cameranode.h>
 #include <core/scene.h>
 #include <core/shadowssettings.h>
+#include <core/tonemapping.h>
 
 #include "geometrybuffer.h"
 #include "renderpipeline.h"
@@ -48,6 +49,13 @@ void CameraNodePrivate::onAttachToScene(const std::shared_ptr<Scene>& scene)
     m_renderPipeLine->setBloomContribution(m_bloom->contribution());
     m_renderPipeLine->setBloomPassesCount(m_bloom->passesCount());
     m_renderPipeLine->setBloomUpSamplePassBlurRadius(m_bloom->upSamplePassBlurRadius());
+
+    m_renderPipeLine->setToneMappingLuminanceRange(m_toneMapping->luminanceRange());
+    m_renderPipeLine->setToneMappingLuminanceClampRange(m_toneMapping->luminanceClampRange());
+    m_renderPipeLine->setToneMappingPixelsFractionToTrim(m_toneMapping->pixelsFractionToTrim());
+    m_renderPipeLine->setToneMappingTauLight(m_toneMapping->tauLight());
+    m_renderPipeLine->setToneMappingTauDark(m_toneMapping->tauDark());
+    m_renderPipeLine->setToneMappingBaseLumiance(m_toneMapping->baseLuminance());
 }
 
 void CameraNodePrivate::onDetachFromScene(const std::shared_ptr<Scene>&)
@@ -114,6 +122,11 @@ std::unique_ptr<ShadowsSettings>& CameraNodePrivate::shadowsSettings()
 std::unique_ptr<Bloom>& CameraNodePrivate::bloom()
 {
     return m_bloom;
+}
+
+std::unique_ptr<ToneMapping>& CameraNodePrivate::toneMapping()
+{
+    return m_toneMapping;
 }
 
 void CameraNodePrivate::resize(const glm::uvec2& size)

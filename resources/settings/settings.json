@@ -50,10 +50,18 @@
 	  "CascadesDistancePower": 1.5
     },
 	"Bloom": {
-		"IsEnabled": true,
-		"Contribution": 0.035,
-		"PassesCount": 4,
-		"UpSamplePassBlurRadius": 1.5
+      "IsEnabled": true,
+      "Contribution": 0.01,
+      "PassesCount": 4,
+      "UpSamplePassBlurRadius": 1.5
+	},
+	"ToneMapping": {
+      "LuminanceRange": [0.03125, 1024.0],
+	  "LuminanceClampRange": [0.02, 12.0],
+	  "PixelsFractionToTrim": [0.05, 0.05],
+	  "TauLight": 2.0,
+	  "TauDark": 1.0,
+	  "BaseLuminance": 0.18
 	},
     "SSAO": {
       "Mode": "disabled",

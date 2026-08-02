@@ -51,3 +51,5 @@ vec3 NO2ZO(in vec3 value) { return 0.5f * value + vec3(0.5f); }
 float ZO2NO(in float value) { return 2.0f * value - 1.0f; }
 vec2 ZO2NO(in vec2 value) { return 2.0f * value - vec2(1.0f); }
 vec3 ZO2NO(in vec3 value) { return 2.0f * value - vec3(1.0f); }
+
+float color2Luminance(in vec3 value) { return dot(value, vec3(0.2126f, 0.7152f, 0.0722f)); }

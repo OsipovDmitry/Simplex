@@ -804,6 +804,36 @@ void BlendPass::run(
         {geometryBuffer, sceneData, shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u, 4u);
 }
 
+ToneMappingPass::ToneMappingPass(
+    const std::shared_ptr<ProgramsLoader>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    m_calculateHistogramsProgram = programsManager->loadOrGetComputeProgram(resources::CalculateHistogramsComputeShaderPath, {});
+    m_calculateExposureProgram = programsManager->loadOrGetComputeProgram(resources::CalculateExposureComputeShaderPath, {});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ToneMappingBuffer) =
+        graphics::BufferRange::create(renderPipeLine->toneMappingBuffer()->buffer());
+}
+
+ToneMappingPass::~ToneMappingPass() = default;
+
+void ToneMappingPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>&,
+    const std::shared_ptr<graphics::IVertexArray>&,
+    const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+    const std::shared_ptr<const SceneData>&)
+{
+    renderer->compute(glm::uvec3(geometryBuffer->size(), 1u), m_calculateHistogramsProgram, {geometryBuffer, shared_from_this()});
+    renderer->compute(glm::uvec3(1u), m_calculateExposureProgram, {shared_from_this()});
+
+    auto desc = m_renderPipeLine.lock()->toneMappingBuffer()->get();
+}
+
 BloomPass::BloomPass(const std::shared_ptr<ProgramsLoader>& programsManager, const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
@@ -815,6 +845,9 @@ BloomPass::BloomPass(const std::shared_ptr<ProgramsLoader>& programsManager, con
         resources::BloomPassVertexShaderPath, resources::BloomUpSamplePassFragmentShaderPath, {{"LAST_PASS", ""}});
     m_upSampleOtherPassesProgram = programsManager->loadOrGetRenderProgram(
         resources::BloomPassVertexShaderPath, resources::BloomUpSamplePassFragmentShaderPath, {});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ToneMappingBuffer) =
+        graphics::BufferRange::create(renderPipeLine->toneMappingBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::BloomBuffer) =
         graphics::BufferRange::create(renderPipeLine->bloomBuffer()->buffer());
@@ -888,9 +921,8 @@ FinalPass::FinalPass(const std::shared_ptr<ProgramsLoader>& programsManager, con
     m_program =
         programsManager->loadOrGetRenderProgram(resources::FinalPassVertexShaderPath, resources::FinalPassFragmentShaderPath, {});
 
-    // tmp
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::BloomBuffer) =
-        graphics::BufferRange::create(renderPipeLine->bloomBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ToneMappingBuffer) =
+        graphics::BufferRange::create(renderPipeLine->toneMappingBuffer()->buffer());
 }
 
 FinalPass::~FinalPass() = default;

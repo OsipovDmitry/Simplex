@@ -196,9 +196,10 @@ struct RenderInfoDescription
 {
     // global
     uint time;
+    uint dt;
 	float dielectricSpecular;
 	
-	uint globalPadding[2u];
+	uint globalPadding[1u];
 
     // scene
     OrientedBoundingBoxDescription globalBoundingBox;
@@ -439,6 +440,25 @@ struct BloomDescription
     uint passIndex;
 
     uint padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
+};
+
+const uint ToneMappingBinsCount = 256u;
+struct ToneMappingDescription
+{
+    uint bins[ToneMappingBinsCount];
+    float minLogLuminance;
+    float rangeInverseLogLuminance;
+    float minClampLuminance;
+    float maxClampLuminance;
+    float pixelsFractionToTrimAtStart;
+    float pixelsFractionToTrimAtEnd;
+    float luminancePrevFrame;
+    float baseLuminance;
+    float tauLight;
+    float tauDark;
+    float exposure;
+	
+    uint padding[1u];
 };
 
 struct BlurInfoDescription

@@ -4,6 +4,8 @@
 #include <memory>
 #include <vector>
 
+#include <utils/range.h>
+
 #include <core/forwarddecl.h>
 #include <core/shadowssettings.h>
 
@@ -30,6 +32,7 @@ using ShadowsToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowToUpd
 using ShadowDataBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowDataDescription>>;
 using ShadowMapsBuffer = std::shared_ptr<graphics::StructBuffer<ShadowMapsDescription>>;
 using BloomBuffer = std::shared_ptr<graphics::StructBuffer<BloomDescription>>;
+using ToneMappingBuffer = std::shared_ptr<graphics::StructBuffer<ToneMappingDescription>>;
 
 class RenderPipeLine : public std::enable_shared_from_this<RenderPipeLine>
 {
@@ -46,6 +49,7 @@ public:
         const std::shared_ptr<const GeometryBuffer>&,
         const std::shared_ptr<const SceneData>&,
         uint64_t time,
+        uint32_t dt,
         float dielectricSpecular,
         const utils::OrientedBoundingBox&,
         const utils::Transform&,
@@ -71,6 +75,13 @@ public:
     void setBloomPassesCount(uint32_t);
     void setBloomUpSamplePassBlurRadius(float);
 
+    void setToneMappingLuminanceRange(const utils::Range&);
+    void setToneMappingLuminanceClampRange(const utils::Range&);
+    void setToneMappingPixelsFractionToTrim(const std::pair<float, float>&);
+    void setToneMappingTauLight(float);
+    void setToneMappingTauDark(float);
+    void setToneMappingBaseLumiance(float);
+
     RenderInfoBuffer& renderInfoBuffer();
     CountersBuffer& countersBuffer();
     CameraBuffer& cameraBuffer();
@@ -82,6 +93,7 @@ public:
     ShadowDataBuffer& shadowDataBuffer();
     ShadowMapsBuffer& shadowMapsBuffer();
     BloomBuffer& bloomBuffer();
+    ToneMappingBuffer& toneMappingBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& bonesTransformsDataCalculateCommandBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& opaqueDrawDataRenderCommandsBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& transparentDrawDataRenderCommandsBuffer();
@@ -109,6 +121,7 @@ private:
     void deinitialize();
     void dirtyShadowMapsBuffer();
     void dirtyBloomBuffer();
+    void dirtyToneMappingBuffer();
 
     bool isShadowBlurPassNeeded() const;
     graphics::PixelInternalFormat shadowMomentsTextureInternalFormat() const;
@@ -120,11 +133,14 @@ private:
     void resizeBloomTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
     void updateBloomBuffer();
 
+    void updateToneMappingBuffer();
+
     void resizeFinalTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
 
     bool m_isInitialized = false;
     bool m_isShadowMapsBufferDirty = true;
     bool m_isBloomBufferDirty = true;
+    bool m_isToneMappingBufferDirty = true;
 
     uint32_t m_shadowAtlasSize = 0u;
     ShadowFilter m_shadowFilter = ShadowFilter::Discrete;
@@ -142,6 +158,13 @@ private:
     uint32_t m_bloomPassesCount = 4u;
     float m_bloomUpSamplePassBlurRadius = 2.f;
 
+    utils::Range m_toneMappingLuminanceRange = utils::Range(glm::exp2(glm::vec2(-5.f, 10.0f)));
+    utils::Range m_toneMappingLuminanceClampRange = utils::Range(glm::vec2(0.02f, 12.0f));
+    std::pair<float, float> m_toneMappingPixelsFractionToTrim{0.05f, 0.05f};
+    float m_toneMappingTauLight = 2.f;
+    float m_toneMappingTauDark = 1.f;
+    float m_toneMappingBaseLuminance = .18f;
+
     RenderInfoBuffer m_renderInfoBuffer;
     CountersBuffer m_countersBuffer;
     CameraBuffer m_cameraBuffer;
@@ -153,6 +176,7 @@ private:
     ShadowDataBuffer m_shadowDataBuffer;
     ShadowMapsBuffer m_shadowMapsBuffer;
     BloomBuffer m_bloomBuffer;
+    ToneMappingBuffer m_toneMappingBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_bonesTransformsDataCalculateCommandBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_opaqueDrawDataRenderCommandsBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_transparentDrawDataRenderCommandsBuffer;

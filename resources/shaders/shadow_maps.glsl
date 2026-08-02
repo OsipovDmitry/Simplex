@@ -151,7 +151,7 @@ vec3 shadowMapsProccessEVSMShadow(
 	
 	if (!isTexelTransparent)
 	{
-		//result *= texture(sampler2DArray(shadowMaps.colorTextureHandle), texCoords).rgb;
+		result *= texture(sampler2DArray(shadowMaps.colorTextureHandle), texCoords).rgb;
 	}
 	
 	return result;

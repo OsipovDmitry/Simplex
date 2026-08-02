@@ -149,7 +149,7 @@ std::shared_ptr<const ScenesLoader> GraphicsEngine::scenesLoader() const
     return const_cast<GraphicsEngine*>(this)->scenesLoader();
 }
 
-void GraphicsEngine::update(const std::shared_ptr<Scene>& scene, uint64_t time, uint32_t /*dt*/)
+void GraphicsEngine::update(const std::shared_ptr<Scene>& scene, uint64_t time, uint32_t dt)
 {
     if (!scene) return;
 
@@ -200,7 +200,7 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene, uint64_t time, 
         auto& renderPipeLine = cameraPrivate.renderPipeLine();
         renderPipeLine->initialize(programsLoader);
         renderPipeLine->run(
-            renderer, m_->frameBuffer(), m_->vertexArray(), cameraGeometryBuffer, scene->m().sceneData(), time,
+            renderer, m_->frameBuffer(), m_->vertexArray(), cameraGeometryBuffer, scene->m().sceneData(), time, dt,
             m_->dielectricSpecular(), globalBoundingBox, camera->globalTransform().inverted(), camera->clipSpace(),
             camera->cullPlanesLimits(), camera->clusterSize());
 

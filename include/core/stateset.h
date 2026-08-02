@@ -129,6 +129,7 @@ ENUMCLASS(
     OITNodesBuffer,
     ShadowMapsBuffer,
     BloomBuffer,
+    ToneMappingBuffer,
 
     LayeredShadowMatrices,
     SSAOKernel,

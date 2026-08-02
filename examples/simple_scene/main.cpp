@@ -286,8 +286,10 @@ static std::shared_ptr<simplex::core::DynamicBodyNode> createBunny()
 
     auto emission = color;
     const int idx = rand() % 3;
-    emission[idx] *= 30.f;
-    emission[(idx + 1) % 3] *= 30.f;
+    emission[idx] *= 100.f;
+    emission[(idx + 1) % 3] *= 100.f;
+
+    emission = glm::vec3(50.0f);
 
     auto material = std::make_shared<simplex::core::Material>();
     // material->setBaseColor(glm::vec4(color, 1.f));
@@ -327,8 +329,9 @@ static std::shared_ptr<simplex::core::DynamicBodyNode> createBunny()
     dynamicBodyNode->attach(drawableNode);
 
     auto pointLightNode = std::make_shared<simplex::core::PointLightNode>("");
-    pointLightNode->setColor(emission / 15.0f);
-    pointLightNode->setRadiuses(simplex::utils::Range(4.f, 8.f));
+    pointLightNode->setColor(glm::normalize(emission) * 2.f);
+    pointLightNode->setRadiuses(simplex::utils::Range(5.f, 12.f));
+    pointLightNode->setShadingEnabled(true);
     dynamicBodyNode->attach(pointLightNode);
 
     return dynamicBodyNode;
@@ -574,13 +577,13 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     updateLights();
 
     auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
-    IBLNode->setContribution(0.15f);
+    IBLNode->setContribution(0.05f);
     // scene->sceneRootNode()->attach(IBLNode);
     IBLNodeWeak = IBLNode;
 
     auto ambientLightNode = std::make_shared<simplex::core::AmbientLightNode>("");
-    ambientLightNode->setColor(glm::vec3(.1f));
-    scene->sceneRootNode()->attach(ambientLightNode);
+    ambientLightNode->setColor(glm::vec3(.007f));
+    // scene->sceneRootNode()->attach(ambientLightNode);
 
     // auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/arabic_city/scene.gltf");
     auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/Sponza/Sponza.gltf");
@@ -626,8 +629,12 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     {
         auto bunnyNode = createBunny();
         bunnyNode->setTransform(transform);
-        scene->sceneRootNode()->attach(bunnyNode);
+        // scene->sceneRootNode()->attach(bunnyNode);
     }
+
+    auto bunnyNode = createBunny();
+    bunnyNode->setTransform(simplex::utils::Transform(1.f, glm::quat(glm::vec3(0.f, .8f, 0.f)), glm::vec3(-.5f, 0.f, -.35f)));
+    scene->sceneRootNode()->attach(bunnyNode);
 
     return scene;
 }
@@ -967,10 +974,10 @@ static void updateCallback(uint64_t time, uint32_t dt)
         updateLights();
     }
 
-    const simplex::utils::LineSegment ls({cameraPosition, cameraPosition + cameraFowrardDir * 5.f});
-    const auto res = simplex::core::physics::RendererBase::current()->singleIntersection(ls);
-    selectBody(res);
-    showHitSphere(simplex::core::ApplicationBase::instance().scene()->sceneRootNode(), cameraPosition);
+    // const simplex::utils::LineSegment ls({cameraPosition, cameraPosition + cameraFowrardDir * 5.f});
+    // const auto res = simplex::core::physics::RendererBase::current()->singleIntersection(ls);
+    // selectBody(res);
+    // showHitSphere(simplex::core::ApplicationBase::instance().scene()->sceneRootNode(), cameraPosition);
 }
 
 int main(int argc, char* argv[])

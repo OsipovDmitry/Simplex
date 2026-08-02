@@ -63,6 +63,7 @@ ClipSpaceDescription ClipSpaceDescription::make(const utils::ClipSpace& clipSpac
 
 RenderInfoDescription RenderInfoDescription::make(
     uint32_t time,
+    uint32_t dt,
     float dielectricSpecular,
     const utils::OrientedBoundingBox& globalBoundingBox,
     uint32_t drawDataCount,
@@ -78,6 +79,7 @@ RenderInfoDescription RenderInfoDescription::make(
 
     // global
     result.time = time;
+    result.dt = dt;
     result.dielectricSpecular = dielectricSpecular;
 
     // scene
@@ -418,6 +420,34 @@ ShadowMapsDescription ShadowMapsDescription::make(
 BloomDescription BloomDescription::make(graphics::TextureHandle textureHandle, float contribution, float upSamplePassBlurRadius)
 {
     return {textureHandle, contribution, upSamplePassBlurRadius, 0u};
+}
+
+ToneMappingDescription ToneMappingDescription::make(
+    const utils::Range& luminanceRange,
+    const utils::Range& luminanceClampRange,
+    const std::pair<float, float>& pixelsFractionToTrim,
+    float baseLuminance,
+    float tauLight,
+    float tauDark)
+{
+    const auto logLuminanceRange = glm::log2(static_cast<glm::vec2>(luminanceRange));
+
+    ToneMappingDescription result{};
+    for (size_t i = 0u; i < ToneMappingDescription::BinsCount; ++i)
+        result.bins[i] = 0u;
+    result.minLogLuminance = logLuminanceRange[0u];
+    result.rangeInverseLogLuminance = 1.f / (logLuminanceRange[1u] - logLuminanceRange[0u]);
+    result.minClampLuminance = luminanceClampRange.nearValue();
+    result.maxClampLuminance = luminanceClampRange.farValue();
+    result.pixelsFractionToTrimAtStart = pixelsFractionToTrim.first;
+    result.pixelsFractionToTrimAtEnd = pixelsFractionToTrim.second;
+    result.luminancePrevFrame = -1.f;
+    result.baseLuminance = baseLuminance;
+    result.tauLight = tauLight;
+    result.tauDark = tauDark;
+    result.exposure = 1.f;
+
+    return result;
 }
 
 SkeletalAnimatedDataDescription SkeletalAnimatedDataDescription::makeEmpty()
