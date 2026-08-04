@@ -43,6 +43,7 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_shadowDataCullCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
     m_shadowMapBlurCommandsBuffer =
         graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({graphics::DrawArraysIndirectCommand()});
+    m_HDRBuffer = HDRBuffer::element_type::create();
     m_bloomBuffer = BloomBuffer::element_type::create();
     m_toneMappingBuffer = ToneMappingBuffer::element_type::create();
     m_opaqueShadowDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
@@ -113,6 +114,7 @@ void RenderPipeLine::run(
     const std::shared_ptr<graphics::IVertexArray>& vertexArray,
     const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
     const std::shared_ptr<const SceneData>& sceneData,
+    const glm::uvec2& viewportSize,
     uint64_t time,
     uint32_t dt,
     float dielectricSpecular,
@@ -122,6 +124,8 @@ void RenderPipeLine::run(
     const utils::Range& cullPlaneLimits,
     const glm::uvec3& clusterSize)
 {
+    m_viewportSize = viewportSize;
+
     const auto drawDataCount = sceneData->drawDataCount();
     m_opaqueDrawDataRenderCommandsBuffer->resize(drawDataCount);
     m_transparentDrawDataRenderCommandsBuffer->resize(drawDataCount);
@@ -147,22 +151,31 @@ void RenderPipeLine::run(
     m_transparentShadowDataRenderCommandsBuffer->resize(shadowDataCount);
 
     m_renderInfoBuffer->set(RenderInfoDescription::make(
-        static_cast<uint32_t>(time), dt, dielectricSpecular, globalBoundingBox, static_cast<uint32_t>(drawDataCount),
-        static_cast<uint32_t>(skeletalAnimatedDataCount), static_cast<uint32_t>(shadowsCount), static_cast<uint32_t>(lightsCount),
-        clusterSize, viewTransform, clipSpace, cullPlaneLimits));
+        m_viewportSize, static_cast<uint32_t>(time), dt, dielectricSpecular, globalBoundingBox,
+        static_cast<uint32_t>(drawDataCount), static_cast<uint32_t>(skeletalAnimatedDataCount),
+        static_cast<uint32_t>(shadowsCount), static_cast<uint32_t>(lightsCount), clusterSize, viewTransform, clipSpace,
+        cullPlaneLimits));
 
     resizeShadowTextures(graphicsRenderer, sceneData->shadowMapsLayersCount());
     updateShadowMapsBuffer();
 
-    resizeBloomTexture(graphicsRenderer, geometryBuffer->size());
+    resizeHDRTexture(graphicsRenderer);
+    updateHDRBuffer();
+
+    resizeBloomTexture(graphicsRenderer);
     updateBloomBuffer();
 
     updateToneMappingBuffer();
 
-    resizeFinalTexture(graphicsRenderer, geometryBuffer->size());
+    resizeFinalTexture(graphicsRenderer);
 
     for (auto& pass : m_passes)
         pass->run(graphicsRenderer, frameBuffer, vertexArray, geometryBuffer, sceneData);
+}
+
+const glm::uvec2& RenderPipeLine::viewportSize() const
+{
+    return m_viewportSize;
 }
 
 uint32_t RenderPipeLine::shadowAtlasSize() const
@@ -396,6 +409,11 @@ ShadowMapsBuffer& RenderPipeLine::shadowMapsBuffer()
     return m_shadowMapsBuffer;
 }
 
+HDRBuffer& RenderPipeLine::hdrBuffer()
+{
+    return m_HDRBuffer;
+}
+
 BloomBuffer& RenderPipeLine::bloomBuffer()
 {
     return m_bloomBuffer;
@@ -486,6 +504,11 @@ graphics::PConstTexture RenderPipeLine::shadowColorBluredTexture() const
     return m_shadowColorBluredTextureHandle ? m_shadowColorBluredTextureHandle->texture() : nullptr;
 }
 
+graphics::PConstTexture RenderPipeLine::HDRTexture() const
+{
+    return m_HDRTextureHandle ? m_HDRTextureHandle->texture() : nullptr;
+}
+
 graphics::PConstTexture RenderPipeLine::bloomTexture() const
 {
     return m_bloomTextureHandle ? m_bloomTextureHandle->texture() : nullptr;
@@ -548,6 +571,11 @@ void RenderPipeLine::deinitialize()
 void RenderPipeLine::dirtyShadowMapsBuffer()
 {
     m_isShadowMapsBufferDirty = true;
+}
+
+void RenderPipeLine::dirtyHDRBuffer()
+{
+    m_isHDRBufferDirty = true;
 }
 
 void RenderPipeLine::dirtyBloomBuffer()
@@ -686,11 +714,37 @@ void RenderPipeLine::updateShadowMapsBuffer()
     m_isShadowMapsBufferDirty = false;
 }
 
-void RenderPipeLine::resizeBloomTexture(
-    const std::shared_ptr<graphics::RendererBase>& renderer,
-    const glm::uvec2& geometryBufferSize)
+void RenderPipeLine::resizeHDRTexture(const std::shared_ptr<graphics::RendererBase>& renderer)
 {
-    const auto newSize = glm::max(geometryBufferSize / 2u, glm::uvec2(1u));
+    const auto newSize = glm::max(m_viewportSize, glm::uvec2(1u));
+
+    const graphics::PConstTexture HDRTexture = m_HDRTextureHandle ? m_HDRTextureHandle->texture() : nullptr;
+    const auto oldSize = HDRTexture ? HDRTexture->size() : glm::uvec2(0u);
+
+    if (newSize == oldSize) return;
+
+    auto texture = renderer->createTextureRectEmpty(newSize.x, newSize.y, graphics::PixelInternalFormat::RGBA16F);
+    texture->setFilterMode(graphics::TextureFilterMode::Linear);
+    texture->setWrapMode(graphics::TextureWrapMode::ClampToEdge);
+    m_HDRTextureHandle = renderer->createTextureHandle(texture);
+    m_HDRTextureHandle->makeResident();
+
+    dirtyHDRBuffer();
+}
+
+void RenderPipeLine::updateHDRBuffer()
+{
+    if (!m_isHDRBufferDirty) return;
+
+    m_HDRBuffer->set(HDRDescription::make(
+        m_HDRTextureHandle ? m_HDRTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last()));
+
+    m_isHDRBufferDirty = false;
+}
+
+void RenderPipeLine::resizeBloomTexture(const std::shared_ptr<graphics::RendererBase>& renderer)
+{
+    const auto newSize = glm::max(m_viewportSize / 2u, glm::uvec2(1u));
     const auto newLevelsCount = glm::min(glm::levels(newSize), m_bloomPassesCount);
 
     const graphics::PConstTexture bloomTexture = m_bloomTextureHandle ? m_bloomTextureHandle->texture() : nullptr;
@@ -731,16 +785,16 @@ void RenderPipeLine::updateToneMappingBuffer()
     m_isToneMappingBufferDirty = false;
 }
 
-void RenderPipeLine::resizeFinalTexture(
-    const std::shared_ptr<graphics::RendererBase>& renderer,
-    const glm::uvec2& geometryBufferSize)
+void RenderPipeLine::resizeFinalTexture(const std::shared_ptr<graphics::RendererBase>& renderer)
 {
-    const auto newSize = glm::max(geometryBufferSize, glm::uvec2(1u));
+    const auto newSize = glm::max(m_viewportSize, glm::uvec2(1u));
 
-    if (const auto size = m_finalTexture ? m_finalTexture->size() : glm::uvec2(0u); !m_finalTexture || (size != newSize))
-    {
-        m_finalTexture = renderer->createTextureRectEmpty(newSize.x, newSize.y, graphics::PixelInternalFormat::RGBA8);
-    }
+    const graphics::PConstTexture HDRTexture = m_HDRTextureHandle ? m_HDRTextureHandle->texture() : nullptr;
+    const auto oldSize = m_finalTexture ? m_finalTexture->size() : glm::uvec2(0u);
+
+    if (newSize == oldSize) return;
+
+    m_finalTexture = renderer->createTextureRectEmpty(newSize.x, newSize.y, graphics::PixelInternalFormat::RGBA8);
 }
 
 } // namespace core

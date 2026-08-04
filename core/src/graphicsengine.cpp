@@ -193,14 +193,14 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene, uint64_t time, 
 
         auto& cameraGeometryBuffer = camera->isDefaultFramebufferUsed() ? m_->geometryBuffer() : cameraPrivate.geometryBuffer();
         cameraGeometryBuffer->initialize(programsLoader);
-        cameraGeometryBuffer->resize(screenSize, renderer);
+        const auto& viewportSize = cameraGeometryBuffer->resize(screenSize, renderer);
 
-        cameraPrivate.resize(cameraGeometryBuffer->size());
+        cameraPrivate.resize(viewportSize);
 
         auto& renderPipeLine = cameraPrivate.renderPipeLine();
         renderPipeLine->initialize(programsLoader);
         renderPipeLine->run(
-            renderer, m_->frameBuffer(), m_->vertexArray(), cameraGeometryBuffer, scene->m().sceneData(), time, dt,
+            renderer, m_->frameBuffer(), m_->vertexArray(), cameraGeometryBuffer, scene->m().sceneData(), viewportSize, time, dt,
             m_->dielectricSpecular(), globalBoundingBox, camera->globalTransform().inverted(), camera->clipSpace(),
             camera->cullPlanesLimits(), camera->clusterSize());
 
@@ -208,8 +208,8 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene, uint64_t time, 
         m_->frameBuffer()->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->finalTexture());
 
         m_->renderer()->blitFrameBuffer(
-            m_->frameBuffer(), widget->defaultFrameBuffer(), glm::uvec4(0u, 0u, cameraGeometryBuffer->size()),
-            glm::uvec4(0u, 0u, screenSize), true, false, false, false);
+            m_->frameBuffer(), widget->defaultFrameBuffer(), glm::uvec4(0u, 0u, viewportSize), glm::uvec4(0u, 0u, screenSize),
+            true, false, false, false);
     }
 }
 

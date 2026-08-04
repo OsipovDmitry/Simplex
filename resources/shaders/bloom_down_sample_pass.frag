@@ -1,5 +1,6 @@
 #include<bloom.glsl>
-#include<geometry.glsl>
+#include<hdr.glsl>
+#include<render_info.glsl>
 
 in vec2 v_fragCoords;
 
@@ -8,7 +9,7 @@ out vec4 o_fragColor0;
 vec3 sourceTextureColor(in vec2 fragCoords)
 {
 #ifdef FIRST_PASS
-	return geometryBufferFinalColor(fragCoords);
+	return HDRBufferFinalColor(fragCoords);
 #else
 	return bloomColor(fragCoords, -1);
 #endif
@@ -17,7 +18,7 @@ vec3 sourceTextureColor(in vec2 fragCoords)
 void main(void)
 {
 #ifdef FIRST_PASS
-	const vec2 fragCoords = v_fragCoords * vec2(geometryBufferSize());
+	const vec2 fragCoords = v_fragCoords * vec2(renderInfoViewportSize());
 	const float x = 1.0f;
 	const float y = 1.0f;
 #else

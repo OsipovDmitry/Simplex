@@ -31,6 +31,7 @@ using SkeletalAnimatedDataToUpdateBuffer = std::shared_ptr<graphics::VectorBuffe
 using ShadowsToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowToUpdateDescription>>;
 using ShadowDataBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowDataDescription>>;
 using ShadowMapsBuffer = std::shared_ptr<graphics::StructBuffer<ShadowMapsDescription>>;
+using HDRBuffer = std::shared_ptr<graphics::StructBuffer<HDRDescription>>;
 using BloomBuffer = std::shared_ptr<graphics::StructBuffer<BloomDescription>>;
 using ToneMappingBuffer = std::shared_ptr<graphics::StructBuffer<ToneMappingDescription>>;
 
@@ -48,6 +49,7 @@ public:
         const std::shared_ptr<graphics::IVertexArray>&,
         const std::shared_ptr<const GeometryBuffer>&,
         const std::shared_ptr<const SceneData>&,
+        const glm::uvec2& viewportSize,
         uint64_t time,
         uint32_t dt,
         float dielectricSpecular,
@@ -56,6 +58,8 @@ public:
         const utils::ClipSpace&,
         const utils::Range&,
         const glm::uvec3&);
+
+    const glm::uvec2& viewportSize() const;
 
     uint32_t shadowAtlasSize() const;
     ShadowFilter shadowFilter() const;
@@ -92,6 +96,7 @@ public:
     ShadowsToUpdateBuffer& shadowsToUpdateBuffer();
     ShadowDataBuffer& shadowDataBuffer();
     ShadowMapsBuffer& shadowMapsBuffer();
+    HDRBuffer& hdrBuffer();
     BloomBuffer& bloomBuffer();
     ToneMappingBuffer& toneMappingBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& bonesTransformsDataCalculateCommandBuffer();
@@ -112,6 +117,7 @@ public:
     graphics::PConstTexture shadowColorTexture() const;
     graphics::PConstTexture shadowMomentsBluredTexture() const;
     graphics::PConstTexture shadowColorBluredTexture() const;
+    graphics::PConstTexture HDRTexture() const;
     graphics::PConstTexture bloomTexture() const;
     graphics::PConstTexture finalTexture() const;
 
@@ -120,6 +126,7 @@ public:
 private:
     void deinitialize();
     void dirtyShadowMapsBuffer();
+    void dirtyHDRBuffer();
     void dirtyBloomBuffer();
     void dirtyToneMappingBuffer();
 
@@ -130,17 +137,23 @@ private:
     void resizeShadowTextures(const std::shared_ptr<graphics::RendererBase>&, uint32_t);
     void updateShadowMapsBuffer();
 
-    void resizeBloomTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
+    void resizeHDRTexture(const std::shared_ptr<graphics::RendererBase>&);
+    void updateHDRBuffer();
+
+    void resizeBloomTexture(const std::shared_ptr<graphics::RendererBase>&);
     void updateBloomBuffer();
 
     void updateToneMappingBuffer();
 
-    void resizeFinalTexture(const std::shared_ptr<graphics::RendererBase>&, const glm::uvec2&);
+    void resizeFinalTexture(const std::shared_ptr<graphics::RendererBase>&);
 
     bool m_isInitialized = false;
     bool m_isShadowMapsBufferDirty = true;
+    bool m_isHDRBufferDirty = true;
     bool m_isBloomBufferDirty = true;
     bool m_isToneMappingBufferDirty = true;
+
+    glm::uvec2 m_viewportSize = glm::uvec2(0u, 0u);
 
     uint32_t m_shadowAtlasSize = 0u;
     ShadowFilter m_shadowFilter = ShadowFilter::Discrete;
@@ -175,6 +188,7 @@ private:
     ShadowsToUpdateBuffer m_shadowsToUpdateBuffer;
     ShadowDataBuffer m_shadowDataBuffer;
     ShadowMapsBuffer m_shadowMapsBuffer;
+    HDRBuffer m_HDRBuffer;
     BloomBuffer m_bloomBuffer;
     ToneMappingBuffer m_toneMappingBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_bonesTransformsDataCalculateCommandBuffer;
@@ -195,6 +209,7 @@ private:
     graphics::PTextureHandle m_shadowColorTextureHandle;
     graphics::PTextureHandle m_shadowMomentsBluredTextureHandle;
     graphics::PTextureHandle m_shadowColorBluredTextureHandle;
+    graphics::PTextureHandle m_HDRTextureHandle;
     graphics::PTextureHandle m_bloomTextureHandle;
     graphics::PTexture m_finalTexture;
 

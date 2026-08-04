@@ -3,11 +3,6 @@
 layout (std430) buffer ssbo_GBuffer { GBufferDescription GBuffer; };
 layout (std430) buffer ssbo_OITNodesBuffer { OITNodeDescription OITNodes[]; };
 
-uvec2 geometryBufferSize()
-{
-	return GBuffer.size;
-}
-
 uint geometryBufferOITNodesMaxCount()
 {
 	return GBuffer.OITNodesMaxCount;
@@ -26,7 +21,9 @@ void geometryBufferInitializeOITNode(in uint OITNodeID, in uvec4 PBRData, in flo
 void geometryBufferClearFirstOITNodeID(in ivec2 fragCoords)
 {
 	layout(r32ui) uimage2DRect image = layout(r32ui) uimage2DRect(GBuffer.OITNodeIDImageHandle);
-	imageStore(image, fragCoords, uvec4(0xFFFFFFFFu));
+	
+	if (all(lessThan(fragCoords, imageSize(image))))
+		imageStore(image, fragCoords, uvec4(0xFFFFFFFFu));
 }
 
 uint geometryBufferSetFirstOITNodeID(in ivec2 fragCoords, in uint OITNodeID)
@@ -39,35 +36,38 @@ void geometryBufferSortOITNodes(in ivec2 fragCoords)
 {
 	layout(r32ui) uimage2DRect image = layout(r32ui) uimage2DRect(GBuffer.OITNodeIDImageHandle);
 	
-	uint sortedOITNodeID = 0xFFFFFFFFu;
-    uint currentOITNodeID = imageLoad(image, fragCoords).r;
-    float currentOITNodeDepth = 0.0f;
+	if (all(lessThan(fragCoords, imageSize(image))))
+	{
+		uint sortedOITNodeID = 0xFFFFFFFFu;
+		uint currentOITNodeID = imageLoad(image, fragCoords).r;
+		float currentOITNodeDepth = 0.0f;
     
-    while (currentOITNodeID != 0xFFFFFFFFu)
-    {
-        currentOITNodeDepth = OITNodes[currentOITNodeID].depth;
+		while (currentOITNodeID != 0xFFFFFFFFu)
+		{
+			currentOITNodeDepth = OITNodes[currentOITNodeID].depth;
     
-        uint nextIndex = OITNodes[currentOITNodeID].nextID;
+			uint nextIndex = OITNodes[currentOITNodeID].nextID;
         
-        if ((sortedOITNodeID == 0xFFFFFFFFu) || (OITNodes[sortedOITNodeID].depth < currentOITNodeDepth))
-        {
-            OITNodes[currentOITNodeID].nextID = sortedOITNodeID;
-            sortedOITNodeID = currentOITNodeID;
-        }
-        else
-        {
-            uint newIndex = sortedOITNodeID;
-            while ((OITNodes[newIndex].nextID != 0xFFFFFFFFu) && (OITNodes[OITNodes[newIndex].nextID].depth > currentOITNodeDepth))
-                newIndex = OITNodes[newIndex].nextID;
+			if ((sortedOITNodeID == 0xFFFFFFFFu) || (OITNodes[sortedOITNodeID].depth < currentOITNodeDepth))
+			{
+				OITNodes[currentOITNodeID].nextID = sortedOITNodeID;
+				sortedOITNodeID = currentOITNodeID;
+			}
+			else
+			{
+				uint newIndex = sortedOITNodeID;
+				while ((OITNodes[newIndex].nextID != 0xFFFFFFFFu) && (OITNodes[OITNodes[newIndex].nextID].depth > currentOITNodeDepth))
+					newIndex = OITNodes[newIndex].nextID;
 
-            OITNodes[currentOITNodeID].nextID = OITNodes[newIndex].nextID;
-            OITNodes[newIndex].nextID = currentOITNodeID;
-        }
+				OITNodes[currentOITNodeID].nextID = OITNodes[newIndex].nextID;
+				OITNodes[newIndex].nextID = currentOITNodeID;
+			}
         
-        currentOITNodeID = nextIndex;
-    }
+			currentOITNodeID = nextIndex;
+		}
 
-    imageStore(image, fragCoords, uvec4(sortedOITNodeID));
+		imageStore(image, fragCoords, uvec4(sortedOITNodeID));
+	}
 }
 
 bool geometryBufferData(in ivec2 fragCoords, out uvec4 PBRData, out float depth, out uint nextOITNodeID)
@@ -99,14 +99,4 @@ float geometryBufferDepth(in uint OITNodeID)
 		return 0.0f;
 		
 	return OITNodes[OITNodeID].depth;
-}
-
-vec3 geometryBufferFetchFinalColor(in ivec2 fragCoords)
-{
-	return texelFetch(sampler2DRect(GBuffer.finalTextureHandle), fragCoords).rgb;
-}
-
-vec3 geometryBufferFinalColor(in vec2 fragCoords)
-{
-	return texture(sampler2DRect(GBuffer.finalTextureHandle), fragCoords).rgb;
 }

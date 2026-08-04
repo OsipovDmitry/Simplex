@@ -1,13 +1,14 @@
 layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
-#include<geometry.glsl>
+#include<hdr.glsl>
+#include<render_info.glsl>
 #include<tone_mapping.glsl>
 
 void main(void)
 {   
-    if (all(lessThan(gl_GlobalInvocationID, uvec3(geometryBufferSize(), 1u))))
+    if (all(lessThan(gl_GlobalInvocationID, uvec3(renderInfoViewportSize(), 1u))))
     {
-		const vec3 color = geometryBufferFetchFinalColor(ivec2(gl_GlobalInvocationID.xy));
+		const vec3 color = HDRBufferFetchFinalColor(ivec2(gl_GlobalInvocationID.xy));
 		toneMappingAddColorToHistograms(color);
     }
 }

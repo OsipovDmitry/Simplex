@@ -29,8 +29,7 @@ public:
     const std::optional<glm::uvec2>& fixedSize() const;
     void setFixedSize(const std::optional<glm::uvec2>&);
 
-    const glm::uvec2& size() const;
-    void resize(const glm::uvec2&, const std::shared_ptr<graphics::RendererBase>&);
+    const glm::uvec2& resize(const glm::uvec2&, const std::shared_ptr<graphics::RendererBase>&); // returns actual viewport size
 
     uint32_t maxOITNodesCount() const;
     uint32_t OITNodesCountPerPixel() const;
@@ -47,7 +46,6 @@ public:
 
     graphics::PConstTexture colorTexture() const;
     graphics::PConstTexture depthTexture() const;
-    graphics::PConstTexture finalTexture() const;
 
 private:
     void recreateBuffers(const std::shared_ptr<graphics::RendererBase>&);
@@ -66,7 +64,6 @@ private:
     graphics::PTextureHandle m_colorTextureHandle;
     graphics::PTextureHandle m_depthTextureHandle;
     graphics::PImageHandle m_OITNodeIDImageHandle;
-    graphics::PTextureHandle m_finalTextureHandle;
 
     std::shared_ptr<graphics::IComputeProgram> m_clearOITNodeIDImageProgram;
     std::shared_ptr<graphics::IComputeProgram> m_sortOITNodesProgram;

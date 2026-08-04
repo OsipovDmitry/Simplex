@@ -93,7 +93,7 @@ void CullDrawDataPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>&,
     const std::shared_ptr<graphics::IVertexArray>&,
-    const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+    const std::shared_ptr<const GeometryBuffer>&,
     const std::shared_ptr<const SceneData>& sceneData)
 {
     renderer->compute(
@@ -276,8 +276,8 @@ void RenderDrawDataPass::run(
     framebuffer->setDepthMask(true);
 
     renderer->multiDrawArraysIndirectCount(
-        glm::uvec4(0u, 0u, geometryBuffer->size()), m_opaqueProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
-        utils::PrimitiveType::Triangles, renderPipeLine->opaqueDrawDataRenderCommandsBuffer(),
+        glm::uvec4(0u, 0u, renderPipeLine->viewportSize()), m_opaqueProgram, framebuffer, vertexArray,
+        {sceneData, shared_from_this()}, utils::PrimitiveType::Triangles, renderPipeLine->opaqueDrawDataRenderCommandsBuffer(),
         renderPipeLine->opaqueDrawDataRenderParameterBuffer());
 
     framebuffer->reset();
@@ -285,7 +285,7 @@ void RenderDrawDataPass::run(
     framebuffer->setDepthTest(true);
 
     renderer->multiDrawArraysIndirectCount(
-        glm::uvec4(0u, 0u, geometryBuffer->size()), m_transparentProgram, framebuffer, vertexArray,
+        glm::uvec4(0u, 0u, renderPipeLine->viewportSize()), m_transparentProgram, framebuffer, vertexArray,
         {geometryBuffer, sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
         renderPipeLine->transparentDrawDataRenderCommandsBuffer(), renderPipeLine->transparentDrawDataRenderParameterBuffer());
 }
@@ -743,15 +743,22 @@ void RenderBackgroundPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<graphics::IVertexArray>& vertexArray,
-    const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+    const std::shared_ptr<const GeometryBuffer>&,
     const std::shared_ptr<const SceneData>& sceneData)
 {
+    auto renderPipeLine = m_renderPipeLine.lock();
+    if (!renderPipeLine)
+    {
+        LOG_CRITICAL << "RenderPipeLine can't be nullptr";
+        return;
+    }
+
     framebuffer->reset();
-    framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->finalTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->HDRTexture());
     framebuffer->setColorMask(0u, true);
 
     renderer->drawArrays(
-        glm::uvec4(0u, 0u, geometryBuffer->size()), m_program, framebuffer, vertexArray, {sceneData, shared_from_this()},
+        glm::uvec4(0u, 0u, renderPipeLine->viewportSize()), m_program, framebuffer, vertexArray, {sceneData, shared_from_this()},
         utils::PrimitiveType::TriangleStrip, 0u, 4u);
 }
 
@@ -790,8 +797,15 @@ void BlendPass::run(
     const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
     const std::shared_ptr<const SceneData>& sceneData)
 {
+    auto renderPipeLine = m_renderPipeLine.lock();
+    if (!renderPipeLine)
+    {
+        LOG_CRITICAL << "RenderPipeLine can't be nullptr";
+        return;
+    }
+
     framebuffer->reset();
-    framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->finalTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->HDRTexture());
     framebuffer->setColorMask(0u, true);
     framebuffer->setBlending(true);
     framebuffer->setBlendEquation(0u, graphics::BlendEquation::Add, graphics::BlendEquation::Add);
@@ -800,7 +814,7 @@ void BlendPass::run(
         graphics::BlendFactor::SrcAlpha);
 
     renderer->drawArrays(
-        glm::uvec4(0u, 0u, geometryBuffer->size()), m_program, framebuffer, vertexArray,
+        glm::uvec4(0u, 0u, renderPipeLine->viewportSize()), m_program, framebuffer, vertexArray,
         {geometryBuffer, sceneData, shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u, 4u);
 }
 
@@ -815,6 +829,9 @@ ToneMappingPass::ToneMappingPass(
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
         graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
 
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::HDRBuffer) =
+        graphics::BufferRange::create(renderPipeLine->hdrBuffer()->buffer());
+
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ToneMappingBuffer) =
         graphics::BufferRange::create(renderPipeLine->toneMappingBuffer()->buffer());
 }
@@ -825,10 +842,17 @@ void ToneMappingPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>&,
     const std::shared_ptr<graphics::IVertexArray>&,
-    const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+    const std::shared_ptr<const GeometryBuffer>&,
     const std::shared_ptr<const SceneData>&)
 {
-    renderer->compute(glm::uvec3(geometryBuffer->size(), 1u), m_calculateHistogramsProgram, {geometryBuffer, shared_from_this()});
+    auto renderPipeLine = m_renderPipeLine.lock();
+    if (!renderPipeLine)
+    {
+        LOG_CRITICAL << "RenderPipeLine can't be nullptr";
+        return;
+    }
+
+    renderer->compute(glm::uvec3(renderPipeLine->viewportSize(), 1u), m_calculateHistogramsProgram, {shared_from_this()});
     renderer->compute(glm::uvec3(1u), m_calculateExposureProgram, {shared_from_this()});
 
     auto desc = m_renderPipeLine.lock()->toneMappingBuffer()->get();
@@ -846,11 +870,17 @@ BloomPass::BloomPass(const std::shared_ptr<ProgramsLoader>& programsManager, con
     m_upSampleOtherPassesProgram = programsManager->loadOrGetRenderProgram(
         resources::BloomPassVertexShaderPath, resources::BloomUpSamplePassFragmentShaderPath, {});
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ToneMappingBuffer) =
-        graphics::BufferRange::create(renderPipeLine->toneMappingBuffer()->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
+        graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::HDRBuffer) =
+        graphics::BufferRange::create(renderPipeLine->hdrBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::BloomBuffer) =
         graphics::BufferRange::create(renderPipeLine->bloomBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ToneMappingBuffer) =
+        graphics::BufferRange::create(renderPipeLine->toneMappingBuffer()->buffer());
 }
 
 BloomPass::~BloomPass() = default;
@@ -859,7 +889,7 @@ void BloomPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<graphics::IVertexArray>& vertexArray,
-    const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+    const std::shared_ptr<const GeometryBuffer>&,
     const std::shared_ptr<const SceneData>&)
 {
     auto renderPipeLine = m_renderPipeLine.lock();
@@ -886,8 +916,8 @@ void BloomPass::run(
             const auto& renderProgram = (passIndex == 0u) ? m_downSampleFirstPassProgram : m_downSampleOtherPassesProgram;
 
             renderer->drawArrays(
-                viewport, renderProgram, framebuffer, vertexArray, {geometryBuffer, shared_from_this()},
-                utils::PrimitiveType::TriangleStrip, 0u, 4u);
+                viewport, renderProgram, framebuffer, vertexArray, {shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u,
+                4u);
         }
 
         framebuffer->setBlending(true);
@@ -902,16 +932,16 @@ void BloomPass::run(
 
             const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(bloomTexture->mipmapSize(static_cast<uint32_t>(passIndex))));
             renderer->drawArrays(
-                viewport, m_upSampleOtherPassesProgram, framebuffer, vertexArray, {geometryBuffer, shared_from_this()},
+                viewport, m_upSampleOtherPassesProgram, framebuffer, vertexArray, {shared_from_this()},
                 utils::PrimitiveType::TriangleStrip, 0u, 4u);
         }
 
-        framebuffer->attach(graphics::FrameBufferAttachment::Color0, geometryBuffer->finalTexture());
+        framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->HDRTexture());
         bloomBuffer->setField(offsetof(BloomDescription, passIndex), 0u);
 
         renderer->drawArrays(
-            glm::uvec4(0u, 0u, geometryBuffer->size()), m_upSampleLastPassProgram, framebuffer, vertexArray,
-            {geometryBuffer, shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u, 4u);
+            glm::uvec4(0u, 0u, renderPipeLine->viewportSize()), m_upSampleLastPassProgram, framebuffer, vertexArray,
+            {shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u, 4u);
     }
 }
 
@@ -920,6 +950,9 @@ FinalPass::FinalPass(const std::shared_ptr<ProgramsLoader>& programsManager, con
 {
     m_program =
         programsManager->loadOrGetRenderProgram(resources::FinalPassVertexShaderPath, resources::FinalPassFragmentShaderPath, {});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::HDRBuffer) =
+        graphics::BufferRange::create(renderPipeLine->hdrBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ToneMappingBuffer) =
         graphics::BufferRange::create(renderPipeLine->toneMappingBuffer()->buffer());
@@ -931,10 +964,9 @@ void FinalPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>& framebuffer,
     const std::shared_ptr<graphics::IVertexArray>& vertexArray,
-    const std::shared_ptr<const GeometryBuffer>& geometryBuffer,
+    const std::shared_ptr<const GeometryBuffer>&,
     const std::shared_ptr<const SceneData>& sceneData)
 {
-
     auto renderPipeLine = m_renderPipeLine.lock();
     if (!renderPipeLine)
     {
@@ -947,7 +979,7 @@ void FinalPass::run(
     framebuffer->setColorMask(0u, true);
 
     renderer->drawArrays(
-        glm::uvec4(0u, 0u, geometryBuffer->size()), m_program, framebuffer, vertexArray, {geometryBuffer, shared_from_this()},
+        glm::uvec4(0u, 0u, renderPipeLine->viewportSize()), m_program, framebuffer, vertexArray, {shared_from_this()},
         utils::PrimitiveType::TriangleStrip, 0u, 4u);
 }
 

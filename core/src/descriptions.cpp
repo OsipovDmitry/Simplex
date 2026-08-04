@@ -62,6 +62,7 @@ ClipSpaceDescription ClipSpaceDescription::make(const utils::ClipSpace& clipSpac
 }
 
 RenderInfoDescription RenderInfoDescription::make(
+    const glm::uvec2& viewportSize,
     uint32_t time,
     uint32_t dt,
     float dielectricSpecular,
@@ -78,6 +79,7 @@ RenderInfoDescription RenderInfoDescription::make(
     RenderInfoDescription result{};
 
     // global
+    result.viewportSize = viewportSize;
     result.time = time;
     result.dt = dt;
     result.dielectricSpecular = dielectricSpecular;
@@ -102,11 +104,9 @@ GBufferDescription GBufferDescription::make(
     graphics::TextureHandle colorTextureHandle,
     graphics::TextureHandle depthTextureHandle,
     graphics::ImageHandle OITIndicesImageHandle,
-    graphics::TextureHandle finalTextureHandle,
-    const glm::uvec2& size,
     uint32_t OITNodesMaxCount)
 {
-    return {colorTextureHandle, depthTextureHandle, OITIndicesImageHandle, finalTextureHandle, size, OITNodesMaxCount, 0u};
+    return {colorTextureHandle, depthTextureHandle, OITIndicesImageHandle, OITNodesMaxCount, 0u};
 }
 
 MeshDescription MeshDescription::makeEmpty()
@@ -415,6 +415,11 @@ ShadowMapsDescription ShadowMapsDescription::make(
     result.blurRadius = static_cast<uint32_t>(blurKernel.size());
 
     return result;
+}
+
+HDRDescription HDRDescription::make(graphics::TextureHandle textureHandle)
+{
+    return {textureHandle};
 }
 
 BloomDescription BloomDescription::make(graphics::TextureHandle textureHandle, float contribution, float upSamplePassBlurRadius)

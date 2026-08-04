@@ -46,30 +46,26 @@ const std::optional<glm::uvec2>& GeometryBuffer::fixedSize() const
 
 void GeometryBuffer::setFixedSize(const std::optional<glm::uvec2>& value)
 {
-    std::optional<glm::uvec2> newFixedSize;
-    if (value) newFixedSize = glm::max(value.value(), glm::uvec2(1u));
+    const auto newFixedSize = value ? std::optional<glm::uvec2>(glm::max(value.value(), glm::uvec2(1u))) : std::nullopt;
 
-    if (m_fixedSize != newFixedSize)
+    if (m_fixedSize == newFixedSize) return;
+
+    m_fixedSize = newFixedSize;
+    m_size = glm::uvec2(0u); // it'll affect buffers recreating next frame
+}
+
+const glm::uvec2& GeometryBuffer::resize(const glm::uvec2& size, const std::shared_ptr<graphics::RendererBase>& graphicsRenderer)
+{
+    const glm::uvec2 newSize = m_fixedSize ? m_fixedSize.value() : glm::max(size, glm::uvec2(1u, 1u));
+
+    if (m_size != newSize)
     {
-        m_fixedSize = newFixedSize;
-        m_size = glm::uvec2(0u); // it'll affect buffers recreating next frame
+
+        m_size = newSize;
+        recreateBuffers(graphicsRenderer);
     }
-}
 
-const glm::uvec2& GeometryBuffer::size() const
-{
     return m_size;
-}
-
-void GeometryBuffer::resize(const glm::uvec2& size, const std::shared_ptr<graphics::RendererBase>& graphicsRenderer)
-{
-    auto newSize = glm::max(size, glm::uvec2(1u, 1u));
-    if (m_fixedSize) newSize = m_fixedSize.value();
-
-    if (m_size == newSize) return;
-
-    m_size = newSize;
-    recreateBuffers(graphicsRenderer);
 }
 
 uint32_t GeometryBuffer::maxOITNodesCount() const
@@ -104,12 +100,9 @@ void GeometryBuffer::clear(
 
     framebuffer->reset();
     framebuffer->attach(graphics::FrameBufferAttachment::Color0, m_colorTextureHandle->texture());
-    framebuffer->attach(graphics::FrameBufferAttachment::Color1, m_finalTextureHandle->texture());
     framebuffer->attach(graphics::FrameBufferAttachment::Depth, m_depthTextureHandle->texture());
     framebuffer->setClearColor(0u, glm::uvec4(0u));
-    framebuffer->setClearColor(1u, glm::vec4(0.f, 0.f, 0.f, 1.f));
     framebuffer->setColorMask(0u, true);
-    framebuffer->setColorMask(1u, true);
     framebuffer->setDepthMask(true);
 
     if (!framebuffer->isComplete())
@@ -148,11 +141,6 @@ graphics::PConstTexture GeometryBuffer::depthTexture() const
     return m_depthTextureHandle->texture();
 }
 
-graphics::PConstTexture GeometryBuffer::finalTexture() const
-{
-    return m_finalTextureHandle->texture();
-}
-
 void GeometryBuffer::recreateBuffers(const std::shared_ptr<graphics::RendererBase>& graphicsRenderer)
 {
     auto colorTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA32UI);
@@ -168,17 +156,10 @@ void GeometryBuffer::recreateBuffers(const std::shared_ptr<graphics::RendererBas
     m_OITNodeIDImageHandle = graphicsRenderer->createImageHandle(OITNodeIDImage);
     m_OITNodeIDImageHandle->makeResident();
 
-    auto finalTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::RGBA16F);
-    finalTexture->setFilterMode(graphics::TextureFilterMode::Linear);
-    finalTexture->setWrapMode(graphics::TextureWrapMode::ClampToEdge);
-    m_finalTextureHandle = graphicsRenderer->createTextureHandle(finalTexture);
-    m_finalTextureHandle->makeResident();
-
     const auto OITBufferSize = glm::min(m_maxOITNodesCount, glm::compMul(m_size) * m_OITNodesCountPerPixel);
 
     m_GBuffer = PGBuffer::element_type::create(GBufferDescription::make(
-        m_colorTextureHandle->handle(), m_depthTextureHandle->handle(), m_OITNodeIDImageHandle->handle(),
-        m_finalTextureHandle->handle(), m_size, OITBufferSize));
+        m_colorTextureHandle->handle(), m_depthTextureHandle->handle(), m_OITNodeIDImageHandle->handle(), OITBufferSize));
 
     m_OITBuffer = POITBuffer::element_type::create();
     m_OITBuffer->resize(OITBufferSize);

@@ -647,7 +647,7 @@ vec3 proccessScattering(in vec2 NDC_XY_ZO, in float depthFrom, in float depthTo)
 void main(void)
 {
 	const ivec2 fragCoords = ivec2(gl_FragCoord.xy);
-	const vec2 NDC_XY_ZO = vec2(gl_FragCoord.xy) / vec2(geometryBufferSize() - uvec2(1u));
+	const vec2 NDC_XY_ZO = vec2(gl_FragCoord.xy) / vec2(renderInfoViewportSize() - uvec2(1u));
 	
 	uvec4 PBRData;
 	float depth;

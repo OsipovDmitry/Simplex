@@ -7,6 +7,11 @@
 
 layout (std430) buffer ssbo_renderInfoBuffer { RenderInfoDescription renderInfo; };
 
+uvec2 renderInfoViewportSize()
+{
+	return renderInfo.viewportSize;
+}
+
 uint renderInfoTime()
 {
 	return renderInfo.time;

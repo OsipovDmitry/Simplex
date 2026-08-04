@@ -195,11 +195,12 @@ LightNodeDescription makeLightNodeDescription(in uint lightID, in uint nextLight
 struct RenderInfoDescription
 {
     // global
+    uvec2 viewportSize;
     uint time;
     uint dt;
 	float dielectricSpecular;
 	
-	uint globalPadding[1u];
+	uint globalPadding[3u];
 
     // scene
     OrientedBoundingBoxDescription globalBoundingBox;
@@ -241,8 +242,6 @@ struct GBufferDescription
     TextureHandle colorTextureHandle;
     TextureHandle depthTextureHandle;
     ImageHandle OITNodeIDImageHandle;
-    TextureHandle finalTextureHandle;
-    uvec2 size;
     uint OITNodesMaxCount;
     uint OITNodesCount;
 	
@@ -430,6 +429,13 @@ struct ShadowMapsDescription
 	float blurKernel[ShadowMapsBlurKernelSize];
 	uint blurRadius;
 	uint padding2[3u];
+};
+
+struct HDRDescription
+{
+    TextureHandle textureHandle;
+
+    uint padding[2u]; // graphics::TextureHandle is uvec2 (uint64_t)
 };
 
 struct BloomDescription

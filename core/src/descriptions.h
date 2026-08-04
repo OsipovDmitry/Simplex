@@ -125,11 +125,12 @@ struct LightNodeDescription
 struct RenderInfoDescription
 {
     // global
+    glm::uvec2 viewportSize;
     uint32_t time;
     uint32_t dt;
     float dielectricSpecular;
 
-    uint32_t globalPadding[1u];
+    uint32_t globalPadding[3u];
 
     // scene
     OrientedBoundingBoxDescription globalBoundingBox;
@@ -149,6 +150,7 @@ struct RenderInfoDescription
     // uint32_t camerPaadding[0u];
 
     static RenderInfoDescription make(
+        const glm::uvec2& viewportSize,
         uint32_t time,
         uint32_t dt,
         float dielectricSpecular,
@@ -186,8 +188,6 @@ struct GBufferDescription
     graphics::TextureHandle colorTextureHandle;
     graphics::TextureHandle depthTextureHandle;
     graphics::ImageHandle OITIndicesImageeHandle;
-    graphics::TextureHandle finalTextureHandle;
-    glm::uvec2 size;
     uint32_t OITNodesMaxCount;
     uint32_t OITNodesCount;
 
@@ -198,8 +198,6 @@ struct GBufferDescription
         graphics::TextureHandle colorTextureHandle,
         graphics::TextureHandle depthTextureHandle,
         graphics::ImageHandle OITIndicesImageHandle,
-        graphics::TextureHandle finalTextureHandle,
-        const glm::uvec2& size,
         uint32_t OITNodesMaxCount);
 };
 
@@ -494,6 +492,15 @@ struct ShadowMapsDescription
         float cascadesBlendDistanceFactor,
         float cascadesDistancePower,
         const std::vector<float>& blurKernel);
+};
+
+struct HDRDescription
+{
+    graphics::TextureHandle textureHandle;
+
+    uint32_t padding[2u]; // graphics::TextureHandle is uvec2 (uint64_t)
+
+    static HDRDescription make(graphics::TextureHandle textureHandle);
 };
 
 struct BloomDescription

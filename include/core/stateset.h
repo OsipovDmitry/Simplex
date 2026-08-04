@@ -128,6 +128,7 @@ ENUMCLASS(
     GBuffer,
     OITNodesBuffer,
     ShadowMapsBuffer,
+    HDRBuffer,
     BloomBuffer,
     ToneMappingBuffer,
 

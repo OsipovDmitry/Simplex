@@ -4,8 +4,5 @@ layout (local_size_x = 32, local_size_y = 32, local_size_z = 1) in;
 
 void main(void)
 {
-    if (all(lessThan(gl_GlobalInvocationID, uvec3(geometryBufferSize(), 1u))))
-    {
-        geometryBufferClearFirstOITNodeID(ivec2(gl_GlobalInvocationID.xy));
-    }
+    geometryBufferClearFirstOITNodeID(ivec2(gl_GlobalInvocationID.xy));
 }
