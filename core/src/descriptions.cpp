@@ -112,30 +112,36 @@ GBufferDescription GBufferDescription::make(
 MeshDescription MeshDescription::makeEmpty()
 {
     return make(
-        utils::BoundingBox::empty(), 0u, utils::IDsGenerator::last(), utils::IDsGenerator::last(), 0u, 0u, 0u, 0u, false, 0u);
+        utils::BoundingBox::empty(), utils::IDsGenerator::last(), false, false, false, utils::IDsGenerator::last(),
+        utils::IDsGenerator::last(), false, utils::IDsGenerator::last(), 0u);
 }
 
 MeshDescription MeshDescription::make(
     const utils::BoundingBox& bb,
-    uint32_t elementsDataSize,
-    uint32_t verticesDataOffset,
-    uint32_t elementsDataOffset,
-    uint32_t numPositionComponents,
-    uint32_t numNormalComponents,
-    uint32_t numTexCoordsComponents,
-    uint32_t numBones,
-    bool hasTangent,
-    uint32_t numColorComponents)
+    uint32_t positionNormalTexCoordsDataOffset,
+    bool hasPositions,
+    bool hasNormals,
+    bool hasTexCoords,
+    uint32_t boneDataOffset,
+    uint32_t bonesCount,
+    uint32_t tangentDataOffset,
+    uint32_t elementDataOffset,
+    uint32_t elementDataSize)
 {
     uint32_t flags = 0u;
-    flags = glm::bitfieldInsert(flags, numPositionComponents, 0, 2);
-    flags = glm::bitfieldInsert(flags, numNormalComponents, 2, 2);
-    flags = glm::bitfieldInsert(flags, numTexCoordsComponents, 4, 2);
-    flags = glm::bitfieldInsert(flags, numBones, 6, 3);
-    flags = glm::bitfieldInsert(flags, (hasTangent ? 1u : 0u), 9, 1);
-    flags = glm::bitfieldInsert(flags, numColorComponents, 10, 3);
+    flags = glm::bitfieldInsert(flags, (hasPositions ? 1u : 0u), 0, 1);
+    flags = glm::bitfieldInsert(flags, (hasNormals ? 1u : 0u), 1, 1);
+    flags = glm::bitfieldInsert(flags, (hasTexCoords ? 1u : 0u), 2, 1);
+    flags = glm::bitfieldInsert(flags, bonesCount, 3, 3);
 
-    return {BoundingBoxDescription::make(bb), elementsDataSize, verticesDataOffset, elementsDataOffset, flags};
+    return {
+        BoundingBoxDescription::make(bb),
+        positionNormalTexCoordsDataOffset,
+        tangentDataOffset,
+        boneDataOffset,
+        elementDataOffset,
+        elementDataSize,
+        flags};
 }
 
 MapDescription MapDescription::makeEmpty()

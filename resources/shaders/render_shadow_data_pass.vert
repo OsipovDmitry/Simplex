@@ -12,12 +12,11 @@
 #include<math/transform.glsl>
 #include<math/utils.glsl>
 
-flat out uint v_layerID;
 flat out uint v_meshID;
 flat out uint v_materialID;
+flat out uint v_layerID;
 out float v_linearNormalizedDepth;
 out vec2 v_texCoords;
-out vec4 v_color;
 
 out gl_PerVertex
 {
@@ -40,44 +39,29 @@ void main(void)
 	v_meshID = drawableMeshID(drawableID);
 	v_materialID = drawableMaterialID(drawableID);
 	
-	const uint verticesDataOffset = meshVerticesDataOffset(v_meshID);
-	const uint vertexStride = meshVertexStride(v_meshID);
-	const uint vertexID = (meshElementsDataOffset(v_meshID) == 0xFFFFFFFFu) ? gl_VertexID : elementsDataElementID(gl_VertexID);
-	uint relativeOffset = 0u;
+	const uint positionNormalTexCoordsDataOffset = meshPositionNormalTexCoordsDataOffset(v_meshID);
+	const uint boneDataOffset = meshBoneDataOffset(v_meshID);
 	
-	const uint positionComponentsCount = meshPositionComponentsCount(v_meshID);
 	vec3 position = vec3(0.0f);
-	if (positionComponentsCount > 0u)
-	{
-		position = verticesDataVertexPosition(verticesDataOffset, vertexStride, vertexID, relativeOffset, positionComponentsCount);
-		relativeOffset += positionComponentsCount;
-	}
-	
-	const uint normalComponentsCount = meshNormalComponentsCount(v_meshID);
-	relativeOffset += normalComponentsCount;
-	
-	const uint texCoordsComponentsCount = meshTexCoordsComponentsCount(v_meshID);
 	vec2 texCoords = vec2(0.0f);
-	if (texCoordsComponentsCount > 0u)
+	if (positionNormalTexCoordsDataOffset != 0xFFFFFFFFu)
 	{
-		texCoords = verticesDataVertexTexCoords(verticesDataOffset, vertexStride, vertexID, relativeOffset, texCoordsComponentsCount);
-		relativeOffset += texCoordsComponentsCount;
+		vec3 normal; // no need later
+		verticesDataPositionNormalTexCoords(positionNormalTexCoordsDataOffset, gl_VertexID, position, normal, texCoords);
 	}
 	
-	const bool hasTangent = meshTangentFlag(v_meshID);
-	relativeOffset += (hasTangent) ? 4u : 0u;
-
-	if (bonesTransformsDataOffset != 0xFFFFFFFFu)
+	if ((bonesTransformsDataOffset != 0xFFFFFFFFu) && (boneDataOffset != 0xFFFFFFFFu))
 	{
+		const uint bonesCount = meshBonesCount(v_meshID);
+		
 		// TODO: make boneTransform Transform instead of mat4x4
 		mat4x4 boneTransform = mat4x4(0.0f);
 		
-		const uint bonesCount = meshBonesCount(v_meshID);
 		for (uint i = 0u; i < bonesCount; ++i)
 		{
-			uint boneID = 0u;
+			uint boneID = 0xFFFFFFFFu;
 			float boneWeight = 0.0f;
-			verticesDataVertexBoneIDAndWeight(verticesDataOffset, vertexStride, vertexID, relativeOffset, i, boneID, boneWeight);
+			verticesDataBoneIDAndWeight(boneDataOffset, bonesCount, gl_VertexID, i, boneID, boneWeight);
 			
 			if (boneID == 0xFFFFFFFFu)
 				continue; //break;
@@ -86,15 +70,6 @@ void main(void)
 		}
 		
 		position = vec3(boneTransform * vec4(position, 1.0f));
-		relativeOffset += 2u * bonesCount;
-	}
-	
-	const uint colorComponentsCount = meshColorComponentsCount(v_meshID);
-	vec4 color = vec4(1.0f);
-	if (colorComponentsCount > 0u)
-	{
-		color = verticesDataVertexColor(verticesDataOffset, vertexStride, vertexID, relativeOffset, colorComponentsCount);
-		relativeOffset += colorComponentsCount;
 	}
 	
 	const uint shadowID = shadowDataShadowID(shadowDataID);
@@ -131,5 +106,4 @@ void main(void)
 	v_layerID = mapCoords[2u];
 	v_linearNormalizedDepth = linearNormalizedDepth;
 	v_texCoords = texCoords;
-	v_color = color;	
 }

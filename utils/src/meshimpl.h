@@ -3,11 +3,11 @@
 
 #include <vector>
 
-#include <utils/glm/matrix.hpp>
+#include <utils/boundingbox.h>
 #include <utils/glm/gtc/type_ptr.hpp>
 #include <utils/glm/gtx/normal.hpp>
+#include <utils/glm/matrix.hpp>
 #include <utils/logger.h>
-#include <utils/boundingbox.h>
 #include <utils/primitiveset.h>
 
 namespace simplex
@@ -15,18 +15,16 @@ namespace simplex
 namespace utils
 {
 
-template<VertexComponentType DstType, VertexComponentType SrcType>
-inline uint8_t* convertToVertexComponentType(
-    const uint8_t* data,
-    size_t numVertices,
-    uint32_t numComponents)
+template <VertexComponentType DstType, VertexComponentType SrcType>
+inline uint8_t* convertToVertexComponentType(const uint8_t* data, size_t numVertices, uint32_t numComponents)
 {
     if constexpr (DstType != SrcType)
-        LOG_CRITICAL << "Conversion between floating-point numbers and integers, between signed and unsigned integers and decrease the size of type is not allowed";
+        LOG_CRITICAL << "Conversion between floating-point numbers and integers, between signed and unsigned integers and "
+                        "decrease the size of type is not allowed";
     return nullptr;
 }
 
-template<>
+template <>
 inline uint8_t* convertToVertexComponentType<VertexComponentType::Double, VertexComponentType::Single>(
     const uint8_t* data,
     size_t numVertices,
@@ -43,7 +41,7 @@ inline uint8_t* convertToVertexComponentType<VertexComponentType::Double, Vertex
     return reinterpret_cast<uint8_t*>(dstData);
 }
 
-template<>
+template <>
 inline uint8_t* convertToVertexComponentType<VertexComponentType::Int16, VertexComponentType::Int8>(
     const uint8_t* data,
     size_t numVertices,
@@ -60,7 +58,7 @@ inline uint8_t* convertToVertexComponentType<VertexComponentType::Int16, VertexC
     return reinterpret_cast<uint8_t*>(dstData);
 }
 
-template<>
+template <>
 inline uint8_t* convertToVertexComponentType<VertexComponentType::Int32, VertexComponentType::Int8>(
     const uint8_t* data,
     size_t numVertices,
@@ -77,7 +75,7 @@ inline uint8_t* convertToVertexComponentType<VertexComponentType::Int32, VertexC
     return reinterpret_cast<uint8_t*>(dstData);
 }
 
-template<>
+template <>
 inline uint8_t* convertToVertexComponentType<VertexComponentType::Int32, VertexComponentType::Int16>(
     const uint8_t* data,
     size_t numVertices,
@@ -94,7 +92,7 @@ inline uint8_t* convertToVertexComponentType<VertexComponentType::Int32, VertexC
     return reinterpret_cast<uint8_t*>(dstData);
 }
 
-template<>
+template <>
 inline uint8_t* convertToVertexComponentType<VertexComponentType::Uint16, VertexComponentType::Uint8>(
     const uint8_t* data,
     size_t numVertices,
@@ -111,7 +109,7 @@ inline uint8_t* convertToVertexComponentType<VertexComponentType::Uint16, Vertex
     return reinterpret_cast<uint8_t*>(dstData);
 }
 
-template<>
+template <>
 inline uint8_t* convertToVertexComponentType<VertexComponentType::Uint32, VertexComponentType::Uint8>(
     const uint8_t* data,
     size_t numVertices,
@@ -128,7 +126,7 @@ inline uint8_t* convertToVertexComponentType<VertexComponentType::Uint32, Vertex
     return reinterpret_cast<uint8_t*>(dstData);
 }
 
-template<>
+template <>
 inline uint8_t* convertToVertexComponentType<VertexComponentType::Uint32, VertexComponentType::Uint16>(
     const uint8_t* data,
     size_t numVertices,
@@ -145,7 +143,7 @@ inline uint8_t* convertToVertexComponentType<VertexComponentType::Uint32, Vertex
     return reinterpret_cast<uint8_t*>(dstData);
 }
 
-template<VertexComponentType DstType>
+template <VertexComponentType DstType>
 inline uint8_t* convertToVertexComponentType(
     const uint8_t* data,
     size_t numVertices,
@@ -156,51 +154,51 @@ inline uint8_t* convertToVertexComponentType(
 
     switch (type)
     {
-    case VertexComponentType::Single:
-    {
-        result = convertToVertexComponentType<DstType, VertexComponentType::Single>(data, numVertices, numComponents);
-        break;
-    }
-    case VertexComponentType::Double:
-    {
-        result = convertToVertexComponentType<DstType, VertexComponentType::Double>(data, numVertices, numComponents);
-        break;
-    }
-    case VertexComponentType::Int8:
-    {
-        result = convertToVertexComponentType<DstType, VertexComponentType::Int8>(data, numVertices, numComponents);
-        break;
-    }
-    case VertexComponentType::Uint8:
-    {
-        result = convertToVertexComponentType<DstType, VertexComponentType::Uint8>(data, numVertices, numComponents);
-        break;
-    }
-    case VertexComponentType::Int16:
-    {
-        result = convertToVertexComponentType<DstType, VertexComponentType::Int16>(data, numVertices, numComponents);
-        break;
-    }
-    case VertexComponentType::Uint16:
-    {
-        result = convertToVertexComponentType<DstType, VertexComponentType::Uint16>(data, numVertices, numComponents);
-        break;
-    }
-    case VertexComponentType::Int32:
-    {
-        result = convertToVertexComponentType<DstType, VertexComponentType::Int32>(data, numVertices, numComponents);
-        break;
-    }
-    case VertexComponentType::Uint32:
-    {
-        result = convertToVertexComponentType<DstType, VertexComponentType::Uint32>(data, numVertices, numComponents);
-        break;
-    }
-    default:
-    {
-        LOG_CRITICAL << "Undefined source type";
-        break;
-    }
+        case VertexComponentType::Single:
+        {
+            result = convertToVertexComponentType<DstType, VertexComponentType::Single>(data, numVertices, numComponents);
+            break;
+        }
+        case VertexComponentType::Double:
+        {
+            result = convertToVertexComponentType<DstType, VertexComponentType::Double>(data, numVertices, numComponents);
+            break;
+        }
+        case VertexComponentType::Int8:
+        {
+            result = convertToVertexComponentType<DstType, VertexComponentType::Int8>(data, numVertices, numComponents);
+            break;
+        }
+        case VertexComponentType::Uint8:
+        {
+            result = convertToVertexComponentType<DstType, VertexComponentType::Uint8>(data, numVertices, numComponents);
+            break;
+        }
+        case VertexComponentType::Int16:
+        {
+            result = convertToVertexComponentType<DstType, VertexComponentType::Int16>(data, numVertices, numComponents);
+            break;
+        }
+        case VertexComponentType::Uint16:
+        {
+            result = convertToVertexComponentType<DstType, VertexComponentType::Uint16>(data, numVertices, numComponents);
+            break;
+        }
+        case VertexComponentType::Int32:
+        {
+            result = convertToVertexComponentType<DstType, VertexComponentType::Int32>(data, numVertices, numComponents);
+            break;
+        }
+        case VertexComponentType::Uint32:
+        {
+            result = convertToVertexComponentType<DstType, VertexComponentType::Uint32>(data, numVertices, numComponents);
+            break;
+        }
+        default:
+        {
+            LOG_CRITICAL << "Undefined source type";
+            break;
+        }
     }
 
     return result;
@@ -217,69 +215,65 @@ static uint8_t* convertToVertexComponentType(
 
     switch (newType)
     {
-    case VertexComponentType::Single:
-    {
-        result = convertToVertexComponentType<VertexComponentType::Single>(data, numVertices, numComponents, type);
-        break;
-    }
-    case VertexComponentType::Double:
-    {
-        result = convertToVertexComponentType<VertexComponentType::Double>(data, numVertices, numComponents, type);
-        break;
-    }
-    case VertexComponentType::Int8:
-    {
-        result = convertToVertexComponentType<VertexComponentType::Int8>(data, numVertices, numComponents, type);
-        break;
-    }
-    case VertexComponentType::Uint8:
-    {
-        result = convertToVertexComponentType<VertexComponentType::Uint8>(data, numVertices, numComponents, type);
-        break;
-    }
-    case VertexComponentType::Int16:
-    {
-        result = convertToVertexComponentType<VertexComponentType::Int16>(data, numVertices, numComponents, type);
-        break;
-    }
-    case VertexComponentType::Uint16:
-    {
-        result = convertToVertexComponentType<VertexComponentType::Uint16>(data, numVertices, numComponents, type);
-        break;
-    }
-    case VertexComponentType::Int32:
-    {
-        result = convertToVertexComponentType<VertexComponentType::Int32>(data, numVertices, numComponents, type);
-        break;
-    }
-    case VertexComponentType::Uint32:
-    {
-        result = convertToVertexComponentType<VertexComponentType::Uint32>(data, numVertices, numComponents, type);
-        break;
-    }
-    default:
-    {
-        LOG_CRITICAL << "Undefined destination type";
-        break;
-    }
+        case VertexComponentType::Single:
+        {
+            result = convertToVertexComponentType<VertexComponentType::Single>(data, numVertices, numComponents, type);
+            break;
+        }
+        case VertexComponentType::Double:
+        {
+            result = convertToVertexComponentType<VertexComponentType::Double>(data, numVertices, numComponents, type);
+            break;
+        }
+        case VertexComponentType::Int8:
+        {
+            result = convertToVertexComponentType<VertexComponentType::Int8>(data, numVertices, numComponents, type);
+            break;
+        }
+        case VertexComponentType::Uint8:
+        {
+            result = convertToVertexComponentType<VertexComponentType::Uint8>(data, numVertices, numComponents, type);
+            break;
+        }
+        case VertexComponentType::Int16:
+        {
+            result = convertToVertexComponentType<VertexComponentType::Int16>(data, numVertices, numComponents, type);
+            break;
+        }
+        case VertexComponentType::Uint16:
+        {
+            result = convertToVertexComponentType<VertexComponentType::Uint16>(data, numVertices, numComponents, type);
+            break;
+        }
+        case VertexComponentType::Int32:
+        {
+            result = convertToVertexComponentType<VertexComponentType::Int32>(data, numVertices, numComponents, type);
+            break;
+        }
+        case VertexComponentType::Uint32:
+        {
+            result = convertToVertexComponentType<VertexComponentType::Uint32>(data, numVertices, numComponents, type);
+            break;
+        }
+        default:
+        {
+            LOG_CRITICAL << "Undefined destination type";
+            break;
+        }
     }
 
     type = newType;
     return result;
 }
 
-
 template <DrawElementsIndexType DstType, DrawElementsIndexType SrcType>
-inline uint8_t* convertToDrawElementsIndexType(
-    const uint8_t* data,
-    size_t numIndices)
+inline uint8_t* convertToDrawElementsIndexType(const uint8_t* data, size_t numIndices)
 {
-    if constexpr (DstType != SrcType)
-        LOG_CRITICAL << "Decrease the size of index type is not allowed";
+    if constexpr (DstType != SrcType) LOG_CRITICAL << "Decrease the size of index type is not allowed";
     return nullptr;
 }
 
-template<>
+template <>
 inline uint8_t* convertToDrawElementsIndexType<DrawElementsIndexType::Uint16, DrawElementsIndexType::Uint8>(
     const uint8_t* data,
     size_t numIndices)
@@ -294,7 +288,7 @@ inline uint8_t* convertToDrawElementsIndexType<DrawElementsIndexType::Uint16, Dr
     return reinterpret_cast<uint8_t*>(dstData);
 }
 
-template<>
+template <>
 inline uint8_t* convertToDrawElementsIndexType<DrawElementsIndexType::Uint32, DrawElementsIndexType::Uint8>(
     const uint8_t* data,
     size_t numIndices)
@@ -309,7 +303,7 @@ inline uint8_t* convertToDrawElementsIndexType<DrawElementsIndexType::Uint32, Dr
     return reinterpret_cast<uint8_t*>(dstData);
 }
 
-template<>
+template <>
 inline uint8_t* convertToDrawElementsIndexType<DrawElementsIndexType::Uint32, DrawElementsIndexType::Uint16>(
     const uint8_t* data,
     size_t numIndices)
@@ -325,35 +319,32 @@ inline uint8_t* convertToDrawElementsIndexType<DrawElementsIndexType::Uint32, Dr
 }
 
 template <DrawElementsIndexType DstType>
-inline uint8_t* convertToDrawElementsIndexType(
-    const uint8_t* data,
-    size_t numIndices,
-    DrawElementsIndexType indexType)
+inline uint8_t* convertToDrawElementsIndexType(const uint8_t* data, size_t numIndices, DrawElementsIndexType indexType)
 {
     uint8_t* result = nullptr;
 
     switch (indexType)
     {
-    case DrawElementsIndexType::Uint8:
-    {
-        result = convertToDrawElementsIndexType<DstType, DrawElementsIndexType::Uint8>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint16:
-    {
-        result = convertToDrawElementsIndexType<DstType, DrawElementsIndexType::Uint16>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint32:
-    {
-        result = convertToDrawElementsIndexType<DstType, DrawElementsIndexType::Uint32>(data, numIndices);
-        break;
-    }
-    default:
-    {
-        LOG_CRITICAL << "Undefined source type";
-        break;
-    }
+        case DrawElementsIndexType::Uint8:
+        {
+            result = convertToDrawElementsIndexType<DstType, DrawElementsIndexType::Uint8>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint16:
+        {
+            result = convertToDrawElementsIndexType<DstType, DrawElementsIndexType::Uint16>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint32:
+        {
+            result = convertToDrawElementsIndexType<DstType, DrawElementsIndexType::Uint32>(data, numIndices);
+            break;
+        }
+        default:
+        {
+            LOG_CRITICAL << "Undefined source type";
+            break;
+        }
     }
 
     return result;
@@ -369,36 +360,34 @@ static uint8_t* convertToDrawElementsIndexType(
 
     switch (newIndexType)
     {
-    case DrawElementsIndexType::Uint8:
-    {
-        result = convertToDrawElementsIndexType<DrawElementsIndexType::Uint8>(data, numIndices, indexType);
-        break;
-    }
-    case DrawElementsIndexType::Uint16:
-    {
-        result = convertToDrawElementsIndexType<DrawElementsIndexType::Uint16>(data, numIndices, indexType);
-        break;
-    }
-    case DrawElementsIndexType::Uint32:
-    {
-        result = convertToDrawElementsIndexType<DrawElementsIndexType::Uint32>(data, numIndices, indexType);
-        break;
-    }
-    default:
-    {
-        LOG_CRITICAL << "Undefined destination type";
-        break;
-    }
+        case DrawElementsIndexType::Uint8:
+        {
+            result = convertToDrawElementsIndexType<DrawElementsIndexType::Uint8>(data, numIndices, indexType);
+            break;
+        }
+        case DrawElementsIndexType::Uint16:
+        {
+            result = convertToDrawElementsIndexType<DrawElementsIndexType::Uint16>(data, numIndices, indexType);
+            break;
+        }
+        case DrawElementsIndexType::Uint32:
+        {
+            result = convertToDrawElementsIndexType<DrawElementsIndexType::Uint32>(data, numIndices, indexType);
+            break;
+        }
+        default:
+        {
+            LOG_CRITICAL << "Undefined destination type";
+            break;
+        }
     }
 
     indexType = newIndexType;
     return result;
 }
 
-template<typename T>
-inline uint8_t* convertPointsToTriangles(
-    const void* data,
-    size_t& numIndices)
+template <typename T>
+inline uint8_t* convertPointsToTriangles(const void* data, size_t& numIndices)
 {
     numIndices = numIndices * 3u;
     auto result = new T[numIndices];
@@ -411,44 +400,39 @@ inline uint8_t* convertPointsToTriangles(
     return reinterpret_cast<uint8_t*>(result);
 }
 
-inline uint8_t* convertPointsToTriangles(
-    const uint8_t* data,
-    size_t& numIndices,
-    DrawElementsIndexType indexType)
+inline uint8_t* convertPointsToTriangles(const uint8_t* data, size_t& numIndices, DrawElementsIndexType indexType)
 {
     uint8_t* result = nullptr;
 
     switch (indexType)
     {
-    case DrawElementsIndexType::Uint8:
-    {
-        result = convertPointsToTriangles<uint8_t>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint16:
-    {
-        result = convertPointsToTriangles<uint16_t>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint32:
-    {
-        result = convertPointsToTriangles<uint32_t>(data, numIndices);
-        break;
-    }
-    default:
-    {
-        LOG_CRITICAL << "Undefined index type";
-        break;
-    }
+        case DrawElementsIndexType::Uint8:
+        {
+            result = convertPointsToTriangles<uint8_t>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint16:
+        {
+            result = convertPointsToTriangles<uint16_t>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint32:
+        {
+            result = convertPointsToTriangles<uint32_t>(data, numIndices);
+            break;
+        }
+        default:
+        {
+            LOG_CRITICAL << "Undefined index type";
+            break;
+        }
     }
 
     return result;
 }
 
-template<typename T>
-inline uint8_t* convertLinesToTriangles(
-    const void* data,
-    size_t& numIndices)
+template <typename T>
+inline uint8_t* convertLinesToTriangles(const void* data, size_t& numIndices)
 {
     const auto numLines = numIndices / 2u;
     numIndices = numLines * 3u;
@@ -462,47 +446,41 @@ inline uint8_t* convertLinesToTriangles(
     return reinterpret_cast<uint8_t*>(result);
 }
 
-inline uint8_t* convertLinesToTriangles(
-    const uint8_t* data,
-    size_t& numIndices,
-    DrawElementsIndexType indexType)
+inline uint8_t* convertLinesToTriangles(const uint8_t* data, size_t& numIndices, DrawElementsIndexType indexType)
 {
     uint8_t* result = nullptr;
 
     switch (indexType)
     {
-    case DrawElementsIndexType::Uint8:
-    {
-        result = convertLinesToTriangles<uint8_t>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint16:
-    {
-        result = convertLinesToTriangles<uint16_t>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint32:
-    {
-        result = convertLinesToTriangles<uint32_t>(data, numIndices);
-        break;
-    }
-    default:
-    {
-        LOG_CRITICAL << "Undefined index type";
-        break;
-    }
+        case DrawElementsIndexType::Uint8:
+        {
+            result = convertLinesToTriangles<uint8_t>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint16:
+        {
+            result = convertLinesToTriangles<uint16_t>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint32:
+        {
+            result = convertLinesToTriangles<uint32_t>(data, numIndices);
+            break;
+        }
+        default:
+        {
+            LOG_CRITICAL << "Undefined index type";
+            break;
+        }
     }
 
     return result;
 }
 
-template<typename T>
-inline uint8_t* convertLineStripToTriangles(
-    const void* data,
-    size_t& numIndices)
+template <typename T>
+inline uint8_t* convertLineStripToTriangles(const void* data, size_t& numIndices)
 {
-    if (numIndices < 2u)
-        return nullptr;
+    if (numIndices < 2u) return nullptr;
     const auto numLines = (numIndices - 1u);
     numIndices = numLines * 3u;
     auto result = new T[numIndices];
@@ -515,47 +493,41 @@ inline uint8_t* convertLineStripToTriangles(
     return reinterpret_cast<uint8_t*>(result);
 }
 
-inline uint8_t* convertLineStripToTriangles(
-    const uint8_t* data,
-    size_t& numIndices,
-    DrawElementsIndexType indexType)
+inline uint8_t* convertLineStripToTriangles(const uint8_t* data, size_t& numIndices, DrawElementsIndexType indexType)
 {
     uint8_t* result = nullptr;
 
     switch (indexType)
     {
-    case DrawElementsIndexType::Uint8:
-    {
-        result = convertLineStripToTriangles<uint8_t>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint16:
-    {
-        result = convertLineStripToTriangles<uint16_t>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint32:
-    {
-        result = convertLineStripToTriangles<uint32_t>(data, numIndices);
-        break;
-    }
-    default:
-    {
-        LOG_CRITICAL << "Undefined index type";
-        break;
-    }
+        case DrawElementsIndexType::Uint8:
+        {
+            result = convertLineStripToTriangles<uint8_t>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint16:
+        {
+            result = convertLineStripToTriangles<uint16_t>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint32:
+        {
+            result = convertLineStripToTriangles<uint32_t>(data, numIndices);
+            break;
+        }
+        default:
+        {
+            LOG_CRITICAL << "Undefined index type";
+            break;
+        }
     }
 
     return result;
 }
 
-template<typename T>
-inline uint8_t* convertTriangleStripToTriangles(
-    const void* data,
-    size_t& numIndices)
+template <typename T>
+inline uint8_t* convertTriangleStripToTriangles(const void* data, size_t& numIndices)
 {
-    if (numIndices < 3u)
-        return nullptr;
+    if (numIndices < 3u) return nullptr;
     const auto numTriangles = (numIndices - 2u);
     numIndices = numTriangles * 3u;
     auto result = new T[numIndices];
@@ -568,47 +540,41 @@ inline uint8_t* convertTriangleStripToTriangles(
     return reinterpret_cast<uint8_t*>(result);
 }
 
-inline uint8_t* convertTriangleStripToTriangles(
-    const uint8_t* data,
-    size_t& numIndices,
-    DrawElementsIndexType indexType)
+inline uint8_t* convertTriangleStripToTriangles(const uint8_t* data, size_t& numIndices, DrawElementsIndexType indexType)
 {
     uint8_t* result = nullptr;
 
     switch (indexType)
     {
-    case DrawElementsIndexType::Uint8:
-    {
-        result = convertTriangleStripToTriangles<uint8_t>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint16:
-    {
-        result = convertTriangleStripToTriangles<uint16_t>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint32:
-    {
-        result = convertTriangleStripToTriangles<uint32_t>(data, numIndices);
-        break;
-    }
-    default:
-    {
-        LOG_CRITICAL << "Undefined index type";
-        break;
-    }
+        case DrawElementsIndexType::Uint8:
+        {
+            result = convertTriangleStripToTriangles<uint8_t>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint16:
+        {
+            result = convertTriangleStripToTriangles<uint16_t>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint32:
+        {
+            result = convertTriangleStripToTriangles<uint32_t>(data, numIndices);
+            break;
+        }
+        default:
+        {
+            LOG_CRITICAL << "Undefined index type";
+            break;
+        }
     }
 
     return result;
 }
 
-template<typename T>
-inline uint8_t* convertTriangleFanToTriangles(
-    const void* data,
-    size_t& numIndices)
+template <typename T>
+inline uint8_t* convertTriangleFanToTriangles(const void* data, size_t& numIndices)
 {
-    if (numIndices < 3u)
-        return nullptr;
+    if (numIndices < 3u) return nullptr;
     const auto numTriangles = (numIndices - 2u);
     numIndices = numTriangles * 3u;
     auto result = new T[numIndices];
@@ -621,35 +587,32 @@ inline uint8_t* convertTriangleFanToTriangles(
     return reinterpret_cast<uint8_t*>(result);
 }
 
-inline uint8_t* convertTriangleFanToTriangles(
-    const uint8_t* data,
-    size_t& numIndices,
-    DrawElementsIndexType indexType)
+inline uint8_t* convertTriangleFanToTriangles(const uint8_t* data, size_t& numIndices, DrawElementsIndexType indexType)
 {
     uint8_t* result = nullptr;
 
     switch (indexType)
     {
-    case DrawElementsIndexType::Uint8:
-    {
-        result = convertTriangleFanToTriangles<uint8_t>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint16:
-    {
-        result = convertTriangleFanToTriangles<uint16_t>(data, numIndices);
-        break;
-    }
-    case DrawElementsIndexType::Uint32:
-    {
-        result = convertTriangleFanToTriangles<uint32_t>(data, numIndices);
-        break;
-    }
-    default:
-    {
-        LOG_CRITICAL << "Undefined index type";
-        break;
-    }
+        case DrawElementsIndexType::Uint8:
+        {
+            result = convertTriangleFanToTriangles<uint8_t>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint16:
+        {
+            result = convertTriangleFanToTriangles<uint16_t>(data, numIndices);
+            break;
+        }
+        case DrawElementsIndexType::Uint32:
+        {
+            result = convertTriangleFanToTriangles<uint32_t>(data, numIndices);
+            break;
+        }
+        default:
+        {
+            LOG_CRITICAL << "Undefined index type";
+            break;
+        }
     }
 
     return result;
@@ -665,53 +628,49 @@ static uint8_t* convertToDrawElementsTriangles(
 
     switch (primitiveType)
     {
-    case PrimitiveType::Points:
-    {
-        result = convertPointsToTriangles(data, numIndices, indexType);
-        break;
-    }
-    case PrimitiveType::Lines:
-    {
-        result = convertLinesToTriangles(data, numIndices, indexType);
-        break;
-    }
-    case PrimitiveType::LineStrip:
-    {
-        result = convertLineStripToTriangles(data, numIndices, indexType);
-        break;
-    }
-    case PrimitiveType::Triangles:
-    {
-        // do nothing
-        break;
-    }
-    case PrimitiveType::TriangleStrip:
-    {
-        result = convertTriangleStripToTriangles(data, numIndices, indexType);
-        break;
-    }
-    case PrimitiveType::TriangleFan:
-    {
-        result = convertTriangleFanToTriangles(data, numIndices, indexType);
-        break;
+        case PrimitiveType::Points:
+        {
+            result = convertPointsToTriangles(data, numIndices, indexType);
+            break;
+        }
+        case PrimitiveType::Lines:
+        {
+            result = convertLinesToTriangles(data, numIndices, indexType);
+            break;
+        }
+        case PrimitiveType::LineStrip:
+        {
+            result = convertLineStripToTriangles(data, numIndices, indexType);
+            break;
+        }
+        case PrimitiveType::Triangles:
+        {
+            // do nothing
+            break;
+        }
+        case PrimitiveType::TriangleStrip:
+        {
+            result = convertTriangleStripToTriangles(data, numIndices, indexType);
+            break;
+        }
+        case PrimitiveType::TriangleFan:
+        {
+            result = convertTriangleFanToTriangles(data, numIndices, indexType);
+            break;
+        }
+
+        default:
+            LOG_CRITICAL << "Undefined primitive type";
+            break;
     }
 
-    default:
-        LOG_CRITICAL << "Undefined primitive type";
-        break;
-    }
-
-    if (result)
-        primitiveType = PrimitiveType::Triangles;
+    if (result) primitiveType = PrimitiveType::Triangles;
 
     return result;
 }
 
-template<typename T>
-inline uint8_t* applyDrawElementsBaseVertex(
-    const uint8_t* data,
-    size_t numIndices,
-    size_t baseVertex)
+template <typename T>
+inline uint8_t* applyDrawElementsBaseVertex(const uint8_t* data, size_t numIndices, size_t baseVertex)
 {
     auto result = new T[numIndices];
     for (size_t i = 0u; i < numIndices; ++i)
@@ -732,44 +691,45 @@ static uint8_t* applyDrawElementsBaseVertex(
 
     switch (indexType)
     {
-    case DrawElementsIndexType::Uint8:
-    {
-        result = applyDrawElementsBaseVertex<uint8_t>(data, numIndices, baseVertex);
-        break;
-    }
-    case DrawElementsIndexType::Uint16:
-    {
-        result = applyDrawElementsBaseVertex<uint16_t>(data, numIndices, baseVertex);
-        break;
-    }
-    case DrawElementsIndexType::Uint32:
-    {
-        result = applyDrawElementsBaseVertex<uint32_t>(data, numIndices, baseVertex);
-        break;
-    }
-    default:
-    {
-        LOG_CRITICAL << "Undefined index type";
-        break;
-    }
+        case DrawElementsIndexType::Uint8:
+        {
+            result = applyDrawElementsBaseVertex<uint8_t>(data, numIndices, baseVertex);
+            break;
+        }
+        case DrawElementsIndexType::Uint16:
+        {
+            result = applyDrawElementsBaseVertex<uint16_t>(data, numIndices, baseVertex);
+            break;
+        }
+        case DrawElementsIndexType::Uint32:
+        {
+            result = applyDrawElementsBaseVertex<uint32_t>(data, numIndices, baseVertex);
+            break;
+        }
+        default:
+        {
+            LOG_CRITICAL << "Undefined index type";
+            break;
+        }
     }
 
     baseVertex = 0u;
     return result;
 }
 
-template<typename V, typename I>
-inline void calculateNormalForTriangle(uint32_t verticesNumComponents,
-                                       const V *vertices,
-                                       const I &i0,
-                                       const I &i1,
-                                       const I &i2,
-                                       uint32_t normalsNumComponents,
-                                       V *normals)
+template <typename V, typename I>
+inline void calculateNormalForTriangle(
+    uint32_t verticesNumComponents,
+    const V* vertices,
+    const I& i0,
+    const I& i1,
+    const I& i2,
+    uint32_t normalsNumComponents,
+    V* normals)
 {
-    const auto &v0 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i0 * verticesNumComponents);
-    const auto &v1 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i1 * verticesNumComponents);
-    const auto &v2 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i2 * verticesNumComponents);
+    const auto& v0 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i0 * verticesNumComponents);
+    const auto& v1 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i1 * verticesNumComponents);
+    const auto& v2 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i2 * verticesNumComponents);
 
     const auto N = glm::triangleNormal(v0, v1, v2);
 
@@ -778,21 +738,19 @@ inline void calculateNormalForTriangle(uint32_t verticesNumComponents,
     *reinterpret_cast<glm::vec<3u, V>*>(normals + i2 * normalsNumComponents) += N;
 }
 
-template<typename V>
-inline void calculateNormal(const std::shared_ptr<DrawArrays> &drawArrays,
-                            uint32_t verticesNumComponents,
-                            const V *vertices,
-                            uint32_t normalsNumComponents,
-                            V *normals)
+template <typename V>
+inline void calculateNormal(
+    const std::shared_ptr<DrawArrays>& drawArrays,
+    uint32_t verticesNumComponents,
+    const V* vertices,
+    uint32_t normalsNumComponents,
+    V* normals)
 {
-    if (drawArrays->primitiveType() != PrimitiveType::Triangles)
-        LOG_CRITICAL << "Primitive type must be Triangle";
+    if (drawArrays->primitiveType() != PrimitiveType::Triangles) LOG_CRITICAL << "Primitive type must be Triangle";
 
-    if (verticesNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (verticesNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (normalsNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (normalsNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawArraysFirst = drawArrays->first();
     const auto drawArraysCount = drawArrays->count();
@@ -802,95 +760,75 @@ inline void calculateNormal(const std::shared_ptr<DrawArrays> &drawArrays,
         const size_t i0 = i + drawArraysFirst + 0u;
         const size_t i1 = i + drawArraysFirst + 1u;
         const size_t i2 = i + drawArraysFirst + 2u;
-        calculateNormalForTriangle(verticesNumComponents,
-                                   vertices,
-                                   i0,
-                                   i1,
-                                   i2,
-                                   normalsNumComponents,
-                                   normals);
+        calculateNormalForTriangle(verticesNumComponents, vertices, i0, i1, i2, normalsNumComponents, normals);
     }
 }
 
-template<typename V, typename I>
-inline void calculateNormal(const std::shared_ptr<DrawElements> &drawElements,
-                                  uint32_t verticesNumComponents,
-                                  const V *vertices,
-                                  const I *indices,
-                                  uint32_t normalsNumComponents,
-                                  V *normals)
+template <typename V, typename I>
+inline void calculateNormal(
+    const std::shared_ptr<DrawElements>& drawElements,
+    uint32_t verticesNumComponents,
+    const V* vertices,
+    const I* indices,
+    uint32_t normalsNumComponents,
+    V* normals)
 {
-    if (drawElements->primitiveType() != PrimitiveType::Triangles)
-        LOG_CRITICAL << "Primitive type must be Triangle";
+    if (drawElements->primitiveType() != PrimitiveType::Triangles) LOG_CRITICAL << "Primitive type must be Triangle";
 
-    if (verticesNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (verticesNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (normalsNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (normalsNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawElementsCount = drawElements->count();
     const auto drawElementsBaseVertex = drawElements->baseVertex();
-    const auto *pIndices = reinterpret_cast<const I*>(reinterpret_cast<const uint8_t*>(indices) + drawElements->offset());
+    const auto* pIndices = reinterpret_cast<const I*>(reinterpret_cast<const uint8_t*>(indices) + drawElements->offset());
 
     for (size_t i = 0u; i < drawElementsCount; i += 3)
     {
         const I i0 = static_cast<I>(pIndices[i + 0u] + drawElementsBaseVertex);
         const I i1 = static_cast<I>(pIndices[i + 1u] + drawElementsBaseVertex);
         const I i2 = static_cast<I>(pIndices[i + 2u] + drawElementsBaseVertex);
-        calculateNormalForTriangle(verticesNumComponents,
-                                   vertices,
-                                   i0,
-                                   i1,
-                                   i2,
-                                   normalsNumComponents,
-                                   normals);
+        calculateNormalForTriangle(verticesNumComponents, vertices, i0, i1, i2, normalsNumComponents, normals);
     }
 }
 
-template<typename V>
-inline void normalize(size_t numVertices,
-                      uint32_t normalsNumComponents,
-                      const V *normals,
-                      uint32_t resultNumComponents,
-                      V *result)
+template <typename V>
+inline void normalize(size_t numVertices, uint32_t normalsNumComponents, const V* normals, uint32_t resultNumComponents, V* result)
 
 {
-    if (normalsNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (normalsNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (resultNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (resultNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     for (size_t i = 0u; i < numVertices; ++i)
     {
-        const auto &n = *reinterpret_cast<const glm::vec<3u, V>*>(normals + i * normalsNumComponents);
+        const auto& n = *reinterpret_cast<const glm::vec<3u, V>*>(normals + i * normalsNumComponents);
 
         *reinterpret_cast<glm::vec<3u, V>*>(result + i * resultNumComponents) = glm::normalize(n);
     }
-
 }
 
-template<typename V, typename I>
-inline void calculateTangentSpaceForTriangle(uint32_t verticesNumComponents,
-                                             const V *vertices,
-                                             uint32_t texCoordsNumComponents,
-                                             const V *texCoords,
-                                             const I &i0,
-                                             const I &i1,
-                                             const I &i2,
-                                             uint32_t tangentsNumComponents,
-                                             V *tangents,
-                                             uint32_t binormalsNumComponents,
-                                             V *binormals)
+template <typename V, typename I>
+inline void calculateTangentSpaceForTriangle(
+    uint32_t verticesNumComponents,
+    const V* vertices,
+    uint32_t texCoordsNumComponents,
+    const V* texCoords,
+    const I& i0,
+    const I& i1,
+    const I& i2,
+    uint32_t tangentsNumComponents,
+    V* tangents,
+    uint32_t binormalsNumComponents,
+    V* binormals)
 {
-    const auto &v0 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i0 * verticesNumComponents);
-    const auto &v1 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i1 * verticesNumComponents);
-    const auto &v2 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i2 * verticesNumComponents);
+    const auto& v0 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i0 * verticesNumComponents);
+    const auto& v1 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i1 * verticesNumComponents);
+    const auto& v2 = *reinterpret_cast<const glm::vec<3u, V>*>(vertices + i2 * verticesNumComponents);
 
-    const auto &w0 = *reinterpret_cast<const glm::vec<2u, V>*>(texCoords + i0 * texCoordsNumComponents);
-    const auto &w1 = *reinterpret_cast<const glm::vec<2u, V>*>(texCoords + i1 * texCoordsNumComponents);
-    const auto &w2 = *reinterpret_cast<const glm::vec<2u, V>*>(texCoords + i2 * texCoordsNumComponents);
+    const auto& w0 = *reinterpret_cast<const glm::vec<2u, V>*>(texCoords + i0 * texCoordsNumComponents);
+    const auto& w1 = *reinterpret_cast<const glm::vec<2u, V>*>(texCoords + i1 * texCoordsNumComponents);
+    const auto& w2 = *reinterpret_cast<const glm::vec<2u, V>*>(texCoords + i2 * texCoordsNumComponents);
 
     const auto Q = glm::mat<2u, 3u, V>(v1 - v0, v2 - v0);
     const auto W = glm::mat<2u, 2u, V>(w1 - w0, w2 - w0);
@@ -905,31 +843,27 @@ inline void calculateTangentSpaceForTriangle(uint32_t verticesNumComponents,
     *reinterpret_cast<glm::vec<3u, V>*>(binormals + i2 * binormalsNumComponents) += TB[1u];
 }
 
-template<typename V>
-inline void calculateTangentSpace(const std::shared_ptr<DrawArrays> &drawArrays,
-                                  uint32_t verticesNumComponents,
-                                  const V *vertices,
-                                  uint32_t texCoordsNumComponents,
-                                  const V *texCoords,
-                                  uint32_t tangentsNumComponents,
-                                  V *tangents,
-                                  uint32_t binormalsNumComponents,
-                                  V *binormals)
+template <typename V>
+inline void calculateTangentSpace(
+    const std::shared_ptr<DrawArrays>& drawArrays,
+    uint32_t verticesNumComponents,
+    const V* vertices,
+    uint32_t texCoordsNumComponents,
+    const V* texCoords,
+    uint32_t tangentsNumComponents,
+    V* tangents,
+    uint32_t binormalsNumComponents,
+    V* binormals)
 {
-    if (drawArrays->primitiveType() != PrimitiveType::Triangles)
-        LOG_CRITICAL << "Primitive type must be Triangle";
+    if (drawArrays->primitiveType() != PrimitiveType::Triangles) LOG_CRITICAL << "Primitive type must be Triangle";
 
-    if (verticesNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (verticesNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (texCoordsNumComponents < 2u)
-        LOG_CRITICAL << "Num components must be greater or equal than 2";
+    if (texCoordsNumComponents < 2u) LOG_CRITICAL << "Num components must be greater or equal than 2";
 
-    if (tangentsNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (tangentsNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (binormalsNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (binormalsNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawArraysFirst = drawArrays->first();
     const auto drawArraysCount = drawArrays->count();
@@ -939,115 +873,92 @@ inline void calculateTangentSpace(const std::shared_ptr<DrawArrays> &drawArrays,
         const size_t i0 = i + drawArraysFirst + 0u;
         const size_t i1 = i + drawArraysFirst + 1u;
         const size_t i2 = i + drawArraysFirst + 2u;
-        calculateTangentSpaceForTriangle(verticesNumComponents,
-                                         vertices,
-                                         texCoordsNumComponents,
-                                         texCoords,
-                                         i0,
-                                         i1,
-                                         i2,
-                                         tangentsNumComponents,
-                                         tangents,
-                                         binormalsNumComponents,
-                                         binormals);
+        calculateTangentSpaceForTriangle(
+            verticesNumComponents, vertices, texCoordsNumComponents, texCoords, i0, i1, i2, tangentsNumComponents, tangents,
+            binormalsNumComponents, binormals);
     }
 }
 
-template<typename V, typename I>
-inline void calculateTangentSpace(const std::shared_ptr<DrawElements> &drawElements,
-                                  uint32_t verticesNumComponents,
-                                  const V *vertices,
-                                  uint32_t texCoordsNumComponents,
-                                  const V *texCoords,
-                                  const I *indices,
-                                  uint32_t tangentsNumComponents,
-                                  V *tangents,
-                                  uint32_t binormalsNumComponents,
-                                  V *binormals)
+template <typename V, typename I>
+inline void calculateTangentSpace(
+    const std::shared_ptr<DrawElements>& drawElements,
+    uint32_t verticesNumComponents,
+    const V* vertices,
+    uint32_t texCoordsNumComponents,
+    const V* texCoords,
+    const I* indices,
+    uint32_t tangentsNumComponents,
+    V* tangents,
+    uint32_t binormalsNumComponents,
+    V* binormals)
 {
-    if (drawElements->primitiveType() != PrimitiveType::Triangles)
-        LOG_CRITICAL << "Primitive type must be Triangle";
+    if (drawElements->primitiveType() != PrimitiveType::Triangles) LOG_CRITICAL << "Primitive type must be Triangle";
 
-    if (verticesNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (verticesNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (texCoordsNumComponents < 2u)
-        LOG_CRITICAL << "Num components must be greater or equal than 2";
+    if (texCoordsNumComponents < 2u) LOG_CRITICAL << "Num components must be greater or equal than 2";
 
-    if (tangentsNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (tangentsNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (binormalsNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (binormalsNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
     const auto drawElementsCount = drawElements->count();
     const auto drawElementsBaseVertex = drawElements->baseVertex();
-    const auto *pIndices = reinterpret_cast<const I*>(reinterpret_cast<const uint8_t*>(indices) + drawElements->offset());
+    const auto* pIndices = reinterpret_cast<const I*>(reinterpret_cast<const uint8_t*>(indices) + drawElements->offset());
 
     for (size_t i = 0u; i < drawElementsCount; i += 3)
     {
         const I i0 = static_cast<I>(pIndices[i + 0u] + drawElementsBaseVertex);
         const I i1 = static_cast<I>(pIndices[i + 1u] + drawElementsBaseVertex);
         const I i2 = static_cast<I>(pIndices[i + 2u] + drawElementsBaseVertex);
-        calculateTangentSpaceForTriangle(verticesNumComponents,
-                                         vertices,
-                                         texCoordsNumComponents,
-                                         texCoords,
-                                         i0,
-                                         i1,
-                                         i2,
-                                         tangentsNumComponents,
-                                         tangents,
-                                         binormalsNumComponents,
-                                         binormals);
+        calculateTangentSpaceForTriangle(
+            verticesNumComponents, vertices, texCoordsNumComponents, texCoords, i0, i1, i2, tangentsNumComponents, tangents,
+            binormalsNumComponents, binormals);
     }
 }
 
-template<typename V>
-inline void orthogonalizeTangentSpace(size_t numVertices,
-                                      uint32_t tangentsNumComponents,
-                                      const V *tangents,
-                                      uint32_t binormalsNumComponents,
-                                      const V *binormals,
-                                      uint32_t normalsNumComponents,
-                                      const V *normals,
-                                      uint32_t resultNumComponents,
-                                      V *result)
+template <typename V>
+inline void orthogonalizeTangentSpace(
+    size_t numVertices,
+    uint32_t tangentsNumComponents,
+    const V* tangents,
+    uint32_t binormalsNumComponents,
+    const V* binormals,
+    uint32_t normalsNumComponents,
+    const V* normals,
+    uint32_t resultNumComponents,
+    V* result)
 
 {
-    if (tangentsNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (tangentsNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (binormalsNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 2";
+    if (binormalsNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 2";
 
-    if (normalsNumComponents < 3u)
-        LOG_CRITICAL << "Num components must be greater or equal than 3";
+    if (normalsNumComponents < 3u) LOG_CRITICAL << "Num components must be greater or equal than 3";
 
-    if (resultNumComponents < 4u)
-        LOG_CRITICAL << "Num components must be greater or equal than 4";
+    if (resultNumComponents < 4u) LOG_CRITICAL << "Num components must be greater or equal than 4";
 
     for (size_t i = 0u; i < numVertices; ++i)
     {
-        const auto &n = *reinterpret_cast<const glm::vec<3u, V>*>(normals + i * normalsNumComponents);
-        const auto &t = *reinterpret_cast<const glm::vec<3u, V>*>(tangents + i * tangentsNumComponents);
-        const auto &b = *reinterpret_cast<const glm::vec<3u, V>*>(binormals + i * binormalsNumComponents);
+        const auto& n = *reinterpret_cast<const glm::vec<3u, V>*>(normals + i * normalsNumComponents);
+        const auto& t = *reinterpret_cast<const glm::vec<3u, V>*>(tangents + i * tangentsNumComponents);
+        const auto& b = *reinterpret_cast<const glm::vec<3u, V>*>(binormals + i * binormalsNumComponents);
 
-        glm::vec4 q = glm::vec<4u, V>(glm::normalize(t - n * glm::dot(t, n)),
-                                      (glm::dot(glm::cross(n, t), b) < static_cast<V>(0)) ? static_cast<V>(-1) : static_cast<V>(+1));
+        glm::vec4 q = glm::vec<4u, V>(
+            glm::normalize(t - n * glm::dot(t, n)),
+            (glm::dot(glm::cross(n, t), b) < static_cast<V>(0)) ? static_cast<V>(-1) : static_cast<V>(+1));
 
         *reinterpret_cast<glm::vec<4u, V>*>(result + i * resultNumComponents) = q;
     }
-
 }
 
-template<typename V>
-inline BoundingBox calculateBoundingBox(const std::shared_ptr<DrawArrays> &drawArrays,
-                                        uint32_t verticesNumComponents,
-                                        const V *vertices)
+template <typename V>
+inline BoundingBox calculateBoundingBox(
+    const std::shared_ptr<DrawArrays>& drawArrays,
+    uint32_t verticesNumComponents,
+    const V* vertices)
 {
-    if (verticesNumComponents < 1u)
-        LOG_CRITICAL << "Num components must be greater or equal than 1";
+    if (verticesNumComponents < 1u) LOG_CRITICAL << "Num components must be greater or equal than 1";
 
     BoundingBox result;
 
@@ -1068,20 +979,20 @@ inline BoundingBox calculateBoundingBox(const std::shared_ptr<DrawArrays> &drawA
     return result;
 }
 
-template<typename V, typename I>
-inline BoundingBox calculateBoundingBox(const std::shared_ptr<DrawElements> &drawElements,
-                                        uint32_t verticesNumComponents,
-                                        const V *vertices,
-                                        const I *indices)
+template <typename V, typename I>
+inline BoundingBox calculateBoundingBox(
+    const std::shared_ptr<DrawElements>& drawElements,
+    uint32_t verticesNumComponents,
+    const V* vertices,
+    const I* indices)
 {
-    if (verticesNumComponents < 1u)
-        LOG_CRITICAL << "Num components must be greater or equal than 1";
+    if (verticesNumComponents < 1u) LOG_CRITICAL << "Num components must be greater or equal than 1";
 
     BoundingBox result;
 
     const auto drawElementsCount = drawElements->count();
     const auto drawElementsBaseVertex = drawElements->baseVertex();
-    const auto *pIndices = reinterpret_cast<const I*>(reinterpret_cast<const uint8_t*>(indices) + drawElements->offset());
+    const auto* pIndices = reinterpret_cast<const I*>(reinterpret_cast<const uint8_t*>(indices) + drawElements->offset());
 
     verticesNumComponents = glm::min(verticesNumComponents, static_cast<uint32_t>(BoundingBox::length()));
 
@@ -1098,7 +1009,7 @@ inline BoundingBox calculateBoundingBox(const std::shared_ptr<DrawElements> &dra
     return result;
 }
 
-}
-}
+} // namespace utils
+} // namespace simplex
 
 #endif // UTILS_MESHIMPL_H

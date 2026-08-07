@@ -87,8 +87,9 @@ ENUMCLASS(UniformBlockID, uint16_t, None)
 ENUMCLASS(
     ShaderStorageBlockID,
     uint16_t,
-    VerticesDataBuffer,
-    ElementsDataBuffer,
+    PositionNormalTexCoordsDataBuffer,
+    TangentDataBuffer,
+    BoneDataBuffer,
     SkeletonsDataBuffer,
     BonesTransformsDataBuffer,
     ShadowTransformsDataBuffer,

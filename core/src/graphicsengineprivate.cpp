@@ -172,8 +172,9 @@ const std::string& GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
 {
     static const std::string s_undefinedId = "";
     static const std::unordered_map<ShaderStorageBlockID, std::string> s_table{
-        {ShaderStorageBlockID::VerticesDataBuffer, "ssbo_verticesDataBuffer"},
-        {ShaderStorageBlockID::ElementsDataBuffer, "ssbo_elementsDataBuffer"},
+        {ShaderStorageBlockID::PositionNormalTexCoordsDataBuffer, "ssbo_positionNormalTexCoordsDataBuffer"},
+        {ShaderStorageBlockID::TangentDataBuffer, "ssbo_tangentDataBuffer"},
+        {ShaderStorageBlockID::BoneDataBuffer, "ssbo_boneDataBuffer"},
         {ShaderStorageBlockID::SkeletonsDataBuffer, "ssbo_skeletonsDataBuffer"},
         {ShaderStorageBlockID::BonesTransformsDataBuffer, "ssbo_bonesTransformsDataBuffer"},
         {ShaderStorageBlockID::ShadowTransformsDataBuffer, "ssbo_shadowTransformsDataBuffer"},

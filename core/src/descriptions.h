@@ -209,38 +209,58 @@ struct OITNodeDescription
     uint32_t padding[2u];
 };
 
-using VerticesDataDescription = float;
-using ElementsDataDescription = uint32_t;
+struct PositionNormalTexCoordsDataDescription
+{
+    glm::vec3 position;
+    glm::vec3 normal;
+    glm::vec2 texCoords;
+};
+static_assert(sizeof(PositionNormalTexCoordsDataDescription) == 32);
+
+struct BoneDataDescription
+{
+    uint32_t ID;
+    float weight;
+};
+static_assert(sizeof(BoneDataDescription) == 8);
+
+using TangentDataDescription = glm::vec4;
+static_assert(sizeof(TangentDataDescription) == 16);
+
+using ElementDataDescription = uint32_t;
+static_assert(sizeof(ElementDataDescription) == 4);
 
 struct MeshDescription
 {
-    BoundingBoxDescription boundingBox;
-    uint32_t elementsDataSize;
-    uint32_t verticesDataOffset;
-    uint32_t elementsDataOffset; // draw arrays is used if 0xFFFFFFFFu
-    uint32_t flags;
-    //  0.. 1 - position components count [0..3]
-    //  2.. 3 - normal components count [0..3]
-    //  4.. 5 - texture coords component count [0..3]
-    //  6.. 8 - bones count [0..7]
-    //  9.. 9 - tangent space flag [0 - no tangents, 1 - tangents + binormals flags]
-    // 10..12 - color components count [0 - no colors, 1 - grayscale, 2 - grayscale,alpha, 3 - RGB, 4 - RGBA, 5..7 - not used]
-    // 13..31 - free (19 bits)
+    static constexpr uint32_t MaxBonesCount = 7u;
 
-    // uint32_t padding[0u];
+    BoundingBoxDescription boundingBox;
+    uint32_t positionNormalTexCoordsDataOffset;
+    uint32_t tangentDataOffset;
+    uint32_t boneDataOffset;
+    uint32_t elementDataOffset;
+    uint32_t elementDataSize;
+    uint32_t flags;
+    //  0.. 0 - has position
+    //  1.. 1 - has normals
+    //  2.. 2 - has tex coords
+    //  3.. 5 - bones count [0..7]
+    //  6..31 - free (26 bits)
+
+    uint32_t padding[2u];
 
     static MeshDescription makeEmpty();
     static MeshDescription make(
         const utils::BoundingBox&,
-        uint32_t elementsDataSize,
-        uint32_t verticesDataOffset,
-        uint32_t elementsDataOffset,
-        uint32_t positionComponentsCount,
-        uint32_t normalComponentsCount,
-        uint32_t texCoordsComponentsCount,
+        uint32_t positionNormalTexCoordsDataOffset,
+        bool hasPositions,
+        bool hasNormals,
+        bool hasTexCoords,
+        uint32_t tangentDataOffset,
+        uint32_t boneDataOffset,
         uint32_t bonesCount,
-        bool hasTangent,
-        uint32_t colorComponentsCount);
+        uint32_t elementDataOffset,
+        uint32_t elementDataSize);
 };
 
 struct MapDescription

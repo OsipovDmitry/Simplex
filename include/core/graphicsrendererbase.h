@@ -306,9 +306,9 @@ class IVertexArray
 public:
     virtual ~IVertexArray() = default;
 
-    virtual uint32_t attachVertexBuffer(std::shared_ptr<IBuffer> buffer, size_t offset, size_t stride) = 0; // returns bindingIndex
+    virtual uint32_t attachVertexBuffer(const PConstBuffer&, size_t offset, size_t stride) = 0; // returns bindingIndex
     virtual void detachVertexBuffer(uint32_t bindingIndex) = 0;
-    virtual std::shared_ptr<const IBuffer> vertexBuffer(uint32_t bindingIndex) const = 0;
+    virtual PConstBuffer vertexBuffer(uint32_t bindingIndex) const = 0;
     virtual size_t vertexBufferOffset(uint32_t bindingIndex) const = 0;
     virtual size_t vertexBufferStride(uint32_t bindingIndex) const = 0;
 
@@ -324,9 +324,9 @@ public:
     virtual utils::VertexComponentType vertexAttributeComponentType(utils::VertexAttribute) const = 0;
     virtual uint32_t vertexAttributeRelativeOffset(utils::VertexAttribute) const = 0;
 
-    virtual void attachIndexBuffer(std::shared_ptr<IBuffer> buffer) = 0;
+    virtual void attachIndexBuffer(const PConstBuffer& buffer) = 0;
     virtual void detachIndexBuffer() = 0;
-    virtual std::shared_ptr<const IBuffer> indexBuffer() const = 0;
+    virtual PConstBuffer indexBuffer() const = 0;
 };
 
 class ISurface

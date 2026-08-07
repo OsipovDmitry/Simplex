@@ -10,7 +10,6 @@ flat in uint g_meshID;
 flat in uint g_materialID;
 in float g_linearNormalizedDepth;
 in vec2 g_texCoords;
-in vec4 g_color;
 
 out vec4 o_fragColor0;
 
@@ -18,11 +17,10 @@ void main(void)
 {
 	if (!gl_FrontFacing && !isMaterialDoubleSided(g_materialID))
 		discard;
-
-	const bool hasTexCoords = meshTexCoordsComponentsCount(g_meshID) > 0u;
+		
+	const bool hasTexCoords = meshHasTexCoords(g_meshID);
 	
     vec4 baseColor = materialBaseColor(g_materialID);
-	baseColor *= g_color;
 	
 	const uint baseColorMapID = materialBaseColorMapID(g_materialID);
 	if (hasTexCoords && (baseColorMapID != 0xFFFFFFFFu))

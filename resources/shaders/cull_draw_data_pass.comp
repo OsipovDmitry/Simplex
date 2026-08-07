@@ -27,11 +27,11 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 #endif
 
 layout (std430) buffer ssbo_opaqueDrawDataRenderCommandsBuffer {
-	DrawArraysIndirectCommand opaqueDrawDataRenderCommands[];
+	DrawElementsIndirectCommand opaqueDrawDataRenderCommands[];
 };
 
 layout (std430) buffer ssbo_transparentDrawDataRenderCommandsBuffer {
-	DrawArraysIndirectCommand transparentDrawDataRenderCommands[];
+	DrawElementsIndirectCommand transparentDrawDataRenderCommands[];
 };
 
 void updateNearFar(inout Range nearFar, in vec3 v)
@@ -109,23 +109,22 @@ void main(void)
 						
 						countersExpandZRange(nearFar);
 
-						if (isMeshTransparent(meshID) || isMaterialTransparent(materialID))
+						const DrawElementsIndirectCommand command = DrawElementsIndirectCommand(
+								meshElementDataSize(meshID),
+								1u,
+								meshElementDataOffset(meshID),
+								0,
+								drawDataID);
+								
+						if (isMaterialTransparent(materialID))
 						{
 							const uint commandID = countersGenerateTransparentDrawDataRenderCommandID();
-							transparentDrawDataRenderCommands[commandID] = DrawArraysIndirectCommand(
-								meshElementsDataSize(meshID),
-								1u,
-								meshElementsDataOffset(meshID),
-								drawDataID);
+							transparentDrawDataRenderCommands[commandID] = command;
 						}
 						else
 						{
 							const uint commandID = countersGenerateOpaqueDrawDataRenderCommandID();
-							opaqueDrawDataRenderCommands[commandID] = DrawArraysIndirectCommand(
-								meshElementsDataSize(meshID),
-								1u,
-								meshElementsDataOffset(meshID),
-								drawDataID);
+							opaqueDrawDataRenderCommands[commandID] = command;
 						}
 						
 						const uint skeletalAnimatedDataID = drawDataSkeletalAnimatedDataID(drawDataID);

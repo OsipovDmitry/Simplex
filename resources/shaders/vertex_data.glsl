@@ -1,109 +1,42 @@
 #include<descriptions.glsl>
 
-layout (std430) readonly buffer ssbo_verticesDataBuffer { VerticesDataDescription verticesData[]; };
-layout (std430) readonly buffer ssbo_elementsDataBuffer { ElementsDataDescription elementsData[]; };
+layout (std430) readonly buffer ssbo_positionNormalTexCoordsDataBuffer { PositionNormalTexCoordsDataDescription positionNormalTexCoordsData[]; };
+layout (std430) readonly buffer ssbo_tangentDataBuffer { TangentDataDescription tangentData[]; };
+layout (std430) readonly buffer ssbo_boneDataBuffer { BoneDataDescription boneData[]; };
 
-vec3 verticesDataVertexPosition(
-	in uint verticesDataOffset,
-	in uint vertexStride,
+void verticesDataPositionNormalTexCoords(
+	in uint positionNormalTexCoordsDataOffset,
 	in uint vertexID,
-	in uint relativeOffset,
-	in uint numComponents)
+	out vec3 position,
+	out vec3 normal,
+	out vec2 texCoords)
 {
-	vec3 result = vec3(0.0f);
-	for (uint i = 0u; i < min(3u, numComponents); ++i)
-		result[i] = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + i];
-	return result;
+	const PositionNormalTexCoordsDataDescription value = positionNormalTexCoordsData[positionNormalTexCoordsDataOffset + vertexID];
+	position = vec3(value.x, value.y, value.z);
+	normal = vec3(value.nx, value.ny, value.nz);
+	texCoords = vec2(value.u, value.v);
 }
 
-vec3 verticesDataVertexNormal(
-	in uint verticesDataOffset,
-	in uint vertexStride,
+void verticesDataTangentAndBinormalFlag(
+	in uint tangentDataOffset,
 	in uint vertexID,
-	in uint relativeOffset,
-	in uint numComponents)
+	out vec3 tangent,
+	out float binormalFlag)
 {
-	vec3 result = vec3(0.0f);
-	for (uint i = 0u; i < min(3u, numComponents); ++i)
-		result[i] = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + i];
-	return normalize(result);
+	const TangentDataDescription value = tangentData[tangentDataOffset + vertexID];
+	tangent = value.xyz;
+	binormalFlag = value.w;
 }
 
-vec2 verticesDataVertexTexCoords(
-	in uint verticesDataOffset,
-	in uint vertexStride,
+void verticesDataBoneIDAndWeight(
+	in uint boneDataOffset,
+	in uint bonesCount,
 	in uint vertexID,
-	in uint relativeOffset,
-	in uint numComponents)
-{
-	vec2 result = vec2(0.0f);
-	for (uint i = 0u; i < min(2u, numComponents); ++i)
-		result[i] = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + i];
-	return result;
-}
-
-void verticesDataVertexBoneIDAndWeight(
-	in uint verticesDataOffset,
-	in uint vertexStride,
-	in uint vertexID,
-	in uint relativeOffset,
 	in uint boneIndex,
 	out uint boneID,
 	out float boneWeight)
 {
-	boneID = floatBitsToUint(verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 2u * boneIndex + 0u]);
-	boneWeight = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 2u * boneIndex + 1u];
-}
-
-void verticesDataVertexTangentAndBinormalFlag(
-	in uint verticesDataOffset,
-	in uint vertexStride,
-	in uint vertexID,
-	in uint relativeOffset,
-	out vec3 tangent,
-	out float binormalFlag)
-{
-	for (uint i = 0u; i < 3u; ++i)
-		tangent[i] = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + i];
-	normalize(tangent);
-	binormalFlag = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 3u];
-}
-
-vec4 verticesDataVertexColor(
-	in uint verticesDataOffset,
-	in uint vertexStride,
-	in uint vertexID,
-	in uint relativeOffset,
-	in uint numComponents)
-{
-	vec4 result = vec4(vec3(0.0f), 1.0f);
-	switch (numComponents)
-	{
-	case 1u:
-	{
-		result.rgb = vec3(verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 0u]);
-		break;
-	}
-	case 2u:
-	{
-		result.rgb = vec3(verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 0u]);
-		result.a = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + 1u];
-		break;
-	}
-	case 3u:
-	case 4u:
-	{
-		for (uint i = 0u; i < numComponents; ++i)
-			result[i] = verticesData[verticesDataOffset + vertexStride * vertexID + relativeOffset + i];
-		break;
-	}
-	default:
-		break;
-	}
-	return result;
-}
-
-uint elementsDataElementID(in uint ID)
-{
-	return elementsData[ID];
+	const BoneDataDescription value = boneData[boneDataOffset + vertexID * bonesCount + boneIndex];
+	boneID = value.ID;
+	boneWeight = value.weight;
 }

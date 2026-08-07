@@ -11,6 +11,7 @@
 #include <utils/rectpacker.h>
 
 #include <core/forwarddecl.h>
+#include <core/graphicsrendererbase.h>
 #include <core/stateset.h>
 
 #include "descriptions.h"
@@ -140,8 +141,10 @@ private:
     }
 };
 
-using VerticesDataBuffer = std::shared_ptr<DataStore<VerticesDataDescription>>;
-using ElementsDataBuffer = std::shared_ptr<DataStore<ElementsDataDescription>>;
+using PositionNormalTexCoordsDataBuffer = std::shared_ptr<DataStore<PositionNormalTexCoordsDataDescription>>;
+using TangentDataBuffer = std::shared_ptr<DataStore<TangentDataDescription>>;
+using BoneDataBuffer = std::shared_ptr<DataStore<BoneDataDescription>>;
+using ElementDataBuffer = std::shared_ptr<DataStore<ElementDataDescription>>;
 using SkeletonsDataBuffer = std::shared_ptr<DataStore<SkeletonsDataDescription>>;
 using BonesTransformsDataBuffer = std::shared_ptr<DataStore<BonesTransformsDataDescription>>;
 using ShadowTransformsDataBuffer = std::shared_ptr<DataStore<ShadowTransformsDataDescription>>;
@@ -182,20 +185,36 @@ public:
 
     std::weak_ptr<const Mesh>& mesh();
     utils::IDsGenerator::value_type ID() const;
-    uint32_t verticesDataOffset() const;
-    uint32_t verticesDataSize() const;
-    uint32_t elementsDataOffset() const;
-    uint32_t elementsDataSize() const;
+    uint32_t positionNormalTexCoordsDataOffset() const;
+    uint32_t positionNormalTexCoordsDataSize() const;
+    uint32_t tangentDataOffset() const;
+    uint32_t tangentDataSize() const;
+    uint32_t boneDataOffset() const;
+    uint32_t boneDataSize() const;
+    uint32_t elementDataOffset() const;
+    uint32_t elementDataSize() const;
 
-    void updateOffsetsAndSizes(uint32_t, uint32_t, uint32_t, uint32_t);
+    void updateOffsetsAndSizes(
+        uint32_t positionNormalTexCoordsDataOffset,
+        uint32_t positionNormalTexCoordsDataSize,
+        uint32_t tangentDataOffset,
+        uint32_t tangentDataSize,
+        uint32_t boneDataOffset,
+        uint32_t boneDataSize,
+        uint32_t elementDataOffset,
+        uint32_t elementDataSize);
 
 private:
     std::weak_ptr<const Mesh> m_mesh;
     utils::IDsGenerator::value_type m_ID = utils::IDsGenerator::last();
-    uint32_t m_verticesDataOffset = utils::IDsGenerator::last();
-    uint32_t m_verticesDataSize = 0u;
-    uint32_t m_elementsDataOffset = utils::IDsGenerator::last();
-    uint32_t m_elementsDataSize = 0u;
+    uint32_t m_positionNormalTexCoordsDataOffset = utils::IDsGenerator::last();
+    uint32_t m_positionNormalTexCoordsDataSize = 0u;
+    uint32_t m_tangentDataOffset = utils::IDsGenerator::last();
+    uint32_t m_tangentDataSize = 0u;
+    uint32_t m_boneDataOffset = utils::IDsGenerator::last();
+    uint32_t m_boneDataSize = 0u;
+    uint32_t m_elementDataOffset = utils::IDsGenerator::last();
+    uint32_t m_elementDataSize = 0u;
 };
 
 class MaterialMapHandler : public ResourceHandler
@@ -350,25 +369,33 @@ public:
 
     struct AddVerticesDataResult
     {
-        uint32_t verticesDataOffset = utils::IDsGenerator::last();
-        uint32_t verticesDataSize = 0u;
-        uint32_t positionComponentsCount = 0u;
-        uint32_t normalComponentsCount = 0u;
-        uint32_t texCoordsComponentsCount = 0u;
-        bool hasTangent = false;
+        uint32_t positionNormalTexCoordsDataOffset = utils::IDsGenerator::last();
+        uint32_t positionNormalTexCoordsDataSize = 0u;
+        bool hasPositions = false;
+        bool hasNormals = false;
+        bool hasTexCoords = false;
+        uint32_t tangentDataOffset = utils::IDsGenerator::last();
+        uint32_t tangentDataSize = 0u;
+        uint32_t boneDataOffset = utils::IDsGenerator::last();
+        uint32_t boneDataSize = 0u;
         uint32_t bonesCount = 0u;
-        uint32_t colorComponentsCount = 0u;
     };
     AddVerticesDataResult addVerticesData(const std::unordered_map<utils::VertexAttribute, std::shared_ptr<utils::VertexBuffer>>&);
-    void removeVerticeshData(uint32_t, uint32_t);
+    void removeVerticeshData(
+        uint32_t positionNormalTexCoordsDataOffset,
+        uint32_t positionNormalTexCoordsDataSize,
+        uint32_t tangentDataOffset,
+        uint32_t tangentDataSize,
+        uint32_t boneDataOffset,
+        uint32_t boneDataSize);
 
-    struct AddElementsDataResult
+    struct AddElementDataResult
     {
-        uint32_t elementsDataOffset = utils::IDsGenerator::last();
-        uint32_t elementsDataSize = 0u;
+        uint32_t offset = utils::IDsGenerator::last();
+        uint32_t size = 0u;
     };
-    AddElementsDataResult addElementsData(const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>>&);
-    void removeElementsData(uint32_t, uint32_t);
+    AddElementDataResult addElementData(const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>>&);
+    void removeElementData(uint32_t, uint32_t);
 
     struct AddSkeletonDataResult
     {
@@ -551,6 +578,8 @@ public:
     void removeSkeletalAnimatedData(SkeletalAnimatedDataHandler&);
     void onSkeletalAnimatedDataChanged(SkeletalAnimatedDataHandler&, const std::shared_ptr<Skeleton>&, const std::string&);
 
+    ElementDataBuffer elementDataBuffer() const;
+
     size_t drawDataCount() const;
     size_t skeletalAnimatedDataCount() const;
     size_t shadowsCount() const;
@@ -567,8 +596,10 @@ private:
         const std::shared_ptr<const MaterialMap>& opacityMap,
         float alphaCutoff);
 
-    VerticesDataBuffer m_verticesDataBuffer;
-    ElementsDataBuffer m_elementsDataBuffer;
+    PositionNormalTexCoordsDataBuffer m_positionNormalTexCoordsDataBuffer;
+    TangentDataBuffer m_tangentDataBuffer;
+    BoneDataBuffer m_boneDataBuffer;
+    ElementDataBuffer m_elementDataBuffer;
     SkeletonsDataBuffer m_skeletonsDataBuffer;
     BonesTransformsDataBuffer m_bonesTransformsDataBuffer;
     ShadowTransformsDataBuffer m_shadowTransformsDataBuffer;

@@ -874,10 +874,10 @@ GLuint VertexArray_4_5::id() const
     return m_id;
 }
 
-uint32_t VertexArray_4_5::attachVertexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer, size_t offset, size_t stride)
+uint32_t VertexArray_4_5::attachVertexBuffer(const core::graphics::PConstBuffer& buffer, size_t offset, size_t stride)
 {
     CHECK_CURRENT_CONTEXT;
-    auto bufferBase_4_5 = std::dynamic_pointer_cast<BufferBase_4_5>(buffer);
+    auto bufferBase_4_5 = std::dynamic_pointer_cast<const BufferBase_4_5>(buffer);
     if (!bufferBase_4_5) LOG_CRITICAL << "Buffer can't be nullptr";
     CHECK_SHARED_CONTEXTS(this, bufferBase_4_5);
 
@@ -916,7 +916,7 @@ void VertexArray_4_5::detachVertexBuffer(uint32_t bindingIndex)
     glVertexArrayVertexBuffer(m_id, static_cast<GLuint>(bindingIndex), 0, 0, 0);
 }
 
-std::shared_ptr<const core::graphics::IBuffer> VertexArray_4_5::vertexBuffer(uint32_t bindingIndex) const
+core::graphics::PConstBuffer VertexArray_4_5::vertexBuffer(uint32_t bindingIndex) const
 {
     CHECK_CURRENT_CONTEXT;
     return m_vertexBuffers[bindingIndex].buffer;
@@ -985,10 +985,10 @@ uint32_t VertexArray_4_5::vertexAttributeRelativeOffset(utils::VertexAttribute a
     return (it != m_attributes.end()) ? it->second.relativeOffset : 0u;
 }
 
-void VertexArray_4_5::attachIndexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer)
+void VertexArray_4_5::attachIndexBuffer(const core::graphics::PConstBuffer& buffer)
 {
     CHECK_CURRENT_CONTEXT;
-    auto bufferBase_4_5 = std::dynamic_pointer_cast<BufferBase_4_5>(buffer);
+    auto bufferBase_4_5 = std::dynamic_pointer_cast<const BufferBase_4_5>(buffer);
     if (!bufferBase_4_5) LOG_CRITICAL << "Buffer can't be nullptr";
     CHECK_SHARED_CONTEXTS(this, bufferBase_4_5);
 
@@ -1005,7 +1005,7 @@ void VertexArray_4_5::detachIndexBuffer()
     glVertexArrayElementBuffer(m_id, 0);
 }
 
-std::shared_ptr<const core::graphics::IBuffer> VertexArray_4_5::indexBuffer() const
+core::graphics::PConstBuffer VertexArray_4_5::indexBuffer() const
 {
     CHECK_CURRENT_CONTEXT;
     return m_indexBuffer;

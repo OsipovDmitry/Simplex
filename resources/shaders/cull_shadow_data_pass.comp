@@ -20,11 +20,11 @@ layout (local_size_x = 128, local_size_y = 4, local_size_z = 1) in;
 #include<math/transform.glsl>
 
 layout (std430) buffer ssbo_opaqueShadowDataRenderCommandsBuffer {
-	DrawArraysIndirectCommand opaqueShadowDataRenderCommands[];
+	DrawElementsIndirectCommand opaqueShadowDataRenderCommands[];
 };
 
 layout (std430) buffer ssbo_transparentShadowDataRenderCommandsBuffer {
-	DrawArraysIndirectCommand transparentShadowDataRenderCommands[];
+	DrawElementsIndirectCommand transparentShadowDataRenderCommands[];
 };
 
 #define DISABLED_SHADOW_DATA_CULLING_ALGORITHM 0
@@ -35,34 +35,6 @@ layout (std430) buffer ssbo_transparentShadowDataRenderCommandsBuffer {
 #ifndef SHADOW_DATA_CULLING_ALGORITHM
 	#define SHADOW_DATA_CULLING_ALGORITHM SUPER_FAST_SHADOW_DATA_CULLING_ALGORITHM
 #endif
-
-uint addShadowData(in uint drawDataID, in uint shadowID, in uint layerIDs[6u])
-{
-	const uint shadowDataID = countersGenerateShadowDataID();
-	shadowDataInitialize(shadowDataID, drawDataID, shadowID, layerIDs);
-	
-	return shadowDataID;
-}
-
-void addOpaqueShadowData(in uint drawDataID, in uint shadowID, in uint meshID, in uint layersCount, in uint layerIDs[6u])
-{
-	const uint commandID = countersGenerateOpaqueShadowDataRenderCommandID();
-	opaqueShadowDataRenderCommands[commandID] = DrawArraysIndirectCommand(
-		meshElementsDataSize(meshID),
-		layersCount,
-		meshElementsDataOffset(meshID),
-		addShadowData(drawDataID, shadowID, layerIDs));
-}
-
-void addTransparentShadowData(in uint drawDataID, in uint shadowID, in uint meshID, in uint layersCount, in uint layerIDs[6u])
-{
-	const uint commandID = countersGenerateTransparentShadowDataRenderCommandID();
-	transparentShadowDataRenderCommands[commandID] = DrawArraysIndirectCommand(
-		meshElementsDataSize(meshID),
-		layersCount,
-		meshElementsDataOffset(meshID),
-		addShadowData(drawDataID, shadowID, layerIDs));
-}
 
 void main(void)
 {
@@ -129,11 +101,26 @@ void main(void)
 					
 					if (instancesCount > 0u)
 					{
-						const bool isTransparent = isMeshTransparent(meshID) || isMaterialTransparent(materialID);
-						if (isTransparent)
-							addTransparentShadowData(drawDataID, shadowID, meshID, instancesCount, layerIDs);
+						const uint shadowDataID = countersGenerateShadowDataID();
+						shadowDataInitialize(shadowDataID, drawDataID, shadowID, layerIDs);
+						
+						const DrawElementsIndirectCommand command = DrawElementsIndirectCommand(
+							meshElementDataSize(meshID),
+							layersCount,
+							meshElementDataOffset(meshID),
+							0,
+							shadowDataID);
+						
+						if (isMaterialTransparent(materialID))
+						{
+							const uint commandID = countersGenerateTransparentShadowDataRenderCommandID();
+							transparentShadowDataRenderCommands[commandID] = command;
+						}
 						else
-							addOpaqueShadowData(drawDataID, shadowID, meshID, instancesCount, layerIDs);
+						{
+							const uint commandID = countersGenerateOpaqueShadowDataRenderCommandID();
+							opaqueShadowDataRenderCommands[commandID] = command;
+						}
 					}
 					
 				}

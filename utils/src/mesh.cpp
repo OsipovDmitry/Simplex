@@ -1,6 +1,6 @@
-#include <cstring>
 #include <algorithm>
 #include <array>
+#include <cstring>
 
 #include <utils/logger.h>
 #include <utils/mesh.h>
@@ -14,16 +14,9 @@ namespace utils
 
 size_t sizeOfVertexComponentType(VertexComponentType type)
 {
-    static std::array<uint32_t, numElementsVertexComponentType()> s_table{
-        sizeof(float),
-        sizeof(double),
-        sizeof(int8_t),
-        sizeof(uint8_t),
-        sizeof(int16_t),
-        sizeof(uint16_t),
-        sizeof(int32_t),
-        sizeof(uint32_t)
-    };
+    static std::array<uint32_t, numElementsVertexComponentType()> s_table{sizeof(float),   sizeof(double),  sizeof(int8_t),
+                                                                          sizeof(uint8_t), sizeof(int16_t), sizeof(uint16_t),
+                                                                          sizeof(int32_t), sizeof(uint32_t)};
 
     return s_table[utils::castFromVertexComponentType(type)];
 }
@@ -32,13 +25,12 @@ Buffer::Buffer(size_t sizeInBytes)
     : m_data(nullptr)
     , m_sizeInBytes(sizeInBytes)
 {
-    if (m_sizeInBytes)
-        m_data = new uint8_t[m_sizeInBytes];
+    if (m_sizeInBytes) m_data = new uint8_t[m_sizeInBytes];
 }
 
 Buffer::~Buffer()
 {
-    delete [] m_data;
+    delete[] m_data;
 }
 
 size_t Buffer::sizeInBytes() const
@@ -48,24 +40,22 @@ size_t Buffer::sizeInBytes() const
 
 void Buffer::resize(size_t sizeInBytes)
 {
-    if (m_sizeInBytes == sizeInBytes)
-        return;
+    if (m_sizeInBytes == sizeInBytes) return;
 
     auto newData = new uint8_t[sizeInBytes];
-    if (m_data)
-        std::memcpy(newData, m_data, std::min(sizeInBytes, m_sizeInBytes));
+    if (m_data) std::memcpy(newData, m_data, std::min(sizeInBytes, m_sizeInBytes));
 
-    delete [] m_data;
+    delete[] m_data;
     m_data = newData;
     m_sizeInBytes = sizeInBytes;
 }
 
-uint8_t *Buffer::data()
+uint8_t* Buffer::data()
 {
     return m_data;
 }
 
-const uint8_t *Buffer::data() const
+const uint8_t* Buffer::data() const
 {
     return m_data;
 }
@@ -101,16 +91,16 @@ VertexComponentType VertexBuffer::componentType() const
     return m_type;
 }
 
-const uint8_t *VertexBuffer::vertex(size_t index) const
+const uint8_t* VertexBuffer::vertex(size_t index) const
 {
     return m_data + m_numComponents * sizeOfVertexComponentType(m_type) * index;
 }
 
 void VertexBuffer::setVertex(size_t index, const uint8_t* data)
 {
-    std::memcpy(m_data + m_numComponents * sizeOfVertexComponentType(m_type) * index,
-                data,
-                m_numComponents * sizeOfVertexComponentType(m_type));
+    std::memcpy(
+        m_data + m_numComponents * sizeOfVertexComponentType(m_type) * index, data,
+        m_numComponents * sizeOfVertexComponentType(m_type));
 }
 
 std::shared_ptr<VertexBuffer> VertexBuffer::copy() const
@@ -134,9 +124,7 @@ void VertexBuffer::convert(uint32_t numComponents, VertexComponentType type)
         for (size_t i = 0u; i < numVertices(); ++i)
         {
             std::memcpy(
-                data + i * numComponents * sizeOfType,
-                m_data + i * m_numComponents * sizeOfType,
-                minNumComponents);
+                data + i * numComponents * sizeOfType, m_data + i * m_numComponents * sizeOfType, minNumComponents * sizeOfType);
         }
 
         delete[] m_data;
@@ -166,8 +154,7 @@ DrawElementsBuffer::DrawElementsBuffer(PrimitiveType primitiveType, size_t count
     : DrawElements(primitiveType, count, type, 0, baseVertex)
     , Buffer(0u)
 {
-    if (m_indexType == DrawElementsIndexType::Count)
-        LOG_CRITICAL << "Undefined draw elements index type";
+    if (m_indexType == DrawElementsIndexType::Count) LOG_CRITICAL << "Undefined draw elements index type";
 
     setNumIndices(m_count);
 }
@@ -195,12 +182,12 @@ void DrawElementsBuffer::setNumIndices(size_t numIndices)
     resize(m_count * indexSize());
 }
 
-const void *DrawElementsBuffer::index(size_t idx) const
+const void* DrawElementsBuffer::index(size_t idx) const
 {
     return static_cast<const void*>(m_data + m_offset + indexSize() * idx);
 }
 
-void DrawElementsBuffer::setIndex(size_t idx, const void *data)
+void DrawElementsBuffer::setIndex(size_t idx, const void* data)
 {
     std::memcpy(m_data + m_offset + indexSize() * idx, data, indexSize());
 }
@@ -216,11 +203,7 @@ void DrawElementsBuffer::convertToIndexType(DrawElementsIndexType indexType)
 {
     if (m_indexType != indexType)
     {
-        if (auto data = convertToDrawElementsIndexType(
-            m_data + m_offset * indexSize(),
-            numIndices(),
-            m_indexType,
-            indexType))
+        if (auto data = convertToDrawElementsIndexType(m_data + m_offset * indexSize(), numIndices(), m_indexType, indexType))
         {
             delete[] m_data;
             m_data = data;
@@ -240,11 +223,7 @@ void DrawElementsBuffer::convertToTriangles()
 {
     if (m_primitiveType != PrimitiveType::Triangles)
     {
-        if (auto data = convertToDrawElementsTriangles(
-            m_data + m_offset * indexSize(),
-            m_count,
-            indexType(),
-            m_primitiveType))
+        if (auto data = convertToDrawElementsTriangles(m_data + m_offset * indexSize(), m_count, indexType(), m_primitiveType))
         {
             delete[] m_data;
             m_data = data;
@@ -264,11 +243,7 @@ void DrawElementsBuffer::applyBaseVertex()
 {
     if (m_baseVertex)
     {
-        if (auto data = applyDrawElementsBaseVertex(
-            m_data + m_offset * indexSize(),
-            m_count,
-            indexType(),
-            m_baseVertex))
+        if (auto data = applyDrawElementsBaseVertex(m_data + m_offset * indexSize(), m_count, indexType(), m_baseVertex))
         {
             delete[] m_data;
             m_data = data;
@@ -284,14 +259,11 @@ std::shared_ptr<DrawElementsBuffer> DrawElementsBuffer::appliedBaseVertex() cons
     return result;
 }
 
-Mesh::Mesh()
-{
-}
+Mesh::Mesh() {}
 
-void Mesh::attachVertexBuffer(VertexAttribute vertexAttribute, const std::shared_ptr<VertexBuffer> &vertexBuffer)
+void Mesh::attachVertexBuffer(VertexAttribute vertexAttribute, const std::shared_ptr<VertexBuffer>& vertexBuffer)
 {
-    if (!vertexBuffer)
-        LOG_CRITICAL << "Vertex buffer can't be nullptr";
+    if (!vertexBuffer) LOG_CRITICAL << "Vertex buffer can't be nullptr";
 
     m_vertexBuffers[vertexAttribute] = vertexBuffer;
 }
@@ -301,36 +273,36 @@ void Mesh::detachVertexBuffer(VertexAttribute vertexAttribute)
     m_vertexBuffers.erase(vertexAttribute);
 }
 
-const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer>> &Mesh::vertexBuffers() const
+const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer>>& Mesh::vertexBuffers() const
 {
     return m_vertexBuffers;
 }
 
-void Mesh::attachPrimitiveSet(const std::shared_ptr<PrimitiveSet> &primitiveSet)
+void Mesh::attachPrimitiveSet(const std::shared_ptr<PrimitiveSet>& primitiveSet)
 {
-    if (!primitiveSet)
-        LOG_CRITICAL << "Primitive set can't be nullptr";
+    if (!primitiveSet) LOG_CRITICAL << "Primitive set can't be nullptr";
 
     m_primitiveSets.insert(primitiveSet);
 }
 
-void Mesh::detachPrimitiveSet(const std::shared_ptr<PrimitiveSet> &primitiveSet)
+void Mesh::detachPrimitiveSet(const std::shared_ptr<PrimitiveSet>& primitiveSet)
 {
     m_primitiveSets.erase(primitiveSet);
 }
 
-const std::unordered_set<std::shared_ptr<PrimitiveSet>> &Mesh::primitiveSets() const
+const std::unordered_set<std::shared_ptr<PrimitiveSet>>& Mesh::primitiveSets() const
 {
     return m_primitiveSets;
 }
 
-std::shared_ptr<Mesh> Mesh::createEmptyMesh(const std::unordered_map<VertexAttribute, std::tuple<uint32_t, VertexComponentType>> &decls)
+std::shared_ptr<Mesh> Mesh::createEmptyMesh(
+    const std::unordered_map<VertexAttribute, std::tuple<uint32_t, VertexComponentType>>& decls)
 {
     auto result = std::make_shared<Mesh>();
-    for (const auto &[attrib, decl] : decls)
+    for (const auto& [attrib, decl] : decls)
         result->attachVertexBuffer(attrib, std::make_shared<VertexBuffer>(0u, std::get<0>(decl), std::get<1>(decl)));
     return result;
 }
 
-}
-}
+} // namespace utils
+} // namespace simplex

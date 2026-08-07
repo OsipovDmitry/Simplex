@@ -8,10 +8,9 @@
 flat in uint v_meshID;
 flat in uint v_materialID;
 in vec3 v_normal;
+in vec2 v_texCoords;
 in vec3 v_tangent;
 in vec3 v_binormal;
-in vec2 v_texCoords;
-in vec4 v_color;
 
 out uvec4 o_fragColor0;
 
@@ -19,11 +18,12 @@ void main(void)
 {
 	if (!gl_FrontFacing && !isMaterialDoubleSided(v_materialID))
 		discard;
-
-	const bool hasTexCoords = meshTexCoordsComponentsCount(v_meshID) > 0u;
+	
+	const bool hasNormal = meshHasNormals(v_meshID);
+	const bool hasTexCoords = meshHasTexCoords(v_meshID);
+	const bool hasTangent = meshTangentDataOffset(v_meshID) != 0xFFFFFFFFu;
 	
     vec4 baseColor = materialBaseColor(v_materialID);
-	baseColor *= v_color;
 	
 	const uint baseColorMapID = materialBaseColorMapID(v_materialID);
 	if (hasTexCoords && (baseColorMapID != 0xFFFFFFFFu))
@@ -89,23 +89,27 @@ void main(void)
 			metalness *= texture(sampler2D(textureHandle), v_texCoords)[ORMSwizzleMask[2u]];
 	}
 	
-	vec3 normal = normalize(v_normal);
-
-	const uint normalMapID = materialNormalMapID(v_materialID);
-	if (hasTexCoords && meshTangentFlag(v_meshID) && (normalMapID != 0xFFFFFFFFu))
+	vec3 normal = vec3(0.0f);
+	if (hasNormal)
 	{
-		const TextureHandle textureHandle = mapTextureHandle(normalMapID);
-		if (!isTextureHandleEmpty(textureHandle))
+		normal = normalize(v_normal);
+
+		const uint normalMapID = materialNormalMapID(v_materialID);
+		if (hasTexCoords && hasTangent && (normalMapID != 0xFFFFFFFFu))
 		{
-			vec3 localNormal = unpackNormal(texture(sampler2D(textureHandle), v_texCoords).xyz);
-			localNormal.xy *= materialNormalMapScale(v_materialID);
-			localNormal = normalize(localNormal);
-			normal = normalize(mat3(normalize(v_tangent), normalize(v_binormal), normal) * localNormal);
+			const TextureHandle textureHandle = mapTextureHandle(normalMapID);
+			if (!isTextureHandleEmpty(textureHandle))
+			{
+				vec3 localNormal = unpackNormal(texture(sampler2D(textureHandle), v_texCoords).xyz);
+				localNormal.xy *= materialNormalMapScale(v_materialID);
+				localNormal = normalize(localNormal);
+				normal = normalize(mat3(normalize(v_tangent), normalize(v_binormal), normal) * localNormal);
+			}
 		}
+		
+		if (!gl_FrontFacing)
+			normal = -normal;
 	}
-	
-	if (!gl_FrontFacing)
-		normal = -normal;
 	
 	o_fragColor0 = packPBRData(
 		baseColor.rgb,

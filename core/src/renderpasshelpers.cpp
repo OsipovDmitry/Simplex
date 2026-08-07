@@ -275,19 +275,21 @@ void RenderDrawDataPass::run(
     framebuffer->setDepthTest(true);
     framebuffer->setDepthMask(true);
 
-    renderer->multiDrawArraysIndirectCount(
+    renderer->multiDrawElementsIndirectCount(
         glm::uvec4(0u, 0u, renderPipeLine->viewportSize()), m_opaqueProgram, framebuffer, vertexArray,
-        {sceneData, shared_from_this()}, utils::PrimitiveType::Triangles, renderPipeLine->opaqueDrawDataRenderCommandsBuffer(),
+        {sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
+        utils::toDrawElementsIndexType<ElementDataDescription>(), renderPipeLine->opaqueDrawDataRenderCommandsBuffer(),
         renderPipeLine->opaqueDrawDataRenderParameterBuffer());
 
     framebuffer->reset();
     framebuffer->attach(graphics::FrameBufferAttachment::Depth, geometryBuffer->depthTexture());
     framebuffer->setDepthTest(true);
 
-    renderer->multiDrawArraysIndirectCount(
+    renderer->multiDrawElementsIndirectCount(
         glm::uvec4(0u, 0u, renderPipeLine->viewportSize()), m_transparentProgram, framebuffer, vertexArray,
         {geometryBuffer, sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
-        renderPipeLine->transparentDrawDataRenderCommandsBuffer(), renderPipeLine->transparentDrawDataRenderParameterBuffer());
+        utils::toDrawElementsIndexType<ElementDataDescription>(), renderPipeLine->transparentDrawDataRenderCommandsBuffer(),
+        renderPipeLine->transparentDrawDataRenderParameterBuffer());
 }
 
 BuildClusterPass::BuildClusterPass(
@@ -637,9 +639,10 @@ void RenderShadowDataPass::run(
         for (uint32_t i = 0; i < 6u; ++i)
             framebuffer->setClipDistance(i, true);
 
-        renderer->multiDrawArraysIndirectCount(
+        renderer->multiDrawElementsIndirectCount(
             viewport, m_opaqueProgram, framebuffer, vertexArray, {sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
-            renderPipeLine->opaqueShadowDataRenderCommandsBuffer(), renderPipeLine->opaqueShadowDataRenderParameterBuffer());
+            utils::toDrawElementsIndexType<ElementDataDescription>(), renderPipeLine->opaqueShadowDataRenderCommandsBuffer(),
+            renderPipeLine->opaqueShadowDataRenderParameterBuffer());
 
         framebuffer->reset();
         framebuffer->attach(graphics::FrameBufferAttachment::Color0, colorTexture);
@@ -655,9 +658,10 @@ void RenderShadowDataPass::run(
         for (uint32_t i = 0; i < 6u; ++i)
             framebuffer->setClipDistance(i, true);
 
-        renderer->multiDrawArraysIndirectCount(
+        renderer->multiDrawElementsIndirectCount(
             viewport, m_transparentProgram, framebuffer, vertexArray, {sceneData, shared_from_this()},
-            utils::PrimitiveType::Triangles, renderPipeLine->transparentShadowDataRenderCommandsBuffer(),
+            utils::PrimitiveType::Triangles, utils::toDrawElementsIndexType<ElementDataDescription>(),
+            renderPipeLine->transparentShadowDataRenderCommandsBuffer(),
             renderPipeLine->transparentShadowDataRenderParameterBuffer());
     }
 }

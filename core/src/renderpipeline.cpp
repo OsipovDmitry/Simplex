@@ -31,8 +31,8 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_shadowDataBuffer = ShadowDataBuffer::element_type::create();
     m_shadowMapsBuffer = ShadowMapsBuffer::element_type::create(ShadowMapsDescription::makeEmpty());
     m_bonesTransformsDataCalculateCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
-    m_opaqueDrawDataRenderCommandsBuffer = graphics::DrawArraysIndirectCommandsBuffer::create();
-    m_transparentDrawDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
+    m_opaqueDrawDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
+    m_transparentDrawDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_opaqueDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
         m_countersBuffer->buffer(), offsetof(CountersDescription, opaqueDrawDataRenderCommandsCount),
         sizeof(CountersDescription::opaqueDrawDataRenderCommandsCount));
@@ -46,8 +46,8 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_HDRBuffer = HDRBuffer::element_type::create();
     m_bloomBuffer = BloomBuffer::element_type::create();
     m_toneMappingBuffer = ToneMappingBuffer::element_type::create();
-    m_opaqueShadowDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
-    m_transparentShadowDataRenderCommandsBuffer = graphics::PDrawArraysIndirectCommandsBuffer::element_type::create();
+    m_opaqueShadowDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
+    m_transparentShadowDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_opaqueShadowDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
         m_countersBuffer->buffer(), offsetof(CountersDescription, opaqueShadowDataRenderCommandsCount),
         sizeof(CountersDescription::opaqueShadowDataRenderCommandsCount));
@@ -168,6 +168,8 @@ void RenderPipeLine::run(
     updateToneMappingBuffer();
 
     resizeFinalTexture(graphicsRenderer);
+
+    vertexArray->attachIndexBuffer(sceneData->elementDataBuffer()->buffer());
 
     for (auto& pass : m_passes)
         pass->run(graphicsRenderer, frameBuffer, vertexArray, geometryBuffer, sceneData);
@@ -429,12 +431,12 @@ graphics::PDispatchComputeIndirectCommandBuffer& RenderPipeLine::bonesTransforms
     return m_bonesTransformsDataCalculateCommandBuffer;
 }
 
-graphics::PDrawArraysIndirectCommandsBuffer& RenderPipeLine::opaqueDrawDataRenderCommandsBuffer()
+graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::opaqueDrawDataRenderCommandsBuffer()
 {
     return m_opaqueDrawDataRenderCommandsBuffer;
 }
 
-graphics::PDrawArraysIndirectCommandsBuffer& RenderPipeLine::transparentDrawDataRenderCommandsBuffer()
+graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::transparentDrawDataRenderCommandsBuffer()
 {
     return m_transparentDrawDataRenderCommandsBuffer;
 }
@@ -459,12 +461,12 @@ graphics::PDispatchComputeIndirectCommandBuffer& RenderPipeLine::shadowDataCullC
     return m_shadowDataCullCommandBuffer;
 }
 
-graphics::PDrawArraysIndirectCommandsBuffer& RenderPipeLine::opaqueShadowDataRenderCommandsBuffer()
+graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::opaqueShadowDataRenderCommandsBuffer()
 {
     return m_opaqueShadowDataRenderCommandsBuffer;
 }
 
-graphics::PDrawArraysIndirectCommandsBuffer& RenderPipeLine::transparentShadowDataRenderCommandsBuffer()
+graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::transparentShadowDataRenderCommandsBuffer()
 {
     return m_transparentShadowDataRenderCommandsBuffer;
 }

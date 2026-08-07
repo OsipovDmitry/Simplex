@@ -8,63 +8,47 @@ BoundingBox meshBoundingBox(in uint meshID)
 	return toBoundingBox(meshes[meshID].boundingBox);
 }
 
-uint meshElementsDataSize(in uint meshID)
+uint meshPositionNormalTexCoordsDataOffset(in uint meshID)
 {
-	return meshes[meshID].elementsDataSize;
+	return meshes[meshID].positionNormalTexCoordsDataOffset;
 }
 
-uint meshVerticesDataOffset(in uint meshID)
+uint meshTangentDataOffset(in uint meshID)
 {
-	return meshes[meshID].verticesDataOffset;
+	return meshes[meshID].tangentDataOffset;
 }
 
-uint meshElementsDataOffset(in uint meshID)
+uint meshBoneDataOffset(in uint meshID)
 {
-	return meshes[meshID].elementsDataOffset;
+	return meshes[meshID].boneDataOffset;
 }
 
-uint meshPositionComponentsCount(in uint meshID)
+uint meshElementDataOffset(in uint meshID)
 {
-	return bitfieldExtract(meshes[meshID].flags, 0, 2);
+	return meshes[meshID].elementDataOffset;
 }
 
-uint meshNormalComponentsCount(in uint meshID)
+uint meshElementDataSize(in uint meshID)
 {
-	return bitfieldExtract(meshes[meshID].flags, 2, 2);
+	return meshes[meshID].elementDataSize;
 }
 
-uint meshTexCoordsComponentsCount(in uint meshID)
+bool meshHasPositions(in uint meshID)
 {
-	return bitfieldExtract(meshes[meshID].flags, 4, 2);
+	return bitfieldExtract(meshes[meshID].flags, 0, 1) != 0u;
+}
+
+bool meshHasNormals(in uint meshID)
+{
+	return bitfieldExtract(meshes[meshID].flags, 1, 1) != 0u;
+}
+
+bool meshHasTexCoords(in uint meshID)
+{
+	return bitfieldExtract(meshes[meshID].flags, 2, 1) != 0u;
 }
 
 uint meshBonesCount(in uint meshID)
 {
-	return bitfieldExtract(meshes[meshID].flags, 6, 3);
-}
-
-bool meshTangentFlag(in uint meshID)
-{
-	return bitfieldExtract(meshes[meshID].flags, 9, 1) != 0u;
-}
-
-uint meshColorComponentsCount(in uint meshID)
-{
-	return bitfieldExtract(meshes[meshID].flags, 10, 3);
-}
-
-bool isMeshTransparent(in uint meshID)
-{
-	return meshColorComponentsCount(meshID) >= 4u;
-}
-
-uint meshVertexStride(in uint meshID)
-{
-	return
-		meshPositionComponentsCount(meshID) +
-		meshNormalComponentsCount(meshID) +
-		meshTexCoordsComponentsCount(meshID) +
-		meshBonesCount(meshID) * 2u +
-		(meshTangentFlag(meshID) ? 4u : 0u) +
-		meshColorComponentsCount(meshID);
+	return bitfieldExtract(meshes[meshID].flags, 3, 3);
 }

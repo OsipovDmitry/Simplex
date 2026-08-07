@@ -3,7 +3,6 @@
 #include <core/background.h>
 #include <core/drawable.h>
 #include <core/graphicsengine.h>
-#include <core/graphicsrendererbase.h>
 #include <core/igraphicswidget.h>
 #include <core/material.h>
 #include <core/mesh.h>
@@ -26,18 +25,6 @@ namespace simplex
 {
 namespace core
 {
-
-static const utils::RangeT<uint32_t> BonesCountRange{1u, 7u};
-using BonesIDsUnderlyingType = uint32_t;
-
-using VertexAttributeFormat = std::pair<utils::RangeT<uint32_t>, utils::VertexComponentType>;
-static const VertexAttributeFormat PositionFormat{{1u, 3u}, utils::toVertexComponentType<VerticesDataDescription>()};
-static const VertexAttributeFormat NormalFormat{{1u, 3u}, utils::toVertexComponentType<VerticesDataDescription>()};
-static const VertexAttributeFormat TexCoordsFormat{{1u, 3u}, utils::toVertexComponentType<VerticesDataDescription>()};
-static const VertexAttributeFormat BonesIDsFormat{BonesCountRange, utils::toVertexComponentType<BonesIDsUnderlyingType>()};
-static const VertexAttributeFormat BonesWeightsFormat{BonesCountRange, utils::toVertexComponentType<VerticesDataDescription>()};
-static const VertexAttributeFormat TangentFormat{{4u, 4u}, utils::toVertexComponentType<VerticesDataDescription>()};
-static const VertexAttributeFormat ColorFormat{{1u, 4u}, utils::toVertexComponentType<VerticesDataDescription>()};
 
 ResourceHandler::ResourceHandler(const std::weak_ptr<SceneData>& sceneData)
     : m_sceneData(sceneData)
@@ -81,37 +68,64 @@ utils::IDsGenerator::value_type MeshHandler::ID() const
 {
     return m_ID;
 }
-
-uint32_t MeshHandler::verticesDataOffset() const
+uint32_t MeshHandler::positionNormalTexCoordsDataOffset() const
 {
-    return m_verticesDataOffset;
+    return m_positionNormalTexCoordsDataOffset;
 }
 
-uint32_t MeshHandler::verticesDataSize() const
+uint32_t MeshHandler::positionNormalTexCoordsDataSize() const
 {
-    return m_verticesDataSize;
+    return m_positionNormalTexCoordsDataSize;
 }
 
-uint32_t MeshHandler::elementsDataOffset() const
+uint32_t MeshHandler::tangentDataOffset() const
 {
-    return m_elementsDataOffset;
+    return m_tangentDataOffset;
 }
 
-uint32_t MeshHandler::elementsDataSize() const
+uint32_t MeshHandler::tangentDataSize() const
 {
-    return m_elementsDataSize;
+    return m_tangentDataSize;
+}
+
+uint32_t MeshHandler::boneDataOffset() const
+{
+    return m_boneDataOffset;
+}
+
+uint32_t MeshHandler::boneDataSize() const
+{
+    return m_boneDataSize;
+}
+
+uint32_t MeshHandler::elementDataOffset() const
+{
+    return m_elementDataOffset;
+}
+
+uint32_t MeshHandler::elementDataSize() const
+{
+    return m_elementDataSize;
 }
 
 void MeshHandler::updateOffsetsAndSizes(
-    uint32_t verticesDataOffset,
-    uint32_t verticesDataSize,
-    uint32_t elementsDataOffset,
-    uint32_t elementsDataSize)
+    uint32_t positionNormalTexCoordsDataOffset,
+    uint32_t positionNormalTexCoordsDataSize,
+    uint32_t tangentDataOffset,
+    uint32_t tangentDataSize,
+    uint32_t boneDataOffset,
+    uint32_t boneDataSize,
+    uint32_t elementDataOffset,
+    uint32_t elementDataSize)
 {
-    m_verticesDataOffset = verticesDataOffset;
-    m_verticesDataSize = verticesDataSize;
-    m_elementsDataOffset = elementsDataOffset;
-    m_elementsDataSize = elementsDataSize;
+    m_positionNormalTexCoordsDataOffset = positionNormalTexCoordsDataOffset;
+    m_positionNormalTexCoordsDataSize = positionNormalTexCoordsDataSize;
+    m_tangentDataOffset = tangentDataOffset;
+    m_tangentDataSize = tangentDataSize;
+    m_boneDataOffset = boneDataOffset;
+    m_boneDataSize = boneDataSize;
+    m_elementDataOffset = elementDataOffset;
+    m_elementDataSize = elementDataSize;
 }
 
 MaterialMapHandler::MaterialMapHandler(
@@ -402,8 +416,10 @@ void SkeletalAnimatedDataHandler::updateOffsetAndSize(uint32_t bonesTransformsDa
 SceneData::SceneData(uint32_t shadowAtlasSize)
     : m_shadowAtlasSize(shadowAtlasSize)
 {
-    m_verticesDataBuffer = VerticesDataBuffer::element_type::create();
-    m_elementsDataBuffer = ElementsDataBuffer::element_type::create();
+    m_positionNormalTexCoordsDataBuffer = PositionNormalTexCoordsDataBuffer::element_type::create();
+    m_tangentDataBuffer = TangentDataBuffer::element_type::create();
+    m_boneDataBuffer = BoneDataBuffer::element_type::create();
+    m_elementDataBuffer = ElementDataBuffer::element_type::create();
     m_skeletonsDataBuffer = SkeletonsDataBuffer::element_type::create();
     m_bonesTransformsDataBuffer = BonesTransformsDataBuffer::element_type::create();
     m_shadowTransformsDataBuffer = ShadowTransformsDataBuffer::element_type::create();
@@ -420,10 +436,12 @@ SceneData::SceneData(uint32_t shadowAtlasSize)
     m_drawDataBuffer = DrawDataBuffer::element_type::create();
     m_skeletalAnimatedDataBuffer = SkeletalAnimatedDataBuffer::element_type::create();
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::VerticesDataBuffer) =
-        graphics::BufferRange::create(m_verticesDataBuffer->buffer());
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ElementsDataBuffer) =
-        graphics::BufferRange::create(m_elementsDataBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::PositionNormalTexCoordsDataBuffer) =
+        graphics::BufferRange::create(m_positionNormalTexCoordsDataBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::TangentDataBuffer) =
+        graphics::BufferRange::create(m_tangentDataBuffer->buffer());
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::BoneDataBuffer) =
+        graphics::BufferRange::create(m_boneDataBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::SkeletonsDataBuffer) =
         graphics::BufferRange::create(m_skeletonsDataBuffer->buffer());
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::BonesTransformsDataBuffer) =
@@ -456,7 +474,6 @@ SceneData::AddVerticesDataResult SceneData::addVerticesData(
     const std::unordered_map<utils::VertexAttribute, std::shared_ptr<utils::VertexBuffer>>& verticesBuffers)
 {
     const size_t verticesCount = verticesBuffers.empty() ? 0u : verticesBuffers.begin()->second->numVertices();
-    size_t vertexStride = 0u; // in floats
     for (const auto& [attrib, buffer] : verticesBuffers)
     {
         if (buffer->numVertices() != verticesCount)
@@ -464,192 +481,188 @@ SceneData::AddVerticesDataResult SceneData::addVerticesData(
             LOG_ERROR << "Buffers have different sizes";
             return {};
         }
-
-        vertexStride += buffer->numComponents();
     }
 
-    const size_t verticesDataSize = verticesCount * vertexStride;
-    if (!verticesDataSize) return {};
+    std::vector<PositionNormalTexCoordsDataDescription> positionNormalTexCoordsData;
+    std::vector<TangentDataDescription> tangentData;
+    std::vector<BoneDataDescription> boneData;
 
-    std::vector<VerticesDataDescription> verticesData(verticesDataSize);
+    const bool hasPositions = verticesBuffers.count(utils::VertexAttribute::Position);
+    const bool hasNormals = verticesBuffers.count(utils::VertexAttribute::Normal);
+    const bool hasTexCoords = verticesBuffers.count(utils::VertexAttribute::TexCoords);
+    if (hasPositions || hasNormals || hasTexCoords)
+    {
+        positionNormalTexCoordsData.resize(verticesCount);
+        auto* data = reinterpret_cast<uint8_t*>(positionNormalTexCoordsData.data());
 
-    size_t relativeOffset = 0u;
-    uint32_t positionComponentsCount = 0u;
-    uint32_t normalComponentsCount = 0u;
-    uint32_t texCoordsComponentsCount = 0u;
-    bool hasTangent = false;
+        using Description = decltype(positionNormalTexCoordsData)::value_type;
+
+        if (auto it = verticesBuffers.find(utils::VertexAttribute::Position); it != verticesBuffers.end())
+        {
+            std::shared_ptr<utils::VertexBuffer> buffer = it->second;
+
+            using AttributeType = decltype(Description::position);
+            static constexpr auto AttributeOffset = offsetof(Description, position);
+
+            static constexpr auto TargetComponentsCount = AttributeType::length();
+            static constexpr auto TargetComponentType = utils::toVertexComponentType<AttributeType::value_type>();
+
+            if ((buffer->numComponents() != TargetComponentsCount) || (buffer->componentType() != TargetComponentType))
+                buffer = buffer->converted(TargetComponentsCount, TargetComponentType);
+
+            for (size_t i = 0u; i < verticesCount; ++i)
+                std::memcpy(data + i * sizeof(Description) + AttributeOffset, buffer->vertex(i), sizeof(AttributeType));
+        }
+
+        if (auto it = verticesBuffers.find(utils::VertexAttribute::Normal); it != verticesBuffers.end())
+        {
+            std::shared_ptr<utils::VertexBuffer> buffer = it->second;
+
+            using AttributeType = decltype(Description::normal);
+            static constexpr auto AttributeOffset = offsetof(Description, normal);
+
+            static constexpr auto TargetComponentsCount = AttributeType::length();
+            static constexpr auto TargetComponentType = utils::toVertexComponentType<AttributeType::value_type>();
+
+            if ((buffer->numComponents() != TargetComponentsCount) || (buffer->componentType() != TargetComponentType))
+                buffer = buffer->converted(TargetComponentsCount, TargetComponentType);
+
+            for (size_t i = 0u; i < verticesCount; ++i)
+                std::memcpy(data + i * sizeof(Description) + AttributeOffset, buffer->vertex(i), sizeof(AttributeType));
+        }
+
+        if (auto it = verticesBuffers.find(utils::VertexAttribute::TexCoords); it != verticesBuffers.end())
+        {
+            std::shared_ptr<utils::VertexBuffer> buffer = it->second;
+
+            using AttributeType = decltype(Description::texCoords);
+            static constexpr auto AttributeOffset = offsetof(Description, texCoords);
+
+            static constexpr auto TargetComponentsCount = AttributeType::length();
+            static constexpr auto TargetComponentType = utils::toVertexComponentType<AttributeType::value_type>();
+
+            if ((buffer->numComponents() != TargetComponentsCount) || (buffer->componentType() != TargetComponentType))
+                buffer = buffer->converted(TargetComponentsCount, TargetComponentType);
+
+            for (size_t i = 0u; i < verticesCount; ++i)
+                std::memcpy(data + i * sizeof(Description) + AttributeOffset, buffer->vertex(i), sizeof(AttributeType));
+        }
+    }
+
+    if (auto it = verticesBuffers.find(utils::VertexAttribute::Tangent); (it != verticesBuffers.end()) && hasNormals)
+    {
+        using Description = TangentDataDescription;
+        static constexpr auto TargetComponentsCount = Description::length();
+        static constexpr auto TargetComponentType = utils::toVertexComponentType<Description::value_type>();
+
+        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
+        if (buffer->numComponents() == TargetComponentsCount) // only 4-components tangent is suitable
+        {
+            if (buffer->componentType() != TargetComponentType)
+                buffer = buffer->converted(TargetComponentsCount, TargetComponentType);
+
+            tangentData.resize(verticesCount);
+            std::memcpy(tangentData.data(), buffer->data(), verticesCount * sizeof(Description));
+        }
+        else
+        {
+            LOG_ERROR << "Only 4-components tangent is suitable";
+        }
+    }
+
     uint32_t bonesCount = 0u;
-    uint32_t colorComponentsCount = 0u;
-
-    if (auto it = verticesBuffers.find(utils::VertexAttribute::Position); it != verticesBuffers.end())
-    {
-        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
-        if (!PositionFormat.first.isInside(buffer->numComponents()) || (buffer->componentType() != PositionFormat.second))
-        {
-            buffer = buffer->converted(PositionFormat.first.farValue(), PositionFormat.second);
-        }
-
-        positionComponentsCount = buffer->numComponents();
-        for (size_t v = 0u; v < verticesCount; ++v)
-        {
-            const auto* vertex = reinterpret_cast<const VerticesDataDescription*>(buffer->vertex(v));
-            for (uint32_t c = 0u; c < positionComponentsCount; ++c)
-                verticesData[vertexStride * v + relativeOffset + c] = vertex[c];
-        }
-
-        relativeOffset += positionComponentsCount;
-    }
-
-    if (auto it = verticesBuffers.find(utils::VertexAttribute::Normal); it != verticesBuffers.end())
-    {
-        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
-        if (!NormalFormat.first.isInside(buffer->numComponents()) || (buffer->componentType() != NormalFormat.second))
-        {
-            buffer = buffer->converted(NormalFormat.first.farValue(), NormalFormat.second);
-        }
-
-        normalComponentsCount = buffer->numComponents();
-        for (size_t v = 0u; v < verticesCount; ++v)
-        {
-            const auto* vertex = reinterpret_cast<const VerticesDataDescription*>(buffer->vertex(v));
-            for (uint32_t c = 0u; c < normalComponentsCount; ++c)
-                verticesData[vertexStride * v + relativeOffset + c] = vertex[c];
-        }
-
-        relativeOffset += normalComponentsCount;
-    }
-
-    if (auto it = verticesBuffers.find(utils::VertexAttribute::TexCoords); it != verticesBuffers.end())
-    {
-        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
-        if (!TexCoordsFormat.first.isInside(buffer->numComponents()) || (buffer->componentType() != TexCoordsFormat.second))
-        {
-            buffer = buffer->converted(TexCoordsFormat.first.farValue(), TexCoordsFormat.second);
-        }
-
-        texCoordsComponentsCount = buffer->numComponents();
-        for (size_t v = 0u; v < verticesCount; ++v)
-        {
-            const auto* vertex = reinterpret_cast<const VerticesDataDescription*>(buffer->vertex(v));
-            for (uint32_t c = 0u; c < texCoordsComponentsCount; ++c)
-                verticesData[vertexStride * v + relativeOffset + c] = vertex[c];
-        }
-
-        relativeOffset += texCoordsComponentsCount;
-    }
-
-    if (auto it = verticesBuffers.find(utils::VertexAttribute::Tangent);
-        (it != verticesBuffers.end()) && (normalComponentsCount > 0u))
-    {
-        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
-        if (TangentFormat.first.isInside(buffer->numComponents())) // only 4-components tangent is suitable
-        {
-            if (buffer->componentType() != TangentFormat.second)
-            {
-                buffer = buffer->converted(buffer->numComponents(), TangentFormat.second);
-            }
-
-            const size_t componentsCount = buffer->numComponents();
-            hasTangent = componentsCount != 0u;
-            for (size_t v = 0u; v < verticesCount; ++v)
-            {
-                const auto* vertex = reinterpret_cast<const VerticesDataDescription*>(buffer->vertex(v));
-                for (size_t c = 0u; c < componentsCount; ++c)
-                    verticesData[vertexStride * v + relativeOffset + c] = vertex[c];
-            }
-
-            relativeOffset += componentsCount;
-        }
-    }
-
     if (verticesBuffers.count(utils::VertexAttribute::BonesIDs) && verticesBuffers.count(utils::VertexAttribute::BonesWeights))
     {
-        std::shared_ptr<utils::VertexBuffer> bonesIDsBuffer = verticesBuffers.at(utils::VertexAttribute::BonesIDs);
-        std::shared_ptr<utils::VertexBuffer> bonesWeightsBuffer = verticesBuffers.at(utils::VertexAttribute::BonesWeights);
+        std::shared_ptr<utils::VertexBuffer> boneIDsBuffer = verticesBuffers.at(utils::VertexAttribute::BonesIDs);
+        std::shared_ptr<utils::VertexBuffer> boneWeightsBuffer = verticesBuffers.at(utils::VertexAttribute::BonesWeights);
 
-        bonesCount = bonesIDsBuffer->numComponents();
-        if (bonesCount != bonesWeightsBuffer->numComponents())
+        if (boneIDsBuffer->numComponents() == boneWeightsBuffer->numComponents())
         {
-            LOG_CRITICAL << "Bones IDs and weights buffers must have equal number of components";
-            return {};
-        }
+            bonesCount = glm::min(MeshDescription::MaxBonesCount, boneIDsBuffer->numComponents());
 
-        bonesCount = glm::min(bonesCount, BonesCountRange.farValue());
+            using Description = BoneDataDescription;
 
-        if (!BonesIDsFormat.first.isInside(bonesIDsBuffer->numComponents()) ||
-            (bonesIDsBuffer->componentType() != BonesIDsFormat.second))
-        {
-            bonesIDsBuffer = bonesIDsBuffer->converted(bonesCount, BonesIDsFormat.second);
-        }
+            using IDType = decltype(Description::ID);
+            static constexpr auto IDOffset = offsetof(Description, ID);
 
-        if (!BonesWeightsFormat.first.isInside(bonesWeightsBuffer->numComponents()) ||
-            (bonesWeightsBuffer->componentType() != BonesWeightsFormat.second))
-        {
-            bonesWeightsBuffer = bonesWeightsBuffer->converted(bonesCount, BonesWeightsFormat.second);
-        }
+            using WeightType = decltype(Description::weight);
+            static constexpr auto WeightOffset = offsetof(Description, weight);
 
-        for (size_t v = 0u; v < verticesCount; ++v)
-        {
-            const auto* IDs = reinterpret_cast<const BonesIDsUnderlyingType*>(bonesIDsBuffer->vertex(v));
-            const auto* weights = reinterpret_cast<const VerticesDataDescription*>(bonesWeightsBuffer->vertex(v));
-            for (uint32_t c = 0u; c < bonesCount; ++c)
+            static constexpr auto TargetIDType = utils::toVertexComponentType<IDType>();
+            static constexpr auto TargetWeightType = utils::toVertexComponentType<WeightType>();
+
+            if (boneIDsBuffer->componentType() != TargetIDType)
+                boneIDsBuffer = boneIDsBuffer->converted(bonesCount, TargetIDType);
+
+            if (boneWeightsBuffer->componentType() != TargetWeightType)
+                boneWeightsBuffer = boneWeightsBuffer->converted(bonesCount, TargetWeightType);
+
+            boneData.resize(verticesCount * bonesCount);
+            auto* data = reinterpret_cast<uint8_t*>(boneData.data());
+
+            for (size_t i = 0u; i < verticesCount; ++i)
             {
-                verticesData[vertexStride * v + relativeOffset + 2u * c + 0u] = glm::uintBitsToFloat(IDs[c]);
-                verticesData[vertexStride * v + relativeOffset + 2u * c + 1u] = weights[c];
+                const auto* IDs = reinterpret_cast<const IDType*>(boneIDsBuffer->vertex(i));
+                const auto* weights = reinterpret_cast<const WeightType*>(boneWeightsBuffer->vertex(i));
+                for (uint32_t c = 0u; c < bonesCount; ++c)
+                {
+                    std::memcpy(data + i * sizeof(Description) + IDOffset, IDs + i, sizeof(IDType));
+                    std::memcpy(data + i * sizeof(Description) + WeightOffset, weights + i, sizeof(WeightType));
+                }
             }
         }
-
-        relativeOffset += static_cast<size_t>(bonesCount) * 2u;
+        else
+        {
+            LOG_ERROR << "Bones IDs and weights buffers have different number of components";
+        }
     }
 
-    if (auto it = verticesBuffers.find(utils::VertexAttribute::Color); it != verticesBuffers.end())
-    {
-        std::shared_ptr<utils::VertexBuffer> buffer = it->second;
-        if (!ColorFormat.first.isInside(buffer->numComponents()) || (buffer->componentType() != ColorFormat.second))
-        {
-            buffer = buffer->converted(ColorFormat.first.farValue(), ColorFormat.second);
-        }
-
-        colorComponentsCount = buffer->numComponents();
-        for (size_t v = 0u; v < verticesCount; ++v)
-        {
-            const auto* vertex = reinterpret_cast<const VerticesDataDescription*>(buffer->vertex(v));
-            for (uint32_t c = 0u; c < colorComponentsCount; ++c)
-                verticesData[vertexStride * v + relativeOffset + c] = vertex[c];
-        }
-
-        relativeOffset += colorComponentsCount;
-    }
-
-    const auto verticesDataOffset = m_verticesDataBuffer->allocate(verticesData.size(), verticesData.data());
+    const auto positionNormalTexCoordsDataOffset =
+        m_positionNormalTexCoordsDataBuffer->allocate(positionNormalTexCoordsData.size(), positionNormalTexCoordsData.data());
+    const auto tangentDataOffset = m_tangentDataBuffer->allocate(tangentData.size(), tangentData.data());
+    const auto boneDataOffset = m_boneDataBuffer->allocate(boneData.size(), boneData.data());
 
     return {
-        static_cast<uint32_t>(verticesDataOffset),
-        static_cast<uint32_t>(verticesDataSize),
-        positionComponentsCount,
-        normalComponentsCount,
-        texCoordsComponentsCount,
-        hasTangent,
+        static_cast<uint32_t>(positionNormalTexCoordsDataOffset),
+        static_cast<uint32_t>(positionNormalTexCoordsData.size()),
+        hasPositions,
+        hasNormals,
+        hasTexCoords,
+        static_cast<uint32_t>(tangentDataOffset),
+        static_cast<uint32_t>(tangentData.size()),
+        static_cast<uint32_t>(boneDataOffset),
+        static_cast<uint32_t>(boneData.size()),
         bonesCount,
-        colorComponentsCount};
+    };
 }
 
-void SceneData::removeVerticeshData(uint32_t verticesDataOffset, uint32_t verticesDataSize)
+void SceneData::removeVerticeshData(
+    uint32_t positionNormalTexCoordsDataOffset,
+    uint32_t positionNormalTexCoordsDataSize,
+    uint32_t tangentDataOffset,
+    uint32_t tangentDataSize,
+    uint32_t boneDataOffset,
+    uint32_t boneDataSize)
 {
-    if ((verticesDataOffset == utils::IDsGenerator::last()) || (!verticesDataSize)) return;
+    if ((positionNormalTexCoordsDataOffset != utils::IDsGenerator::last()) || (positionNormalTexCoordsDataSize != 0u))
+        m_positionNormalTexCoordsDataBuffer->free(positionNormalTexCoordsDataOffset, positionNormalTexCoordsDataSize);
 
-    m_verticesDataBuffer->free(verticesDataOffset, verticesDataSize);
+    if ((tangentDataOffset != utils::IDsGenerator::last()) || (tangentDataSize != 0u))
+        m_tangentDataBuffer->free(tangentDataOffset, tangentDataSize);
+
+    if ((boneDataOffset != utils::IDsGenerator::last()) || (boneDataSize != 0u))
+        m_boneDataBuffer->free(boneDataOffset, boneDataSize);
 }
 
-SceneData::AddElementsDataResult SceneData::addElementsData(
+SceneData::AddElementDataResult SceneData::addElementData(
     const std::unordered_set<std::shared_ptr<utils::PrimitiveSet>>& primitiveSets)
 {
-    static constexpr auto s_indexType = utils::toDrawElementsIndexType<ElementsDataDescription>();
+    static constexpr auto s_indexType = utils::toDrawElementsIndexType<ElementDataDescription>();
     static_assert(s_indexType != utils::DrawElementsIndexType::Count);
 
     static constexpr auto s_primitiveType = utils::PrimitiveType::Triangles;
 
-    size_t elementsDataSize = 0u;
+    size_t elementDataSize = 0u;
     std::vector<std::shared_ptr<utils::DrawElementsBuffer>> drawElementsBuffers;
     drawElementsBuffers.reserve(primitiveSets.size());
 
@@ -677,29 +690,29 @@ SceneData::AddElementsDataResult SceneData::addElementsData(
 
         if (buffer->baseVertex()) buffer = buffer->appliedBaseVertex();
 
-        elementsDataSize += buffer->numIndices();
+        elementDataSize += buffer->numIndices();
         drawElementsBuffers.push_back(buffer);
     }
 
-    if (!elementsDataSize) return {};
+    if (!elementDataSize) return {};
 
-    std::vector<ElementsDataDescription> elementsData;
-    elementsData.reserve(elementsDataSize);
+    std::vector<ElementDataDescription> elementData;
+    elementData.reserve(elementDataSize);
     for (const auto& drawElemetsBuffer : drawElementsBuffers)
     {
-        const auto* data = reinterpret_cast<const ElementsDataDescription*>(drawElemetsBuffer->data());
-        elementsData.insert(elementsData.end(), data, data + drawElemetsBuffer->numIndices());
+        const auto* data = reinterpret_cast<const ElementDataDescription*>(drawElemetsBuffer->data());
+        elementData.insert(elementData.end(), data, data + drawElemetsBuffer->numIndices());
     }
 
-    const auto elementsDataOffset = m_elementsDataBuffer->allocate(elementsDataSize, elementsData.data());
-    return {static_cast<uint32_t>(elementsDataOffset), static_cast<uint32_t>(elementsDataSize)};
+    const auto elementDataOffset = m_elementDataBuffer->allocate(elementDataSize, elementData.data());
+    return {static_cast<uint32_t>(elementDataOffset), static_cast<uint32_t>(elementDataSize)};
 }
 
-void SceneData::removeElementsData(uint32_t elementsDataOffset, uint32_t elementsDataSize)
+void SceneData::removeElementData(uint32_t elementDataOffset, uint32_t elementDataSize)
 {
-    if ((elementsDataOffset == utils::IDsGenerator::last()) || (!elementsDataSize)) return;
+    if ((elementDataOffset == utils::IDsGenerator::last()) || (!elementDataSize)) return;
 
-    m_elementsDataBuffer->free(elementsDataOffset, elementsDataSize);
+    m_elementDataBuffer->free(elementDataOffset, elementDataSize);
 }
 
 SceneData::AddSkeletonDataResult SceneData::addSkeletonData(
@@ -1045,29 +1058,31 @@ void SceneData::removeMesh(const std::shared_ptr<const Mesh>& mesh)
 
 void SceneData::onMeshChanged(MeshHandler& handler, const std::shared_ptr<const utils::Mesh>& mesh, const utils::BoundingBox& bb)
 {
-    removeVerticeshData(handler.verticesDataOffset(), handler.verticesDataSize());
-    removeElementsData(handler.elementsDataOffset(), handler.elementsDataSize());
+    removeVerticeshData(
+        handler.positionNormalTexCoordsDataOffset(), handler.positionNormalTexCoordsDataSize(), handler.boneDataOffset(),
+        handler.boneDataSize(), handler.tangentDataOffset(), handler.tangentDataSize());
+    removeElementData(handler.elementDataOffset(), handler.elementDataSize());
 
     AddVerticesDataResult addVerticesDataResult;
-    AddElementsDataResult addElementsDataResult;
+    AddElementDataResult addElementDataResult;
 
     if (mesh)
     {
         addVerticesDataResult = addVerticesData(mesh->vertexBuffers());
-        addElementsDataResult = addElementsData(mesh->primitiveSets());
+        addElementDataResult = addElementData(mesh->primitiveSets());
     }
 
     m_meshesBuffer->set(
-        handler.ID(),
-        MeshDescription::make(
-            bb, addElementsDataResult.elementsDataSize, addVerticesDataResult.verticesDataOffset,
-            addElementsDataResult.elementsDataOffset, addVerticesDataResult.positionComponentsCount,
-            addVerticesDataResult.normalComponentsCount, addVerticesDataResult.texCoordsComponentsCount,
-            addVerticesDataResult.bonesCount, addVerticesDataResult.hasTangent, addVerticesDataResult.colorComponentsCount));
+        handler.ID(), MeshDescription::make(
+                          bb, addVerticesDataResult.positionNormalTexCoordsDataOffset, addVerticesDataResult.hasPositions,
+                          addVerticesDataResult.hasNormals, addVerticesDataResult.hasTexCoords,
+                          addVerticesDataResult.tangentDataOffset, addVerticesDataResult.boneDataOffset,
+                          addVerticesDataResult.bonesCount, addElementDataResult.offset, addElementDataResult.size));
 
     handler.updateOffsetsAndSizes(
-        addVerticesDataResult.verticesDataOffset, addVerticesDataResult.verticesDataSize,
-        addElementsDataResult.elementsDataOffset, addElementsDataResult.elementsDataSize);
+        addVerticesDataResult.positionNormalTexCoordsDataOffset, addVerticesDataResult.positionNormalTexCoordsDataSize,
+        addVerticesDataResult.boneDataOffset, addVerticesDataResult.boneDataSize, addVerticesDataResult.tangentDataOffset,
+        addVerticesDataResult.tangentDataSize, addElementDataResult.offset, addElementDataResult.size);
 }
 
 std::shared_ptr<MaterialMapHandler> SceneData::addMaterialMap(const std::shared_ptr<const MaterialMap>& materialMap)
@@ -1731,6 +1746,11 @@ void SceneData::onSkeletalAnimatedDataChanged(
 
     handler.updateOffsetAndSize(
         addBonesTransformsDataResult.bonesTransformsDataOffset, addBonesTransformsDataResult.bonesTransformsDataSize);
+}
+
+ElementDataBuffer SceneData::elementDataBuffer() const
+{
+    return m_elementDataBuffer;
 }
 
 size_t SceneData::drawDataCount() const

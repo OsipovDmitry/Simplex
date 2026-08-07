@@ -100,15 +100,15 @@ public:
     BloomBuffer& bloomBuffer();
     ToneMappingBuffer& toneMappingBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& bonesTransformsDataCalculateCommandBuffer();
-    graphics::PDrawArraysIndirectCommandsBuffer& opaqueDrawDataRenderCommandsBuffer();
-    graphics::PDrawArraysIndirectCommandsBuffer& transparentDrawDataRenderCommandsBuffer();
+    graphics::PDrawElementsIndirectCommandBuffer& opaqueDrawDataRenderCommandsBuffer();
+    graphics::PDrawElementsIndirectCommandBuffer& transparentDrawDataRenderCommandsBuffer();
     graphics::PBufferRange& opaqueDrawDataRenderParameterBuffer();
     graphics::PBufferRange& transparentDrawDataRenderParameterBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& clusterLocalLightsCommandBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& shadowDataCullCommandBuffer();
     graphics::PDrawArraysIndirectCommandsBuffer& shadowMapBlurCommandsBuffer();
-    graphics::PDrawArraysIndirectCommandsBuffer& opaqueShadowDataRenderCommandsBuffer();
-    graphics::PDrawArraysIndirectCommandsBuffer& transparentShadowDataRenderCommandsBuffer();
+    graphics::PDrawElementsIndirectCommandBuffer& opaqueShadowDataRenderCommandsBuffer();
+    graphics::PDrawElementsIndirectCommandBuffer& transparentShadowDataRenderCommandsBuffer();
     graphics::PBufferRange& opaqueShadowDataRenderParameterBuffer();
     graphics::PBufferRange& transparentShadowDataRenderParameterBuffer();
 
@@ -192,15 +192,15 @@ private:
     BloomBuffer m_bloomBuffer;
     ToneMappingBuffer m_toneMappingBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_bonesTransformsDataCalculateCommandBuffer;
-    graphics::PDrawArraysIndirectCommandsBuffer m_opaqueDrawDataRenderCommandsBuffer;
-    graphics::PDrawArraysIndirectCommandsBuffer m_transparentDrawDataRenderCommandsBuffer;
+    graphics::PDrawElementsIndirectCommandBuffer m_opaqueDrawDataRenderCommandsBuffer;
+    graphics::PDrawElementsIndirectCommandBuffer m_transparentDrawDataRenderCommandsBuffer;
     graphics::PBufferRange m_opaqueDrawDataRenderParameterBuffer;
     graphics::PBufferRange m_transparentDrawDataRenderParameterBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_clusterLocalLightsCommandBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_shadowDataCullCommandBuffer;
     graphics::PDrawArraysIndirectCommandsBuffer m_shadowMapBlurCommandsBuffer;
-    graphics::PDrawArraysIndirectCommandsBuffer m_opaqueShadowDataRenderCommandsBuffer;
-    graphics::PDrawArraysIndirectCommandsBuffer m_transparentShadowDataRenderCommandsBuffer;
+    graphics::PDrawElementsIndirectCommandBuffer m_opaqueShadowDataRenderCommandsBuffer;
+    graphics::PDrawElementsIndirectCommandBuffer m_transparentShadowDataRenderCommandsBuffer;
     graphics::PBufferRange m_opaqueShadowDataRenderParameterBuffer;
     graphics::PBufferRange m_transparentShadowDataRenderParameterBuffer;
 

@@ -172,9 +172,9 @@ public:
 
     GLuint id() const;
 
-    uint32_t attachVertexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer, size_t offset, size_t stride) override;
+    uint32_t attachVertexBuffer(const core::graphics::PConstBuffer& buffer, size_t offset, size_t stride) override;
     void detachVertexBuffer(uint32_t bindingIndex) override;
-    std::shared_ptr<const core::graphics::IBuffer> vertexBuffer(uint32_t bindingIndex) const override;
+    core::graphics::PConstBuffer vertexBuffer(uint32_t bindingIndex) const override;
     size_t vertexBufferOffset(uint32_t bindingIndex) const override;
     size_t vertexBufferStride(uint32_t bindingIndex) const override;
 
@@ -190,9 +190,9 @@ public:
     utils::VertexComponentType vertexAttributeComponentType(utils::VertexAttribute) const override;
     uint32_t vertexAttributeRelativeOffset(utils::VertexAttribute) const override;
 
-    void attachIndexBuffer(std::shared_ptr<core::graphics::IBuffer> buffer) override;
+    void attachIndexBuffer(const core::graphics::PConstBuffer& buffer) override;
     void detachIndexBuffer() override;
-    std::shared_ptr<const core::graphics::IBuffer> indexBuffer() const override;
+    core::graphics::PConstBuffer indexBuffer() const override;
 
     static std::shared_ptr<VertexArray_4_5> create();
 
@@ -203,7 +203,7 @@ private:
 
     struct VertexBufferDeclaration
     {
-        std::shared_ptr<core::graphics::IBuffer> buffer;
+        core::graphics::PConstBuffer buffer;
         size_t offset;
         size_t stride;
 
@@ -223,7 +223,7 @@ private:
     };
     std::unordered_map<utils::VertexAttribute, AttributeDeclaration> m_attributes;
 
-    std::shared_ptr<core::graphics::IBuffer> m_indexBuffer;
+    core::graphics::PConstBuffer m_indexBuffer;
 };
 
 class TextureBase_4_5 : public core::graphics::ITexture

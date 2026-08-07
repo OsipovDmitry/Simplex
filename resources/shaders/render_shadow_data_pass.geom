@@ -6,12 +6,11 @@ in gl_PerVertex {
     float gl_ClipDistance[6];
 } gl_in[];
 
-flat in uint v_layerID[];
 flat in uint v_meshID[];
 flat in uint v_materialID[];
+flat in uint v_layerID[];
 in float v_linearNormalizedDepth[];
 in vec2 v_texCoords[];
-in vec4 v_color[];
 
 out gl_PerVertex {
     vec4 gl_Position;
@@ -22,7 +21,6 @@ flat out uint g_meshID;
 flat out uint g_materialID;
 out float g_linearNormalizedDepth;
 out vec2 g_texCoords;
-out vec4 g_color;
 
 void main(void)
 {
@@ -37,7 +35,6 @@ void main(void)
 			gl_ClipDistance[j] = gl_in[i].gl_ClipDistance[j];
 		g_linearNormalizedDepth = v_linearNormalizedDepth[i];
 		g_texCoords = v_texCoords[i];
-		g_color = v_color[i];
 		EmitVertex();
 	}
 	

@@ -2,49 +2,77 @@
 #define UTILS_MESH_H
 
 #include <cstdint>
+#include <memory>
 #include <unordered_map>
 #include <unordered_set>
-#include <memory>
 
-#include <utils/utilsglobal.h>
 #include <utils/noncopyble.h>
 #include <utils/primitiveset.h>
+#include <utils/utilsglobal.h>
 
 namespace simplex
 {
 namespace utils
 {
 
-ENUMCLASS(VertexComponentType, uint16_t,
-          Single,
-          Double,
-          Int8,
-          Uint8,
-          Int16,
-          Uint16,
-          Int32,
-          Uint32)
+ENUMCLASS(VertexComponentType, uint16_t, Single, Double, Int8, Uint8, Int16, Uint16, Int32, Uint32)
 size_t UTILS_SHARED_EXPORT sizeOfVertexComponentType(VertexComponentType);
 
 template <typename T>
-inline VertexComponentType toVertexComponentType() { return VertexComponentType::Count; }
-template<> inline VertexComponentType toVertexComponentType<float>() { return VertexComponentType::Single; }
-template<> inline VertexComponentType toVertexComponentType<double>() { return VertexComponentType::Double; }
-template<> inline VertexComponentType toVertexComponentType<int8_t>() { return VertexComponentType::Int8; }
-template<> inline VertexComponentType toVertexComponentType<uint8_t>() { return VertexComponentType::Uint8; }
-template<> inline VertexComponentType toVertexComponentType<int16_t>() { return VertexComponentType::Int16; }
-template<> inline VertexComponentType toVertexComponentType<uint16_t>() { return VertexComponentType::Uint16; }
-template<> inline VertexComponentType toVertexComponentType<int32_t>() { return VertexComponentType::Int32; }
-template<> inline VertexComponentType toVertexComponentType<uint32_t>() { return VertexComponentType::Uint32; }
+inline constexpr VertexComponentType toVertexComponentType()
+{
+    return VertexComponentType::Count;
+}
 
-ENUMCLASS(VertexAttribute, uint16_t,
-          Position,
-          Normal,
-          TexCoords,
-          Tangent,
-          BonesIDs,
-          BonesWeights,
-          Color)
+template <>
+inline constexpr VertexComponentType toVertexComponentType<float>()
+{
+    return VertexComponentType::Single;
+}
+
+template <>
+inline constexpr VertexComponentType toVertexComponentType<double>()
+{
+    return VertexComponentType::Double;
+}
+
+template <>
+inline constexpr VertexComponentType toVertexComponentType<int8_t>()
+{
+    return VertexComponentType::Int8;
+}
+
+template <>
+inline constexpr VertexComponentType toVertexComponentType<uint8_t>()
+{
+    return VertexComponentType::Uint8;
+}
+
+template <>
+inline constexpr VertexComponentType toVertexComponentType<int16_t>()
+{
+    return VertexComponentType::Int16;
+}
+
+template <>
+inline constexpr VertexComponentType toVertexComponentType<uint16_t>()
+{
+    return VertexComponentType::Uint16;
+}
+
+template <>
+inline constexpr VertexComponentType toVertexComponentType<int32_t>()
+{
+    return VertexComponentType::Int32;
+}
+
+template <>
+inline constexpr VertexComponentType toVertexComponentType<uint32_t>()
+{
+    return VertexComponentType::Uint32;
+}
+
+ENUMCLASS(VertexAttribute, uint16_t, Position, Normal, TexCoords, Tangent, BonesIDs, BonesWeights, Color)
 
 class UTILS_SHARED_EXPORT Buffer
 {
@@ -56,11 +84,11 @@ public:
     size_t sizeInBytes() const;
     void resize(size_t);
 
-    uint8_t *data();
-    const uint8_t *data() const;
+    uint8_t* data();
+    const uint8_t* data() const;
 
 protected:
-    uint8_t *m_data;
+    uint8_t* m_data;
     size_t m_sizeInBytes;
 };
 
@@ -76,7 +104,7 @@ public:
     size_t numVertices() const;
     void setNumVertices(size_t);
 
-    const uint8_t *vertex(size_t) const;
+    const uint8_t* vertex(size_t) const;
     void setVertex(size_t, const uint8_t*);
 
     std::shared_ptr<VertexBuffer> copy() const;
@@ -100,7 +128,7 @@ public:
     size_t numIndices() const;
     void setNumIndices(size_t);
 
-    const void *index(size_t) const;
+    const void* index(size_t) const;
     void setIndex(size_t, const void*);
 
     std::shared_ptr<DrawElementsBuffer> copy() const;
@@ -123,20 +151,21 @@ public:
 
     void attachVertexBuffer(VertexAttribute, const std::shared_ptr<VertexBuffer>&);
     void detachVertexBuffer(VertexAttribute);
-    const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer>> &vertexBuffers() const;
+    const std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer>>& vertexBuffers() const;
 
     void attachPrimitiveSet(const std::shared_ptr<PrimitiveSet>&);
     void detachPrimitiveSet(const std::shared_ptr<PrimitiveSet>&);
-    const std::unordered_set<std::shared_ptr<PrimitiveSet>> &primitiveSets() const;
+    const std::unordered_set<std::shared_ptr<PrimitiveSet>>& primitiveSets() const;
 
-    static std::shared_ptr<Mesh> createEmptyMesh(const std::unordered_map<VertexAttribute, std::tuple<uint32_t, VertexComponentType>>&);
+    static std::shared_ptr<Mesh> createEmptyMesh(
+        const std::unordered_map<VertexAttribute, std::tuple<uint32_t, VertexComponentType>>&);
 
 private:
     std::unordered_map<VertexAttribute, std::shared_ptr<VertexBuffer>> m_vertexBuffers;
     std::unordered_set<std::shared_ptr<PrimitiveSet>> m_primitiveSets;
 };
 
-}
-}
+} // namespace utils
+} // namespace simplex
 
 #endif // UTILS_MESH_H

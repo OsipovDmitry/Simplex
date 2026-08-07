@@ -262,28 +262,39 @@ OITNodeDescription makeOITNodeDescription(in uvec4 PBRData, in float depth, in u
 	return OITNodeDescription(PBRData, depth, nextOITNodeID, uint[2u](0u, 0u));
 }
 
-#define VerticesDataDescription float
-#define ElementsDataDescription uint
+struct PositionNormalTexCoordsDataDescription
+{
+	// Don't use vec3 here beacuse of SSBO alignement, but keep using glm::vec3 on CPU
+    float x, y, z;
+	float nx, ny, nz;
+	float u, v;
+};
+
+struct BoneDataDescription
+{
+    uint ID;
+    float weight;
+};
+
+#define TangentDataDescription vec4
+#define ElementDataDescription uint
 
 struct MeshDescription
 {
-	BoundingBoxDescription boundingBox;
-    uint elementsDataSize;
-    uint verticesDataOffset;
-    uint elementsDataOffset; // draw arrays is used if 0xFFFFFFFFu
+    BoundingBoxDescription boundingBox;
+    uint positionNormalTexCoordsDataOffset;
+    uint tangentDataOffset;
+    uint boneDataOffset;
+    uint elementDataOffset;
+    uint elementDataSize;
     uint flags;
-    //  0.. 1 - occlusion map swizzle
-    //  2.. 3 - roughness map swizzle
-    //  4.. 5 - metalness map swizzle
-    //  6.. 6 - is lighted
-    //  7.. 7 - is shadowed
-    //  8.. 8 - is shadow casted
-    //  9.. 9 - is double sided
-    // 10..10 - is transparent
-    // 11..18 - alpha cutoff
-    // 19..31 - free (13 bits)
-    
-	//uint padding[0u];
+    //  0.. 0 - has position
+    //  1.. 1 - has normals
+    //  2.. 2 - has tex coords
+    //  3.. 5 - bones count [0..7]
+    //  6..31 - free (26 bits)
+
+    uint padding[2u];
 };
 
 struct MaterialDescription
