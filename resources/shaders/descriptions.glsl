@@ -244,8 +244,9 @@ struct GBufferDescription
     ImageHandle OITNodeIDImageHandle;
     uint OITNodesMaxCount;
     uint OITNodesCount;
+    uint generateDepthTextureLevelsPassIndex;
 	
-	// uint padding[0u];
+	uint padding[3u];
 };
 
 struct OITNodeDescription
@@ -261,6 +262,16 @@ OITNodeDescription makeOITNodeDescription(in uvec4 PBRData, in float depth, in u
 {
 	return OITNodeDescription(PBRData, depth, nextOITNodeID, uint[2u](0u, 0u));
 }
+
+struct HierarchicalZBufferDescription
+{
+    uint pingPongVisibilityIndex;
+    uint earlyDrawDataCount;
+    uint opaqueDrawDataCount;
+    uint transparentDrawDataCount;
+	
+    //uint padding[0u];
+};
 
 struct PositionNormalTexCoordsDataDescription
 {

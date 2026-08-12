@@ -187,17 +187,18 @@ struct GBufferDescription
 {
     graphics::TextureHandle colorTextureHandle;
     graphics::TextureHandle depthTextureHandle;
-    graphics::ImageHandle OITIndicesImageeHandle;
+    graphics::ImageHandle OITNodeIDImageHandle;
     uint32_t OITNodesMaxCount;
     uint32_t OITNodesCount;
+    uint32_t generateDepthTextureLevelsPassIndex;
 
     // padding
-    // uint32_t padding[0u];
+    uint32_t padding[3u];
 
     static GBufferDescription make(
         graphics::TextureHandle colorTextureHandle,
         graphics::TextureHandle depthTextureHandle,
-        graphics::ImageHandle OITIndicesImageHandle,
+        graphics::ImageHandle OITNodeIDImageHandle,
         uint32_t OITNodesMaxCount);
 };
 
@@ -207,6 +208,17 @@ struct OITNodeDescription
     float depth;
     uint32_t nextID;
     uint32_t padding[2u];
+};
+
+struct HierarchicalZBufferDescription
+{
+    uint32_t pingPongVisibilityIndex;
+    uint32_t earlyDrawDataCount;
+    uint32_t opaqueDrawDataCount;
+    uint32_t transparentDrawDataCount;
+    // uint32_t padding[0u];
+
+    static HierarchicalZBufferDescription makeEmpty();
 };
 
 struct PositionNormalTexCoordsDataDescription

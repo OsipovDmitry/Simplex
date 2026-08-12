@@ -36,6 +36,9 @@ void GeometryBuffer::initialize(const std::shared_ptr<ProgramsLoader>& programsL
 
     m_sortOITNodesProgram = programsLoader->loadOrGetComputeProgram(resources::SortOITNodesPassComputeShaderPath, {});
 
+    m_generateDepthTextureLevelsProgram = programsLoader->loadOrGetRenderProgram(
+        resources::GenerateDepthTextureLevelsVertexShaderPath, resources::GenerateDepthTextureLevelsFragmentShaderPath, {});
+
     m_isInitialized = true;
 }
 
@@ -121,6 +124,35 @@ void GeometryBuffer::sortOITNodes(const std::shared_ptr<graphics::RendererBase>&
     graphicsRenderer->compute(glm::uvec3(m_size, 1u), m_sortOITNodesProgram, {shared_from_this()});
 }
 
+void GeometryBuffer::generateDepthTextureLevels(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
+    const std::shared_ptr<graphics::IVertexArray>& vertexArray) const
+{
+    const graphics::PConstTexture depthTexture = m_depthTextureHandle ? m_depthTextureHandle->texture() : nullptr;
+    if (depthTexture)
+    {
+        frameBuffer->reset();
+        frameBuffer->setDepthTest(true, graphics::ComparingFunc::Always);
+        frameBuffer->setDepthMask(true);
+
+        const auto levelsCount = depthTexture->numMipmapLevels();
+        const auto passesCount = (levelsCount > 0u) ? levelsCount - 1u : 0u;
+        for (uint32_t passIndex = 0u; passIndex < passesCount; ++passIndex)
+        {
+            const auto destinationLevel = passIndex + 1u;
+            frameBuffer->attach(graphics::FrameBufferAttachment::Depth, depthTexture, destinationLevel);
+            m_GBuffer->setField(offsetof(GBufferDescription, generateDepthTextureLevelsPassIndex), passIndex);
+
+            const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(depthTexture->mipmapSize(destinationLevel)));
+
+            renderer->drawArrays(
+                viewport, m_generateDepthTextureLevelsProgram, frameBuffer, vertexArray, {shared_from_this()},
+                utils::PrimitiveType::TriangleStrip, 0u, 4u);
+        }
+    }
+}
+
 PConstGBuffer GeometryBuffer::GBuffer() const
 {
     return m_GBuffer;
@@ -147,7 +179,9 @@ void GeometryBuffer::recreateBuffers(const std::shared_ptr<graphics::RendererBas
     m_colorTextureHandle = graphicsRenderer->createTextureHandle(colorTexture);
     m_colorTextureHandle->makeResident();
 
-    auto depthTexture = graphicsRenderer->createTextureRectEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Depth32F);
+    auto depthTexture = graphicsRenderer->createTexture2DEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Depth32F, 0u);
+    depthTexture->setFilterMode(graphics::TextureFilterMode::Bilinear);
+    depthTexture->setWrapMode(graphics::TextureWrapMode::ClampToEdge);
     m_depthTextureHandle = graphicsRenderer->createTextureHandle(depthTexture);
     m_depthTextureHandle->makeResident();
 

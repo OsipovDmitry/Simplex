@@ -35,6 +35,9 @@ using HDRBuffer = std::shared_ptr<graphics::StructBuffer<HDRDescription>>;
 using BloomBuffer = std::shared_ptr<graphics::StructBuffer<BloomDescription>>;
 using ToneMappingBuffer = std::shared_ptr<graphics::StructBuffer<ToneMappingDescription>>;
 
+using HierarchicalZBuffer = std::shared_ptr<graphics::StructBuffer<HierarchicalZBufferDescription>>;
+using HierarchicalZVisibilityBuffer = std::shared_ptr<graphics::VectorBuffer<uint32_t>>;
+
 class RenderPipeLine : public std::enable_shared_from_this<RenderPipeLine>
 {
 public:
@@ -99,7 +102,16 @@ public:
     HDRBuffer& hdrBuffer();
     BloomBuffer& bloomBuffer();
     ToneMappingBuffer& toneMappingBuffer();
+
+    HierarchicalZBuffer& hierarchicalZBuffer();
+    HierarchicalZVisibilityBuffer& hierarchicalZPingVisibilityBuffer();
+    HierarchicalZVisibilityBuffer& hierarchicalZPongVisibilityBuffer();
+    graphics::PBufferRange& hierarchicalZEarlyDrawDataRenderParameterBuffer();
+    graphics::PBufferRange& hierarchicalZOpaqueDrawDataRenderParameterBuffer();
+    graphics::PBufferRange& hierarchicalZTransparentDrawDataRenderParameterBuffer();
+
     graphics::PDispatchComputeIndirectCommandBuffer& bonesTransformsDataCalculateCommandBuffer();
+    graphics::PDrawElementsIndirectCommandBuffer& earlyDrawDataRenderCommandsBuffer();
     graphics::PDrawElementsIndirectCommandBuffer& opaqueDrawDataRenderCommandsBuffer();
     graphics::PDrawElementsIndirectCommandBuffer& transparentDrawDataRenderCommandsBuffer();
     graphics::PBufferRange& opaqueDrawDataRenderParameterBuffer();
@@ -191,7 +203,16 @@ private:
     HDRBuffer m_HDRBuffer;
     BloomBuffer m_bloomBuffer;
     ToneMappingBuffer m_toneMappingBuffer;
+
+    HierarchicalZBuffer m_hierarchicalZBuffer;
+    HierarchicalZVisibilityBuffer m_hierarchicalZPingVisibilityBuffer;
+    HierarchicalZVisibilityBuffer m_hierarchicalZPongVisibilityBuffer;
+    graphics::PBufferRange m_hierarchicalZEarlyDrawDataRenderParameterBuffer;
+    graphics::PBufferRange m_hierarchicalZOpaqueDrawDataRenderParameterBuffer;
+    graphics::PBufferRange m_hierarchicalZTransparentDrawDataRenderParameterBuffer;
+
     graphics::PDispatchComputeIndirectCommandBuffer m_bonesTransformsDataCalculateCommandBuffer;
+    graphics::PDrawElementsIndirectCommandBuffer m_earlyDrawDataRenderCommandsBuffer;
     graphics::PDrawElementsIndirectCommandBuffer m_opaqueDrawDataRenderCommandsBuffer;
     graphics::PDrawElementsIndirectCommandBuffer m_transparentDrawDataRenderCommandsBuffer;
     graphics::PBufferRange m_opaqueDrawDataRenderParameterBuffer;

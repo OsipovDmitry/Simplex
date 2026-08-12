@@ -37,8 +37,8 @@
 #include <scenes_loader_assimp/scenesloaderassimp.h>
 
 static bool mouseRotation = false;
-static glm::vec2 cameraAngles(-0.4f, 4.7f);
-static glm::vec3 cameraPosition(-10.f, 5.3f, -.6f);
+static glm::vec2 cameraAngles(0.0330001041f, 4.70499706f);
+static glm::vec3 cameraPosition(2.09740019f, 1.32928312f, -0.4143300066f);
 
 static bool toHitBunny = false;
 static bool toSwitchDirLight = false;

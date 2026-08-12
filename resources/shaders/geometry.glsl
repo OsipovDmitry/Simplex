@@ -73,7 +73,7 @@ void geometryBufferSortOITNodes(in ivec2 fragCoords)
 bool geometryBufferData(in ivec2 fragCoords, out uvec4 PBRData, out float depth, out uint nextOITNodeID)
 {
 	PBRData = texelFetch(usampler2DRect(GBuffer.colorTextureHandle), fragCoords);
-	depth = texelFetch(sampler2DRect(GBuffer.depthTextureHandle), fragCoords).r;
+	depth = texelFetch(sampler2D(GBuffer.depthTextureHandle), fragCoords, 0).r;
 	
 	layout(r32ui) uimage2DRect image = layout(r32ui) uimage2DRect(GBuffer.OITNodeIDImageHandle);
 	nextOITNodeID = imageLoad(image, fragCoords).r;
@@ -93,10 +93,20 @@ bool geometryBufferData(in uint OITNodeID, out uvec4 PBRData, out float depth, o
 	return true;
 }
 
+float geometryBufferDepth(in ivec2 fragCoords, in uint level)
+{
+	return texelFetch(sampler2D(GBuffer.depthTextureHandle), fragCoords, int(level)).r;
+}
+
 float geometryBufferDepth(in uint OITNodeID)
 {
 	if (OITNodeID == 0xFFFFFFFFu)
 		return 0.0f;
 		
 	return OITNodes[OITNodeID].depth;
+}
+
+uint geometryBufferGenerateDepthTextureLevelsPassIndex()
+{
+	return GBuffer.generateDepthTextureLevelsPassIndex;
 }

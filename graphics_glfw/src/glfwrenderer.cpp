@@ -3854,7 +3854,7 @@ std::shared_ptr<core::graphics::IComputeProgram> GLFWRenderer::createComputeProg
 }
 
 void GLFWRenderer::compute(
-    const glm::uvec3& numInvocations,
+    const glm::uvec3& invocationsCount,
     const std::shared_ptr<core::graphics::IComputeProgram>& computeProgram,
     const core::StateSetList& stateSetList)
 {
@@ -3863,9 +3863,15 @@ void GLFWRenderer::compute(
 
     setupCompute(computeProgram, stateSetList);
 
-    auto numWorkGroups =
-        glm::uvec3(glm::ceil(glm::vec3(numInvocations) / glm::vec3(computeProgram->workGroupSize())) + glm::vec3(.5f));
-    glDispatchCompute(numWorkGroups.x, numWorkGroups.y, numWorkGroups.z);
+    const auto workGroupSize = computeProgram->workGroupSize();
+    if (glm::any(glm::equal(workGroupSize, glm::uvec3(0u))))
+    {
+        LOG_CRITICAL << "Any dimension of work group size can't be zero";
+        return;
+    }
+
+    const auto workGroupsCount = (invocationsCount + workGroupSize - glm::uvec3(1u)) / workGroupSize;
+    glDispatchCompute(workGroupsCount.x, workGroupsCount.y, workGroupsCount.z);
 
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }

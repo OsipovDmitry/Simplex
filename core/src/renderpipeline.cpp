@@ -31,6 +31,7 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_shadowDataBuffer = ShadowDataBuffer::element_type::create();
     m_shadowMapsBuffer = ShadowMapsBuffer::element_type::create(ShadowMapsDescription::makeEmpty());
     m_bonesTransformsDataCalculateCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
+    m_earlyDrawDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_opaqueDrawDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_transparentDrawDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_opaqueDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
@@ -54,6 +55,19 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_transparentShadowDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
         m_countersBuffer->buffer(), offsetof(CountersDescription, transparentShadowDataRenderCommandsCount),
         sizeof(CountersDescription::transparentShadowDataRenderCommandsCount));
+
+    m_hierarchicalZBuffer = HierarchicalZBuffer::element_type::create(HierarchicalZBufferDescription::makeEmpty());
+    m_hierarchicalZPingVisibilityBuffer = HierarchicalZVisibilityBuffer::element_type::create();
+    m_hierarchicalZPongVisibilityBuffer = HierarchicalZVisibilityBuffer::element_type::create();
+    m_hierarchicalZEarlyDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
+        m_hierarchicalZBuffer->buffer(), offsetof(HierarchicalZBufferDescription, earlyDrawDataCount),
+        sizeof(HierarchicalZBufferDescription::earlyDrawDataCount));
+    m_hierarchicalZOpaqueDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
+        m_hierarchicalZBuffer->buffer(), offsetof(HierarchicalZBufferDescription, opaqueDrawDataCount),
+        sizeof(HierarchicalZBufferDescription::opaqueDrawDataCount));
+    m_hierarchicalZTransparentDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
+        m_hierarchicalZBuffer->buffer(), offsetof(HierarchicalZBufferDescription, transparentDrawDataCount),
+        sizeof(HierarchicalZBufferDescription::transparentDrawDataCount));
 }
 
 RenderPipeLine::~RenderPipeLine() = default;
@@ -76,19 +90,30 @@ void RenderPipeLine::initialize(const std::shared_ptr<ProgramsLoader>& programsL
         geometryBuffer->sortOITNodes(renderer);
     };
 
+    static const auto generateDepthLevels =
+        [](const std::shared_ptr<graphics::RendererBase>& renderer, const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
+           const std::shared_ptr<graphics::IVertexArray>& vertexArray,
+           const std::shared_ptr<const GeometryBuffer>& geometryBuffer, const std::shared_ptr<const SceneData>&)
+    {
+        geometryBuffer->generateDepthTextureLevels(renderer, frameBuffer, vertexArray);
+    };
+
     if (m_isInitialized) return;
 
     auto sharedThis = shared_from_this();
 
     m_passes.clear();
     m_passes.push_back(std::make_shared<InitializeCameraPass>(programsLoader, sharedThis));
-    m_passes.push_back(std::make_shared<CullDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<HierarchicalZEarlyCullDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<CollectSkeletalAnimatedDataToUpdatePass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<UpdateCameraPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<PrepareBonesTransformsDataCalculateCommandPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<CalculateBonesTransformsDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<SimplePass>(sharedThis, clear));
-    m_passes.push_back(std::make_shared<RenderDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<HierarchicalZEarlyRenderDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<SimplePass>(sharedThis, generateDepthLevels));
+    m_passes.push_back(std::make_shared<HierarchicalZLateCullDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<HierarchicalZLateRenderDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<SimplePass>(sharedThis, sort));
     m_passes.push_back(std::make_shared<BuildClusterPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<ClusterGlobalLightPass>(programsLoader, sharedThis));
@@ -127,6 +152,7 @@ void RenderPipeLine::run(
     m_viewportSize = viewportSize;
 
     const auto drawDataCount = sceneData->drawDataCount();
+    m_earlyDrawDataRenderCommandsBuffer->resize(drawDataCount);
     m_opaqueDrawDataRenderCommandsBuffer->resize(drawDataCount);
     m_transparentDrawDataRenderCommandsBuffer->resize(drawDataCount);
 
@@ -155,6 +181,9 @@ void RenderPipeLine::run(
         static_cast<uint32_t>(drawDataCount), static_cast<uint32_t>(skeletalAnimatedDataCount),
         static_cast<uint32_t>(shadowsCount), static_cast<uint32_t>(lightsCount), clusterSize, viewTransform, clipSpace,
         cullPlaneLimits));
+
+    m_hierarchicalZPingVisibilityBuffer->resize(drawDataCount);
+    m_hierarchicalZPongVisibilityBuffer->resize(drawDataCount);
 
     resizeShadowTextures(graphicsRenderer, sceneData->shadowMapsLayersCount());
     updateShadowMapsBuffer();
@@ -426,9 +455,44 @@ ToneMappingBuffer& RenderPipeLine::toneMappingBuffer()
     return m_toneMappingBuffer;
 }
 
+HierarchicalZBuffer& RenderPipeLine::hierarchicalZBuffer()
+{
+    return m_hierarchicalZBuffer;
+}
+
+HierarchicalZVisibilityBuffer& RenderPipeLine::hierarchicalZPingVisibilityBuffer()
+{
+    return m_hierarchicalZPingVisibilityBuffer;
+}
+
+HierarchicalZVisibilityBuffer& RenderPipeLine::hierarchicalZPongVisibilityBuffer()
+{
+    return m_hierarchicalZPongVisibilityBuffer;
+}
+
+graphics::PBufferRange& RenderPipeLine::hierarchicalZEarlyDrawDataRenderParameterBuffer()
+{
+    return m_hierarchicalZEarlyDrawDataRenderParameterBuffer;
+}
+
+graphics::PBufferRange& RenderPipeLine::hierarchicalZOpaqueDrawDataRenderParameterBuffer()
+{
+    return m_hierarchicalZOpaqueDrawDataRenderParameterBuffer;
+}
+
+graphics::PBufferRange& RenderPipeLine::hierarchicalZTransparentDrawDataRenderParameterBuffer()
+{
+    return m_hierarchicalZTransparentDrawDataRenderParameterBuffer;
+}
+
 graphics::PDispatchComputeIndirectCommandBuffer& RenderPipeLine::bonesTransformsDataCalculateCommandBuffer()
 {
     return m_bonesTransformsDataCalculateCommandBuffer;
+}
+
+graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::earlyDrawDataRenderCommandsBuffer()
+{
+    return m_earlyDrawDataRenderCommandsBuffer;
 }
 
 graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::opaqueDrawDataRenderCommandsBuffer()

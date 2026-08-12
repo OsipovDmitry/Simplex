@@ -103,10 +103,15 @@ RenderInfoDescription RenderInfoDescription::make(
 GBufferDescription GBufferDescription::make(
     graphics::TextureHandle colorTextureHandle,
     graphics::TextureHandle depthTextureHandle,
-    graphics::ImageHandle OITIndicesImageHandle,
+    graphics::ImageHandle OITNodeIDImageHandle,
     uint32_t OITNodesMaxCount)
 {
-    return {colorTextureHandle, depthTextureHandle, OITIndicesImageHandle, OITNodesMaxCount, 0u};
+    return {colorTextureHandle, depthTextureHandle, OITNodeIDImageHandle, OITNodesMaxCount, 0u, 0u};
+}
+
+HierarchicalZBufferDescription HierarchicalZBufferDescription::makeEmpty()
+{
+    return {0u, 0u, 0u, 0u};
 }
 
 MeshDescription MeshDescription::makeEmpty()

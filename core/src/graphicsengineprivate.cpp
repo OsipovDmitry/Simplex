@@ -217,6 +217,9 @@ const std::string& GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
         {ShaderStorageBlockID::HDRBuffer, "ssbo_HDRBuffer"},
         {ShaderStorageBlockID::BloomBuffer, "ssbo_bloomBuffer"},
         {ShaderStorageBlockID::ToneMappingBuffer, "ssbo_toneMappingBuffer"},
+        {ShaderStorageBlockID::HierarchicalZBuffer, "ssbo_hierarchicalZBuffer"},
+        {ShaderStorageBlockID::HierarchicalZPingVisibilityBuffer, "ssbo_hierarchicalZPingVisibilityBuffer"},
+        {ShaderStorageBlockID::HierarchicalZPongVisibilityBuffer, "ssbo_hierarchicalZPongVisibilityBuffer"},
 
         {ShaderStorageBlockID::LayeredShadowMatrices, "ssbo_layeredShadowMatricesBuffer"},
         {ShaderStorageBlockID::SSAOKernel, "ssbo_SSAOKernelBuffer"},

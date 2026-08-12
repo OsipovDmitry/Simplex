@@ -132,6 +132,9 @@ ENUMCLASS(
     HDRBuffer,
     BloomBuffer,
     ToneMappingBuffer,
+    HierarchicalZBuffer,
+    HierarchicalZPingVisibilityBuffer,
+    HierarchicalZPongVisibilityBuffer,
 
     LayeredShadowMatrices,
     SSAOKernel,
