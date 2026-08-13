@@ -758,7 +758,7 @@ void RenderBackgroundPass::run(
     }
 
     framebuffer->reset();
-    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->HDRTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->highDynamicRangeTexture());
     framebuffer->setColorMask(0u, true);
 
     renderer->drawArrays(
@@ -809,7 +809,7 @@ void BlendPass::run(
     }
 
     framebuffer->reset();
-    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->HDRTexture());
+    framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->highDynamicRangeTexture());
     framebuffer->setColorMask(0u, true);
     framebuffer->setBlending(true);
     framebuffer->setBlendEquation(0u, graphics::BlendEquation::Add, graphics::BlendEquation::Add);
@@ -834,7 +834,7 @@ ToneMappingPass::ToneMappingPass(
         graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::HDRBuffer) =
-        graphics::BufferRange::create(renderPipeLine->hdrBuffer()->buffer());
+        graphics::BufferRange::create(renderPipeLine->highDynamicRangeBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ToneMappingBuffer) =
         graphics::BufferRange::create(renderPipeLine->toneMappingBuffer()->buffer());
@@ -858,30 +858,21 @@ void ToneMappingPass::run(
 
     renderer->compute(glm::uvec3(renderPipeLine->viewportSize(), 1u), m_calculateHistogramsProgram, {shared_from_this()});
     renderer->compute(glm::uvec3(1u), m_calculateExposureProgram, {shared_from_this()});
-
-    auto desc = m_renderPipeLine.lock()->toneMappingBuffer()->get();
 }
 
 BloomPass::BloomPass(const std::shared_ptr<ProgramsLoader>& programsManager, const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
-    m_downSampleFirstPassProgram = programsManager->loadOrGetRenderProgram(
-        resources::BloomPassVertexShaderPath, resources::BloomDownSamplePassFragmentShaderPath, {{"FIRST_PASS", ""}});
-    m_downSampleOtherPassesProgram = programsManager->loadOrGetRenderProgram(
+    m_downSampleProgram = programsManager->loadOrGetRenderProgram(
         resources::BloomPassVertexShaderPath, resources::BloomDownSamplePassFragmentShaderPath, {});
-    m_upSampleLastPassProgram = programsManager->loadOrGetRenderProgram(
-        resources::BloomPassVertexShaderPath, resources::BloomUpSamplePassFragmentShaderPath, {{"LAST_PASS", ""}});
-    m_upSampleOtherPassesProgram = programsManager->loadOrGetRenderProgram(
+    m_upSampleProgram = programsManager->loadOrGetRenderProgram(
         resources::BloomPassVertexShaderPath, resources::BloomUpSamplePassFragmentShaderPath, {});
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
         graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::HDRBuffer) =
-        graphics::BufferRange::create(renderPipeLine->hdrBuffer()->buffer());
-
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::BloomBuffer) =
-        graphics::BufferRange::create(renderPipeLine->bloomBuffer()->buffer());
+        graphics::BufferRange::create(renderPipeLine->highDynamicRangeBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ToneMappingBuffer) =
         graphics::BufferRange::create(renderPipeLine->toneMappingBuffer()->buffer());
@@ -903,25 +894,30 @@ void BloomPass::run(
         return;
     }
 
-    const auto bloomTexture = renderPipeLine->bloomTexture();
-    const auto& bloomBuffer = renderPipeLine->bloomBuffer();
-    if (bloomTexture && bloomBuffer)
+    const auto hdrTexture = renderPipeLine->highDynamicRangeTexture();
+    const auto& hdrBuffer = renderPipeLine->highDynamicRangeBuffer();
+    if (hdrTexture && hdrBuffer)
     {
         framebuffer->reset();
         framebuffer->setColorMask(0u, true);
 
-        const auto levelsCount = bloomTexture->numMipmapLevels();
-        for (uint32_t passIndex = 0u; passIndex < levelsCount; ++passIndex)
+        const auto levelsCount = hdrTexture->numMipmapLevels();
+        if (levelsCount < 1u)
         {
-            framebuffer->attach(graphics::FrameBufferAttachment::Color0, bloomTexture, passIndex);
-            bloomBuffer->setField(offsetof(BloomDescription, passIndex), passIndex);
+            LOG_CRITICAL << "HDR texture levels count can't be zero";
+            return;
+        }
 
-            const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(bloomTexture->mipmapSize(passIndex)));
-            const auto& renderProgram = (passIndex == 0u) ? m_downSampleFirstPassProgram : m_downSampleOtherPassesProgram;
+        for (uint32_t passIndex = 0u; passIndex < levelsCount - 1u; ++passIndex)
+        {
+            const uint32_t destinationLevel = passIndex + 1u;
+
+            framebuffer->attach(graphics::FrameBufferAttachment::Color0, hdrTexture, destinationLevel);
+            hdrBuffer->setField(offsetof(HDRDescription, bloomPassIndex), passIndex);
 
             renderer->drawArrays(
-                viewport, renderProgram, framebuffer, vertexArray, {shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u,
-                4u);
+                glm::uvec4(0u, 0u, glm::uvec2(hdrTexture->mipmapSize(destinationLevel))), m_downSampleProgram, framebuffer,
+                vertexArray, {shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u, 4u);
         }
 
         framebuffer->setBlending(true);
@@ -929,23 +925,17 @@ void BloomPass::run(
         framebuffer->setBlendFactor(
             0u, graphics::BlendFactor::One, graphics::BlendFactor::One, graphics::BlendFactor::Zero, graphics::BlendFactor::One);
 
-        for (int32_t passIndex = static_cast<int32_t>(levelsCount) - 2; passIndex >= 0; --passIndex)
+        for (uint32_t passIndex = 0u; passIndex < levelsCount - 1u; ++passIndex)
         {
-            framebuffer->attach(graphics::FrameBufferAttachment::Color0, bloomTexture, static_cast<uint32_t>(passIndex));
-            bloomBuffer->setField(offsetof(BloomDescription, passIndex), static_cast<uint32_t>(passIndex));
+            const uint32_t destinationLevel = levelsCount - passIndex - 2u;
 
-            const auto viewport = glm::uvec4(0u, 0u, glm::uvec2(bloomTexture->mipmapSize(static_cast<uint32_t>(passIndex))));
+            framebuffer->attach(graphics::FrameBufferAttachment::Color0, hdrTexture, destinationLevel);
+            hdrBuffer->setField(offsetof(HDRDescription, bloomPassIndex), levelsCount - passIndex - 1u);
+
             renderer->drawArrays(
-                viewport, m_upSampleOtherPassesProgram, framebuffer, vertexArray, {shared_from_this()},
-                utils::PrimitiveType::TriangleStrip, 0u, 4u);
+                glm::uvec4(0u, 0u, glm::uvec2(hdrTexture->mipmapSize(destinationLevel))), m_upSampleProgram, framebuffer,
+                vertexArray, {shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u, 4u);
         }
-
-        framebuffer->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->HDRTexture());
-        bloomBuffer->setField(offsetof(BloomDescription, passIndex), 0u);
-
-        renderer->drawArrays(
-            glm::uvec4(0u, 0u, renderPipeLine->viewportSize()), m_upSampleLastPassProgram, framebuffer, vertexArray,
-            {shared_from_this()}, utils::PrimitiveType::TriangleStrip, 0u, 4u);
     }
 }
 
@@ -956,7 +946,7 @@ FinalPass::FinalPass(const std::shared_ptr<ProgramsLoader>& programsManager, con
         programsManager->loadOrGetRenderProgram(resources::FinalPassVertexShaderPath, resources::FinalPassFragmentShaderPath, {});
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::HDRBuffer) =
-        graphics::BufferRange::create(renderPipeLine->hdrBuffer()->buffer());
+        graphics::BufferRange::create(renderPipeLine->highDynamicRangeBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ToneMappingBuffer) =
         graphics::BufferRange::create(renderPipeLine->toneMappingBuffer()->buffer());

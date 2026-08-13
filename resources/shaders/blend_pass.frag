@@ -660,11 +660,12 @@ void main(void)
 	
 	while (geometryBufferData(OITNodeID, PBRData, depth, OITNodeID))
 	{
-		const vec4 fragColor = proccessLighting(vec3(NDC_XY_ZO, depth), PBRData, true);
+		vec4 fragColor = proccessLighting(vec3(NDC_XY_ZO, depth), PBRData, true);
+		fragColor.rgb += unpackEmissionFromPBRData(PBRData);
+		
 		color = blend(fragColor, color);
 		color.rgb += proccessScattering(NDC_XY_ZO, depth, geometryBufferDepth(OITNodeID));
 	}
 	
-
 	o_fragColor0 = color;
 }

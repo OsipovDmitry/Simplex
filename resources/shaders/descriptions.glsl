@@ -445,18 +445,10 @@ struct ShadowMapsDescription
 struct HDRDescription
 {
     TextureHandle textureHandle;
+	float bloomContribution;
+    uint bloomPassIndex;
 
-    uint padding[2u]; // graphics::TextureHandle is uvec2 (uint64_t)
-};
-
-struct BloomDescription
-{
-    TextureHandle textureHandle;
-    float contribution;
-    float upSamplePassBlurRadius;
-    uint passIndex;
-
-    uint padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
+    //uint padding[0u]; // graphics::TextureHandle is uvec2 (uint64_t)
 };
 
 const uint ToneMappingBinsCount = 256u;

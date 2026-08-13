@@ -51,9 +51,8 @@
     },
 	"Bloom": {
       "IsEnabled": true,
-      "Contribution": 0.01,
-      "PassesCount": 4,
-      "UpSamplePassBlurRadius": 1.5
+      "Contribution": 0.02,
+      "PassesCount": 4
 	},
 	"ToneMapping": {
       "LuminanceRange": [0.03125, 1024.0],

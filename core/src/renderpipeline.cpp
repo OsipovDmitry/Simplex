@@ -43,8 +43,7 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_shadowDataCullCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
     m_shadowMapBlurCommandsBuffer =
         graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({graphics::DrawArraysIndirectCommand()});
-    m_HDRBuffer = HDRBuffer::element_type::create();
-    m_bloomBuffer = BloomBuffer::element_type::create();
+    m_HDRBuffer = HighDynamicRangeBuffer::element_type::create();
     m_toneMappingBuffer = ToneMappingBuffer::element_type::create();
     m_opaqueShadowDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_transparentShadowDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
@@ -161,9 +160,6 @@ void RenderPipeLine::run(
 
     resizeHDRTexture(graphicsRenderer);
     updateHDRBuffer();
-
-    resizeBloomTexture(graphicsRenderer);
-    updateBloomBuffer();
 
     updateToneMappingBuffer();
 
@@ -285,7 +281,7 @@ void RenderPipeLine::setBloomContribution(float value)
     if (m_bloomContribution != value)
     {
         m_bloomContribution = value;
-        dirtyBloomBuffer();
+        dirtyHDRBuffer();
     }
 }
 
@@ -295,15 +291,6 @@ void RenderPipeLine::setBloomPassesCount(uint32_t value)
     {
         m_bloomPassesCount = value;
         // no need any additional actions 'cause bloom texture will be recreated next frame
-    }
-}
-
-void RenderPipeLine::setBloomUpSamplePassBlurRadius(float value)
-{
-    if (m_bloomUpSamplePassBlurRadius != value)
-    {
-        m_bloomUpSamplePassBlurRadius = value;
-        dirtyBloomBuffer();
     }
 }
 
@@ -411,14 +398,9 @@ ShadowMapsBuffer& RenderPipeLine::shadowMapsBuffer()
     return m_shadowMapsBuffer;
 }
 
-HDRBuffer& RenderPipeLine::hdrBuffer()
+HighDynamicRangeBuffer& RenderPipeLine::highDynamicRangeBuffer()
 {
     return m_HDRBuffer;
-}
-
-BloomBuffer& RenderPipeLine::bloomBuffer()
-{
-    return m_bloomBuffer;
 }
 
 ToneMappingBuffer& RenderPipeLine::toneMappingBuffer()
@@ -506,14 +488,9 @@ graphics::PConstTexture RenderPipeLine::shadowColorBluredTexture() const
     return m_shadowColorBluredTextureHandle ? m_shadowColorBluredTextureHandle->texture() : nullptr;
 }
 
-graphics::PConstTexture RenderPipeLine::HDRTexture() const
+graphics::PConstTexture RenderPipeLine::highDynamicRangeTexture() const
 {
     return m_HDRTextureHandle ? m_HDRTextureHandle->texture() : nullptr;
-}
-
-graphics::PConstTexture RenderPipeLine::bloomTexture() const
-{
-    return m_bloomTextureHandle ? m_bloomTextureHandle->texture() : nullptr;
 }
 
 graphics::PConstTexture RenderPipeLine::finalTexture() const
@@ -566,7 +543,7 @@ void RenderPipeLine::deinitialize()
 {
     m_isInitialized = false;
     dirtyShadowMapsBuffer();
-    dirtyBloomBuffer();
+    dirtyHDRBuffer();
     dirtyToneMappingBuffer();
 }
 
@@ -578,11 +555,6 @@ void RenderPipeLine::dirtyShadowMapsBuffer()
 void RenderPipeLine::dirtyHDRBuffer()
 {
     m_isHDRBufferDirty = true;
-}
-
-void RenderPipeLine::dirtyBloomBuffer()
-{
-    m_isBloomBufferDirty = true;
 }
 
 void RenderPipeLine::dirtyToneMappingBuffer()
@@ -719,14 +691,16 @@ void RenderPipeLine::updateShadowMapsBuffer()
 void RenderPipeLine::resizeHDRTexture(const std::shared_ptr<graphics::RendererBase>& renderer)
 {
     const auto newSize = glm::max(m_viewportSize, glm::uvec2(1u));
+    const auto newLevelsCount = glm::min(glm::levels(newSize), m_bloomPassesCount + 1u);
 
     const graphics::PConstTexture HDRTexture = m_HDRTextureHandle ? m_HDRTextureHandle->texture() : nullptr;
     const auto oldSize = HDRTexture ? HDRTexture->size() : glm::uvec2(0u);
+    const auto oldLevelCount = HDRTexture ? HDRTexture->numMipmapLevels() : 0u;
 
-    if (newSize == oldSize) return;
+    if ((newSize == oldSize) && (newLevelsCount == oldLevelCount)) return;
 
-    auto texture = renderer->createTextureRectEmpty(newSize.x, newSize.y, graphics::PixelInternalFormat::RGBA16F);
-    texture->setFilterMode(graphics::TextureFilterMode::Linear);
+    auto texture = renderer->createTexture2DEmpty(newSize.x, newSize.y, graphics::PixelInternalFormat::RGBA16F, newLevelsCount);
+    texture->setFilterMode(graphics::TextureFilterMode::Bilinear);
     texture->setWrapMode(graphics::TextureWrapMode::ClampToEdge);
     m_HDRTextureHandle = renderer->createTextureHandle(texture);
     m_HDRTextureHandle->makeResident();
@@ -739,41 +713,10 @@ void RenderPipeLine::updateHDRBuffer()
     if (!m_isHDRBufferDirty) return;
 
     m_HDRBuffer->set(HDRDescription::make(
-        m_HDRTextureHandle ? m_HDRTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last()));
+        m_HDRTextureHandle ? m_HDRTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+        m_bloomContribution));
 
     m_isHDRBufferDirty = false;
-}
-
-void RenderPipeLine::resizeBloomTexture(const std::shared_ptr<graphics::RendererBase>& renderer)
-{
-    const auto newSize = glm::max(m_viewportSize / 2u, glm::uvec2(1u));
-    const auto newLevelsCount = glm::min(glm::levels(newSize), m_bloomPassesCount);
-
-    const graphics::PConstTexture bloomTexture = m_bloomTextureHandle ? m_bloomTextureHandle->texture() : nullptr;
-    const auto oldSize = bloomTexture ? bloomTexture->size() : glm::uvec2(0u);
-    const auto oldLevelCount = bloomTexture ? bloomTexture->numMipmapLevels() : 0u;
-
-    if ((newSize == oldSize) && (newLevelsCount == oldLevelCount)) return;
-
-    auto texture =
-        renderer->createTexture2DEmpty(newSize.x, newSize.y, graphics::PixelInternalFormat::R11F_G11F_B10F, newLevelsCount);
-    texture->setFilterMode(graphics::TextureFilterMode::Bilinear);
-    texture->setWrapMode(graphics::TextureWrapMode::ClampToEdge);
-    m_bloomTextureHandle = renderer->createTextureHandle(texture);
-    m_bloomTextureHandle->makeResident();
-
-    dirtyBloomBuffer();
-}
-
-void RenderPipeLine::updateBloomBuffer()
-{
-    if (!m_isBloomBufferDirty) return;
-
-    m_bloomBuffer->set(BloomDescription::make(
-        m_bloomTextureHandle ? m_bloomTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
-        m_bloomContribution, m_bloomUpSamplePassBlurRadius));
-
-    m_isBloomBufferDirty = false;
 }
 
 void RenderPipeLine::updateToneMappingBuffer()

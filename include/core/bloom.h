@@ -29,9 +29,6 @@ public:
     uint32_t passesCount() const;
     void setPassesCount(uint32_t);
 
-    float upSamplePassBlurRadius() const;
-    void setUpSamplePassBlurRadius(float);
-
 private:
     std::unique_ptr<BloomPrivate> m_;
 };

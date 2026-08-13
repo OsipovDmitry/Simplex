@@ -381,10 +381,8 @@ public:
         const std::shared_ptr<const SceneData>&) override;
 
 private:
-    std::shared_ptr<graphics::IRenderProgram> m_downSampleFirstPassProgram;
-    std::shared_ptr<graphics::IRenderProgram> m_downSampleOtherPassesProgram;
-    std::shared_ptr<graphics::IRenderProgram> m_upSampleLastPassProgram;
-    std::shared_ptr<graphics::IRenderProgram> m_upSampleOtherPassesProgram;
+    std::shared_ptr<graphics::IRenderProgram> m_downSampleProgram;
+    std::shared_ptr<graphics::IRenderProgram> m_upSampleProgram;
 };
 
 class FinalPass : public RenderPass

@@ -376,12 +376,6 @@ uint32_t Bloom::passesCount() const
     return s_passesCount;
 }
 
-float Bloom::upSamplePassBlurRadius() const
-{
-    static const auto s_upSamplePassBlurRadius = readSingle("UpSamplePassBlurRadius", 2.f);
-    return s_upSamplePassBlurRadius;
-}
-
 ToneMapping::ToneMapping(const rapidjson::Document::ValueType* value)
     : utils::SettingsComponent(value)
 {

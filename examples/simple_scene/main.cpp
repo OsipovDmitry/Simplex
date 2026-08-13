@@ -286,10 +286,8 @@ static std::shared_ptr<simplex::core::DynamicBodyNode> createBunny()
 
     auto emission = color;
     const int idx = rand() % 3;
-    emission[idx] *= 100.f;
-    emission[(idx + 1) % 3] *= 100.f;
-
-    emission = glm::vec3(50.0f);
+    emission[idx] *= 50.f;
+    emission[(idx + 1) % 3] *= 50.f;
 
     auto material = std::make_shared<simplex::core::Material>();
     // material->setBaseColor(glm::vec4(color, 1.f));
@@ -330,8 +328,7 @@ static std::shared_ptr<simplex::core::DynamicBodyNode> createBunny()
 
     auto pointLightNode = std::make_shared<simplex::core::PointLightNode>("");
     pointLightNode->setColor(glm::normalize(emission) * 2.f);
-    pointLightNode->setRadiuses(simplex::utils::Range(5.f, 12.f));
-    pointLightNode->setShadingEnabled(true);
+    pointLightNode->setRadiuses(simplex::utils::Range(9.f, 10.f));
     dynamicBodyNode->attach(pointLightNode);
 
     return dynamicBodyNode;
@@ -629,12 +626,12 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     {
         auto bunnyNode = createBunny();
         bunnyNode->setTransform(transform);
-        // scene->sceneRootNode()->attach(bunnyNode);
+        scene->sceneRootNode()->attach(bunnyNode);
     }
 
-    auto bunnyNode = createBunny();
-    bunnyNode->setTransform(simplex::utils::Transform(1.f, glm::quat(glm::vec3(0.f, .8f, 0.f)), glm::vec3(-.5f, 0.f, -.35f)));
-    scene->sceneRootNode()->attach(bunnyNode);
+    // auto bunnyNode = createBunny();
+    // bunnyNode->setTransform(simplex::utils::Transform(1.f, glm::quat(glm::vec3(0.f, .8f, 0.f)), glm::vec3(-.5f, 0.f, -.35f)));
+    // scene->sceneRootNode()->attach(bunnyNode);
 
     return scene;
 }

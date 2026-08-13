@@ -215,7 +215,6 @@ const std::string& GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
         {ShaderStorageBlockID::OITNodesBuffer, "ssbo_OITNodesBuffer"},
         {ShaderStorageBlockID::ShadowMapsBuffer, "ssbo_shadowMapsBuffer"},
         {ShaderStorageBlockID::HDRBuffer, "ssbo_HDRBuffer"},
-        {ShaderStorageBlockID::BloomBuffer, "ssbo_bloomBuffer"},
         {ShaderStorageBlockID::ToneMappingBuffer, "ssbo_toneMappingBuffer"},
 
         {ShaderStorageBlockID::LayeredShadowMatrices, "ssbo_layeredShadowMatricesBuffer"},

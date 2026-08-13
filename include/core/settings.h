@@ -118,7 +118,6 @@ public:
     bool isEnabled() const;
     float contribution() const;
     uint32_t passesCount() const;
-    float upSamplePassBlurRadius() const;
 };
 
 class CORE_SHARED_EXPORT ToneMapping : public utils::SettingsComponent

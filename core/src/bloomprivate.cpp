@@ -32,10 +32,5 @@ uint32_t& BloomPrivate::passesCount()
     return m_passesCount;
 }
 
-float& BloomPrivate::upSamplePassBlurRadius()
-{
-    return m_upSamplePassBlurRadius;
-}
-
 } // namespace core
 } // namespace simplex

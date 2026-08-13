@@ -130,7 +130,6 @@ ENUMCLASS(
     OITNodesBuffer,
     ShadowMapsBuffer,
     HDRBuffer,
-    BloomBuffer,
     ToneMappingBuffer,
 
     LayeredShadowMatrices,

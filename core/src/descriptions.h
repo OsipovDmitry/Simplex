@@ -517,22 +517,12 @@ struct ShadowMapsDescription
 struct HDRDescription
 {
     graphics::TextureHandle textureHandle;
+    float bloomContribution;
+    uint32_t bloomPassIndex;
 
-    uint32_t padding[2u]; // graphics::TextureHandle is uvec2 (uint64_t)
+    // uint32_t padding[0u]; // graphics::TextureHandle is uvec2 (uint64_t)
 
-    static HDRDescription make(graphics::TextureHandle textureHandle);
-};
-
-struct BloomDescription
-{
-    graphics::TextureHandle textureHandle;
-    float contribution;
-    float upSamplePassBlurRadius;
-    uint32_t passIndex;
-
-    uint32_t padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
-
-    static BloomDescription make(graphics::TextureHandle textureHandle, float contribution, float upSamplePassBlurRadius);
+    static HDRDescription make(graphics::TextureHandle textureHandle, float bloomContribution);
 };
 
 struct ToneMappingDescription

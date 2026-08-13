@@ -7,7 +7,7 @@ void main(void)
 {
 	const ivec2 fragCoords = ivec2(gl_FragCoord.xy);
 	
-	vec3 color = HDRBufferFetchFinalColor(fragCoords);
+	vec3 color = HDRFetchColor(fragCoords);
 	toneMappingApplyExposure(color);
 	toneMappingApplyACES(color);
 	toneMappingApplyGammaCorrection(color);

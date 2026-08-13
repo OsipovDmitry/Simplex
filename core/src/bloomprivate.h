@@ -19,15 +19,13 @@ public:
     bool& isEnabled();
     float& contribution();
     uint32_t& passesCount();
-    float& upSamplePassBlurRadius();
 
 private:
     CameraNode& m_cameraNode;
 
     bool m_isEnabled = false;
-    float m_contribution = .05f;
+    float m_contribution = .02f;
     uint32_t m_passesCount = 4u;
-    float m_upSamplePassBlurRadius = 2.f;
 };
 
 } // namespace core

@@ -423,14 +423,9 @@ ShadowMapsDescription ShadowMapsDescription::make(
     return result;
 }
 
-HDRDescription HDRDescription::make(graphics::TextureHandle textureHandle)
+HDRDescription HDRDescription::make(graphics::TextureHandle textureHandle, float bloomContribution)
 {
-    return {textureHandle};
-}
-
-BloomDescription BloomDescription::make(graphics::TextureHandle textureHandle, float contribution, float upSamplePassBlurRadius)
-{
-    return {textureHandle, contribution, upSamplePassBlurRadius, 0u};
+    return {textureHandle, bloomContribution, 0u};
 }
 
 ToneMappingDescription ToneMappingDescription::make(
