@@ -328,7 +328,7 @@ static std::shared_ptr<simplex::core::DynamicBodyNode> createBunny()
 
     auto pointLightNode = std::make_shared<simplex::core::PointLightNode>("");
     pointLightNode->setColor(glm::normalize(emission) * 2.f);
-    pointLightNode->setRadiuses(simplex::utils::Range(9.f, 15.f));
+    pointLightNode->setRadiuses(simplex::utils::Range(5.f, 9.f));
     dynamicBodyNode->attach(pointLightNode);
 
     return dynamicBodyNode;
