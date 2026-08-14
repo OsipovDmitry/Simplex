@@ -122,9 +122,9 @@ MeshDescription MeshDescription::make(
     bool hasPositions,
     bool hasNormals,
     bool hasTexCoords,
+    uint32_t tangentDataOffset,
     uint32_t boneDataOffset,
     uint32_t bonesCount,
-    uint32_t tangentDataOffset,
     uint32_t elementDataOffset,
     uint32_t elementDataSize)
 {

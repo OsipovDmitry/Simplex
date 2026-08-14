@@ -251,7 +251,7 @@ struct MeshDescription
 
     static MeshDescription makeEmpty();
     static MeshDescription make(
-        const utils::BoundingBox&,
+        const utils::BoundingBox& bb,
         uint32_t positionNormalTexCoordsDataOffset,
         bool hasPositions,
         bool hasNormals,
