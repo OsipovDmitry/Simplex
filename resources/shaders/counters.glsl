@@ -1,12 +1,9 @@
 #include<descriptions.glsl>
-#include<math/constants.glsl>
-#include<math/range.glsl>
 
 layout (std430) buffer ssbo_countersBuffer { CountersDescription counters; };
 
 void countersReset()
 {
-    counters.ZRange = uvec2(floatBitsToUint(FLT_MAX), floatBitsToUint(0.0f));
     counters.firstGlobalLightNodeID = 0xFFFFFFFFu;
 	counters.clusterLocalLightsCount = 0u;
     counters.lightNodesCount = 0u;
@@ -17,17 +14,6 @@ void countersReset()
 	counters.shadowDataCount = 0u;
 	counters.opaqueShadowDataRenderCommandsCount = 0u;
 	counters.transparentShadowDataRenderCommandsCount = 0u;
-}
-
-Range countersZRange()
-{
-	return makeRange(uintBitsToFloat(counters.ZRange[0u]), uintBitsToFloat(counters.ZRange[1u]));
-}
-
-void countersExpandZRange(in Range nearFar)
-{
-	atomicMin(counters.ZRange[0u], floatBitsToUint(rangeStart(nearFar)));
-	atomicMax(counters.ZRange[1u], floatBitsToUint(rangeEnd(nearFar)));
 }
 
 uint countersFirstGlobalLightNodeID()

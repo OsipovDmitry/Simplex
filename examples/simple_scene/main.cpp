@@ -574,8 +574,8 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     updateLights();
 
     auto IBLNode = std::make_shared<simplex::core::ImageBasedLightNode>("");
-    IBLNode->setContribution(0.05f);
-    // scene->sceneRootNode()->attach(IBLNode);
+    IBLNode->setContribution(0.03f);
+    scene->sceneRootNode()->attach(IBLNode);
     IBLNodeWeak = IBLNode;
 
     auto ambientLightNode = std::make_shared<simplex::core::AmbientLightNode>("");
@@ -626,7 +626,7 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
     {
         auto bunnyNode = createBunny();
         bunnyNode->setTransform(transform);
-        scene->sceneRootNode()->attach(bunnyNode);
+        // scene->sceneRootNode()->attach(bunnyNode);
     }
 
     auto bunnyNode = createBunny();

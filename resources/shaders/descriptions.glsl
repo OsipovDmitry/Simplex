@@ -216,13 +216,13 @@ struct RenderInfoDescription
     TransformDescription viewTransform;
     ClipSpaceDescription clipSpace;
     RangeDescription cullPlaneLimits;
+    RangeDescription ZRange;
 	
 	//uint cameraPadding[0u];
 };
 
 struct CountersDescription
 {
-    uvec2 ZRange; // uvec2 for atomic operations
     uint firstGlobalLightNodeID;
 	uint clusterLocalLightsCount;
     uint lightNodesCount;
@@ -234,7 +234,7 @@ struct CountersDescription
     uint opaqueShadowDataRenderCommandsCount;
     uint transparentShadowDataRenderCommandsCount;
 
-    //uint padding[0u];
+    uint padding[2u];
 };
 
 struct GBufferDescription

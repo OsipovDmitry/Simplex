@@ -74,6 +74,8 @@ public:
     static GLenum StencilOperation2GL(core::graphics::StencilOperation);
     static GLenum BlendEquetion2GL(core::graphics::BlendEquation);
     static GLenum BlendFactor2GL(core::graphics::BlendFactor);
+    static GLenum ClipControlOrigin2GL(core::graphics::ClipControlOrigin);
+    static GLenum ClipControlDepth2GL(core::graphics::ClipControlDepth);
 };
 
 class BufferBase_4_5 : public std::enable_shared_from_this<BufferBase_4_5>
@@ -875,6 +877,8 @@ public:
         bool depthMask,
         bool stencilMask,
         bool linearFilter = false) override;
+
+    void setClipControl(core::graphics::ClipControlOrigin, core::graphics::ClipControlDepth) override;
 
     std::shared_ptr<core::graphics::IStaticBuffer> createStaticBuffer(size_t = 0u, const void* = nullptr) const override;
     std::shared_ptr<core::graphics::IDynamicBuffer> createDynamicBuffer(size_t size = 0u, const void* data = nullptr)

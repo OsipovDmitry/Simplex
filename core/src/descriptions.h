@@ -146,6 +146,7 @@ struct RenderInfoDescription
     TransformDescription viewTransform;
     ClipSpaceDescription clipSpace;
     RangeDescription cullPlaneLimits;
+    RangeDescription ZRange;
 
     // uint32_t camerPaadding[0u];
 
@@ -162,12 +163,12 @@ struct RenderInfoDescription
         const glm::uvec3& clusterSize,
         const utils::Transform& viewTransform,
         const utils::ClipSpace& clipSpace,
-        const utils::Range& cullPlaneLimits);
+        const utils::Range& cullPlaneLimits,
+        const utils::Range& ZRange);
 };
 
 struct CountersDescription
 {
-    glm::uvec2 ZRange; // uvec2 for atomic operations
     uint32_t firstGlobalLightNodeID;
     uint32_t clusterLocalLightsCount;
     uint32_t lightNodesCount;
@@ -179,8 +180,7 @@ struct CountersDescription
     uint32_t opaqueShadowDataRenderCommandsCount;
     uint32_t transparentShadowDataRenderCommandsCount;
 
-    // padding
-    // uint32_t padding[0u];
+    uint32_t padding[2u];
 };
 
 struct GBufferDescription

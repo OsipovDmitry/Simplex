@@ -32,12 +32,12 @@ void SimplePass::run(
     m_runMethod(renderer, frameBuffer, vertexArray, geometryBuffer, sceneData);
 }
 
-InitializeCameraPass::InitializeCameraPass(
+InitializePass::InitializePass(
     const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
 {
-    m_program = programsManager->loadOrGetComputeProgram(resources::InitializeCameraPassComputeShaderPath, {});
+    m_program = programsManager->loadOrGetComputeProgram(resources::InitializePassComputeShaderPath, {});
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
         graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
@@ -49,9 +49,9 @@ InitializeCameraPass::InitializeCameraPass(
         graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
 }
 
-InitializeCameraPass::~InitializeCameraPass() = default;
+InitializePass::~InitializePass() = default;
 
-void InitializeCameraPass::run(
+void InitializePass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>&,
     const std::shared_ptr<graphics::IVertexArray>&,
@@ -59,6 +59,39 @@ void InitializeCameraPass::run(
     const std::shared_ptr<const SceneData>&)
 {
     renderer->compute(glm::uvec3(1u), m_program, {shared_from_this()});
+}
+
+BuildClusterPass::BuildClusterPass(
+    const std::shared_ptr<ProgramsLoader>& programsManager,
+    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
+    : RenderPass(renderPipeLine)
+{
+    m_program = programsManager->loadOrGetComputeProgram(resources::BuildClusterPassComputeShaderPath, {});
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
+        graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterNodesBuffer) =
+        graphics::BufferRange::create(renderPipeLine->clusterNodesBuffer()->buffer());
+}
+
+BuildClusterPass::~BuildClusterPass() = default;
+
+void BuildClusterPass::run(
+    const std::shared_ptr<graphics::RendererBase>& renderer,
+    const std::shared_ptr<graphics::IFrameBuffer>&,
+    const std::shared_ptr<graphics::IVertexArray>&,
+    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const SceneData>&)
+{
+    auto renderPipeLine = m_renderPipeLine.lock();
+    if (!renderPipeLine)
+    {
+        LOG_CRITICAL << "RenderPipeLine can't be nullptr";
+        return;
+    }
+
+    renderer->compute(renderPipeLine->clusterSize(), m_program, {shared_from_this()});
 }
 
 CullDrawDataPass::CullDrawDataPass(
@@ -290,40 +323,6 @@ void RenderDrawDataPass::run(
         {geometryBuffer, sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
         utils::toDrawElementsIndexType<ElementDataDescription>(), renderPipeLine->transparentDrawDataRenderCommandsBuffer(),
         renderPipeLine->transparentDrawDataRenderParameterBuffer());
-}
-
-BuildClusterPass::BuildClusterPass(
-    const std::shared_ptr<ProgramsLoader>& programsManager,
-    const std::shared_ptr<RenderPipeLine>& renderPipeLine)
-    : RenderPass(renderPipeLine)
-{
-    m_program = programsManager->loadOrGetComputeProgram(resources::BuildClusterPassComputeShaderPath, {});
-
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
-        graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
-
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterNodesBuffer) =
-        graphics::BufferRange::create(renderPipeLine->clusterNodesBuffer()->buffer());
-}
-
-BuildClusterPass::~BuildClusterPass() = default;
-
-void BuildClusterPass::run(
-    const std::shared_ptr<graphics::RendererBase>& renderer,
-    const std::shared_ptr<graphics::IFrameBuffer>&,
-    const std::shared_ptr<graphics::IVertexArray>&,
-    const std::shared_ptr<const GeometryBuffer>&,
-    const std::shared_ptr<const SceneData>&)
-{
-    auto renderPipeLine = m_renderPipeLine.lock();
-    if (!renderPipeLine)
-    {
-        LOG_CRITICAL << "RenderPipeLine can't be nullptr";
-        return;
-    }
-
-    renderer->compute(
-        glm::uvec3(static_cast<uint32_t>(renderPipeLine->clusterNodesBuffer()->size()), 1u, 1u), m_program, {shared_from_this()});
 }
 
 ClusterGlobalLightPass::ClusterGlobalLightPass(

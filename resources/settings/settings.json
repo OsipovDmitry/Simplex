@@ -7,7 +7,6 @@
     }
   },
   "Graphics": {
-    "CullPlaneLimits": [ 0.1, 10000.0 ],
 	"DrawDataCullingAlgorithm": "SuperFast",
 	"ShadowDataCullingAlgorithm": "SuperFast",
 	"SpotLightCullingAlgorithm": "SuperFast",
@@ -17,6 +16,8 @@
         "PerspectiveFOV": 1.047198,
         "Type": "Perspective"
       },
+      "CullPlaneLimits": [ 0.1, 1000.0 ],
+      "ZRange": [0.1, 1000.0],
       "ClusterSize": [ 16, 8, 32 ]
     },
     "Background": {
@@ -37,6 +38,7 @@
       "Contribution": 0.4
     },
     "Shadow": {
+      "CullPlaneLimits": [ 0.1, 1000.0 ],
 	  "AtlasSize": 4096,
       "MapSize": 512,
 	  "Filter": "EVSM",

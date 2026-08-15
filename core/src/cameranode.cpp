@@ -29,14 +29,14 @@ CameraNode::CameraNode(const std::string& name)
 
     setRenderingEnabled(true);
 
-    const auto& graphicsSettings = settings::Settings::instance().graphics();
-    const auto& cameraSettings = graphicsSettings.camera();
+    const auto& cameraSettings = settings::Settings::instance().graphics().camera();
 
     (cameraSettings.clipSpace().type() == utils::ClipSpaceType::Perspective)
         ? setPerspectiveClipSpace(cameraSettings.clipSpace().perspectiveFOV())
         : setOrthoClipSpace(cameraSettings.clipSpace().orthoHeight());
 
-    setCullPlanesLimits(graphicsSettings.cullPlaneLimits());
+    setCullPlanesLimits(cameraSettings.cullPlaneLimits());
+    setZRange(cameraSettings.ZRange());
     setClusterSize(cameraSettings.clusterSize());
     useDefaultFramebuffer();
 }
@@ -123,16 +123,29 @@ void CameraNode::setPerspectiveClipSpace(float fovY)
 
 const utils::Range& CameraNode::cullPlanesLimits() const
 {
-    return m().cullPlanesLimits();
+    return m().cullPlaneLimits();
 }
 
 void CameraNode::setCullPlanesLimits(const utils::Range& value)
 {
-    if (value.nearValue() <= 0.f) LOG_CRITICAL << "ZNear must be greater than 0.0";
+    if (value.nearValue() <= 0.f) LOG_CRITICAL << "Cull near plane limit must be greater than 0.0";
+    if (value.farValue() <= value.nearValue())
+        LOG_CRITICAL << "Cull far plane limit must be greater than cull near plane value limit";
 
-    if (value.farValue() <= value.nearValue()) LOG_CRITICAL << "ZFar must be greater than Znear";
+    m().cullPlaneLimits() = value;
+}
 
-    m().cullPlanesLimits() = value;
+const utils::Range& CameraNode::ZRange() const
+{
+    return m().ZRange();
+}
+
+void CameraNode::setZRange(const utils::Range& value)
+{
+    if (value.nearValue() <= 0.f) LOG_CRITICAL << "ZRange near value must be greater than 0.0";
+    if (value.farValue() <= value.nearValue()) LOG_CRITICAL << "ZRange far value must be greater than ZRange near value";
+
+    m().ZRange() = value;
 }
 
 const glm::uvec3& CameraNode::clusterSize() const

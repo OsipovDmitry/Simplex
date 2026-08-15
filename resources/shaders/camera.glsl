@@ -178,7 +178,7 @@ void cameraUpdate(in uvec3 clusterSize, in Transform viewTransform, in ClipSpace
 
 uint cameraClusterNodeID(in vec3 NDC_ZO)
 {
-	const vec3 texelPosVS = projectPoint(camera.projectionMatrixInverted, ZO2NO(NDC_ZO));
+	const vec3 texelPosVS = projectPoint(cameraProjectionMatrixInverted(), ZO2NO(NDC_ZO));
 	
 	const vec2 depthRange = cameraZRange();
 	const float linearDepth = (-texelPosVS.z - depthRange[0u]) / (depthRange[1u] - depthRange[0u]);

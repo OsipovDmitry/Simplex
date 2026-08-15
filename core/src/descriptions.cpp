@@ -74,7 +74,8 @@ RenderInfoDescription RenderInfoDescription::make(
     const glm::uvec3& clusterSize,
     const utils::Transform& viewTransform,
     const utils::ClipSpace& clipSpace,
-    const utils::Range& cullPlaneLimits)
+    const utils::Range& cullPlaneLimits,
+    const utils::Range& ZRange)
 {
     RenderInfoDescription result{};
 
@@ -96,6 +97,7 @@ RenderInfoDescription RenderInfoDescription::make(
     result.viewTransform = TransformDescription::make(viewTransform);
     result.clipSpace = ClipSpaceDescription::make(clipSpace);
     result.cullPlaneLimits = RangeDescription::make(cullPlaneLimits);
+    result.ZRange = RangeDescription::make(ZRange);
 
     return result;
 }

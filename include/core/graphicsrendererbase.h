@@ -236,6 +236,9 @@ ENUMCLASS(
     ConstAlpha,
     OneMinusConstAlpha)
 
+ENUMCLASS(ClipControlOrigin, uint16_t, LowerLeft, UpperLeft)
+ENUMCLASS(ClipControlDepth, uint16_t, NegativeOneToOne, ZeroToOne)
+
 static constexpr FrameBufferAttachment FrameBufferColorAttachment(uint16_t i)
 {
     return castToFrameBufferAttachment(castFromFrameBufferAttachment(FrameBufferAttachment::Color0) + i);
@@ -591,6 +594,8 @@ public:
         bool depthMask,
         bool stencilMask,
         bool linearFilter = false) = 0;
+
+    virtual void setClipControl(ClipControlOrigin, ClipControlDepth) = 0;
 
     virtual std::shared_ptr<IStaticBuffer> createStaticBuffer(size_t size = 0u, const void* data = nullptr) const = 0;
     virtual std::shared_ptr<IDynamicBuffer> createDynamicBuffer(size_t size = 0u, const void* data = nullptr) const = 0;

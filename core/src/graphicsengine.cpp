@@ -202,7 +202,7 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene, uint64_t time, 
         renderPipeLine->run(
             renderer, m_->frameBuffer(), m_->vertexArray(), cameraGeometryBuffer, scene->m().sceneData(), viewportSize, time, dt,
             m_->dielectricSpecular(), globalBoundingBox, camera->globalTransform().inverted(), camera->clipSpace(),
-            camera->cullPlanesLimits(), camera->clusterSize());
+            camera->cullPlanesLimits(), camera->ZRange(), camera->clusterSize());
 
         m_->frameBuffer()->detachAll();
         m_->frameBuffer()->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->finalTexture());

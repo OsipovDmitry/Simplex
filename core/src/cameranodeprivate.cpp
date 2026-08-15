@@ -93,9 +93,14 @@ utils::ClipSpace& CameraNodePrivate::clipSpace()
     return m_clipSpace;
 }
 
-utils::Range& CameraNodePrivate::cullPlanesLimits()
+utils::Range& CameraNodePrivate::cullPlaneLimits()
 {
-    return m_cullPlanesLimits;
+    return m_cullPlaneLimits;
+}
+
+utils::Range& CameraNodePrivate::ZRange()
+{
+    return m_ZRange;
 }
 
 glm::uvec3& CameraNodePrivate::clusterSize()

@@ -56,9 +56,11 @@ public:
         const utils::Transform&,
         const utils::ClipSpace&,
         const utils::Range&,
+        const utils::Range&,
         const glm::uvec3&);
 
     const glm::uvec2& viewportSize() const;
+    const glm::uvec3& clusterSize() const;
 
     uint32_t shadowAtlasSize() const;
     ShadowFilter shadowFilter() const;
@@ -145,7 +147,8 @@ private:
     bool m_isBloomBufferDirty = true;
     bool m_isToneMappingBufferDirty = true;
 
-    glm::uvec2 m_viewportSize = glm::uvec2(0u, 0u);
+    glm::uvec2 m_viewportSize = glm::uvec2(0u);
+    glm::uvec3 m_clusterSize = glm::uvec3(0u);
 
     uint32_t m_shadowAtlasSize = 0u;
     ShadowFilter m_shadowFilter = ShadowFilter::Discrete;

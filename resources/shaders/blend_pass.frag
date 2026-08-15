@@ -656,7 +656,7 @@ void main(void)
 	geometryBufferData(fragCoords, PBRData, depth, OITNodeID);
 	vec4 color = proccessLighting(vec3(NDC_XY_ZO, depth), PBRData, false);
 	color.rgb += unpackEmissionFromPBRData(PBRData);
-	color.rgb += proccessScattering(NDC_XY_ZO, depth, geometryBufferDepth(OITNodeID));
+	//color.rgb += proccessScattering(NDC_XY_ZO, depth, geometryBufferDepth(OITNodeID));
 	
 	while (geometryBufferData(OITNodeID, PBRData, depth, OITNodeID))
 	{
@@ -664,7 +664,7 @@ void main(void)
 		fragColor.rgb += unpackEmissionFromPBRData(PBRData);
 		
 		color = blend(fragColor, color);
-		color.rgb += proccessScattering(NDC_XY_ZO, depth, geometryBufferDepth(OITNodeID));
+		//color.rgb += proccessScattering(NDC_XY_ZO, depth, geometryBufferDepth(OITNodeID));
 	}
 	
 	o_fragColor0 = color;

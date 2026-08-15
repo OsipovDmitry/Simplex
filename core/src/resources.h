@@ -15,7 +15,7 @@ static const std::filesystem::path DefaultIBLBRDFLutMapPath = "./resources/textu
 static const std::filesystem::path DefaultIBLDiffuseMapPath = "./resources/textures/ibl/irradiance.json";
 static const std::filesystem::path DefaultIBLSpecularMapPath = "./resources/textures/ibl/radiance.json";
 
-static const std::filesystem::path InitializeCameraPassComputeShaderPath = "./resources/shaders/initialize_camera_pass.comp";
+static const std::filesystem::path InitializePassComputeShaderPath = "./resources/shaders/initialize_pass.comp";
 static const std::filesystem::path CullDrawDataPassComputeShaderPath = "./resources/shaders/cull_draw_data_pass.comp";
 static const std::filesystem::path CollectSkeletalAnimatedDataToUpdatePassComputeShaderPath =
     "./resources/shaders/collect_skeletal_animated_data_to_update_pass.comp";

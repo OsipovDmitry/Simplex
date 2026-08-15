@@ -36,11 +36,28 @@ private:
     RunMethod m_runMethod;
 };
 
-class InitializeCameraPass : public RenderPass
+class InitializePass : public RenderPass
 {
 public:
-    InitializeCameraPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~InitializeCameraPass() override;
+    InitializePass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~InitializePass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+};
+
+class BuildClusterPass : public RenderPass
+{
+public:
+    BuildClusterPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~BuildClusterPass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,
@@ -154,23 +171,6 @@ public:
 private:
     std::shared_ptr<graphics::IRenderProgram> m_opaqueProgram;
     std::shared_ptr<graphics::IRenderProgram> m_transparentProgram;
-};
-
-class BuildClusterPass : public RenderPass
-{
-public:
-    BuildClusterPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~BuildClusterPass() override;
-
-    void run(
-        const std::shared_ptr<graphics::RendererBase>&,
-        const std::shared_ptr<graphics::IFrameBuffer>&,
-        const std::shared_ptr<graphics::IVertexArray>&,
-        const std::shared_ptr<const GeometryBuffer>&,
-        const std::shared_ptr<const SceneData>&) override;
-
-private:
-    std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
 class ClusterGlobalLightPass : public RenderPass

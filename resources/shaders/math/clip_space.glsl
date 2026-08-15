@@ -2,7 +2,6 @@
 
 const uint OrthoClipSpaceTypeID = 0u;
 const uint PerspectiveClipSpaceTypeID = 1u;
-const uint SphericalClipSpaceTypeID = 2u;
 const uint UndefinedClipSpaceTypeID = 0xFFFFFFFFu;
 
 struct ClipSpace
@@ -59,13 +58,6 @@ mat4x4 clipSpaceProjectionMatrix(in ClipSpace cs, in Range ZRange)
 		result[2u][3u] = -1.0f;
 		result[3u][2u] = -(2.0f * f * n) / (f - n);
 		result[3u][3u] = 0.0f;
-	}
-	else if (cs.typeID == SphericalClipSpaceTypeID)
-	{
-        const float farInverted = 1.0f / f;
-		result[0u][0u] = farInverted;
-		result[1u][1u] = farInverted;
-		result[2u][2u] = -farInverted;
 	}
 		
 	return result;

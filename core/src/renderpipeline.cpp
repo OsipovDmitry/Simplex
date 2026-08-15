@@ -80,16 +80,15 @@ void RenderPipeLine::initialize(const std::shared_ptr<ProgramsLoader>& programsL
     auto sharedThis = shared_from_this();
 
     m_passes.clear();
-    m_passes.push_back(std::make_shared<InitializeCameraPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<InitializePass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<BuildClusterPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<CullDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<CollectSkeletalAnimatedDataToUpdatePass>(programsLoader, sharedThis));
-    m_passes.push_back(std::make_shared<UpdateCameraPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<PrepareBonesTransformsDataCalculateCommandPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<CalculateBonesTransformsDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<SimplePass>(sharedThis, clear));
     m_passes.push_back(std::make_shared<RenderDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<SimplePass>(sharedThis, sort));
-    m_passes.push_back(std::make_shared<BuildClusterPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<ClusterGlobalLightPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<PrepareClusterLocalLightsCommandPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<ClusterLocalLightPass>(programsLoader, sharedThis));
@@ -121,9 +120,11 @@ void RenderPipeLine::run(
     const utils::Transform& viewTransform,
     const utils::ClipSpace& clipSpace,
     const utils::Range& cullPlaneLimits,
+    const utils::Range& ZRange,
     const glm::uvec3& clusterSize)
 {
     m_viewportSize = viewportSize;
+    m_clusterSize = clusterSize;
 
     const auto drawDataCount = sceneData->drawDataCount();
     m_opaqueDrawDataRenderCommandsBuffer->resize(drawDataCount);
@@ -135,7 +136,7 @@ void RenderPipeLine::run(
     const auto shadowsCount = sceneData->shadowsCount();
     m_shadowsToUpdateBuffer->resize(shadowsCount);
 
-    const auto clusterNodesCount = glm::compMul(clusterSize);
+    const auto clusterNodesCount = glm::compMul(m_clusterSize);
     m_clusterNodesBuffer->resize(clusterNodesCount);
 
     const auto lightsCount = sceneData->lightsCount();
@@ -152,8 +153,8 @@ void RenderPipeLine::run(
     m_renderInfoBuffer->set(RenderInfoDescription::make(
         m_viewportSize, static_cast<uint32_t>(time), dt, dielectricSpecular, globalBoundingBox,
         static_cast<uint32_t>(drawDataCount), static_cast<uint32_t>(skeletalAnimatedDataCount),
-        static_cast<uint32_t>(shadowsCount), static_cast<uint32_t>(lightsCount), clusterSize, viewTransform, clipSpace,
-        cullPlaneLimits));
+        static_cast<uint32_t>(shadowsCount), static_cast<uint32_t>(lightsCount), m_clusterSize, viewTransform, clipSpace,
+        cullPlaneLimits, ZRange));
 
     resizeShadowTextures(graphicsRenderer, sceneData->shadowMapsLayersCount());
     updateShadowMapsBuffer();
@@ -174,6 +175,11 @@ void RenderPipeLine::run(
 const glm::uvec2& RenderPipeLine::viewportSize() const
 {
     return m_viewportSize;
+}
+
+const glm::uvec3& RenderPipeLine::clusterSize() const
+{
+    return m_clusterSize;
 }
 
 uint32_t RenderPipeLine::shadowAtlasSize() const

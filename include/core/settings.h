@@ -52,6 +52,8 @@ public:
     ~Camera() override;
 
     const ClipSpace& clipSpace() const;
+    const utils::Range& cullPlaneLimits() const;
+    const utils::Range& ZRange() const;
     const glm::u32vec3& clusterSize() const;
 };
 
@@ -96,6 +98,7 @@ public:
     Shadow(const rapidjson::Document::ValueType*);
     ~Shadow() override;
 
+    const utils::Range& cullPlaneLimits() const;
     uint32_t atlasSize() const;
     uint32_t mapSize() const;
     ShadowFilter filter() const;
@@ -225,7 +228,6 @@ public:
     Graphics(const rapidjson::Document::ValueType*);
     ~Graphics() override;
 
-    const utils::Range& cullPlaneLimits() const;
     DrawDataCullingAlgorithm drawDataCullingAlgorithm() const;
     ShadowDataCullingAlgorithm shadowDataCullingAlgorithm() const;
     SpotLightCullingAlgorithm spotLightCullingAlgorithm() const;
