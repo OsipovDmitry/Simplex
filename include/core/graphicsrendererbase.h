@@ -418,6 +418,9 @@ public:
     virtual bool isComplete() const = 0;
     virtual void clear(const std::unordered_set<FrameBufferAttachment>&) = 0;
 
+    virtual void setDefaultClearDepth(float) = 0;
+    virtual void setDefaultDepthFunc(ComparingFunc) = 0;
+
     virtual void reset() = 0;
 
     virtual void attach(FrameBufferAttachment, std::shared_ptr<const ISurface>, uint32_t level = 0u) = 0;
@@ -448,8 +451,9 @@ public:
     virtual void setColorMasks(bool) = 0;
 
     virtual bool depthTest() const = 0;
+    virtual void setDepthTest(bool) = 0;
     virtual ComparingFunc depthFunc() const = 0;
-    virtual void setDepthTest(bool, ComparingFunc func = ComparingFunc::Less) = 0;
+    virtual void setDepthFunc(ComparingFunc func) = 0;
     virtual bool depthMask() const = 0;
     virtual void setDepthMask(bool) = 0;
 

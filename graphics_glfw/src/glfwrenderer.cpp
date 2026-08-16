@@ -2338,6 +2338,16 @@ void FrameBufferBase_4_5::clear(const std::unordered_set<core::graphics::FrameBu
     }
 }
 
+void FrameBufferBase_4_5::setDefaultClearDepth(float value)
+{
+    m_defaultClearDepth = value;
+}
+
+void FrameBufferBase_4_5::setDefaultDepthFunc(core::graphics::ComparingFunc value)
+{
+    m_defaultDepthFunc = value;
+}
+
 void FrameBufferBase_4_5::reset()
 {
     detachAll();
@@ -2345,7 +2355,8 @@ void FrameBufferBase_4_5::reset()
     for (uint32_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
         setClearColor(i, glm::vec4(.5f, .5f, 1.f, 1.f));
 
-    setClearDepth(1.f);
+    setClearDepth(m_defaultClearDepth);
+
     setClearStencil(0x00u);
 
     setFaceCulling(false);
@@ -2353,6 +2364,7 @@ void FrameBufferBase_4_5::reset()
     setColorMasks(false);
 
     setDepthTest(false);
+    setDepthFunc(m_defaultDepthFunc);
     setDepthMask(false);
 
     setStencilTest(false);
@@ -2503,17 +2515,22 @@ bool FrameBufferBase_4_5::depthTest() const
     return m_depthTest;
 }
 
+void FrameBufferBase_4_5::setDepthTest(bool value)
+{
+    CHECK_CURRENT_CONTEXT;
+    m_depthTest = value;
+}
+
 core::graphics::ComparingFunc FrameBufferBase_4_5::depthFunc() const
 {
     CHECK_CURRENT_CONTEXT;
     return m_depthFunc;
 }
 
-void FrameBufferBase_4_5::setDepthTest(bool value, core::graphics::ComparingFunc func)
+void FrameBufferBase_4_5::setDepthFunc(core::graphics::ComparingFunc value)
 {
     CHECK_CURRENT_CONTEXT;
-    m_depthTest = value;
-    m_depthFunc = func;
+    m_depthFunc = value;
 }
 
 bool FrameBufferBase_4_5::depthMask() const

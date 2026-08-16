@@ -612,6 +612,9 @@ public:
     bool isComplete() const override;
     void clear(const std::unordered_set<core::graphics::FrameBufferAttachment>&) override;
 
+    void setDefaultClearDepth(float) override;
+    void setDefaultDepthFunc(core::graphics::ComparingFunc) override;
+
     void reset() override;
 
     std::shared_ptr<const core::graphics::ISurface> attachmentSurface(core::graphics::FrameBufferAttachment) const override;
@@ -638,8 +641,9 @@ public:
     void setColorMasks(bool) override;
 
     bool depthTest() const override;
+    void setDepthTest(bool) override;
     core::graphics::ComparingFunc depthFunc() const override;
-    void setDepthTest(bool, core::graphics::ComparingFunc func = core::graphics::ComparingFunc::Less) override;
+    void setDepthFunc(core::graphics::ComparingFunc) override;
     bool depthMask() const override;
     void setDepthMask(bool) override;
 
@@ -689,6 +693,9 @@ protected:
     };
 
     std::unordered_map<core::graphics::FrameBufferAttachment, AttachmentDescription> m_attachments;
+
+    float m_defaultClearDepth = 1.f;
+    core::graphics::ComparingFunc m_defaultDepthFunc = core::graphics::ComparingFunc::Less;
 
     std::array<core::graphics::FrameBufferClearColor, core::graphics::FrameBufferColorAttachmentsCount()> m_clearColor;
     float m_clearDepth;

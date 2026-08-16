@@ -38,7 +38,6 @@ GraphicsEngine::GraphicsEngine(const std::string& name, const std::shared_ptr<gr
     : m_(std::make_unique<GraphicsEnginePrivate>(name))
 {
     static const auto& settings = settings::Settings::instance();
-    static const auto& debugRenderSettings = settings.graphics().debugRendering();
 
     if (!renderer) LOG_CRITICAL << "Graphics renderer can't be nullptr";
 
