@@ -8,38 +8,33 @@
 vec3 frustumCalculatePoint(in mat4x4 projectionMatrixInverted, in uint ID)
 {
 	const vec3 v = vec3(
-		float(bitfieldExtract(ID, 0, 1)),
-		float(bitfieldExtract(ID, 1, 1)),
+		ZO2NO(float(bitfieldExtract(ID, 0, 1))),
+		ZO2NO(float(bitfieldExtract(ID, 1, 1))),
 		float(bitfieldExtract(ID, 2, 1)));
-	return projectPoint(projectionMatrixInverted, ZO2NO(v));
+	return projectPoint(projectionMatrixInverted, v);
 }
 
 Plane frustumCalculatePlane(in mat4x4 projectionMatrix, in uint ID)
 {
-	const float sign = ZO2NO(float(ID % 2));
+	const float signs0[FRUSTUM_PLANES_COUNT] = float[FRUSTUM_PLANES_COUNT](1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f);
+	const float sign0 = signs0[ID];
+	const float sign1 = ZO2NO(float(ID % 2));
 	vec4 coefs;
 	for (uint j = 0; j < 4u; ++j)
-		coefs[j] = projectionMatrix[j][3u] - sign * projectionMatrix[j][ID/2];
+		coefs[j] = sign0 * projectionMatrix[j][3u] - sign1 * projectionMatrix[j][ID/2];
 	return makePlane(coefs);
 }
 
 vec3 frustumCalculateSideEdgeAbsDirection(in mat4x4 projectionMatrixInverted)
 {
-	const vec3 p0 = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, -1.0f));
-	const vec3 p1 = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, +1.0f));
+	const vec3 p0 = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, 1.0f));
+	const vec3 p1 = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, 0.0f));
 	return normalize(p1 - p0);
 }
 
 Line frustumCalculateFaceNormalLine(in mat4x4 projectionMatrix, in uint ID)
 {
-	const float sign = ZO2NO(float(ID % 2));
-	
-	vec4 coefs;
-	for (uint j = 0; j < 4u; ++j)
-		coefs[j] = projectionMatrix[j][3u] - sign * projectionMatrix[j][ID/2];
-		
-	const Plane p = makePlane(coefs);
-	
+	const Plane p = frustumCalculatePlane(projectionMatrix, ID);
 	return makeLine(planeAnyPoint(p), planeNormal(p));
 }
 
@@ -82,8 +77,8 @@ vec3 frustumClosestPoint(in mat4x4 projectionMatrixInverted, in vec3 v)
 
 	test[2u] = -test[2u];
 
-	const vec3 minBound = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, -1.0f));
-	const vec3 maxBound = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, 1.0f));
+	const vec3 minBound = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, 1.0f));
+	const vec3 maxBound = projectPoint(projectionMatrixInverted, vec3(1.0f, 1.0f, 0.0f));
 	const float fDRatio = maxBound[2u] / minBound[2u];
 
 	const float rmin = minBound[0u];

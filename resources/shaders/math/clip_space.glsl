@@ -29,8 +29,9 @@ ClipSpace makePerspectiveClipSpace(in float aspectRatio, in float halfFOV)
 
 mat4x4 clipSpaceProjectionMatrix(in ClipSpace cs, in Range ZRange)
 {
-	const float n = rangeStart(ZRange);
-	const float f = rangeEnd(ZRange);
+	// n - end of the range, f - start of the range because of inversed z
+	const float n = rangeEnd(ZRange);
+	const float f = rangeStart(ZRange);
 
 	mat4x4 result = mat4x4(1.0f);
 	
@@ -38,10 +39,10 @@ mat4x4 clipSpaceProjectionMatrix(in ClipSpace cs, in Range ZRange)
 	{
 		result[0u][0u] = 2.0f / (cs.params[1u] - cs.params[0u]);
 		result[1u][1u] = 2.0f / (cs.params[3u] - cs.params[2u]);
-		result[2u][2u] = -2.0f / (f - n);
+		result[2u][2u] = -1.0f / (f - n);
 		result[3u][0u] = -(cs.params[1u] + cs.params[0u]) / (cs.params[1u] - cs.params[0u]);
 		result[3u][1u] = -(cs.params[3u] + cs.params[2u]) / (cs.params[3u] - cs.params[2u]);
-		result[3u][2u] = -(f + n) / (f - n);
+		result[3u][2u] = -n / (f - n);
 	}
 	else if (cs.typeID == PerspectiveClipSpaceTypeID)
 	{
@@ -54,9 +55,9 @@ mat4x4 clipSpaceProjectionMatrix(in ClipSpace cs, in Range ZRange)
 		result[1u][1u] = (2.0f * n) / (top - bottom);
 		result[2u][0u] = (right + left) / (right - left);
 		result[2u][1u] = (top + bottom) / (top - bottom);
-		result[2u][2u] = -(f + n) / (f - n);
+		result[2u][2u] = -f / (f - n);
 		result[2u][3u] = -1.0f;
-		result[3u][2u] = -(2.0f * f * n) / (f - n);
+		result[3u][2u] = -(f * n) / (f - n);
 		result[3u][3u] = 0.0f;
 	}
 		

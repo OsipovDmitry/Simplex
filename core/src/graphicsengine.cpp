@@ -85,6 +85,11 @@ GraphicsEngine::GraphicsEngine(const std::string& name, const std::shared_ptr<gr
 
     m_->dielectricSpecular() = settings.graphics().pbr().dielectricSpecular();
 
+    // settings for reversed z buffer
+    m_->renderer()->setClipControl(graphics::ClipControlOrigin::LowerLeft, graphics::ClipControlDepth::ZeroToOne);
+    m_->frameBuffer()->setDefaultClearDepth(0.0f);
+    m_->frameBuffer()->setDefaultDepthFunc(graphics::ComparingFunc::Greater);
+
     LOG_INFO << "Engine \"" << GraphicsEngine::name() << "\" has been created";
 }
 

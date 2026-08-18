@@ -176,15 +176,13 @@ void cameraUpdate(in uvec3 clusterSize, in Transform viewTransform, in ClipSpace
 	camera.ZRange = makeRangeDescription(ZRange);
 }
 
-uint cameraClusterNodeID(in vec3 NDC_ZO)
+uint cameraClusterNodeID(in vec3 NDC)
 {
-	const vec3 texelPosVS = projectPoint(cameraProjectionMatrixInverted(), ZO2NO(NDC_ZO));
-	
-	const vec2 depthRange = cameraZRange();
-	const float linearDepth = (-texelPosVS.z - depthRange[0u]) / (depthRange[1u] - depthRange[0u]);
+	const vec3 texelPosVS = projectPoint(cameraProjectionMatrixInverted(), NDC);
+	const float linearDepth = rangeProjectOn(cameraZRange(), -texelPosVS[2u]);
 	
 	const uvec3 clusterSize = cameraClusterSize(); 
-	const uvec3 ID = min(uvec3(vec3(clusterSize) * vec3(NDC_ZO.xy, linearDepth)), clusterSize - uvec3(1u));
+	const uvec3 ID = clamp(uvec3(vec3(clusterSize) * vec3(NO2ZO(NDC.xy), linearDepth)), uvec3(0u), clusterSize - uvec3(1u));
 	
 	return ID.x + ID.y * clusterSize.x + ID.z * clusterSize.x * clusterSize.y;
 }

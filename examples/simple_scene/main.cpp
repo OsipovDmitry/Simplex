@@ -567,7 +567,7 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
             .inverted());
     directionalLightNode->setColor(glm::vec3(7.f));
     directionalLightNode->setShadowCascadesCount(4u);
-    // directionalLightNode->setShadowMapSize(1024u);
+    directionalLightNode->setShadowMapSize(2048u);
     scene->sceneRootNode()->attach(directionalLightNode);
     directionalLightNodeWeak = directionalLightNode;
 

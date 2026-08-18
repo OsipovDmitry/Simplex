@@ -9,6 +9,7 @@
 #include<skeletal_animated_data.glsl>
 #include<vertex_data.glsl>
 
+#include<math/range.glsl>
 #include<math/transform.glsl>
 #include<math/utils.glsl>
 
@@ -100,7 +101,7 @@ void main(void)
 	NDC_XY = NDC_XY * positionLCS.w;
 	
 	const Range layerZRange = shadowTransformsDataZRange(transformsDataOffset, layerID);
-	const float linearNormalizedDepth = (-positionLVS[2u] - rangeStart(layerZRange)) / (rangeEnd(layerZRange) - rangeStart(layerZRange));
+	const float linearNormalizedDepth = rangeProjectOn(layerZRange, -positionLVS[2u]);
 	
 	gl_Position = vec4(NDC_XY, positionLCS.zw);
 	v_layerID = mapCoords[2u];

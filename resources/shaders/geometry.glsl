@@ -48,7 +48,7 @@ void geometryBufferSortOITNodes(in ivec2 fragCoords)
     
 			uint nextIndex = OITNodes[currentOITNodeID].nextID;
         
-			if ((sortedOITNodeID == 0xFFFFFFFFu) || (OITNodes[sortedOITNodeID].depth < currentOITNodeDepth))
+			if ((sortedOITNodeID == 0xFFFFFFFFu) || (OITNodes[sortedOITNodeID].depth > currentOITNodeDepth))
 			{
 				OITNodes[currentOITNodeID].nextID = sortedOITNodeID;
 				sortedOITNodeID = currentOITNodeID;
@@ -56,7 +56,7 @@ void geometryBufferSortOITNodes(in ivec2 fragCoords)
 			else
 			{
 				uint newIndex = sortedOITNodeID;
-				while ((OITNodes[newIndex].nextID != 0xFFFFFFFFu) && (OITNodes[OITNodes[newIndex].nextID].depth > currentOITNodeDepth))
+				while ((OITNodes[newIndex].nextID != 0xFFFFFFFFu) && (OITNodes[OITNodes[newIndex].nextID].depth < currentOITNodeDepth))
 					newIndex = OITNodes[newIndex].nextID;
 
 				OITNodes[currentOITNodeID].nextID = OITNodes[newIndex].nextID;
