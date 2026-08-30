@@ -10,14 +10,14 @@ void main(void)
 {
     if (all(lessThan(gl_GlobalInvocationID, uvec3(1u))))
 	{
-		const float countX = float(cameraClusterTotalSize());
-		const float countY = float(countersClusterLocalLightsCount());
+		const uint countX = cameraClusterTotalSize();
+		const uint countY = countersClusterLocalLightsCount();
 		
-		const float workGroupSizeX = float(CLUSTER_LOCAL_LIGHT_COMPUTE_PROGRAM_WORK_GROUP_SIZE_X);
-		const float workGroupSizeY = float(CLUSTER_LOCAL_LIGHT_COMPUTE_PROGRAM_WORK_GROUP_SIZE_Y);
+		const uint workGroupSizeX = CLUSTER_LOCAL_LIGHT_COMPUTE_PROGRAM_WORK_GROUP_SIZE_X;
+		const uint workGroupSizeY = CLUSTER_LOCAL_LIGHT_COMPUTE_PROGRAM_WORK_GROUP_SIZE_Y;
 		
-		const uint workGroupsCountX = uint(ceil(countX / workGroupSizeX) + 0.5f);
-		const uint workGroupsCountY = uint(ceil(countY / workGroupSizeY) + 0.5f);
+		const uint workGroupsCountX = (countX + workGroupSizeX - 1u) / workGroupSizeX;
+		const uint workGroupsCountY = (countY + workGroupSizeY - 1u) / workGroupSizeY;
 		
 		clusterLocalLightsCommand = DispatchIndirectCommand(workGroupsCountX, workGroupsCountY, 1u);
 	}

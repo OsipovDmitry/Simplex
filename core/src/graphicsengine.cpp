@@ -38,7 +38,6 @@ GraphicsEngine::GraphicsEngine(const std::string& name, const std::shared_ptr<gr
     : m_(std::make_unique<GraphicsEnginePrivate>(name))
 {
     static const auto& settings = settings::Settings::instance();
-    static const auto& debugRenderSettings = settings.graphics().debugRendering();
 
     if (!renderer) LOG_CRITICAL << "Graphics renderer can't be nullptr";
 
@@ -85,6 +84,11 @@ GraphicsEngine::GraphicsEngine(const std::string& name, const std::shared_ptr<gr
     m_->geometryBuffer() = std::make_shared<GeometryBuffer>();
 
     m_->dielectricSpecular() = settings.graphics().pbr().dielectricSpecular();
+
+    // settings for reversed z buffer
+    m_->renderer()->setClipControl(graphics::ClipControlOrigin::LowerLeft, graphics::ClipControlDepth::ZeroToOne);
+    m_->frameBuffer()->setDefaultClearDepth(0.0f);
+    m_->frameBuffer()->setDefaultDepthFunc(graphics::ComparingFunc::Greater);
 
     LOG_INFO << "Engine \"" << GraphicsEngine::name() << "\" has been created";
 }
@@ -202,7 +206,7 @@ void GraphicsEngine::update(const std::shared_ptr<Scene>& scene, uint64_t time, 
         renderPipeLine->run(
             renderer, m_->frameBuffer(), m_->vertexArray(), cameraGeometryBuffer, scene->m().sceneData(), viewportSize, time, dt,
             m_->dielectricSpecular(), globalBoundingBox, camera->globalTransform().inverted(), camera->clipSpace(),
-            camera->cullPlanesLimits(), camera->clusterSize());
+            camera->cullPlanesLimits(), camera->ZRange(), camera->clusterSize());
 
         m_->frameBuffer()->detachAll();
         m_->frameBuffer()->attach(graphics::FrameBufferAttachment::Color0, renderPipeLine->finalTexture());

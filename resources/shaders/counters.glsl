@@ -1,17 +1,16 @@
 #include<descriptions.glsl>
-#include<math/constants.glsl>
-#include<math/range.glsl>
 
 layout (std430) buffer ssbo_countersBuffer { CountersDescription counters; };
 
 void countersReset()
 {
-    counters.ZRange = uvec2(floatBitsToUint(FLT_MAX), floatBitsToUint(0.0f));
+	counters.drawDataVisisbilityFrameIndex = uint(!bool(counters.drawDataVisisbilityFrameIndex));
     counters.firstGlobalLightNodeID = 0xFFFFFFFFu;
 	counters.clusterLocalLightsCount = 0u;
     counters.lightNodesCount = 0u;
 	counters.skeletalAnimatedDataToUpdateCount = 0u;
     counters.shadowsToUpdateCount = 0u;
+    counters.earlyDrawDataRenderCommandsCount = 0u;
     counters.opaqueDrawDataRenderCommandsCount = 0u;
     counters.transparentDrawDataRenderCommandsCount = 0u;
 	counters.shadowDataCount = 0u;
@@ -19,15 +18,9 @@ void countersReset()
 	counters.transparentShadowDataRenderCommandsCount = 0u;
 }
 
-Range countersZRange()
+uint countersDrawDataVisisbilityFrameIndex()
 {
-	return makeRange(uintBitsToFloat(counters.ZRange[0u]), uintBitsToFloat(counters.ZRange[1u]));
-}
-
-void countersExpandZRange(in Range nearFar)
-{
-	atomicMin(counters.ZRange[0u], floatBitsToUint(rangeStart(nearFar)));
-	atomicMax(counters.ZRange[1u], floatBitsToUint(rangeEnd(nearFar)));
+	return counters.drawDataVisisbilityFrameIndex;
 }
 
 uint countersFirstGlobalLightNodeID()
@@ -73,6 +66,11 @@ uint countersShadowsToUpdateCount()
 uint countersGenerateShadowToUpdateID()
 {
 	return atomicAdd(counters.shadowsToUpdateCount, 1u);
+}
+
+uint countersGenerateEarlyDrawDataRenderCommandID()
+{
+	return atomicAdd(counters.earlyDrawDataRenderCommandsCount, 1u);
 }
 
 uint countersGenerateOpaqueDrawDataRenderCommandID()

@@ -36,11 +36,11 @@ private:
     RunMethod m_runMethod;
 };
 
-class InitializeCameraPass : public RenderPass
+class InitializePass : public RenderPass
 {
 public:
-    InitializeCameraPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~InitializeCameraPass() override;
+    InitializePass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~InitializePass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,
@@ -53,11 +53,28 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
-class HierarchicalZEarlyCullDrawDataPass : public RenderPass
+class BuildClusterPass : public RenderPass
 {
 public:
-    HierarchicalZEarlyCullDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~HierarchicalZEarlyCullDrawDataPass() override;
+    BuildClusterPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~BuildClusterPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+};
+
+class EarlyCullDrawDataPass : public RenderPass
+{
+public:
+    EarlyCullDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~EarlyCullDrawDataPass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,
@@ -138,11 +155,11 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
-class HierarchicalZEarlyRenderDrawDataPass : public RenderPass
+class EarlyRenderDrawDataPass : public RenderPass
 {
 public:
-    HierarchicalZEarlyRenderDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~HierarchicalZEarlyRenderDrawDataPass() override;
+    EarlyRenderDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~EarlyRenderDrawDataPass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,
@@ -156,11 +173,11 @@ private:
     std::shared_ptr<graphics::IRenderProgram> m_transparentProgram;
 };
 
-class HierarchicalZLateCullDrawDataPass : public RenderPass
+class LateCullDrawDataPass : public RenderPass
 {
 public:
-    HierarchicalZLateCullDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~HierarchicalZLateCullDrawDataPass() override;
+    LateCullDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~LateCullDrawDataPass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,
@@ -173,11 +190,11 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
-class HierarchicalZLateRenderDrawDataPass : public RenderPass
+class LateRenderDrawDataPass : public RenderPass
 {
 public:
-    HierarchicalZLateRenderDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~HierarchicalZLateRenderDrawDataPass() override;
+    LateRenderDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~LateRenderDrawDataPass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,
@@ -189,23 +206,6 @@ public:
 private:
     std::shared_ptr<graphics::IRenderProgram> m_opaqueProgram;
     std::shared_ptr<graphics::IRenderProgram> m_transparentProgram;
-};
-
-class BuildClusterPass : public RenderPass
-{
-public:
-    BuildClusterPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~BuildClusterPass() override;
-
-    void run(
-        const std::shared_ptr<graphics::RendererBase>&,
-        const std::shared_ptr<graphics::IFrameBuffer>&,
-        const std::shared_ptr<graphics::IVertexArray>&,
-        const std::shared_ptr<const GeometryBuffer>&,
-        const std::shared_ptr<const SceneData>&) override;
-
-private:
-    std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
 class ClusterGlobalLightPass : public RenderPass
@@ -416,10 +416,8 @@ public:
         const std::shared_ptr<const SceneData>&) override;
 
 private:
-    std::shared_ptr<graphics::IRenderProgram> m_downSampleFirstPassProgram;
-    std::shared_ptr<graphics::IRenderProgram> m_downSampleOtherPassesProgram;
-    std::shared_ptr<graphics::IRenderProgram> m_upSampleLastPassProgram;
-    std::shared_ptr<graphics::IRenderProgram> m_upSampleOtherPassesProgram;
+    std::shared_ptr<graphics::IRenderProgram> m_downSampleProgram;
+    std::shared_ptr<graphics::IRenderProgram> m_upSampleProgram;
 };
 
 class FinalPass : public RenderPass

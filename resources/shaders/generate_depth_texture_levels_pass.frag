@@ -10,7 +10,7 @@ void main(void)
 	const float d2 = geometryBufferDepth(sourceFragCoords + ivec2(0, 1), passIndex);
 	const float d3 = geometryBufferDepth(sourceFragCoords + ivec2(1, 1), passIndex);
 	
-	const float maxDepth = max(max(d0, d1), max(d2, d3));
+	const float maxDepth = min(min(d0, d1), min(d2, d3));
 	
 	gl_FragDepth = maxDepth;
 }

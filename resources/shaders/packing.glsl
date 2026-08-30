@@ -1,5 +1,5 @@
 #include<math/constants.glsl>
-#include<normal.glsl>
+#include<math/utils.glsl>
 
 void packUnorm8(inout uint result, in float v, in int index)
 {
@@ -152,7 +152,7 @@ uvec4 packPBRData(
 		packF2x11_1x10(baseColor),
 		packF2x11_1x10(emission),
 		packUnorm4x8(vec4(occlusion, roughness, metalness, alpha)),
-		packUnorm3x10_Bool2(packNormal(normal), bvec2(isLighted, isShadowed)));
+		packUnorm3x10_Bool2(NO2ZO(normal), bvec2(isLighted, isShadowed)));
 }
 
 void unpackPBRData(
@@ -178,7 +178,7 @@ void unpackPBRData(
     roughness = unpackedORMAlpha[1u];
     metalness = unpackedORMAlpha[2u];
     alpha = unpackedORMAlpha[3u];
-    normal = normalize(unpackNormal(unpackedNormal));
+    normal = normalize(ZO2NO(unpackedNormal));
 	isLighted = flags[0u];
 	isShadowed = flags[1u];
 }

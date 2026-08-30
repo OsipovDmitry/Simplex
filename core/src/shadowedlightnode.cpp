@@ -84,8 +84,9 @@ const utils::Range& ShadowedLightNode::shadowCullPlanesLimits() const
 
 void ShadowedLightNode::setShadowCullPlanesLimits(const utils::Range& value)
 {
-    if (value.nearValue() <= 0.f) LOG_CRITICAL << "ZNear must be greater than 0.0";
-    if (value.farValue() <= value.nearValue()) LOG_CRITICAL << "ZFar must be greater than Znear";
+    if (value.nearValue() <= 0.f) LOG_CRITICAL << "Cull near plane limit must be greater than 0.0";
+    if (value.farValue() <= value.nearValue())
+        LOG_CRITICAL << "Cull far plane limit must be greater than cull near plane value limit";
 
     auto& mPrivate = m();
     mPrivate.shadowCullPlanesLimits() = value;
@@ -110,11 +111,10 @@ ShadowedLightNode::ShadowedLightNode(std::unique_ptr<ShadowedLightNodePrivate> s
     setShadingEnabled(false);
     setVolumetricScatteringEnabled(false);
 
-    const auto& graphicsSettings = settings::Settings::instance().graphics();
-    const auto& shadowSettings = graphicsSettings.shadow();
+    const auto& shadowSettings = settings::Settings::instance().graphics().shadow();
 
     setShadowMapSize(shadowSettings.mapSize());
-    setShadowCullPlanesLimits(graphicsSettings.cullPlaneLimits());
+    setShadowCullPlanesLimits(shadowSettings.cullPlaneLimits());
 }
 
 } // namespace core

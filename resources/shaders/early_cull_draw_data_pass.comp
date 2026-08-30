@@ -13,10 +13,8 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 #include<math/bounding_box.glsl>
 #include<math/classifications.glsl>
-#include<math/constants.glsl>
-#include<math/intersections.glsl>
 #include<math/oriented_bounding_box.glsl>
-#include<math/range.glsl>
+#include<math/transform.glsl>
 
 #define DISABLED_DRAW_DATA_CULLING_ALGORITHM 0u
 #define SUPER_FAST_DRAW_DATA_CULLING_ALGORITHM 1u
@@ -27,18 +25,9 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 	#define DRAW_DATA_CULLING_ALGORITHM SUPER_FAST_DRAW_DATA_CULLING_ALGORITHM
 #endif
 
-layout (std430) buffer ssbo_opaqueDrawDataRenderCommandsBuffer {
-	DrawElementsIndirectCommand opaqueDrawDataRenderCommands[];
+layout (std430) buffer ssbo_earlyDrawDataRenderCommandsBuffer {
+	DrawElementsIndirectCommand earlyDrawDataRenderCommands[];
 };
-
-//layout (std430) buffer ssbo_transparentDrawDataRenderCommandsBuffer {
-//	DrawElementsIndirectCommand transparentDrawDataRenderCommands[];
-//};
-
-void updateNearFar(inout Range nearFar, in vec3 v)
-{
-	nearFar = rangeExpand(nearFar, -v.z);
-}
 
 void main(void)
 {
@@ -46,105 +35,67 @@ void main(void)
     {
 		const uint drawDataID = gl_GlobalInvocationID[0u];
 		
-		hierarchicalZSetDrawDataVisible(drawDataID, false);
+		const uint drawDataVisisbilityFrameIndex = countersDrawDataVisisbilityFrameIndex();
+		drawDataVisibilitySetCurrentFrame(drawDataID, false, drawDataVisisbilityFrameIndex);
 		
-		const uint drawableID = drawDataDrawableID(drawDataID);
-		if (drawableID != 0xFFFFFFFFu)
+		if (drawDataVisibilityCheckPreviousFrame(drawDataID, drawDataVisisbilityFrameIndex))
 		{
-			const uint meshID = drawableMeshID(drawableID);
-			const uint materialID = drawableMaterialID(drawableID);
-			if ((meshID != 0xFFFFFFFFu) && (materialID != 0xFFFFFFFFu))
+			const uint drawableID = drawDataDrawableID(drawDataID);
+			if (drawableID != 0xFFFFFFFFu)
 			{
-				const BoundingBox localBoundingBox = meshBoundingBox(meshID);
-				
-				if (!isBoundingBoxEmpty(localBoundingBox))
-				{	
-					const OrientedBoundingBox orientedBoundingBox = transformOrientedBoundingBox(
-						transformMult(cameraViewTransform(), drawDataTransform(drawDataID)),
-						makeOrientedBoundingBox(localBoundingBox));
+				const uint meshID = drawableMeshID(drawableID);
+				const uint materialID = drawableMaterialID(drawableID);
+				if ((meshID != 0xFFFFFFFFu) && (materialID != 0xFFFFFFFFu))
+				{
+					const BoundingBox localBoundingBox = meshBoundingBox(meshID);
 					
-					const vec3 frustumPoints[FRUSTUM_POINTS_COUNT] = cameraFrustumPoints();
-					
-					#if (DRAW_DATA_CULLING_ALGORITHM == DISABLED_DRAW_DATA_CULLING_ALGORITHM)
-						bool isBoundingBoxVisible = true;
-					#elif (DRAW_DATA_CULLING_ALGORITHM == SUPER_FAST_DRAW_DATA_CULLING_ALGORITHM)
-						bool isBoundingBoxVisible = orientedBoundingBoxVsFrustumSuperFast(
-							orientedBoundingBox,
-							cameraFrustumFaceNormalLines(),
-							cameraFrustumRanges());
-					#elif (DRAW_DATA_CULLING_ALGORITHM == FAST_DRAW_DATA_CULLING_ALGORITHM)
-						bool isBoundingBoxVisible = orientedBoundingBoxVsFrustumFast(
-							orientedBoundingBox,
-							cameraFrustumFaceNormalLines(),
-							cameraFrustumRanges(),
-							frustumPoints);
-					#elif (DRAW_DATA_CULLING_ALGORITHM == CORRECT_DRAW_DATA_CULLING_ALGORITHM)
-						bool isBoundingBoxVisible = orientedBoundingBoxVsFrustum(
-							orientedBoundingBox,
-							cameraFrustumFaceNormalLines(),
-							cameraFrustumRanges(),
-							frustumPoints,
-							cameraFrustumEdgeDirections());
-					#else
-						error!!!
-					#endif
-					
-					if (isBoundingBoxVisible)
+					if (!isBoundingBoxEmpty(localBoundingBox))
 					{	
-						Range nearFar = makeRange(FLT_MAX, 0.0f);
+						const OrientedBoundingBox orientedBoundingBox = transformOrientedBoundingBox(
+							transformMult(cameraViewTransform(), drawDataTransform(drawDataID)),
+							makeOrientedBoundingBox(localBoundingBox));
 						
-						const vec3 obbPoints[BOUNDING_BOX_POINTS_COUNT] = orientedBoundingBoxPoints(orientedBoundingBox);
+						#if (DRAW_DATA_CULLING_ALGORITHM == DISABLED_DRAW_DATA_CULLING_ALGORITHM)
+							bool isBoundingBoxVisible = true;
+						#elif (DRAW_DATA_CULLING_ALGORITHM == SUPER_FAST_DRAW_DATA_CULLING_ALGORITHM)
+							bool isBoundingBoxVisible = orientedBoundingBoxVsFrustumSuperFast(
+								orientedBoundingBox,
+								cameraFrustumFaceNormalLines(),
+								cameraFrustumRanges());
+						#elif (DRAW_DATA_CULLING_ALGORITHM == FAST_DRAW_DATA_CULLING_ALGORITHM)
+							bool isBoundingBoxVisible = orientedBoundingBoxVsFrustumFast(
+								orientedBoundingBox,
+								cameraFrustumFaceNormalLines(),
+								cameraFrustumRanges(),
+								cameraFrustumPoints());
+						#elif (DRAW_DATA_CULLING_ALGORITHM == CORRECT_DRAW_DATA_CULLING_ALGORITHM)
+							bool isBoundingBoxVisible = orientedBoundingBoxVsFrustum(
+								orientedBoundingBox,
+								cameraFrustumFaceNormalLines(),
+								cameraFrustumRanges(),
+								cameraFrustumPoints(),
+								cameraFrustumEdgeDirections());
+						#else
+							error!!!
+						#endif
 						
-						for (uint i = 0u; i < BOUNDING_BOX_EDGES_COUNT; ++i)
-						{
-							const uvec2 edgeIndices = boundingBoxEdgeIndices(i);
+						if (isBoundingBoxVisible)
+						{						
+							if (!isMaterialTransparent(materialID))
+							{
+								const uint commandID = countersGenerateEarlyDrawDataRenderCommandID();
+								earlyDrawDataRenderCommands[commandID] = DrawElementsIndirectCommand(
+									meshElementDataSize(meshID),
+									1u,
+									meshElementDataOffset(meshID),
+									0,
+									drawDataID);
+							}
 							
-							const LineSegment obbEdge = makeLineSegment(obbPoints[edgeIndices[0u]], obbPoints[edgeIndices[1u]]);
-							const LineSegmentIntersectFrustumResult lsifr = lineSegmentIntersectFrustum(obbEdge, cameraFrustumPlanes());
-							for (uint j = 0u; j < lsifr.count; ++j)
-								updateNearFar(nearFar, lsifr.p[j]);
-								
-							const LineSegment fEdge = makeLineSegment(frustumPoints[edgeIndices[0u]], frustumPoints[edgeIndices[1u]]);
-							const LineSegmentIntersectOrientedBoundingBoxResult lsiobbr =
-								lineSegmentIntersectOrientedBoundingBox(fEdge, orientedBoundingBox);
-							for (uint j = 0u; j < lsiobbr.count; ++j)
-								updateNearFar(nearFar, lsiobbr.p[j]);
+							const uint skeletalAnimatedDataID = drawDataSkeletalAnimatedDataID(drawDataID);
+							const uint time = renderInfoTime();
+							skeletalAnimatedDataSetLastUpdateTime(skeletalAnimatedDataID, time);
 						}
-						
-						countersExpandZRange(nearFar);
-						
-						if (!isMaterialTransparent(materialID) && hierarchicalZWasDrawDataVisible(drawDataID))
-						{
-							const uint commandID = hierarchicalZGenerateEarlyDrawDataRenderCommandID();
-							opaqueDrawDataRenderCommands[commandID] = DrawElementsIndirectCommand(
-								meshElementDataSize(meshID),
-								1u,
-								meshElementDataOffset(meshID),
-								0,
-								drawDataID);
-						}
-
-						//const DrawElementsIndirectCommand command = DrawElementsIndirectCommand(
-						//		meshElementDataSize(meshID),
-						//		1u,
-						//		meshElementDataOffset(meshID),
-						//		0,
-						//		drawDataID);
-								
-						//if (isMaterialTransparent(materialID))
-						//{
-						//	const uint commandID = countersGenerateTransparentDrawDataRenderCommandID();
-						//	transparentDrawDataRenderCommands[commandID] = command;
-						//}
-						//else
-						//{
-						//	const uint commandID = countersGenerateOpaqueDrawDataRenderCommandID();
-						//	opaqueDrawDataRenderCommands[commandID] = command;
-						//}
-						
-						const uint skeletalAnimatedDataID = drawDataSkeletalAnimatedDataID(drawDataID);
-						const uint time = renderInfoTime();
-						skeletalAnimatedDataSetLastUpdateTime(skeletalAnimatedDataID, time);
 					}
 				}
 			}

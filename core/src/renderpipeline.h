@@ -31,12 +31,9 @@ using SkeletalAnimatedDataToUpdateBuffer = std::shared_ptr<graphics::VectorBuffe
 using ShadowsToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowToUpdateDescription>>;
 using ShadowDataBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowDataDescription>>;
 using ShadowMapsBuffer = std::shared_ptr<graphics::StructBuffer<ShadowMapsDescription>>;
-using HDRBuffer = std::shared_ptr<graphics::StructBuffer<HDRDescription>>;
-using BloomBuffer = std::shared_ptr<graphics::StructBuffer<BloomDescription>>;
+using HighDynamicRangeBuffer = std::shared_ptr<graphics::StructBuffer<HDRDescription>>;
 using ToneMappingBuffer = std::shared_ptr<graphics::StructBuffer<ToneMappingDescription>>;
-
-using HierarchicalZBuffer = std::shared_ptr<graphics::StructBuffer<HierarchicalZBufferDescription>>;
-using HierarchicalZVisibilityBuffer = std::shared_ptr<graphics::VectorBuffer<uint32_t>>;
+using DrawDataVisibilityBuffer = std::shared_ptr<graphics::VectorBuffer<uint32_t>>;
 
 class RenderPipeLine : public std::enable_shared_from_this<RenderPipeLine>
 {
@@ -60,9 +57,11 @@ public:
         const utils::Transform&,
         const utils::ClipSpace&,
         const utils::Range&,
+        const utils::Range&,
         const glm::uvec3&);
 
     const glm::uvec2& viewportSize() const;
+    const glm::uvec3& clusterSize() const;
 
     uint32_t shadowAtlasSize() const;
     ShadowFilter shadowFilter() const;
@@ -80,7 +79,6 @@ public:
     void setBloomEnabled(bool);
     void setBloomContribution(float);
     void setBloomPassesCount(uint32_t);
-    void setBloomUpSamplePassBlurRadius(float);
 
     void setToneMappingLuminanceRange(const utils::Range&);
     void setToneMappingLuminanceClampRange(const utils::Range&);
@@ -99,21 +97,15 @@ public:
     ShadowsToUpdateBuffer& shadowsToUpdateBuffer();
     ShadowDataBuffer& shadowDataBuffer();
     ShadowMapsBuffer& shadowMapsBuffer();
-    HDRBuffer& hdrBuffer();
-    BloomBuffer& bloomBuffer();
+    HighDynamicRangeBuffer& highDynamicRangeBuffer();
     ToneMappingBuffer& toneMappingBuffer();
-
-    HierarchicalZBuffer& hierarchicalZBuffer();
-    HierarchicalZVisibilityBuffer& hierarchicalZPingVisibilityBuffer();
-    HierarchicalZVisibilityBuffer& hierarchicalZPongVisibilityBuffer();
-    graphics::PBufferRange& hierarchicalZEarlyDrawDataRenderParameterBuffer();
-    graphics::PBufferRange& hierarchicalZOpaqueDrawDataRenderParameterBuffer();
-    graphics::PBufferRange& hierarchicalZTransparentDrawDataRenderParameterBuffer();
+    DrawDataVisibilityBuffer& drawDataVisibilityBuffer();
 
     graphics::PDispatchComputeIndirectCommandBuffer& bonesTransformsDataCalculateCommandBuffer();
     graphics::PDrawElementsIndirectCommandBuffer& earlyDrawDataRenderCommandsBuffer();
     graphics::PDrawElementsIndirectCommandBuffer& opaqueDrawDataRenderCommandsBuffer();
     graphics::PDrawElementsIndirectCommandBuffer& transparentDrawDataRenderCommandsBuffer();
+    graphics::PBufferRange& earlyDrawDataRenderParameterBuffer();
     graphics::PBufferRange& opaqueDrawDataRenderParameterBuffer();
     graphics::PBufferRange& transparentDrawDataRenderParameterBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& clusterLocalLightsCommandBuffer();
@@ -129,8 +121,7 @@ public:
     graphics::PConstTexture shadowColorTexture() const;
     graphics::PConstTexture shadowMomentsBluredTexture() const;
     graphics::PConstTexture shadowColorBluredTexture() const;
-    graphics::PConstTexture HDRTexture() const;
-    graphics::PConstTexture bloomTexture() const;
+    graphics::PConstTexture highDynamicRangeTexture() const;
     graphics::PConstTexture finalTexture() const;
 
     glm::vec4 shadowMomentsTextureClearColor() const;
@@ -139,7 +130,6 @@ private:
     void deinitialize();
     void dirtyShadowMapsBuffer();
     void dirtyHDRBuffer();
-    void dirtyBloomBuffer();
     void dirtyToneMappingBuffer();
 
     bool isShadowBlurPassNeeded() const;
@@ -152,9 +142,6 @@ private:
     void resizeHDRTexture(const std::shared_ptr<graphics::RendererBase>&);
     void updateHDRBuffer();
 
-    void resizeBloomTexture(const std::shared_ptr<graphics::RendererBase>&);
-    void updateBloomBuffer();
-
     void updateToneMappingBuffer();
 
     void resizeFinalTexture(const std::shared_ptr<graphics::RendererBase>&);
@@ -165,7 +152,8 @@ private:
     bool m_isBloomBufferDirty = true;
     bool m_isToneMappingBufferDirty = true;
 
-    glm::uvec2 m_viewportSize = glm::uvec2(0u, 0u);
+    glm::uvec2 m_viewportSize = glm::uvec2(0u);
+    glm::uvec3 m_clusterSize = glm::uvec3(0u);
 
     uint32_t m_shadowAtlasSize = 0u;
     ShadowFilter m_shadowFilter = ShadowFilter::Discrete;
@@ -179,9 +167,8 @@ private:
     float m_shadowCascadesDistancePower = 1.5f;
 
     bool m_isBloomEnabled = false;
-    float m_bloomContribution = .05f;
+    float m_bloomContribution = .02f;
     uint32_t m_bloomPassesCount = 4u;
-    float m_bloomUpSamplePassBlurRadius = 2.f;
 
     utils::Range m_toneMappingLuminanceRange = utils::Range(glm::exp2(glm::vec2(-5.f, 10.0f)));
     utils::Range m_toneMappingLuminanceClampRange = utils::Range(glm::vec2(0.02f, 12.0f));
@@ -200,21 +187,15 @@ private:
     ShadowsToUpdateBuffer m_shadowsToUpdateBuffer;
     ShadowDataBuffer m_shadowDataBuffer;
     ShadowMapsBuffer m_shadowMapsBuffer;
-    HDRBuffer m_HDRBuffer;
-    BloomBuffer m_bloomBuffer;
+    HighDynamicRangeBuffer m_HDRBuffer;
     ToneMappingBuffer m_toneMappingBuffer;
-
-    HierarchicalZBuffer m_hierarchicalZBuffer;
-    HierarchicalZVisibilityBuffer m_hierarchicalZPingVisibilityBuffer;
-    HierarchicalZVisibilityBuffer m_hierarchicalZPongVisibilityBuffer;
-    graphics::PBufferRange m_hierarchicalZEarlyDrawDataRenderParameterBuffer;
-    graphics::PBufferRange m_hierarchicalZOpaqueDrawDataRenderParameterBuffer;
-    graphics::PBufferRange m_hierarchicalZTransparentDrawDataRenderParameterBuffer;
+    DrawDataVisibilityBuffer m_drawDataVisibilityBuffer;
 
     graphics::PDispatchComputeIndirectCommandBuffer m_bonesTransformsDataCalculateCommandBuffer;
     graphics::PDrawElementsIndirectCommandBuffer m_earlyDrawDataRenderCommandsBuffer;
     graphics::PDrawElementsIndirectCommandBuffer m_opaqueDrawDataRenderCommandsBuffer;
     graphics::PDrawElementsIndirectCommandBuffer m_transparentDrawDataRenderCommandsBuffer;
+    graphics::PBufferRange m_earlyDrawDataRenderParameterBuffer;
     graphics::PBufferRange m_opaqueDrawDataRenderParameterBuffer;
     graphics::PBufferRange m_transparentDrawDataRenderParameterBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_clusterLocalLightsCommandBuffer;
@@ -231,7 +212,6 @@ private:
     graphics::PTextureHandle m_shadowMomentsBluredTextureHandle;
     graphics::PTextureHandle m_shadowColorBluredTextureHandle;
     graphics::PTextureHandle m_HDRTextureHandle;
-    graphics::PTextureHandle m_bloomTextureHandle;
     graphics::PTexture m_finalTexture;
 
     std::vector<std::shared_ptr<RenderPass>> m_passes;

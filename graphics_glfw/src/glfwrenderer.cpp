@@ -527,6 +527,18 @@ GLenum Conversions::BlendFactor2GL(core::graphics::BlendFactor value)
     return s_table[core::graphics::castFromBlendFactor(value)];
 }
 
+GLenum Conversions::ClipControlOrigin2GL(core::graphics::ClipControlOrigin value)
+{
+    static std::array<GLenum, core::graphics::numElementsClipControlOrigin()> s_table{GL_LOWER_LEFT, GL_UPPER_LEFT};
+    return s_table[core::graphics::castFromClipControlOrigin(value)];
+}
+
+GLenum Conversions::ClipControlDepth2GL(core::graphics::ClipControlDepth value)
+{
+    static std::array<GLenum, core::graphics::numElementsClipControlDepth()> s_table{GL_NEGATIVE_ONE_TO_ONE, GL_ZERO_TO_ONE};
+    return s_table[core::graphics::castFromClipControlDepth(value)];
+}
+
 // BufferBase_4_5::MappedData_4_5
 
 BufferBase_4_5::MappedData_4_5::MappedData_4_5(const std::weak_ptr<const BufferBase_4_5>& mappedBuffer, uint8_t* data)
@@ -2326,6 +2338,16 @@ void FrameBufferBase_4_5::clear(const std::unordered_set<core::graphics::FrameBu
     }
 }
 
+void FrameBufferBase_4_5::setDefaultClearDepth(float value)
+{
+    m_defaultClearDepth = value;
+}
+
+void FrameBufferBase_4_5::setDefaultDepthFunc(core::graphics::ComparingFunc value)
+{
+    m_defaultDepthFunc = value;
+}
+
 void FrameBufferBase_4_5::reset()
 {
     detachAll();
@@ -2333,7 +2355,8 @@ void FrameBufferBase_4_5::reset()
     for (uint32_t i = 0; i < core::graphics::FrameBufferColorAttachmentsCount(); ++i)
         setClearColor(i, glm::vec4(.5f, .5f, 1.f, 1.f));
 
-    setClearDepth(1.f);
+    setClearDepth(m_defaultClearDepth);
+
     setClearStencil(0x00u);
 
     setFaceCulling(false);
@@ -2341,6 +2364,7 @@ void FrameBufferBase_4_5::reset()
     setColorMasks(false);
 
     setDepthTest(false);
+    setDepthFunc(m_defaultDepthFunc);
     setDepthMask(false);
 
     setStencilTest(false);
@@ -2491,17 +2515,22 @@ bool FrameBufferBase_4_5::depthTest() const
     return m_depthTest;
 }
 
+void FrameBufferBase_4_5::setDepthTest(bool value)
+{
+    CHECK_CURRENT_CONTEXT;
+    m_depthTest = value;
+}
+
 core::graphics::ComparingFunc FrameBufferBase_4_5::depthFunc() const
 {
     CHECK_CURRENT_CONTEXT;
     return m_depthFunc;
 }
 
-void FrameBufferBase_4_5::setDepthTest(bool value, core::graphics::ComparingFunc func)
+void FrameBufferBase_4_5::setDepthFunc(core::graphics::ComparingFunc value)
 {
     CHECK_CURRENT_CONTEXT;
-    m_depthTest = value;
-    m_depthFunc = func;
+    m_depthFunc = value;
 }
 
 bool FrameBufferBase_4_5::depthMask() const
@@ -3622,6 +3651,12 @@ void GLFWRenderer::blitFrameBuffer(
         srcFramebuffer->id(), dstFramebuffer->id(), static_cast<GLint>(srcViewport.x), static_cast<GLint>(srcViewport.y),
         static_cast<GLint>(srcViewport.z), static_cast<GLint>(srcViewport.w), static_cast<GLint>(dstViewport.x),
         static_cast<GLint>(dstViewport.y), static_cast<GLint>(dstViewport.z), static_cast<GLint>(dstViewport.w), mask, filter);
+}
+
+void GLFWRenderer::setClipControl(core::graphics::ClipControlOrigin origin, core::graphics::ClipControlDepth depth)
+{
+    CHECK_THIS_CONTEXT;
+    glClipControl(Conversions::ClipControlOrigin2GL(origin), Conversions::ClipControlDepth2GL(depth));
 }
 
 std::shared_ptr<core::graphics::IStaticBuffer> GLFWRenderer::createStaticBuffer(size_t size, const void* data) const

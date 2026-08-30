@@ -48,7 +48,6 @@ void CameraNodePrivate::onAttachToScene(const std::shared_ptr<Scene>& scene)
     m_renderPipeLine->setBloomEnabled(m_bloom->isEnabled());
     m_renderPipeLine->setBloomContribution(m_bloom->contribution());
     m_renderPipeLine->setBloomPassesCount(m_bloom->passesCount());
-    m_renderPipeLine->setBloomUpSamplePassBlurRadius(m_bloom->upSamplePassBlurRadius());
 
     m_renderPipeLine->setToneMappingLuminanceRange(m_toneMapping->luminanceRange());
     m_renderPipeLine->setToneMappingLuminanceClampRange(m_toneMapping->luminanceClampRange());
@@ -94,9 +93,14 @@ utils::ClipSpace& CameraNodePrivate::clipSpace()
     return m_clipSpace;
 }
 
-utils::Range& CameraNodePrivate::cullPlanesLimits()
+utils::Range& CameraNodePrivate::cullPlaneLimits()
 {
-    return m_cullPlanesLimits;
+    return m_cullPlaneLimits;
+}
+
+utils::Range& CameraNodePrivate::ZRange()
+{
+    return m_ZRange;
 }
 
 glm::uvec3& CameraNodePrivate::clusterSize()

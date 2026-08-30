@@ -20,7 +20,6 @@ Bloom::Bloom(std::unique_ptr<BloomPrivate>&& bloomPrivate)
     setEnabled(bloomSettings.isEnabled());
     setContribution(bloomSettings.contribution());
     setPassesCount(bloomSettings.passesCount());
-    setUpSamplePassBlurRadius(bloomSettings.upSamplePassBlurRadius());
 }
 
 Bloom::~Bloom() = default;
@@ -68,22 +67,6 @@ void Bloom::setPassesCount(uint32_t value)
         m_->passesCount() = value;
 
         if (auto& renderPipeLine = m_->cameraNode().m().renderPipeLine()) renderPipeLine->setBloomPassesCount(m_->passesCount());
-    }
-}
-
-float Bloom::upSamplePassBlurRadius() const
-{
-    return m_->upSamplePassBlurRadius();
-}
-
-void Bloom::setUpSamplePassBlurRadius(float value)
-{
-    if (m_->upSamplePassBlurRadius() != value)
-    {
-        m_->upSamplePassBlurRadius() = value;
-
-        if (auto& renderPipeLine = m_->cameraNode().m().renderPipeLine())
-            renderPipeLine->setBloomUpSamplePassBlurRadius(m_->upSamplePassBlurRadius());
     }
 }
 

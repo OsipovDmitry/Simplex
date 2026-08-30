@@ -106,6 +106,8 @@ void GeometryBuffer::clear(
     framebuffer->attach(graphics::FrameBufferAttachment::Depth, m_depthTextureHandle->texture());
     framebuffer->setClearColor(0u, glm::uvec4(0u));
     framebuffer->setColorMask(0u, true);
+    framebuffer->setDepthTest(true);
+    framebuffer->setDepthFunc(graphics::ComparingFunc::Always);
     framebuffer->setDepthMask(true);
 
     if (!framebuffer->isComplete())
@@ -114,9 +116,7 @@ void GeometryBuffer::clear(
         return;
     }
 
-    framebuffer->clear(
-        {graphics::FrameBufferAttachment::Color0, graphics::FrameBufferAttachment::Color1,
-         graphics::FrameBufferAttachment::Depth});
+    framebuffer->clear({graphics::FrameBufferAttachment::Color0, graphics::FrameBufferAttachment::Depth});
 }
 
 void GeometryBuffer::sortOITNodes(const std::shared_ptr<graphics::RendererBase>& graphicsRenderer) const
@@ -133,7 +133,8 @@ void GeometryBuffer::generateDepthTextureLevels(
     if (depthTexture)
     {
         frameBuffer->reset();
-        frameBuffer->setDepthTest(true, graphics::ComparingFunc::Always);
+        frameBuffer->setDepthTest(true);
+        frameBuffer->setDepthFunc(graphics::ComparingFunc::Always);
         frameBuffer->setDepthMask(true);
 
         const auto levelsCount = depthTexture->numMipmapLevels();

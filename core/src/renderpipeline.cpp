@@ -34,6 +34,9 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_earlyDrawDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_opaqueDrawDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_transparentDrawDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
+    m_earlyDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
+        m_countersBuffer->buffer(), offsetof(CountersDescription, earlyDrawDataRenderCommandsCount),
+        sizeof(CountersDescription::earlyDrawDataRenderCommandsCount));
     m_opaqueDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
         m_countersBuffer->buffer(), offsetof(CountersDescription, opaqueDrawDataRenderCommandsCount),
         sizeof(CountersDescription::opaqueDrawDataRenderCommandsCount));
@@ -44,9 +47,9 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_shadowDataCullCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
     m_shadowMapBlurCommandsBuffer =
         graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({graphics::DrawArraysIndirectCommand()});
-    m_HDRBuffer = HDRBuffer::element_type::create();
-    m_bloomBuffer = BloomBuffer::element_type::create();
+    m_HDRBuffer = HighDynamicRangeBuffer::element_type::create();
     m_toneMappingBuffer = ToneMappingBuffer::element_type::create();
+    m_drawDataVisibilityBuffer = DrawDataVisibilityBuffer::element_type::create();
     m_opaqueShadowDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_transparentShadowDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_opaqueShadowDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
@@ -55,19 +58,6 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_transparentShadowDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
         m_countersBuffer->buffer(), offsetof(CountersDescription, transparentShadowDataRenderCommandsCount),
         sizeof(CountersDescription::transparentShadowDataRenderCommandsCount));
-
-    m_hierarchicalZBuffer = HierarchicalZBuffer::element_type::create(HierarchicalZBufferDescription::makeEmpty());
-    m_hierarchicalZPingVisibilityBuffer = HierarchicalZVisibilityBuffer::element_type::create();
-    m_hierarchicalZPongVisibilityBuffer = HierarchicalZVisibilityBuffer::element_type::create();
-    m_hierarchicalZEarlyDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
-        m_hierarchicalZBuffer->buffer(), offsetof(HierarchicalZBufferDescription, earlyDrawDataCount),
-        sizeof(HierarchicalZBufferDescription::earlyDrawDataCount));
-    m_hierarchicalZOpaqueDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
-        m_hierarchicalZBuffer->buffer(), offsetof(HierarchicalZBufferDescription, opaqueDrawDataCount),
-        sizeof(HierarchicalZBufferDescription::opaqueDrawDataCount));
-    m_hierarchicalZTransparentDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
-        m_hierarchicalZBuffer->buffer(), offsetof(HierarchicalZBufferDescription, transparentDrawDataCount),
-        sizeof(HierarchicalZBufferDescription::transparentDrawDataCount));
 }
 
 RenderPipeLine::~RenderPipeLine() = default;
@@ -103,19 +93,18 @@ void RenderPipeLine::initialize(const std::shared_ptr<ProgramsLoader>& programsL
     auto sharedThis = shared_from_this();
 
     m_passes.clear();
-    m_passes.push_back(std::make_shared<InitializeCameraPass>(programsLoader, sharedThis));
-    m_passes.push_back(std::make_shared<HierarchicalZEarlyCullDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<InitializePass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<BuildClusterPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<EarlyCullDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<CollectSkeletalAnimatedDataToUpdatePass>(programsLoader, sharedThis));
-    m_passes.push_back(std::make_shared<UpdateCameraPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<PrepareBonesTransformsDataCalculateCommandPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<CalculateBonesTransformsDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<SimplePass>(sharedThis, clear));
-    m_passes.push_back(std::make_shared<HierarchicalZEarlyRenderDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<EarlyRenderDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<SimplePass>(sharedThis, generateDepthLevels));
-    m_passes.push_back(std::make_shared<HierarchicalZLateCullDrawDataPass>(programsLoader, sharedThis));
-    m_passes.push_back(std::make_shared<HierarchicalZLateRenderDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<LateCullDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<LateRenderDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<SimplePass>(sharedThis, sort));
-    m_passes.push_back(std::make_shared<BuildClusterPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<ClusterGlobalLightPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<PrepareClusterLocalLightsCommandPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<ClusterLocalLightPass>(programsLoader, sharedThis));
@@ -147,14 +136,17 @@ void RenderPipeLine::run(
     const utils::Transform& viewTransform,
     const utils::ClipSpace& clipSpace,
     const utils::Range& cullPlaneLimits,
+    const utils::Range& ZRange,
     const glm::uvec3& clusterSize)
 {
     m_viewportSize = viewportSize;
+    m_clusterSize = clusterSize;
 
     const auto drawDataCount = sceneData->drawDataCount();
     m_earlyDrawDataRenderCommandsBuffer->resize(drawDataCount);
     m_opaqueDrawDataRenderCommandsBuffer->resize(drawDataCount);
     m_transparentDrawDataRenderCommandsBuffer->resize(drawDataCount);
+    m_drawDataVisibilityBuffer->resize(drawDataCount);
 
     const auto skeletalAnimatedDataCount = sceneData->skeletalAnimatedDataCount();
     m_skeletalAnimatedDataToUpdateBuffer->resize(skeletalAnimatedDataCount);
@@ -162,7 +154,7 @@ void RenderPipeLine::run(
     const auto shadowsCount = sceneData->shadowsCount();
     m_shadowsToUpdateBuffer->resize(shadowsCount);
 
-    const auto clusterNodesCount = glm::compMul(clusterSize);
+    const auto clusterNodesCount = glm::compMul(m_clusterSize);
     m_clusterNodesBuffer->resize(clusterNodesCount);
 
     const auto lightsCount = sceneData->lightsCount();
@@ -179,20 +171,14 @@ void RenderPipeLine::run(
     m_renderInfoBuffer->set(RenderInfoDescription::make(
         m_viewportSize, static_cast<uint32_t>(time), dt, dielectricSpecular, globalBoundingBox,
         static_cast<uint32_t>(drawDataCount), static_cast<uint32_t>(skeletalAnimatedDataCount),
-        static_cast<uint32_t>(shadowsCount), static_cast<uint32_t>(lightsCount), clusterSize, viewTransform, clipSpace,
-        cullPlaneLimits));
-
-    m_hierarchicalZPingVisibilityBuffer->resize(drawDataCount);
-    m_hierarchicalZPongVisibilityBuffer->resize(drawDataCount);
+        static_cast<uint32_t>(shadowsCount), static_cast<uint32_t>(lightsCount), m_clusterSize, viewTransform, clipSpace,
+        cullPlaneLimits, ZRange));
 
     resizeShadowTextures(graphicsRenderer, sceneData->shadowMapsLayersCount());
     updateShadowMapsBuffer();
 
     resizeHDRTexture(graphicsRenderer);
     updateHDRBuffer();
-
-    resizeBloomTexture(graphicsRenderer);
-    updateBloomBuffer();
 
     updateToneMappingBuffer();
 
@@ -207,6 +193,11 @@ void RenderPipeLine::run(
 const glm::uvec2& RenderPipeLine::viewportSize() const
 {
     return m_viewportSize;
+}
+
+const glm::uvec3& RenderPipeLine::clusterSize() const
+{
+    return m_clusterSize;
 }
 
 uint32_t RenderPipeLine::shadowAtlasSize() const
@@ -314,7 +305,7 @@ void RenderPipeLine::setBloomContribution(float value)
     if (m_bloomContribution != value)
     {
         m_bloomContribution = value;
-        dirtyBloomBuffer();
+        dirtyHDRBuffer();
     }
 }
 
@@ -324,15 +315,6 @@ void RenderPipeLine::setBloomPassesCount(uint32_t value)
     {
         m_bloomPassesCount = value;
         // no need any additional actions 'cause bloom texture will be recreated next frame
-    }
-}
-
-void RenderPipeLine::setBloomUpSamplePassBlurRadius(float value)
-{
-    if (m_bloomUpSamplePassBlurRadius != value)
-    {
-        m_bloomUpSamplePassBlurRadius = value;
-        dirtyBloomBuffer();
     }
 }
 
@@ -440,14 +422,9 @@ ShadowMapsBuffer& RenderPipeLine::shadowMapsBuffer()
     return m_shadowMapsBuffer;
 }
 
-HDRBuffer& RenderPipeLine::hdrBuffer()
+HighDynamicRangeBuffer& RenderPipeLine::highDynamicRangeBuffer()
 {
     return m_HDRBuffer;
-}
-
-BloomBuffer& RenderPipeLine::bloomBuffer()
-{
-    return m_bloomBuffer;
 }
 
 ToneMappingBuffer& RenderPipeLine::toneMappingBuffer()
@@ -455,34 +432,9 @@ ToneMappingBuffer& RenderPipeLine::toneMappingBuffer()
     return m_toneMappingBuffer;
 }
 
-HierarchicalZBuffer& RenderPipeLine::hierarchicalZBuffer()
+DrawDataVisibilityBuffer& RenderPipeLine::drawDataVisibilityBuffer()
 {
-    return m_hierarchicalZBuffer;
-}
-
-HierarchicalZVisibilityBuffer& RenderPipeLine::hierarchicalZPingVisibilityBuffer()
-{
-    return m_hierarchicalZPingVisibilityBuffer;
-}
-
-HierarchicalZVisibilityBuffer& RenderPipeLine::hierarchicalZPongVisibilityBuffer()
-{
-    return m_hierarchicalZPongVisibilityBuffer;
-}
-
-graphics::PBufferRange& RenderPipeLine::hierarchicalZEarlyDrawDataRenderParameterBuffer()
-{
-    return m_hierarchicalZEarlyDrawDataRenderParameterBuffer;
-}
-
-graphics::PBufferRange& RenderPipeLine::hierarchicalZOpaqueDrawDataRenderParameterBuffer()
-{
-    return m_hierarchicalZOpaqueDrawDataRenderParameterBuffer;
-}
-
-graphics::PBufferRange& RenderPipeLine::hierarchicalZTransparentDrawDataRenderParameterBuffer()
-{
-    return m_hierarchicalZTransparentDrawDataRenderParameterBuffer;
+    return m_drawDataVisibilityBuffer;
 }
 
 graphics::PDispatchComputeIndirectCommandBuffer& RenderPipeLine::bonesTransformsDataCalculateCommandBuffer()
@@ -503,6 +455,11 @@ graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::opaqueDrawDataRend
 graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::transparentDrawDataRenderCommandsBuffer()
 {
     return m_transparentDrawDataRenderCommandsBuffer;
+}
+
+graphics::PBufferRange& RenderPipeLine::earlyDrawDataRenderParameterBuffer()
+{
+    return m_earlyDrawDataRenderParameterBuffer;
 }
 
 graphics::PBufferRange& RenderPipeLine::opaqueDrawDataRenderParameterBuffer()
@@ -570,14 +527,9 @@ graphics::PConstTexture RenderPipeLine::shadowColorBluredTexture() const
     return m_shadowColorBluredTextureHandle ? m_shadowColorBluredTextureHandle->texture() : nullptr;
 }
 
-graphics::PConstTexture RenderPipeLine::HDRTexture() const
+graphics::PConstTexture RenderPipeLine::highDynamicRangeTexture() const
 {
     return m_HDRTextureHandle ? m_HDRTextureHandle->texture() : nullptr;
-}
-
-graphics::PConstTexture RenderPipeLine::bloomTexture() const
-{
-    return m_bloomTextureHandle ? m_bloomTextureHandle->texture() : nullptr;
 }
 
 graphics::PConstTexture RenderPipeLine::finalTexture() const
@@ -630,7 +582,7 @@ void RenderPipeLine::deinitialize()
 {
     m_isInitialized = false;
     dirtyShadowMapsBuffer();
-    dirtyBloomBuffer();
+    dirtyHDRBuffer();
     dirtyToneMappingBuffer();
 }
 
@@ -642,11 +594,6 @@ void RenderPipeLine::dirtyShadowMapsBuffer()
 void RenderPipeLine::dirtyHDRBuffer()
 {
     m_isHDRBufferDirty = true;
-}
-
-void RenderPipeLine::dirtyBloomBuffer()
-{
-    m_isBloomBufferDirty = true;
 }
 
 void RenderPipeLine::dirtyToneMappingBuffer()
@@ -783,14 +730,16 @@ void RenderPipeLine::updateShadowMapsBuffer()
 void RenderPipeLine::resizeHDRTexture(const std::shared_ptr<graphics::RendererBase>& renderer)
 {
     const auto newSize = glm::max(m_viewportSize, glm::uvec2(1u));
+    const auto newLevelsCount = glm::min(glm::levels(newSize), m_bloomPassesCount + 1u);
 
     const graphics::PConstTexture HDRTexture = m_HDRTextureHandle ? m_HDRTextureHandle->texture() : nullptr;
     const auto oldSize = HDRTexture ? HDRTexture->size() : glm::uvec2(0u);
+    const auto oldLevelCount = HDRTexture ? HDRTexture->numMipmapLevels() : 0u;
 
-    if (newSize == oldSize) return;
+    if ((newSize == oldSize) && (newLevelsCount == oldLevelCount)) return;
 
-    auto texture = renderer->createTextureRectEmpty(newSize.x, newSize.y, graphics::PixelInternalFormat::RGBA16F);
-    texture->setFilterMode(graphics::TextureFilterMode::Linear);
+    auto texture = renderer->createTexture2DEmpty(newSize.x, newSize.y, graphics::PixelInternalFormat::RGBA16F, newLevelsCount);
+    texture->setFilterMode(graphics::TextureFilterMode::Bilinear);
     texture->setWrapMode(graphics::TextureWrapMode::ClampToEdge);
     m_HDRTextureHandle = renderer->createTextureHandle(texture);
     m_HDRTextureHandle->makeResident();
@@ -803,41 +752,10 @@ void RenderPipeLine::updateHDRBuffer()
     if (!m_isHDRBufferDirty) return;
 
     m_HDRBuffer->set(HDRDescription::make(
-        m_HDRTextureHandle ? m_HDRTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last()));
+        m_HDRTextureHandle ? m_HDRTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
+        m_bloomContribution));
 
     m_isHDRBufferDirty = false;
-}
-
-void RenderPipeLine::resizeBloomTexture(const std::shared_ptr<graphics::RendererBase>& renderer)
-{
-    const auto newSize = glm::max(m_viewportSize / 2u, glm::uvec2(1u));
-    const auto newLevelsCount = glm::min(glm::levels(newSize), m_bloomPassesCount);
-
-    const graphics::PConstTexture bloomTexture = m_bloomTextureHandle ? m_bloomTextureHandle->texture() : nullptr;
-    const auto oldSize = bloomTexture ? bloomTexture->size() : glm::uvec2(0u);
-    const auto oldLevelCount = bloomTexture ? bloomTexture->numMipmapLevels() : 0u;
-
-    if ((newSize == oldSize) && (newLevelsCount == oldLevelCount)) return;
-
-    auto texture =
-        renderer->createTexture2DEmpty(newSize.x, newSize.y, graphics::PixelInternalFormat::R11F_G11F_B10F, newLevelsCount);
-    texture->setFilterMode(graphics::TextureFilterMode::Bilinear);
-    texture->setWrapMode(graphics::TextureWrapMode::ClampToEdge);
-    m_bloomTextureHandle = renderer->createTextureHandle(texture);
-    m_bloomTextureHandle->makeResident();
-
-    dirtyBloomBuffer();
-}
-
-void RenderPipeLine::updateBloomBuffer()
-{
-    if (!m_isBloomBufferDirty) return;
-
-    m_bloomBuffer->set(BloomDescription::make(
-        m_bloomTextureHandle ? m_bloomTextureHandle->handle() : utils::IDsGeneratorT<graphics::TextureHandle>::last(),
-        m_bloomContribution, m_bloomUpSamplePassBlurRadius));
-
-    m_isBloomBufferDirty = false;
 }
 
 void RenderPipeLine::updateToneMappingBuffer()

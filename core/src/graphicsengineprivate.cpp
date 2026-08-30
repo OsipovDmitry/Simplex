@@ -196,6 +196,7 @@ const std::string& GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
         {ShaderStorageBlockID::ShadowsToUpdateBuffer, "ssbo_shadowsToUpdateBuffer"},
 
         {ShaderStorageBlockID::SkeletalAnimatedDataToUpdateCommandBuffer, "ssbo_skeletalAnimatedDataToUpdateCommandBuffer"},
+        {ShaderStorageBlockID::EarlyDrawDataRenderCommandsBuffer, "ssbo_earlyDrawDataRenderCommandsBuffer"},
         {ShaderStorageBlockID::OpaqueDrawDataRenderCommandsBuffer, "ssbo_opaqueDrawDataRenderCommandsBuffer"},
         {ShaderStorageBlockID::TransparentDrawDataRenderCommandsBuffer, "ssbo_transparentDrawDataRenderCommandsBuffer"},
         {ShaderStorageBlockID::ClusterLocalLightsCommandBuffer, "ssbo_clusterLocalLightsCommandBuffer"},
@@ -215,11 +216,8 @@ const std::string& GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
         {ShaderStorageBlockID::OITNodesBuffer, "ssbo_OITNodesBuffer"},
         {ShaderStorageBlockID::ShadowMapsBuffer, "ssbo_shadowMapsBuffer"},
         {ShaderStorageBlockID::HDRBuffer, "ssbo_HDRBuffer"},
-        {ShaderStorageBlockID::BloomBuffer, "ssbo_bloomBuffer"},
         {ShaderStorageBlockID::ToneMappingBuffer, "ssbo_toneMappingBuffer"},
-        {ShaderStorageBlockID::HierarchicalZBuffer, "ssbo_hierarchicalZBuffer"},
-        {ShaderStorageBlockID::HierarchicalZPingVisibilityBuffer, "ssbo_hierarchicalZPingVisibilityBuffer"},
-        {ShaderStorageBlockID::HierarchicalZPongVisibilityBuffer, "ssbo_hierarchicalZPongVisibilityBuffer"},
+        {ShaderStorageBlockID::DrawDataVisibilityBuffer, "ssbo_drawDataVisibilityBuffer"},
 
         {ShaderStorageBlockID::LayeredShadowMatrices, "ssbo_layeredShadowMatricesBuffer"},
         {ShaderStorageBlockID::SSAOKernel, "ssbo_SSAOKernelBuffer"},

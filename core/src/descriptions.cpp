@@ -74,7 +74,8 @@ RenderInfoDescription RenderInfoDescription::make(
     const glm::uvec3& clusterSize,
     const utils::Transform& viewTransform,
     const utils::ClipSpace& clipSpace,
-    const utils::Range& cullPlaneLimits)
+    const utils::Range& cullPlaneLimits,
+    const utils::Range& ZRange)
 {
     RenderInfoDescription result{};
 
@@ -96,6 +97,7 @@ RenderInfoDescription RenderInfoDescription::make(
     result.viewTransform = TransformDescription::make(viewTransform);
     result.clipSpace = ClipSpaceDescription::make(clipSpace);
     result.cullPlaneLimits = RangeDescription::make(cullPlaneLimits);
+    result.ZRange = RangeDescription::make(ZRange);
 
     return result;
 }
@@ -107,11 +109,6 @@ GBufferDescription GBufferDescription::make(
     uint32_t OITNodesMaxCount)
 {
     return {colorTextureHandle, depthTextureHandle, OITNodeIDImageHandle, OITNodesMaxCount, 0u, 0u};
-}
-
-HierarchicalZBufferDescription HierarchicalZBufferDescription::makeEmpty()
-{
-    return {0u, 0u, 0u, 0u};
 }
 
 MeshDescription MeshDescription::makeEmpty()
@@ -127,9 +124,9 @@ MeshDescription MeshDescription::make(
     bool hasPositions,
     bool hasNormals,
     bool hasTexCoords,
+    uint32_t tangentDataOffset,
     uint32_t boneDataOffset,
     uint32_t bonesCount,
-    uint32_t tangentDataOffset,
     uint32_t elementDataOffset,
     uint32_t elementDataSize)
 {
@@ -428,14 +425,9 @@ ShadowMapsDescription ShadowMapsDescription::make(
     return result;
 }
 
-HDRDescription HDRDescription::make(graphics::TextureHandle textureHandle)
+HDRDescription HDRDescription::make(graphics::TextureHandle textureHandle, float bloomContribution)
 {
-    return {textureHandle};
-}
-
-BloomDescription BloomDescription::make(graphics::TextureHandle textureHandle, float contribution, float upSamplePassBlurRadius)
-{
-    return {textureHandle, contribution, upSamplePassBlurRadius, 0u};
+    return {textureHandle, bloomContribution, 0u};
 }
 
 ToneMappingDescription ToneMappingDescription::make(

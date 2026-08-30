@@ -1,6 +1,7 @@
 layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 #include<camera.glsl>
+#include<counters.glsl>
 #include<drawable.glsl>
 #include<draw_data.glsl>
 #include<geometry.glsl>
@@ -35,40 +36,20 @@ layout (std430) buffer ssbo_transparentDrawDataRenderCommandsBuffer {
 bool testHiZ(in OrientedBoundingBox obb)
 {
 	const mat4x4 projectionMatrix = cameraProjectionMatrix();
-	BoundingBox ndcAABB = makeEmptyBoundingBox();
-	float maxZ = -FLT_MAX;
+	const float ZNear = rangeStart(cameraZRange());
+	
+	BoundingBox aabbNDC = makeEmptyBoundingBox();
 	for (uint i = 0u; i < BOUNDING_BOX_POINTS_COUNT; ++i)
 	{
 		const vec3 obbPointVS = orientedBoundingBoxPoint(obb, i);
-		maxZ = max(maxZ, obbPointVS[2u]);
+		if (obbPointVS[2u] > -ZNear)
+			return true;
+		
 		const vec3 obbPointNDC = projectPoint(projectionMatrix, obbPointVS);
-		ndcAABB = boundingBoxExpand(ndcAABB, obbPointNDC);
+		aabbNDC = boundingBoxExpand(aabbNDC, obbPointNDC);
 	}
 	
-	const vec2 minUV = clamp(NO2ZO(vec2(boundingBoxMinPoint(ndcAABB))), vec2(0.0f), vec2(1.0f));
-	const vec2 maxUV = clamp(NO2ZO(vec2(boundingBoxMaxPoint(ndcAABB))), vec2(0.0f), vec2(1.0f));
-	
-	const float closestDepth = clamp(NO2ZO(projectPoint(projectionMatrix, vec3(0.0f, 0.0f, maxZ))[2u]), 0.0f, 1.0f);
-	
-	const vec2 boxSizePixels = (maxUV - minUV) * vec2(renderInfoViewportSize());
-	const float maxBoxSize = max(boxSizePixels.x, boxSizePixels.y);
-	
-	const float maxLevel = float(textureQueryLevels(sampler2D(GBuffer.depthTextureHandle)) - 1);
-	const float mipLevel = clamp(ceil(log2(maxBoxSize)), 0.0f, maxLevel);
-	
-	const vec2 textureSizeAtMip = vec2(textureSize(sampler2D(GBuffer.depthTextureHandle), int(mipLevel)));
-	const vec2 texelHalfSize = 0.5f / textureSizeAtMip;
-	
-	const vec2 sampleMin = clamp(minUV - texelHalfSize, vec2(0.0f), vec2(1.0f));
-	const vec2 sampleMax = clamp(maxUV + texelHalfSize, vec2(0.0f), vec2(1.0f));
-	
-	const float d0 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(sampleMin.x, sampleMin.y), mipLevel).r;
-	const float d1 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(sampleMax.x, sampleMin.y), mipLevel).r;
-	const float d2 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(sampleMin.x, sampleMax.y), mipLevel).r;
-	const float d3 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(sampleMax.x, sampleMax.y), mipLevel).r;
-	const float maxDepth = max(max(d0, d1), max(d2, d3));
-	
-	return (closestDepth - 0.05f <= maxDepth);
+	return geometryTestBoundingBox(aabbNDC);
 }
 
 void main(void)
@@ -121,7 +102,8 @@ void main(void)
 					
 					if (isBoundingBoxVisible)
 					{							
-						const bool wasDrawDataVisible = hierarchicalZWasDrawDataVisible(drawDataID);
+						const uint drawDataVisisbilityFrameIndex = countersDrawDataVisisbilityFrameIndex();
+						const bool wasDrawDataVisible = drawDataVisibilityCheckPreviousFrame(drawDataID, drawDataVisisbilityFrameIndex);
 						const bool isDrawDataVisible = testHiZ(orientedBoundingBox);
 						const bool isDrawDataTransparent = isMaterialTransparent(materialID);
 						
@@ -136,19 +118,18 @@ void main(void)
 									
 							if (isDrawDataTransparent)
 							{
-								const uint commandID = hierarchicalZGenerateTransparentDrawDataRenderCommandID();
+								const uint commandID = countersGenerateTransparentDrawDataRenderCommandID();
 								transparentDrawDataRenderCommands[commandID] = command;
 							}
 							else
 							{
-								const uint commandID = hierarchicalZGenerateOpaqueDrawDataRenderCommandID();
+								const uint commandID = countersGenerateOpaqueDrawDataRenderCommandID();
 								opaqueDrawDataRenderCommands[commandID] = command;
 							}
 						}
 						
-						hierarchicalZSetDrawDataVisible(drawDataID, isDrawDataVisible);
+						drawDataVisibilitySetCurrentFrame(drawDataID, isDrawDataVisible, drawDataVisisbilityFrameIndex);
 					}
-					
 				}
 			}
 		}

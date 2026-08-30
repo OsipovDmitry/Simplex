@@ -1,5 +1,7 @@
 #include<packing.glsl>
 
+#include<math/utils.glsl>
+
 struct OITBufferNode 
 {
     uvec4 PBRData;
@@ -102,12 +104,12 @@ vec3 unpackOITNodeFinalColor(in OITBufferNode node)
 
 void packOITNodeNormal(inout OITBufferNode node, in vec3 normal)
 {
-    packUnorm3x10(node.packedNormalFlags, packNormal(normal));
+    packUnorm3x10(node.packedNormalFlags, NO2ZO(normal));
 }
 
 vec3 unpackOITNodeNormal(in OITBufferNode node)
 {
-    return normalize(unpackNormal(unpackUnorm3x10(node.packedNormalFlags)));
+    return normalize(ZO2NO(unpackUnorm3x10(node.packedNormalFlags)));
 }
 
 void packOITNodeFlags(inout OITBufferNode node, in bvec2 flags)

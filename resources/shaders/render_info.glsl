@@ -71,3 +71,8 @@ Range renderInfoCullPlaneLimits()
 {
 	return toRange(renderInfo.cullPlaneLimits);
 }
+
+Range renderInfoZRange()
+{
+	return toRange(renderInfo.ZRange);
+}

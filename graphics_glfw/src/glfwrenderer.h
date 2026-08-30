@@ -74,6 +74,8 @@ public:
     static GLenum StencilOperation2GL(core::graphics::StencilOperation);
     static GLenum BlendEquetion2GL(core::graphics::BlendEquation);
     static GLenum BlendFactor2GL(core::graphics::BlendFactor);
+    static GLenum ClipControlOrigin2GL(core::graphics::ClipControlOrigin);
+    static GLenum ClipControlDepth2GL(core::graphics::ClipControlDepth);
 };
 
 class BufferBase_4_5 : public std::enable_shared_from_this<BufferBase_4_5>
@@ -610,6 +612,9 @@ public:
     bool isComplete() const override;
     void clear(const std::unordered_set<core::graphics::FrameBufferAttachment>&) override;
 
+    void setDefaultClearDepth(float) override;
+    void setDefaultDepthFunc(core::graphics::ComparingFunc) override;
+
     void reset() override;
 
     std::shared_ptr<const core::graphics::ISurface> attachmentSurface(core::graphics::FrameBufferAttachment) const override;
@@ -636,8 +641,9 @@ public:
     void setColorMasks(bool) override;
 
     bool depthTest() const override;
+    void setDepthTest(bool) override;
     core::graphics::ComparingFunc depthFunc() const override;
-    void setDepthTest(bool, core::graphics::ComparingFunc func = core::graphics::ComparingFunc::Less) override;
+    void setDepthFunc(core::graphics::ComparingFunc) override;
     bool depthMask() const override;
     void setDepthMask(bool) override;
 
@@ -687,6 +693,9 @@ protected:
     };
 
     std::unordered_map<core::graphics::FrameBufferAttachment, AttachmentDescription> m_attachments;
+
+    float m_defaultClearDepth = 1.f;
+    core::graphics::ComparingFunc m_defaultDepthFunc = core::graphics::ComparingFunc::Less;
 
     std::array<core::graphics::FrameBufferClearColor, core::graphics::FrameBufferColorAttachmentsCount()> m_clearColor;
     float m_clearDepth;
@@ -875,6 +884,8 @@ public:
         bool depthMask,
         bool stencilMask,
         bool linearFilter = false) override;
+
+    void setClipControl(core::graphics::ClipControlOrigin, core::graphics::ClipControlDepth) override;
 
     std::shared_ptr<core::graphics::IStaticBuffer> createStaticBuffer(size_t = 0u, const void* = nullptr) const override;
     std::shared_ptr<core::graphics::IDynamicBuffer> createDynamicBuffer(size_t size = 0u, const void* data = nullptr)

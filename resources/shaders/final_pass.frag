@@ -11,7 +11,7 @@ void main(void)
 {
 	const ivec2 fragCoords = ivec2(gl_FragCoord.xy);
 	
-	vec3 color = HDRBufferFetchFinalColor(fragCoords);
+	vec3 color = HDRFetchColor(fragCoords);
 	toneMappingApplyExposure(color);
 	toneMappingApplyACES(color);
 	toneMappingApplyGammaCorrection(color);
@@ -33,11 +33,10 @@ void main(void)
 			const float near = rangeStart(cameraZRange());
 			const float far = rangeEnd(cameraZRange());
 			
-			const float z_ndc = depth_z * 2.0 - 1.0; 
-			float lin_z = (2.0 * near * far) / (far + near - z_ndc * (far - near));
+			float lin_z = (2.0 * near * far) / (far + near - depth_z * (far - near));
 			lin_z = (lin_z - near) / (far - near);
 			
-			o_fragColor0 = vec4(vec3(lin_z), 1.0f);
+			o_fragColor0 = vec4(vec3(pow(depth_z, 0.25f)), 1.0f);
 			break;
 		}
 		

@@ -13,7 +13,7 @@ namespace simplex
 namespace utils
 {
 
-ENUMCLASS(ClipSpaceType, uint16_t, Ortho, Perspective, Spherical)
+ENUMCLASS(ClipSpaceType, uint16_t, Ortho, Perspective)
 
 template <typename T>
 struct ClipSpaceT
@@ -41,7 +41,6 @@ public:
         T bottom,
         T top); // left, right, bottom, top have to be calculated for zNear == 1.0
     static ClipSpaceT<T> makePerspective(T aspectRatio, T fovY);
-    static ClipSpaceT<T> makeSpherical();
 
 protected:
     ClipSpaceT(ClipSpaceType type, T left, T right, T bottom, T top);
@@ -90,12 +89,6 @@ inline typename ClipSpaceT<T>::MatrixType ClipSpaceT<T>::projectionMatrix(const 
                 zRange.farValue());
             break;
         }
-        case ClipSpaceType::Spherical:
-        {
-            const auto farInverse = static_cast<T>(1) / zRange.farValue();
-            result = glm::scale(glm::mat<4, 4, T>(static_cast<T>(1)), glm::vec<3, T>(farInverse, farInverse, -farInverse));
-            break;
-        }
         default:
         {
             break;
@@ -137,12 +130,6 @@ inline ClipSpaceT<T> ClipSpaceT<T>::makePerspective(T aspectRatio, T fovY)
     const auto fH = glm::tan(fovY / static_cast<T>(2));
     const auto fW = fH * aspectRatio;
     return makePerspective(-fW, fW, -fH, fH);
-}
-
-template <typename T>
-inline ClipSpaceT<T> ClipSpaceT<T>::makeSpherical()
-{
-    return ClipSpaceT<T>(ClipSpaceType::Spherical, static_cast<T>(-1), static_cast<T>(1), static_cast<T>(-1), static_cast<T>(1));
 }
 
 template <typename T>

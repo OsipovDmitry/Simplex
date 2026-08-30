@@ -1,43 +1,13 @@
-#include<descriptions.glsl>
+layout (std430) buffer ssbo_drawDataVisibilityBuffer { uint drawDataVisibility[]; };
 
-layout (std430) buffer ssbo_hierarchicalZBuffer { HierarchicalZBufferDescription hierarchicalZ; };
-layout (std430) buffer ssbo_hierarchicalZPingVisibilityBuffer { uint hierarchicalZPingVisibility[]; };
-layout (std430) buffer ssbo_hierarchicalZPongVisibilityBuffer { uint hierarchicalZPongVisibility[]; };
-
-void hierarchicalZReset()
+bool drawDataVisibilityCheckPreviousFrame(in uint drawDataID, in uint drawDataVisisbilityFrameIndex)
 {
-	hierarchicalZ.pingPongVisibilityIndex = 1u - hierarchicalZ.pingPongVisibilityIndex;
-    hierarchicalZ.earlyDrawDataCount = 0u;
-    hierarchicalZ.opaqueDrawDataCount = 0u;
-    hierarchicalZ.transparentDrawDataCount = 0u;
+	const int bitIndex = (drawDataVisisbilityFrameIndex == 0u) ? 0 : 1;
+	return bool(bitfieldExtract(drawDataVisibility[drawDataID], bitIndex, 1));
 }
 
-bool hierarchicalZWasDrawDataVisible(in uint drawDataID)
+void drawDataVisibilitySetCurrentFrame(in uint drawDataID, in bool value, in uint drawDataVisisbilityFrameIndex)
 {
-	return (hierarchicalZ.pingPongVisibilityIndex == 0u) ?
-		bool(hierarchicalZPingVisibility[drawDataID]) :
-		bool(hierarchicalZPongVisibility[drawDataID]);
-}
-
-void hierarchicalZSetDrawDataVisible(in uint drawDataID, in bool value)
-{
-	if (hierarchicalZ.pingPongVisibilityIndex == 0u)
-		hierarchicalZPongVisibility[drawDataID] = uint(value);
-	else
-		hierarchicalZPingVisibility[drawDataID] = uint(value);
-}
-
-uint hierarchicalZGenerateEarlyDrawDataRenderCommandID()
-{
-	return atomicAdd(hierarchicalZ.earlyDrawDataCount, 1u);
-}
-
-uint hierarchicalZGenerateOpaqueDrawDataRenderCommandID()
-{
-	return atomicAdd(hierarchicalZ.opaqueDrawDataCount, 1u);
-}
-
-uint hierarchicalZGenerateTransparentDrawDataRenderCommandID()
-{
-	return atomicAdd(hierarchicalZ.transparentDrawDataCount, 1u);
+	const int bitIndex = (drawDataVisisbilityFrameIndex == 0u) ? 1 : 0;
+	drawDataVisibility[drawDataID] = bitfieldInsert(drawDataVisibility[drawDataID], value ? 1u : 0u, bitIndex, 1);
 }

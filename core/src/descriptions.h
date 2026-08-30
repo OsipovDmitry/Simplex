@@ -146,6 +146,7 @@ struct RenderInfoDescription
     TransformDescription viewTransform;
     ClipSpaceDescription clipSpace;
     RangeDescription cullPlaneLimits;
+    RangeDescription ZRange;
 
     // uint32_t camerPaadding[0u];
 
@@ -162,24 +163,25 @@ struct RenderInfoDescription
         const glm::uvec3& clusterSize,
         const utils::Transform& viewTransform,
         const utils::ClipSpace& clipSpace,
-        const utils::Range& cullPlaneLimits);
+        const utils::Range& cullPlaneLimits,
+        const utils::Range& ZRange);
 };
 
 struct CountersDescription
 {
-    glm::uvec2 ZRange; // uvec2 for atomic operations
+    uint32_t drawDataVisisbilityFrameIndex;
     uint32_t firstGlobalLightNodeID;
     uint32_t clusterLocalLightsCount;
     uint32_t lightNodesCount;
     uint32_t skeletalAnimatedDataToUpdateCount;
     uint32_t shadowsToUpdateCount;
+    uint32_t earlyDrawDataRenderCommandsCount;
     uint32_t opaqueDrawDataRenderCommandsCount;
     uint32_t transparentDrawDataRenderCommandsCount;
     uint32_t shadowDataCount;
     uint32_t opaqueShadowDataRenderCommandsCount;
     uint32_t transparentShadowDataRenderCommandsCount;
 
-    // padding
     // uint32_t padding[0u];
 };
 
@@ -208,17 +210,6 @@ struct OITNodeDescription
     float depth;
     uint32_t nextID;
     uint32_t padding[2u];
-};
-
-struct HierarchicalZBufferDescription
-{
-    uint32_t pingPongVisibilityIndex;
-    uint32_t earlyDrawDataCount;
-    uint32_t opaqueDrawDataCount;
-    uint32_t transparentDrawDataCount;
-    // uint32_t padding[0u];
-
-    static HierarchicalZBufferDescription makeEmpty();
 };
 
 struct PositionNormalTexCoordsDataDescription
@@ -263,7 +254,7 @@ struct MeshDescription
 
     static MeshDescription makeEmpty();
     static MeshDescription make(
-        const utils::BoundingBox&,
+        const utils::BoundingBox& bb,
         uint32_t positionNormalTexCoordsDataOffset,
         bool hasPositions,
         bool hasNormals,
@@ -529,22 +520,12 @@ struct ShadowMapsDescription
 struct HDRDescription
 {
     graphics::TextureHandle textureHandle;
+    float bloomContribution;
+    uint32_t bloomPassIndex;
 
-    uint32_t padding[2u]; // graphics::TextureHandle is uvec2 (uint64_t)
+    // uint32_t padding[0u]; // graphics::TextureHandle is uvec2 (uint64_t)
 
-    static HDRDescription make(graphics::TextureHandle textureHandle);
-};
-
-struct BloomDescription
-{
-    graphics::TextureHandle textureHandle;
-    float contribution;
-    float upSamplePassBlurRadius;
-    uint32_t passIndex;
-
-    uint32_t padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
-
-    static BloomDescription make(graphics::TextureHandle textureHandle, float contribution, float upSamplePassBlurRadius);
+    static HDRDescription make(graphics::TextureHandle textureHandle, float bloomContribution);
 };
 
 struct ToneMappingDescription

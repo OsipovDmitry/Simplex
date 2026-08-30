@@ -33,7 +33,8 @@ public:
     float& clipSpaceVerticalParam();
     utils::ClipSpace& clipSpace();
 
-    utils::Range& cullPlanesLimits();
+    utils::Range& cullPlaneLimits();
+    utils::Range& ZRange();
     glm::uvec3& clusterSize();
 
     bool& isDefaultFrameBufferUsed();
@@ -57,7 +58,8 @@ private:
     float m_clipSpaceVerticalParam = glm::pi<float>() / 3.f;
     utils::ClipSpace m_clipSpace = utils::ClipSpace();
 
-    utils::Range m_cullPlanesLimits = utils::Range();
+    utils::Range m_cullPlaneLimits = utils::Range();
+    utils::Range m_ZRange = utils::Range();
     glm::uvec3 m_clusterSize = glm::uvec3();
 
     bool m_isDefaultFrameBufferUsed = true;

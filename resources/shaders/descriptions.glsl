@@ -216,18 +216,20 @@ struct RenderInfoDescription
     TransformDescription viewTransform;
     ClipSpaceDescription clipSpace;
     RangeDescription cullPlaneLimits;
+    RangeDescription ZRange;
 	
 	//uint cameraPadding[0u];
 };
 
 struct CountersDescription
 {
-    uvec2 ZRange; // uvec2 for atomic operations
+    uint drawDataVisisbilityFrameIndex;
     uint firstGlobalLightNodeID;
 	uint clusterLocalLightsCount;
     uint lightNodesCount;
     uint skeletalAnimatedDataToUpdateCount;
     uint shadowsToUpdateCount;
+    uint earlyDrawDataRenderCommandsCount;
     uint opaqueDrawDataRenderCommandsCount;
     uint transparentDrawDataRenderCommandsCount;
     uint shadowDataCount;
@@ -262,16 +264,6 @@ OITNodeDescription makeOITNodeDescription(in uvec4 PBRData, in float depth, in u
 {
 	return OITNodeDescription(PBRData, depth, nextOITNodeID, uint[2u](0u, 0u));
 }
-
-struct HierarchicalZBufferDescription
-{
-    uint pingPongVisibilityIndex;
-    uint earlyDrawDataCount;
-    uint opaqueDrawDataCount;
-    uint transparentDrawDataCount;
-	
-    //uint padding[0u];
-};
 
 struct PositionNormalTexCoordsDataDescription
 {
@@ -456,18 +448,10 @@ struct ShadowMapsDescription
 struct HDRDescription
 {
     TextureHandle textureHandle;
+	float bloomContribution;
+    uint bloomPassIndex;
 
-    uint padding[2u]; // graphics::TextureHandle is uvec2 (uint64_t)
-};
-
-struct BloomDescription
-{
-    TextureHandle textureHandle;
-    float contribution;
-    float upSamplePassBlurRadius;
-    uint passIndex;
-
-    uint padding[3u]; // graphics::TextureHandle is uvec2 (uint64_t)
+    //uint padding[0u]; // graphics::TextureHandle is uvec2 (uint64_t)
 };
 
 const uint ToneMappingBinsCount = 256u;

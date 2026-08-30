@@ -44,6 +44,9 @@ public:
     const utils::Range& cullPlanesLimits() const;
     void setCullPlanesLimits(const utils::Range&);
 
+    const utils::Range& ZRange() const;
+    void setZRange(const utils::Range&);
+
     const glm::uvec3& clusterSize() const;
     void setClusterSize(const glm::uvec3&);
 

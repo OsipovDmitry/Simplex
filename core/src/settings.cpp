@@ -175,6 +175,18 @@ const ClipSpace& Camera::clipSpace() const
     return s_clipsapce;
 }
 
+const utils::Range& Camera::cullPlaneLimits() const
+{
+    static const auto s_cullPlaneLimits = utils::Range(readVec2("CullPlaneLimits", glm::vec2(.1f, 1000.f)));
+    return s_cullPlaneLimits;
+}
+
+const utils::Range& Camera::ZRange() const
+{
+    static const auto s_ZRange = utils::Range(readVec2("ZRange", glm::vec2(.1f, 1000.f)));
+    return s_ZRange;
+}
+
 const glm::u32vec3& Camera::clusterSize() const
 {
     static const auto s_clusterSize = readUVec3("ClusterSize", glm::u32vec3(16u, 9u, 24u));
@@ -275,6 +287,12 @@ Shadow::Shadow(const rapidjson::Document::ValueType* value)
 
 Shadow::~Shadow() = default;
 
+const utils::Range& Shadow::cullPlaneLimits() const
+{
+    static const auto s_cullPlaneLimits = utils::Range(readVec2("CullPlaneLimits", glm::vec2(.1f, 1000.f)));
+    return s_cullPlaneLimits;
+}
+
 uint32_t Shadow::atlasSize() const
 {
     static const auto s_atlasSize = readUint("AtlasSize", 2048u);
@@ -374,12 +392,6 @@ uint32_t Bloom::passesCount() const
 {
     static const auto s_passesCount = readUint("PassesCount", 4u);
     return s_passesCount;
-}
-
-float Bloom::upSamplePassBlurRadius() const
-{
-    static const auto s_upSamplePassBlurRadius = readSingle("UpSamplePassBlurRadius", 2.f);
-    return s_upSamplePassBlurRadius;
 }
 
 ToneMapping::ToneMapping(const rapidjson::Document::ValueType* value)
@@ -621,12 +633,6 @@ Graphics::Graphics(const rapidjson::Document::ValueType* value)
 }
 
 Graphics::~Graphics() = default;
-
-const utils::Range& Graphics::cullPlaneLimits() const
-{
-    static const auto s_cullPlaneLimits = utils::Range(readVec2("CullPlaneLimits", glm::vec2(.1f, 1000000.f)));
-    return s_cullPlaneLimits;
-}
 
 DrawDataCullingAlgorithm Graphics::drawDataCullingAlgorithm() const
 {

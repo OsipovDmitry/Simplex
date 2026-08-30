@@ -10,14 +10,14 @@ void main(void)
 {
     if (all(lessThan(gl_GlobalInvocationID, uvec3(1u))))
 	{
-		const float countX = float(renderInfoDrawDataCount());
-		const float countY = float(countersShadowsToUpdateCount());
+		const uint countX = renderInfoDrawDataCount();
+		const uint countY = countersShadowsToUpdateCount();
 		
-		const float workGroupSizeX = float(CULL_SHADOW_DATA_COMPUTE_PROGRAM_WORK_GROUP_SIZE_X);
-		const float workGroupSizeY = float(CULL_SHADOW_DATA_COMPUTE_PROGRAM_WORK_GROUP_SIZE_Y);
+		const uint workGroupSizeX = CULL_SHADOW_DATA_COMPUTE_PROGRAM_WORK_GROUP_SIZE_X;
+		const uint workGroupSizeY = CULL_SHADOW_DATA_COMPUTE_PROGRAM_WORK_GROUP_SIZE_Y;
 		
-		const uint workGroupsCountX = uint(ceil(countX / workGroupSizeX) + 0.5f);
-		const uint workGroupsCountY = uint(ceil(countY / workGroupSizeY) + 0.5f);
+		const uint workGroupsCountX = (countX + workGroupSizeX - 1u) / workGroupSizeX;
+		const uint workGroupsCountY = (countY + workGroupSizeY - 1u) / workGroupSizeY;
 		
 		shadowDataCullCommand = DispatchIndirectCommand(workGroupsCountX, workGroupsCountY, 1u);
 	}

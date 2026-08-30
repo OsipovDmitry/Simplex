@@ -1,5 +1,7 @@
 #include<descriptions.glsl>
 
+#include<math/bounding_box.glsl>
+
 layout (std430) buffer ssbo_GBuffer { GBufferDescription GBuffer; };
 layout (std430) buffer ssbo_OITNodesBuffer { OITNodeDescription OITNodes[]; };
 
@@ -48,7 +50,7 @@ void geometryBufferSortOITNodes(in ivec2 fragCoords)
     
 			uint nextIndex = OITNodes[currentOITNodeID].nextID;
         
-			if ((sortedOITNodeID == 0xFFFFFFFFu) || (OITNodes[sortedOITNodeID].depth < currentOITNodeDepth))
+			if ((sortedOITNodeID == 0xFFFFFFFFu) || (OITNodes[sortedOITNodeID].depth > currentOITNodeDepth))
 			{
 				OITNodes[currentOITNodeID].nextID = sortedOITNodeID;
 				sortedOITNodeID = currentOITNodeID;
@@ -56,7 +58,7 @@ void geometryBufferSortOITNodes(in ivec2 fragCoords)
 			else
 			{
 				uint newIndex = sortedOITNodeID;
-				while ((OITNodes[newIndex].nextID != 0xFFFFFFFFu) && (OITNodes[OITNodes[newIndex].nextID].depth > currentOITNodeDepth))
+				while ((OITNodes[newIndex].nextID != 0xFFFFFFFFu) && (OITNodes[OITNodes[newIndex].nextID].depth < currentOITNodeDepth))
 					newIndex = OITNodes[newIndex].nextID;
 
 				OITNodes[currentOITNodeID].nextID = OITNodes[newIndex].nextID;
@@ -109,4 +111,30 @@ float geometryBufferDepth(in uint OITNodeID)
 uint geometryBufferGenerateDepthTextureLevelsPassIndex()
 {
 	return GBuffer.generateDepthTextureLevelsPassIndex;
+}
+
+bool geometryTestBoundingBox(in BoundingBox aabbNDC)
+{	
+	const vec2 minUV = clamp(NO2ZO(vec2(boundingBoxMinPoint(aabbNDC))), vec2(0.0f), vec2(1.0f));
+	const vec2 maxUV = clamp(NO2ZO(vec2(boundingBoxMaxPoint(aabbNDC))), vec2(0.0f), vec2(1.0f));
+	
+	const vec2 boxSizePixels = (maxUV - minUV) * vec2(textureSize(sampler2D(GBuffer.depthTextureHandle), 0));
+	const float maxBoxSize = max(boxSizePixels.x, boxSizePixels.y);
+	
+	const float maxLevel = float(textureQueryLevels(sampler2D(GBuffer.depthTextureHandle)) - 1);
+	const float mipLevel = clamp(ceil(log2(maxBoxSize)), 0.0f, maxLevel);
+	
+	// tmp
+	//const vec2 centerUV = (minUV + maxUV) * 0.5f;
+	//const vec4 depths = textureGather(sampler2D(GBuffer.depthTextureHandle), centerUV, 0);
+	//const float minDepth = min(min(depths.x, depths.y), min(depths.z, depths.w));
+	//
+	
+	const float d0 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(minUV.x, minUV.y), mipLevel).r;
+	const float d1 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(maxUV.x, minUV.y), mipLevel).r;
+	const float d2 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(minUV.x, maxUV.y), mipLevel).r;
+	const float d3 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(maxUV.x, maxUV.y), mipLevel).r;
+	const float minDepth = min(min(d0, d1), min(d2, d3));
+	
+	return (boundingBoxMaxPoint(aabbNDC)[2u] >= minDepth);
 }

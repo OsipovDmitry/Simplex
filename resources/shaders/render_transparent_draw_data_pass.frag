@@ -7,6 +7,7 @@ layout (early_fragment_tests) in;
 #include<packing.glsl>
 
 #include<math/gamma_correction.glsl>
+#include<math/utils.glsl>
 
 flat in uint v_meshID;
 flat in uint v_materialID;
@@ -98,7 +99,7 @@ void main(void)
 			const TextureHandle textureHandle = mapTextureHandle(normalMapID);
 			if (!isTextureHandleEmpty(textureHandle))
 			{
-				vec3 localNormal = unpackNormal(texture(sampler2D(textureHandle), v_texCoords).xyz);
+				vec3 localNormal = ZO2NO(texture(sampler2D(textureHandle), v_texCoords).xyz);
 				localNormal.xy *= materialNormalMapScale(v_materialID);
 				localNormal = normalize(localNormal);
 				normal = normalize(mat3(normalize(v_tangent), normalize(v_binormal), normal) * localNormal);
