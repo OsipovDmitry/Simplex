@@ -584,12 +584,23 @@ static std::shared_ptr<simplex::core::Scene> createScene2(
 
     // auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/arabic_city/scene.gltf");
     auto sceneRepresentation = scenesLoader->loadOrGet("C:/res/Sponza/Sponza.gltf");
-    auto skeletalAnimatedNode = sceneRepresentation->generate("", false, false);
-    scene->sceneRootNode()->attach(skeletalAnimatedNode);
 
-    if (auto skeleton = skeletalAnimatedNode->skeleton())
-        if (const auto& anims = skeleton->animations(); !anims.empty())
-            skeletalAnimatedNode->setCurrentAnimation(anims.begin()->first);
+    constexpr int NI = 20;
+    constexpr int NJ = 50;
+    for (int i = 0; i < NI; ++i)
+        for (int j = 0; j < NJ; ++j)
+        {
+            const float x = static_cast<float>(i - NI / 2);
+            const float z = static_cast<float>(j - NJ / 2);
+
+            auto skeletalAnimatedNode = sceneRepresentation->generate("", false, false);
+            skeletalAnimatedNode->setTransform(simplex::utils::Transform::makeTranslation(glm::vec3(33.f * x, 0.f, 20.f * z)));
+            scene->sceneRootNode()->attach(skeletalAnimatedNode);
+
+            if (auto skeleton = skeletalAnimatedNode->skeleton())
+                if (const auto& anims = skeleton->animations(); !anims.empty())
+                    skeletalAnimatedNode->setCurrentAnimation(anims.begin()->first);
+        }
 
     auto sceneRepresentationPhys = scenesLoader->loadOrGet("C:/res/Sponza/sponza_phys.obj");
     auto staticBody = sceneRepresentationPhys->tmp("");

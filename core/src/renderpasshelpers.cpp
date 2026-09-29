@@ -68,11 +68,17 @@ BuildClusterPass::BuildClusterPass(
 {
     m_program = programsManager->loadOrGetComputeProgram(resources::BuildClusterPassComputeShaderPath, {});
 
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
+        graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
+
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
         graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterNodesBuffer) =
         graphics::BufferRange::create(renderPipeLine->clusterNodesBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::VisibleClusterNodesBuffer) =
+        graphics::BufferRange::create(renderPipeLine->visibleClusterNodesBuffer()->buffer());
 }
 
 BuildClusterPass::~BuildClusterPass() = default;
@@ -81,7 +87,7 @@ void BuildClusterPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>&,
     const std::shared_ptr<graphics::IVertexArray>&,
-    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const GeometryBuffer>& geometry,
     const std::shared_ptr<const SceneData>&)
 {
     auto renderPipeLine = m_renderPipeLine.lock();
@@ -91,7 +97,7 @@ void BuildClusterPass::run(
         return;
     }
 
-    renderer->compute(renderPipeLine->clusterSize(), m_program, {shared_from_this()});
+    renderer->compute(renderPipeLine->clusterSize(), m_program, {shared_from_this(), geometry});
 }
 
 EarlyCullDrawDataPass::EarlyCullDrawDataPass(
@@ -271,11 +277,8 @@ EarlyRenderDrawDataPass::EarlyRenderDrawDataPass(
     : RenderPass(renderPipeLine)
 
 {
-    m_opaqueProgram = programsManager->loadOrGetRenderProgram(
+    m_program = programsManager->loadOrGetRenderProgram(
         resources::RenderDrawDataPassVertexShaderPath, resources::RenderOpaqueDrawDataPassFragmentShaderPath, {});
-
-    // m_transparentProgram = programsManager->loadOrGetRenderProgram(
-    //     resources::RenderDrawDataPassVertexShaderPath, resources::RenderTransparentDrawDataPassFragmentShaderPath, {});
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::RenderInfoBuffer) =
         graphics::BufferRange::create(renderPipeLine->renderInfoBuffer()->buffer());
@@ -308,10 +311,9 @@ void EarlyRenderDrawDataPass::run(
     framebuffer->setDepthMask(true);
 
     renderer->multiDrawElementsIndirectCount(
-        glm::uvec4(0u, 0u, renderPipeLine->viewportSize()), m_opaqueProgram, framebuffer, vertexArray,
-        {sceneData, shared_from_this()}, utils::PrimitiveType::Triangles,
-        utils::toDrawElementsIndexType<ElementDataDescription>(), renderPipeLine->earlyDrawDataRenderCommandsBuffer(),
-        renderPipeLine->earlyDrawDataRenderParameterBuffer());
+        glm::uvec4(0u, 0u, renderPipeLine->viewportSize()), m_program, framebuffer, vertexArray, {sceneData, shared_from_this()},
+        utils::PrimitiveType::Triangles, utils::toDrawElementsIndexType<ElementDataDescription>(),
+        renderPipeLine->earlyDrawDataRenderCommandsBuffer(), renderPipeLine->earlyDrawDataRenderParameterBuffer());
 }
 
 LateCullDrawDataPass::LateCullDrawDataPass(
@@ -361,7 +363,6 @@ LateRenderDrawDataPass::LateRenderDrawDataPass(
     const std::shared_ptr<ProgramsLoader>& programsManager,
     const std::shared_ptr<RenderPipeLine>& renderPipeLine)
     : RenderPass(renderPipeLine)
-
 {
     m_opaqueProgram = programsManager->loadOrGetRenderProgram(
         resources::RenderDrawDataPassVertexShaderPath, resources::RenderOpaqueDrawDataPassFragmentShaderPath, {});
@@ -435,9 +436,6 @@ ClusterGlobalLightPass::ClusterGlobalLightPass(
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
         graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
 
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterNodesBuffer) =
-        graphics::BufferRange::create(renderPipeLine->clusterNodesBuffer()->buffer());
-
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterLocalLightsBuffer) =
         graphics::BufferRange::create(renderPipeLine->clusterLocalLightsBuffer()->buffer());
 
@@ -457,11 +455,12 @@ void ClusterGlobalLightPass::run(
     const std::shared_ptr<graphics::RendererBase>& renderer,
     const std::shared_ptr<graphics::IFrameBuffer>&,
     const std::shared_ptr<graphics::IVertexArray>&,
-    const std::shared_ptr<const GeometryBuffer>&,
+    const std::shared_ptr<const GeometryBuffer>& geometry,
     const std::shared_ptr<const SceneData>& sceneData)
 {
     renderer->compute(
-        glm::uvec3(static_cast<uint32_t>(sceneData->lightsCount()), 1u, 1u), m_program, {sceneData, shared_from_this()});
+        glm::uvec3(static_cast<uint32_t>(sceneData->lightsCount()), 1u, 1u), m_program,
+        {sceneData, shared_from_this(), geometry});
 }
 
 PrepareClusterLocalLightsCommandPass::PrepareClusterLocalLightsCommandPass(
@@ -483,9 +482,6 @@ PrepareClusterLocalLightsCommandPass::PrepareClusterLocalLightsCommandPass(
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::CountersBuffer) =
         graphics::BufferRange::create(renderPipeLine->countersBuffer()->buffer());
-
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
-        graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterLocalLightsCommandBuffer) =
         graphics::BufferRange::create(renderPipeLine->clusterLocalLightsCommandBuffer()->buffer());
@@ -521,6 +517,9 @@ ClusterLocalLightPass::ClusterLocalLightPass(
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterNodesBuffer) =
         graphics::BufferRange::create(renderPipeLine->clusterNodesBuffer()->buffer());
+
+    getOrCreateShaderStorageBlock(ShaderStorageBlockID::VisibleClusterNodesBuffer) =
+        graphics::BufferRange::create(renderPipeLine->visibleClusterNodesBuffer()->buffer());
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ClusterLocalLightsBuffer) =
         graphics::BufferRange::create(renderPipeLine->clusterLocalLightsBuffer()->buffer());
@@ -1040,10 +1039,6 @@ FinalPass::FinalPass(const std::shared_ptr<ProgramsLoader>& programsManager, con
 
     getOrCreateShaderStorageBlock(ShaderStorageBlockID::ToneMappingBuffer) =
         graphics::BufferRange::create(renderPipeLine->toneMappingBuffer()->buffer());
-
-    // tmp
-    getOrCreateShaderStorageBlock(ShaderStorageBlockID::CameraBuffer) =
-        graphics::BufferRange::create(renderPipeLine->cameraBuffer()->buffer());
 }
 
 FinalPass::~FinalPass() = default;

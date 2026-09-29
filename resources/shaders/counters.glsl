@@ -5,6 +5,7 @@ layout (std430) buffer ssbo_countersBuffer { CountersDescription counters; };
 void countersReset()
 {
 	counters.drawDataVisisbilityFrameIndex = uint(!bool(counters.drawDataVisisbilityFrameIndex));
+	counters.visibleClusterNodesCount = 0u;
     counters.firstGlobalLightNodeID = 0xFFFFFFFFu;
 	counters.clusterLocalLightsCount = 0u;
     counters.lightNodesCount = 0u;
@@ -21,6 +22,16 @@ void countersReset()
 uint countersDrawDataVisisbilityFrameIndex()
 {
 	return counters.drawDataVisisbilityFrameIndex;
+}
+
+uint countersVisibleClusterNodesCount()
+{
+	return counters.visibleClusterNodesCount;
+}
+
+uint countersGenerateVisibleClusterNodeID()
+{
+	return atomicAdd(counters.visibleClusterNodesCount, 1u);
 }
 
 uint countersFirstGlobalLightNodeID()

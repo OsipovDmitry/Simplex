@@ -169,8 +169,7 @@ public:
         const std::shared_ptr<const SceneData>&) override;
 
 private:
-    std::shared_ptr<graphics::IRenderProgram> m_opaqueProgram;
-    std::shared_ptr<graphics::IRenderProgram> m_transparentProgram;
+    std::shared_ptr<graphics::IRenderProgram> m_program;
 };
 
 class LateCullDrawDataPass : public RenderPass

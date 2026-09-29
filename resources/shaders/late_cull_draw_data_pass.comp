@@ -33,22 +33,10 @@ layout (std430) buffer ssbo_transparentDrawDataRenderCommandsBuffer {
 	DrawElementsIndirectCommand transparentDrawDataRenderCommands[];
 };
 
-bool testHiZ(in OrientedBoundingBox obb)
+bool testHiZ(in OrientedBoundingBox obbVS)
 {
-	const mat4x4 projectionMatrix = cameraProjectionMatrix();
-	const float ZNear = rangeStart(cameraZRange());
-	
-	BoundingBox aabbNDC = makeEmptyBoundingBox();
-	for (uint i = 0u; i < BOUNDING_BOX_POINTS_COUNT; ++i)
-	{
-		const vec3 obbPointVS = orientedBoundingBoxPoint(obb, i);
-		if (obbPointVS[2u] > -ZNear)
-			return true;
-		
-		const vec3 obbPointNDC = projectPoint(projectionMatrix, obbPointVS);
-		aabbNDC = boundingBoxExpand(aabbNDC, obbPointNDC);
-	}
-	
+	const BoundingBox aabbVS = orientedBoundingBoxCircumscribedBoundingBox(obbVS);
+	const BoundingBox aabbNDC = cameraProjectBoundingBox(aabbVS);
 	return geometryTestBoundingBox(aabbNDC);
 }
 

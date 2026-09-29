@@ -108,33 +108,72 @@ float geometryBufferDepth(in uint OITNodeID)
 	return OITNodes[OITNodeID].depth;
 }
 
+float geometryBufferCalculateDepthTextureLevel(in ivec2 fragCoords)
+{
+	const ivec2 sourceFragCoords = 2 * fragCoords;
+	const int sourceLevel = int(GBuffer.generateDepthTextureLevelsPassIndex);
+	
+	const float d0 = texelFetch(sampler2D(GBuffer.depthTextureHandle), sourceFragCoords + ivec2(0, 0), sourceLevel).r;
+	const float d1 = texelFetch(sampler2D(GBuffer.depthTextureHandle), sourceFragCoords + ivec2(1, 0), sourceLevel).r;
+	const float d2 = texelFetch(sampler2D(GBuffer.depthTextureHandle), sourceFragCoords + ivec2(0, 1), sourceLevel).r;
+	const float d3 = texelFetch(sampler2D(GBuffer.depthTextureHandle), sourceFragCoords + ivec2(1, 1), sourceLevel).r;
+	
+	float minDepth = min(min(d0, d1), min(d2, d3));
+	
+	const ivec2 sourceLevelSize = textureSize(sampler2D(GBuffer.depthTextureHandle), sourceLevel);
+	const bool extraColumn = (sourceLevelSize[0u] & 1) != 0;
+	const bool extraRow = (sourceLevelSize[1u] & 1) != 0;
+	
+	if (extraColumn)
+	{
+		const float d0 = texelFetch(sampler2D(GBuffer.depthTextureHandle), sourceFragCoords + ivec2(2, 0), sourceLevel).r;
+		const float d1 = texelFetch(sampler2D(GBuffer.depthTextureHandle), sourceFragCoords + ivec2(2, 1), sourceLevel).r;
+		minDepth = min(minDepth, min(d0, d1));
+	}
+	
+	if (extraRow)
+	{
+		const float d0 = texelFetch(sampler2D(GBuffer.depthTextureHandle), sourceFragCoords + ivec2(0, 2), sourceLevel).r;
+		const float d1 = texelFetch(sampler2D(GBuffer.depthTextureHandle), sourceFragCoords + ivec2(1, 2), sourceLevel).r;
+		minDepth = min(minDepth, min(d0, d1));
+	}
+	
+	if (extraColumn && extraRow)
+	{
+		const float d0 = texelFetch(sampler2D(GBuffer.depthTextureHandle), sourceFragCoords + ivec2(2, 2), sourceLevel).r;
+		minDepth = min(minDepth, d0);
+	}
+	
+	return minDepth;
+}
+
 uint geometryBufferGenerateDepthTextureLevelsPassIndex()
 {
 	return GBuffer.generateDepthTextureLevelsPassIndex;
 }
 
-bool geometryTestBoundingBox(in BoundingBox aabbNDC)
-{	
-	const vec2 minUV = clamp(NO2ZO(vec2(boundingBoxMinPoint(aabbNDC))), vec2(0.0f), vec2(1.0f));
-	const vec2 maxUV = clamp(NO2ZO(vec2(boundingBoxMaxPoint(aabbNDC))), vec2(0.0f), vec2(1.0f));
+bool geometryTestBoundingBox(in BoundingBox bbNDC)
+{
+	const vec2 minUV = clamp(NO2ZO(vec2(boundingBoxMinPoint(bbNDC))), vec2(0.0f), vec2(1.0f));
+	const vec2 maxUV = clamp(NO2ZO(vec2(boundingBoxMaxPoint(bbNDC))), vec2(0.0f), vec2(1.0f));
 	
 	const vec2 boxSizePixels = (maxUV - minUV) * vec2(textureSize(sampler2D(GBuffer.depthTextureHandle), 0));
 	const float maxBoxSize = max(boxSizePixels.x, boxSizePixels.y);
 	
-	const float maxLevel = float(textureQueryLevels(sampler2D(GBuffer.depthTextureHandle)) - 1);
-	const float mipLevel = clamp(ceil(log2(maxBoxSize)), 0.0f, maxLevel);
+	const int maxLevel = textureQueryLevels(sampler2D(GBuffer.depthTextureHandle)) - 1;
+	const int mipLevel = clamp(int(ceil(log2(maxBoxSize))), 0, maxLevel);
 	
-	// tmp
-	//const vec2 centerUV = (minUV + maxUV) * 0.5f;
-	//const vec4 depths = textureGather(sampler2D(GBuffer.depthTextureHandle), centerUV, 0);
-	//const float minDepth = min(min(depths.x, depths.y), min(depths.z, depths.w));
-	//
+	const ivec2 mipSize = textureSize(sampler2D(GBuffer.depthTextureHandle), mipLevel);
+	const ivec2 maxCoord = mipSize - ivec2(1);
 	
-	const float d0 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(minUV.x, minUV.y), mipLevel).r;
-	const float d1 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(maxUV.x, minUV.y), mipLevel).r;
-	const float d2 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(minUV.x, maxUV.y), mipLevel).r;
-	const float d3 = textureLod(sampler2D(GBuffer.depthTextureHandle), vec2(maxUV.x, maxUV.y), mipLevel).r;
+	const ivec2 pixelMin = clamp(ivec2(floor(minUV * vec2(mipSize))), ivec2(0), maxCoord);
+	const ivec2 pixelMax = clamp(ivec2(ceil(maxUV * vec2(mipSize))) - ivec2(1), ivec2(0), maxCoord);
+	
+	const float d0 = texelFetch(sampler2D(GBuffer.depthTextureHandle), ivec2(pixelMin.x, pixelMin.y), mipLevel).r;
+	const float d1 = texelFetch(sampler2D(GBuffer.depthTextureHandle), ivec2(pixelMax.x, pixelMin.y), mipLevel).r;
+	const float d2 = texelFetch(sampler2D(GBuffer.depthTextureHandle), ivec2(pixelMin.x, pixelMax.y), mipLevel).r;
+	const float d3 = texelFetch(sampler2D(GBuffer.depthTextureHandle), ivec2(pixelMax.x, pixelMax.y), mipLevel).r;
 	const float minDepth = min(min(d0, d1), min(d2, d3));
 	
-	return (boundingBoxMaxPoint(aabbNDC)[2u] >= minDepth);
+	return boundingBoxMaxPoint(bbNDC)[2u] >= minDepth;
 }

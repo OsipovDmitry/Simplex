@@ -123,6 +123,7 @@ ENUMCLASS(
 
     CameraBuffer,
     ClusterNodesBuffer,
+    VisibleClusterNodesBuffer,
     ClusterLocalLightsBuffer,
     LightNodesBuffer,
     RenderInfoBuffer,

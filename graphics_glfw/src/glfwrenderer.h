@@ -261,6 +261,7 @@ public:
     void setBorderColor(const glm::vec4&) override;
     void setWrapMode(core::graphics::TextureWrapMode) override;
     void setFilterMode(core::graphics::TextureFilterMode) override;
+    void setFilterMode(core::graphics::TextureMagnificationFilter, core::graphics::TextureMinificationFilter) override;
     void setSwizzleMask(const core::graphics::TextureSwizzleMask&) override;
 
     core::graphics::PTexture copy() const override;

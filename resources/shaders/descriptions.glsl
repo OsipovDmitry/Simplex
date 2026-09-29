@@ -224,6 +224,7 @@ struct RenderInfoDescription
 struct CountersDescription
 {
     uint drawDataVisisbilityFrameIndex;
+    uint visibleClusterNodesCount;
     uint firstGlobalLightNodeID;
 	uint clusterLocalLightsCount;
     uint lightNodesCount;
@@ -236,7 +237,7 @@ struct CountersDescription
     uint opaqueShadowDataRenderCommandsCount;
     uint transparentShadowDataRenderCommandsCount;
 
-    //uint padding[0u];
+    uint padding[3u];
 };
 
 struct GBufferDescription

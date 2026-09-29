@@ -208,6 +208,7 @@ const std::string& GraphicsEnginePrivate::shaderStorageBlockNameByID(ShaderStora
 
         {ShaderStorageBlockID::CameraBuffer, "ssbo_cameraBuffer"},
         {ShaderStorageBlockID::ClusterNodesBuffer, "ssbo_clusterNodesBuffer"},
+        {ShaderStorageBlockID::VisibleClusterNodesBuffer, "ssbo_visibleClusterNodesBuffer"},
         {ShaderStorageBlockID::ClusterLocalLightsBuffer, "ssbo_clusterLocalLightsBuffer"},
         {ShaderStorageBlockID::LightNodesBuffer, "ssbo_lightNodesBuffer"},
         {ShaderStorageBlockID::RenderInfoBuffer, "ssbo_renderInfoBuffer"},

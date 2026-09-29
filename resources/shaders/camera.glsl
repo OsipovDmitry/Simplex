@@ -1,5 +1,7 @@
 #include<descriptions.glsl>
+#include<math/bounding_box.glsl>
 #include<math/clip_space.glsl>
+#include<math/constants.glsl>
 #include<math/frustum.glsl>
 #include<math/line.glsl>
 #include<math/plane.glsl>
@@ -185,4 +187,30 @@ uint cameraClusterNodeID(in vec3 NDC)
 	const uvec3 ID = clamp(uvec3(vec3(clusterSize) * vec3(NO2ZO(NDC.xy), linearDepth)), uvec3(0u), clusterSize - uvec3(1u));
 	
 	return ID.x + ID.y * clusterSize.x + ID.z * clusterSize.x * clusterSize.y;
+}
+
+BoundingBox cameraProjectBoundingBox(in BoundingBox bbVS)
+{
+	const float camZNear = rangeStart(cameraZRange());
+	
+	const vec3 bbMinPoint = boundingBoxMinPoint(bbVS);
+	if (bbMinPoint[2u] > -camZNear)
+		return makeEmptyBoundingBox();
+		
+	const vec3 bbMaxPoint = boundingBoxMaxPoint(bbVS);
+	const float bbZFar = min(-(camZNear + EPS), bbMaxPoint[2u]);
+	
+	const BoundingBox clampedBB = makeBoundingBox(bbMinPoint, vec3(vec2(bbMaxPoint), bbZFar));
+	
+	const mat4x4 camProjectionMatrix = cameraProjectionMatrix();
+	
+	BoundingBox bbNDC = makeEmptyBoundingBox();
+	for (uint i = 0u; i < BOUNDING_BOX_POINTS_COUNT; ++i)
+	{
+		const vec3 pointVS = boundingBoxPoint(clampedBB, i);		
+		const vec3 pointNDC = projectPoint(camProjectionMatrix, pointVS);
+		bbNDC = boundingBoxExpand(bbNDC, pointNDC);
+	}
+	
+	return bbNDC;
 }

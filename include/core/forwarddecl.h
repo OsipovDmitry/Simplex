@@ -56,6 +56,8 @@ using SupportedImageFormats = std::unordered_map<PixelInternalFormat, std::strin
 enum class TextureType : uint16_t;
 enum class TextureWrapMode : uint16_t;
 enum class TextureFilterMode : uint16_t;
+enum class TextureMagnificationFilter : uint16_t;
+enum class TextureMinificationFilter : uint16_t;
 enum class TextureSwizzle : uint16_t;
 using TextureSwizzleMask = std::array<TextureSwizzle, 4u>;
 enum class FrameBufferAttachment : uint16_t;

@@ -6,6 +6,7 @@ layout (local_size_x = 32, local_size_y = 16, local_size_z = 1) in;
 #include<counters.glsl>
 #include<light.glsl>
 #include<light_node.glsl>
+#include<visible_cluster_node.glsl>
 
 #include<math/bounding_box.glsl>
 #include<math/classifications.glsl>
@@ -30,9 +31,11 @@ void addLightToCluster(in uint clusterNodeID, in uint lightID)
 
 void main(void)
 {
-	if (all(lessThan(gl_GlobalInvocationID, uvec3(cameraClusterTotalSize(), countersClusterLocalLightsCount(), 1u))))
+	if (all(lessThan(gl_GlobalInvocationID, uvec3(countersVisibleClusterNodesCount(), countersClusterLocalLightsCount(), 1u))))
 	{
-		const uint clusterNodeID = gl_GlobalInvocationID.x; 
+		const uint visibleClusterNodeID = gl_GlobalInvocationID.x;
+		const uint clusterNodeID = visibleClusterNodeClusterNodeID(visibleClusterNodeID);
+		
 		const uint clusterLocalLightID = gl_GlobalInvocationID.y;
 		const uint lightID = clusterLocalLightLightID(clusterLocalLightID);
 		const uint typeID = lightTypeID(lightID);

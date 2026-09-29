@@ -23,6 +23,7 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_renderInfoBuffer = RenderInfoBuffer::element_type::create();
     m_countersBuffer = CountersBuffer::element_type::create();
     m_cameraBuffer = CameraBuffer::element_type::create();
+    m_visibleClusterNodesBuffer = VisibleClusterNodesBuffer::element_type::create();
     m_clusterNodesBuffer = ClusterNodesBuffer::element_type::create();
     m_clusterLocalLightsBuffer = ClusterLocalLightsBuffer::element_type::create();
     m_lightNodesBuffer = LightNodesBuffer::element_type::create();
@@ -94,7 +95,6 @@ void RenderPipeLine::initialize(const std::shared_ptr<ProgramsLoader>& programsL
 
     m_passes.clear();
     m_passes.push_back(std::make_shared<InitializePass>(programsLoader, sharedThis));
-    m_passes.push_back(std::make_shared<BuildClusterPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<EarlyCullDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<CollectSkeletalAnimatedDataToUpdatePass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<PrepareBonesTransformsDataCalculateCommandPass>(programsLoader, sharedThis));
@@ -105,6 +105,7 @@ void RenderPipeLine::initialize(const std::shared_ptr<ProgramsLoader>& programsL
     m_passes.push_back(std::make_shared<LateCullDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<LateRenderDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<SimplePass>(sharedThis, sort));
+    m_passes.push_back(std::make_shared<BuildClusterPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<ClusterGlobalLightPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<PrepareClusterLocalLightsCommandPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<ClusterLocalLightPass>(programsLoader, sharedThis));
@@ -156,6 +157,7 @@ void RenderPipeLine::run(
 
     const auto clusterNodesCount = glm::compMul(m_clusterSize);
     m_clusterNodesBuffer->resize(clusterNodesCount);
+    m_visibleClusterNodesBuffer->resize(clusterNodesCount);
 
     const auto lightsCount = sceneData->lightsCount();
     m_clusterLocalLightsBuffer->resize(lightsCount);
@@ -390,6 +392,11 @@ CameraBuffer& RenderPipeLine::cameraBuffer()
 ClusterNodesBuffer& RenderPipeLine::clusterNodesBuffer()
 {
     return m_clusterNodesBuffer;
+}
+
+VisibleClusterNodesBuffer& RenderPipeLine::visibleClusterNodesBuffer()
+{
+    return m_visibleClusterNodesBuffer;
 }
 
 ClusterLocalLightsBuffer& RenderPipeLine::clusterLocalLightsBuffer()

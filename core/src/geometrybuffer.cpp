@@ -181,7 +181,8 @@ void GeometryBuffer::recreateBuffers(const std::shared_ptr<graphics::RendererBas
     m_colorTextureHandle->makeResident();
 
     auto depthTexture = graphicsRenderer->createTexture2DEmpty(m_size.x, m_size.y, graphics::PixelInternalFormat::Depth32F, 0u);
-    depthTexture->setFilterMode(graphics::TextureFilterMode::Bilinear);
+    depthTexture->setFilterMode(
+        graphics::TextureMagnificationFilter::Nearest, graphics::TextureMinificationFilter::NearestMipmapNearest);
     depthTexture->setWrapMode(graphics::TextureWrapMode::ClampToEdge);
     m_depthTextureHandle = graphicsRenderer->createTextureHandle(depthTexture);
     m_depthTextureHandle->makeResident();

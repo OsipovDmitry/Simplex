@@ -1,3 +1,4 @@
+#include<bounding_box.glsl>
 #include<constants.glsl>
 #include<transform.glsl>
 
@@ -30,6 +31,13 @@ bool sphereIsFrustumInside(in Sphere s, in vec3 fPoints[FRUSTUM_POINTS_COUNT])
 			return false;
 	
 	return true;
+}
+
+BoundingBox sphereCircumscribedBoundingBox(in Sphere s)
+{
+	const vec3 c = sphereCenter(s);
+	const vec3 r = vec3(sphereRadius(s));
+	return makeBoundingBox(c - r, c + r);
 }
 
 Sphere transformSphere(in Transform t, in Sphere s)
