@@ -138,3 +138,30 @@ Quat slerp(in Quat x, in Quat y, in float a)
 		return (sin((1.0f - a) * angle) * x + sin(a * angle) * z) / sin(angle);
 	}
 }
+
+mat3x3 toMat3x3(in Quat q)
+{		
+	const float qxx = q.x * q.x;
+	const float qyy = q.y * q.y;
+	const float qzz = q.z * q.z;
+	const float qxz = q.x * q.z;
+	const float qxy = q.x * q.y;
+	const float qyz = q.y * q.z;
+	const float qwx = q.w * q.x;
+	const float qwy = q.w * q.y;
+	const float qwz = q.w * q.z;
+
+	mat3x3 Result;
+	Result[0][0] = 1.0f - 2.0f * (qyy +  qzz);
+	Result[0][1] = 2.0f * (qxy + qwz);
+	Result[0][2] = 2.0f * (qxz - qwy);
+
+	Result[1][0] = 2.0f * (qxy - qwz);
+	Result[1][1] = 1.0f - 2.0f * (qxx +  qzz);
+	Result[1][2] = 2.0f * (qyz + qwx);
+
+	Result[2][0] = 2.0f * (qxz + qwy);
+	Result[2][1] = 2.0f * (qyz - qwx);
+	Result[2][2] = 1.0f - 2.0f * (qxx +  qyy);
+	return Result;
+}

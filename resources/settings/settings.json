@@ -16,8 +16,8 @@
         "PerspectiveFOV": 1.047198,
         "Type": "Perspective"
       },
-      "CullPlaneLimits": [ 0.1, 1000.0 ],
-      "ZRange": [0.1, 100.0],
+      "CullPlaneLimits": [ 0.1, 3500.0 ],
+      "ZRange": [0.1, 35000.0],
       "ClusterSize": [ 16, 8, 32 ]
     },
     "Background": {

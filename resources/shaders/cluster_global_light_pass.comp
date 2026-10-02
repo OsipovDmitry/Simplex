@@ -2,8 +2,8 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 
 #include<camera.glsl>
 #include<cluster_local_light.glsl>
-#include<cluster_node.glsl>
 #include<counters.glsl>
+#include<geometry.glsl>
 #include<light.glsl>
 #include<light_node.glsl>
 #include<shadow.glsl>
@@ -211,25 +211,28 @@ void main(void)
 			{
 				const Transform lightModelTransform = lightTransform(lightID);
 				const float outerRadius = pointLightRadiuses(lightID)[1u];
-				const Sphere sphere = transformSphere(
+				const Sphere sphereVS = transformSphere(
 					transformMult(cameraViewTransform(), lightModelTransform),
 					makeSphere(vec3(0.0f), outerRadius));
 				
-				bool isSphereVisible = sphereVsFrustum(sphere, cameraProjectionMatrixInverted());
-				
-				if (isSphereVisible)
+				if (sphereVsFrustum(sphereVS, cameraProjectionMatrixInverted()))
 				{
-					const vec3 fPoints[FRUSTUM_POINTS_COUNT] = cameraFrustumPoints();
-					
-					if (sphereIsFrustumInside(sphere, fPoints))
-						addGlobalLight(lightID);
-					else
-						addLocalLight(lightID);
-					
-					addPointShadow(
-						shadowedLightShadowID(lightID),
-						transformInverted(lightModelTransform),
-						outerRadius);
+					const BoundingBox bbVS = sphereCircumscribedBoundingBox(sphereVS);
+					const BoundingBox bbNDC = cameraProjectBoundingBox(bbVS);
+					if (geometryTestBoundingBox(bbNDC))
+					{
+						const vec3 fPoints[FRUSTUM_POINTS_COUNT] = cameraFrustumPoints();
+						
+						if (sphereIsFrustumInside(sphereVS, fPoints))
+							addGlobalLight(lightID);
+						else
+							addLocalLight(lightID);
+						
+						addPointShadow(
+							shadowedLightShadowID(lightID),
+							transformInverted(lightModelTransform),
+							outerRadius);
+					}
 				}
 			}
 			else if (typeID == SpotLightTypeID)

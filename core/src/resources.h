@@ -14,9 +14,8 @@ static const std::filesystem::path DefaultIBLEnvironmentMapPath = "./resources/t
 static const std::filesystem::path DefaultIBLBRDFLutMapPath = "./resources/textures/ibl/brdf.json";
 static const std::filesystem::path DefaultIBLDiffuseMapPath = "./resources/textures/ibl/irradiance.json";
 static const std::filesystem::path DefaultIBLSpecularMapPath = "./resources/textures/ibl/radiance.json";
-
 static const std::filesystem::path InitializePassComputeShaderPath = "./resources/shaders/initialize_pass.comp";
-static const std::filesystem::path CullDrawDataPassComputeShaderPath = "./resources/shaders/cull_draw_data_pass.comp";
+static const std::filesystem::path EarlyCullDrawDataPassComputeShaderPath = "./resources/shaders/early_cull_draw_data_pass.comp";
 static const std::filesystem::path CollectSkeletalAnimatedDataToUpdatePassComputeShaderPath =
     "./resources/shaders/collect_skeletal_animated_data_to_update_pass.comp";
 static const std::filesystem::path UpdateCameraPassComputeShaderPath = "./resources/shaders/update_camera_pass.comp";
@@ -32,6 +31,11 @@ static const std::filesystem::path RenderOpaqueDrawDataPassFragmentShaderPath =
     "./resources/shaders/render_opaque_draw_data_pass.frag";
 static const std::filesystem::path RenderTransparentDrawDataPassFragmentShaderPath =
     "./resources/shaders/render_transparent_draw_data_pass.frag";
+static const std::filesystem::path GenerateDepthTextureLevelsVertexShaderPath =
+    "./resources/shaders/generate_depth_texture_levels_pass.vert";
+static const std::filesystem::path GenerateDepthTextureLevelsFragmentShaderPath =
+    "./resources/shaders/generate_depth_texture_levels_pass.frag";
+static const std::filesystem::path LateCullDrawDataPassComputeShaderPath = "./resources/shaders/late_cull_draw_data_pass.comp";
 static const std::filesystem::path SortOITNodesPassComputeShaderPath = "./resources/shaders/sort_oit_nodes_pass.comp";
 static const std::filesystem::path ClusterGlobalLightPassComputeShaderPath = "./resources/shaders/cluster_global_light_pass.comp";
 static const std::filesystem::path PrepareClusterLocalLightCommandPassComputeShaderPath =

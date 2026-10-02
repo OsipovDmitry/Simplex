@@ -122,6 +122,14 @@ Range orientedBoundingBoxProjectOnLine(in OrientedBoundingBox obb, in Line l)
 		transformedL);
 }
 
+BoundingBox orientedBoundingBoxCircumscribedBoundingBox(in OrientedBoundingBox obb)
+{
+	const mat3x3 M = toMat3x3(obb.rotation);
+	const mat3x3 absM = mat3x3(abs(M[0u]), abs(M[1u]), abs(M[2u]));
+	const vec3 bbHalf = absM * obb.halfSize;
+	return makeBoundingBox(obb.translation - bbHalf, obb.translation + bbHalf);
+}
+
 OrientedBoundingBox transformOrientedBoundingBox(in Transform t, in OrientedBoundingBox obb)
 {
 	return makeOrientedBoundingBox(

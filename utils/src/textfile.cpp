@@ -7,27 +7,24 @@ namespace simplex
 namespace utils
 {
 
-TextFile::TextFile()
-{
-}
+TextFile::TextFile() {}
 
 TextFile::~TextFile() = default;
 
-const std::string &TextFile::data() const
+const std::string& TextFile::data() const
 {
     return const_cast<TextFile*>(this)->data();
 }
 
-std::string &TextFile::data()
+std::string& TextFile::data()
 {
     return m_data;
 }
 
-std::shared_ptr<TextFile> TextFile::loadFromFile(const std::filesystem::path &filename)
+std::shared_ptr<TextFile> TextFile::loadFromFile(const std::filesystem::path& filename)
 {
-    std::ifstream file(filename);
-    if (!file.is_open())
-        return nullptr;
+    std::ifstream file(filename, std::ios::binary);
+    if (!file.is_open()) return nullptr;
 
     auto result = std::make_shared<TextFile>();
 
@@ -41,18 +38,17 @@ std::shared_ptr<TextFile> TextFile::loadFromFile(const std::filesystem::path &fi
     return result;
 }
 
-std::shared_ptr<TextFile> TextFile::loadFromData(const std::string &data)
+std::shared_ptr<TextFile> TextFile::loadFromData(const std::string& data)
 {
     auto result = std::make_shared<TextFile>();
     result->data() = data;
     return result;
 }
 
-bool TextFile::saveToFile(const std::filesystem::path &filename)
+bool TextFile::saveToFile(const std::filesystem::path& filename)
 {
-    std::ofstream file(filename);
-    if (!file.is_open())
-        return false;
+    std::ofstream file(filename, std::ios::binary);
+    if (!file.is_open()) return false;
 
     file.write(m_data.data(), static_cast<std::streamsize>(m_data.size()));
     file.close();
@@ -60,5 +56,5 @@ bool TextFile::saveToFile(const std::filesystem::path &filename)
     return true;
 }
 
-}
-}
+} // namespace utils
+} // namespace simplex

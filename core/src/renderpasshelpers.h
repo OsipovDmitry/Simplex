@@ -70,11 +70,11 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
-class CullDrawDataPass : public RenderPass
+class EarlyCullDrawDataPass : public RenderPass
 {
 public:
-    CullDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~CullDrawDataPass() override;
+    EarlyCullDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~EarlyCullDrawDataPass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,
@@ -155,11 +155,45 @@ private:
     std::shared_ptr<graphics::IComputeProgram> m_program;
 };
 
-class RenderDrawDataPass : public RenderPass
+class EarlyRenderDrawDataPass : public RenderPass
 {
 public:
-    RenderDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
-    ~RenderDrawDataPass() override;
+    EarlyRenderDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~EarlyRenderDrawDataPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IRenderProgram> m_program;
+};
+
+class LateCullDrawDataPass : public RenderPass
+{
+public:
+    LateCullDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~LateCullDrawDataPass() override;
+
+    void run(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&,
+        const std::shared_ptr<const GeometryBuffer>&,
+        const std::shared_ptr<const SceneData>&) override;
+
+private:
+    std::shared_ptr<graphics::IComputeProgram> m_program;
+};
+
+class LateRenderDrawDataPass : public RenderPass
+{
+public:
+    LateRenderDrawDataPass(const std::shared_ptr<ProgramsLoader>&, const std::shared_ptr<RenderPipeLine>&);
+    ~LateRenderDrawDataPass() override;
 
     void run(
         const std::shared_ptr<graphics::RendererBase>&,

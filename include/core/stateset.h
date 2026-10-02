@@ -111,6 +111,7 @@ ENUMCLASS(
     ShadowsToUpdateBuffer,
 
     SkeletalAnimatedDataToUpdateCommandBuffer,
+    EarlyDrawDataRenderCommandsBuffer,
     OpaqueDrawDataRenderCommandsBuffer,
     TransparentDrawDataRenderCommandsBuffer,
     ClusterLocalLightsCommandBuffer,
@@ -122,6 +123,7 @@ ENUMCLASS(
 
     CameraBuffer,
     ClusterNodesBuffer,
+    VisibleClusterNodesBuffer,
     ClusterLocalLightsBuffer,
     LightNodesBuffer,
     RenderInfoBuffer,
@@ -131,6 +133,7 @@ ENUMCLASS(
     ShadowMapsBuffer,
     HDRBuffer,
     ToneMappingBuffer,
+    DrawDataVisibilityBuffer,
 
     LayeredShadowMatrices,
     SSAOKernel,

@@ -4,16 +4,34 @@ layout (std430) buffer ssbo_countersBuffer { CountersDescription counters; };
 
 void countersReset()
 {
+	counters.drawDataVisisbilityFrameIndex = uint(!bool(counters.drawDataVisisbilityFrameIndex));
+	counters.visibleClusterNodesCount = 0u;
     counters.firstGlobalLightNodeID = 0xFFFFFFFFu;
 	counters.clusterLocalLightsCount = 0u;
     counters.lightNodesCount = 0u;
 	counters.skeletalAnimatedDataToUpdateCount = 0u;
     counters.shadowsToUpdateCount = 0u;
+    counters.earlyDrawDataRenderCommandsCount = 0u;
     counters.opaqueDrawDataRenderCommandsCount = 0u;
     counters.transparentDrawDataRenderCommandsCount = 0u;
 	counters.shadowDataCount = 0u;
 	counters.opaqueShadowDataRenderCommandsCount = 0u;
 	counters.transparentShadowDataRenderCommandsCount = 0u;
+}
+
+uint countersDrawDataVisisbilityFrameIndex()
+{
+	return counters.drawDataVisisbilityFrameIndex;
+}
+
+uint countersVisibleClusterNodesCount()
+{
+	return counters.visibleClusterNodesCount;
+}
+
+uint countersGenerateVisibleClusterNodeID()
+{
+	return atomicAdd(counters.visibleClusterNodesCount, 1u);
 }
 
 uint countersFirstGlobalLightNodeID()
@@ -59,6 +77,11 @@ uint countersShadowsToUpdateCount()
 uint countersGenerateShadowToUpdateID()
 {
 	return atomicAdd(counters.shadowsToUpdateCount, 1u);
+}
+
+uint countersGenerateEarlyDrawDataRenderCommandID()
+{
+	return atomicAdd(counters.earlyDrawDataRenderCommandsCount, 1u);
 }
 
 uint countersGenerateOpaqueDrawDataRenderCommandID()

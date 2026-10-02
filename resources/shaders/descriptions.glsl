@@ -223,18 +223,21 @@ struct RenderInfoDescription
 
 struct CountersDescription
 {
+    uint drawDataVisisbilityFrameIndex;
+    uint visibleClusterNodesCount;
     uint firstGlobalLightNodeID;
 	uint clusterLocalLightsCount;
     uint lightNodesCount;
     uint skeletalAnimatedDataToUpdateCount;
     uint shadowsToUpdateCount;
+    uint earlyDrawDataRenderCommandsCount;
     uint opaqueDrawDataRenderCommandsCount;
     uint transparentDrawDataRenderCommandsCount;
     uint shadowDataCount;
     uint opaqueShadowDataRenderCommandsCount;
     uint transparentShadowDataRenderCommandsCount;
 
-    uint padding[2u];
+    uint padding[3u];
 };
 
 struct GBufferDescription
@@ -244,8 +247,9 @@ struct GBufferDescription
     ImageHandle OITNodeIDImageHandle;
     uint OITNodesMaxCount;
     uint OITNodesCount;
+    uint generateDepthTextureLevelsPassIndex;
 	
-	// uint padding[0u];
+	uint padding[3u];
 };
 
 struct OITNodeDescription

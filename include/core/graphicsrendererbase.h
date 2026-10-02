@@ -110,7 +110,25 @@ ENUMCLASS(TextureType, uint16_t, Type1D, Type2D, Type3D, TypeCube, Type1DArray, 
 
 ENUMCLASS(TextureWrapMode, uint16_t, ClampToEdge, ClampToBorder, MirroredRepeat, Repeat, MirrorClampToEdge)
 
-ENUMCLASS(TextureFilterMode, uint16_t, Point, Linear, Bilinear, Trilinear)
+ENUMCLASS(
+    TextureFilterMode,
+    uint16_t,
+    Point,    /* Nearest, Nearest */
+    Linear,   /* Linear, Linear */
+    Bilinear, /* Linear, LinearMipmapNearest */
+    Trilinear /* Linear, LinearMipmapLinear */
+)
+
+ENUMCLASS(TextureMagnificationFilter, uint16_t, Nearest, Linear)
+ENUMCLASS(
+    TextureMinificationFilter,
+    uint16_t,
+    Nearest,
+    Linear,
+    NearestMipmapNearest,
+    LinearMipmapNearest,
+    NearestMipmapLinear,
+    LinearMipmapLinear)
 
 ENUMCLASS(TextureSwizzle, uint16_t, Red, Green, Blue, Alpha, Zero, One)
 
@@ -373,6 +391,7 @@ public:
     virtual void setBorderColor(const glm::vec4&) = 0;
     virtual void setWrapMode(TextureWrapMode) = 0;
     virtual void setFilterMode(TextureFilterMode) = 0;
+    virtual void setFilterMode(TextureMagnificationFilter, TextureMinificationFilter) = 0;
     virtual void setSwizzleMask(const TextureSwizzleMask&) = 0;
 
     virtual PTexture copyEmpty() const = 0;

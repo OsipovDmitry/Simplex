@@ -2,6 +2,9 @@ layout (local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 
 #include<camera.glsl>
 #include<cluster_node.glsl>
+#include<counters.glsl>
+#include<geometry.glsl>
+#include<visible_cluster_node.glsl>
 
 #include<math/bounding_box.glsl>
 #include<math/utils.glsl>
@@ -16,7 +19,7 @@ void main(void)
 		const uint ID_Z = gl_GlobalInvocationID.z;
 		
 		const mat4x4 projectionMatrixInverted = cameraProjectionMatrixInverted();
-		BoundingBox bb = makeEmptyBoundingBox();
+		BoundingBox bbVS = makeEmptyBoundingBox();
 		for (uint i = 0u; i < BOUNDING_BOX_POINTS_COUNT; ++i)
 		{
 			vec2 NDC_XY = vec2(float(ID_X + bitfieldExtract(i, 0, 1)), float(ID_Y + bitfieldExtract(i, 1, 1)));
@@ -27,10 +30,17 @@ void main(void)
 			const vec3 farPoint = projectPoint(projectionMatrixInverted, vec3(NDC_XY, 0.0f));
 
 			const float linearZ = float(ID_Z + bitfieldExtract(i, 2, 1)) / float(clusterSize.z);
-			bb = boundingBoxExpand(bb, mix(nearPoint, farPoint, linearZ));
+			bbVS = boundingBoxExpand(bbVS, mix(nearPoint, farPoint, linearZ));
 		}
 
 		const uint clusterNodeID = ID_X + ID_Y * clusterSize.x + ID_Z * clusterSize.x * clusterSize.y;
-		clusterNodeInitialize(clusterNodeID, bb);
+		clusterNodeInitialize(clusterNodeID, bbVS);
+		
+		const BoundingBox bbNDC = cameraProjectBoundingBox(bbVS);
+		if (geometryTestBoundingBox(bbNDC))
+		{
+			const uint visibleClusterNodeID = countersGenerateVisibleClusterNodeID();
+			visibleClusterNodeSetClusterNodeID(visibleClusterNodeID, clusterNodeID);
+		}
     }
 }

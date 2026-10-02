@@ -25,6 +25,7 @@ using RenderInfoBuffer = std::shared_ptr<graphics::StructBuffer<RenderInfoDescri
 using CountersBuffer = std::shared_ptr<graphics::StructBuffer<CountersDescription>>;
 using CameraBuffer = std::shared_ptr<graphics::StructBuffer<CameraDescription>>;
 using ClusterNodesBuffer = std::shared_ptr<graphics::VectorBuffer<ClusterNodeDescription>>;
+using VisibleClusterNodesBuffer = std::shared_ptr<graphics::VectorBuffer<uint32_t>>;
 using ClusterLocalLightsBuffer = std::shared_ptr<graphics::VectorBuffer<ClusterLocalLightDescription>>;
 using LightNodesBuffer = std::shared_ptr<graphics::VectorBuffer<LightNodeDescription>>;
 using SkeletalAnimatedDataToUpdateBuffer = std::shared_ptr<graphics::VectorBuffer<SkeletalAnimatedDataToUpdateDescription>>;
@@ -33,6 +34,7 @@ using ShadowDataBuffer = std::shared_ptr<graphics::VectorBuffer<ShadowDataDescri
 using ShadowMapsBuffer = std::shared_ptr<graphics::StructBuffer<ShadowMapsDescription>>;
 using HighDynamicRangeBuffer = std::shared_ptr<graphics::StructBuffer<HDRDescription>>;
 using ToneMappingBuffer = std::shared_ptr<graphics::StructBuffer<ToneMappingDescription>>;
+using DrawDataVisibilityBuffer = std::shared_ptr<graphics::VectorBuffer<uint32_t>>;
 
 class RenderPipeLine : public std::enable_shared_from_this<RenderPipeLine>
 {
@@ -90,6 +92,7 @@ public:
     CountersBuffer& countersBuffer();
     CameraBuffer& cameraBuffer();
     ClusterNodesBuffer& clusterNodesBuffer();
+    VisibleClusterNodesBuffer& visibleClusterNodesBuffer();
     ClusterLocalLightsBuffer& clusterLocalLightsBuffer();
     LightNodesBuffer& lightNodesBuffer();
     SkeletalAnimatedDataToUpdateBuffer& skeletalAnimatedDataToUpdateBuffer();
@@ -98,9 +101,13 @@ public:
     ShadowMapsBuffer& shadowMapsBuffer();
     HighDynamicRangeBuffer& highDynamicRangeBuffer();
     ToneMappingBuffer& toneMappingBuffer();
+    DrawDataVisibilityBuffer& drawDataVisibilityBuffer();
+
     graphics::PDispatchComputeIndirectCommandBuffer& bonesTransformsDataCalculateCommandBuffer();
+    graphics::PDrawElementsIndirectCommandBuffer& earlyDrawDataRenderCommandsBuffer();
     graphics::PDrawElementsIndirectCommandBuffer& opaqueDrawDataRenderCommandsBuffer();
     graphics::PDrawElementsIndirectCommandBuffer& transparentDrawDataRenderCommandsBuffer();
+    graphics::PBufferRange& earlyDrawDataRenderParameterBuffer();
     graphics::PBufferRange& opaqueDrawDataRenderParameterBuffer();
     graphics::PBufferRange& transparentDrawDataRenderParameterBuffer();
     graphics::PDispatchComputeIndirectCommandBuffer& clusterLocalLightsCommandBuffer();
@@ -176,6 +183,7 @@ private:
     CountersBuffer m_countersBuffer;
     CameraBuffer m_cameraBuffer;
     ClusterNodesBuffer m_clusterNodesBuffer;
+    VisibleClusterNodesBuffer m_visibleClusterNodesBuffer;
     ClusterLocalLightsBuffer m_clusterLocalLightsBuffer;
     LightNodesBuffer m_lightNodesBuffer;
     SkeletalAnimatedDataToUpdateBuffer m_skeletalAnimatedDataToUpdateBuffer;
@@ -184,9 +192,13 @@ private:
     ShadowMapsBuffer m_shadowMapsBuffer;
     HighDynamicRangeBuffer m_HDRBuffer;
     ToneMappingBuffer m_toneMappingBuffer;
+    DrawDataVisibilityBuffer m_drawDataVisibilityBuffer;
+
     graphics::PDispatchComputeIndirectCommandBuffer m_bonesTransformsDataCalculateCommandBuffer;
+    graphics::PDrawElementsIndirectCommandBuffer m_earlyDrawDataRenderCommandsBuffer;
     graphics::PDrawElementsIndirectCommandBuffer m_opaqueDrawDataRenderCommandsBuffer;
     graphics::PDrawElementsIndirectCommandBuffer m_transparentDrawDataRenderCommandsBuffer;
+    graphics::PBufferRange m_earlyDrawDataRenderParameterBuffer;
     graphics::PBufferRange m_opaqueDrawDataRenderParameterBuffer;
     graphics::PBufferRange m_transparentDrawDataRenderParameterBuffer;
     graphics::PDispatchComputeIndirectCommandBuffer m_clusterLocalLightsCommandBuffer;

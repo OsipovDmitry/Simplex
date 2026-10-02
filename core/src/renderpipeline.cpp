@@ -23,6 +23,7 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_renderInfoBuffer = RenderInfoBuffer::element_type::create();
     m_countersBuffer = CountersBuffer::element_type::create();
     m_cameraBuffer = CameraBuffer::element_type::create();
+    m_visibleClusterNodesBuffer = VisibleClusterNodesBuffer::element_type::create();
     m_clusterNodesBuffer = ClusterNodesBuffer::element_type::create();
     m_clusterLocalLightsBuffer = ClusterLocalLightsBuffer::element_type::create();
     m_lightNodesBuffer = LightNodesBuffer::element_type::create();
@@ -31,8 +32,12 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
     m_shadowDataBuffer = ShadowDataBuffer::element_type::create();
     m_shadowMapsBuffer = ShadowMapsBuffer::element_type::create(ShadowMapsDescription::makeEmpty());
     m_bonesTransformsDataCalculateCommandBuffer = graphics::DispatchComputeIndirectCommandBuffer::create();
+    m_earlyDrawDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_opaqueDrawDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_transparentDrawDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
+    m_earlyDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
+        m_countersBuffer->buffer(), offsetof(CountersDescription, earlyDrawDataRenderCommandsCount),
+        sizeof(CountersDescription::earlyDrawDataRenderCommandsCount));
     m_opaqueDrawDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
         m_countersBuffer->buffer(), offsetof(CountersDescription, opaqueDrawDataRenderCommandsCount),
         sizeof(CountersDescription::opaqueDrawDataRenderCommandsCount));
@@ -45,6 +50,7 @@ RenderPipeLine::RenderPipeLine(uint32_t shadowAtlasSize)
         graphics::PDrawArraysIndirectCommandsBuffer::element_type::create({graphics::DrawArraysIndirectCommand()});
     m_HDRBuffer = HighDynamicRangeBuffer::element_type::create();
     m_toneMappingBuffer = ToneMappingBuffer::element_type::create();
+    m_drawDataVisibilityBuffer = DrawDataVisibilityBuffer::element_type::create();
     m_opaqueShadowDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_transparentShadowDataRenderCommandsBuffer = graphics::PDrawElementsIndirectCommandBuffer::element_type::create();
     m_opaqueShadowDataRenderParameterBuffer = graphics::PBufferRange::element_type::create(
@@ -75,20 +81,31 @@ void RenderPipeLine::initialize(const std::shared_ptr<ProgramsLoader>& programsL
         geometryBuffer->sortOITNodes(renderer);
     };
 
+    static const auto generateDepthLevels =
+        [](const std::shared_ptr<graphics::RendererBase>& renderer, const std::shared_ptr<graphics::IFrameBuffer>& frameBuffer,
+           const std::shared_ptr<graphics::IVertexArray>& vertexArray,
+           const std::shared_ptr<const GeometryBuffer>& geometryBuffer, const std::shared_ptr<const SceneData>&)
+    {
+        geometryBuffer->generateDepthTextureLevels(renderer, frameBuffer, vertexArray);
+    };
+
     if (m_isInitialized) return;
 
     auto sharedThis = shared_from_this();
 
     m_passes.clear();
     m_passes.push_back(std::make_shared<InitializePass>(programsLoader, sharedThis));
-    m_passes.push_back(std::make_shared<BuildClusterPass>(programsLoader, sharedThis));
-    m_passes.push_back(std::make_shared<CullDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<EarlyCullDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<CollectSkeletalAnimatedDataToUpdatePass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<PrepareBonesTransformsDataCalculateCommandPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<CalculateBonesTransformsDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<SimplePass>(sharedThis, clear));
-    m_passes.push_back(std::make_shared<RenderDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<EarlyRenderDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<SimplePass>(sharedThis, generateDepthLevels));
+    m_passes.push_back(std::make_shared<LateCullDrawDataPass>(programsLoader, sharedThis));
+    m_passes.push_back(std::make_shared<LateRenderDrawDataPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<SimplePass>(sharedThis, sort));
+    m_passes.push_back(std::make_shared<BuildClusterPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<ClusterGlobalLightPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<PrepareClusterLocalLightsCommandPass>(programsLoader, sharedThis));
     m_passes.push_back(std::make_shared<ClusterLocalLightPass>(programsLoader, sharedThis));
@@ -127,8 +144,10 @@ void RenderPipeLine::run(
     m_clusterSize = clusterSize;
 
     const auto drawDataCount = sceneData->drawDataCount();
+    m_earlyDrawDataRenderCommandsBuffer->resize(drawDataCount);
     m_opaqueDrawDataRenderCommandsBuffer->resize(drawDataCount);
     m_transparentDrawDataRenderCommandsBuffer->resize(drawDataCount);
+    m_drawDataVisibilityBuffer->resize(drawDataCount);
 
     const auto skeletalAnimatedDataCount = sceneData->skeletalAnimatedDataCount();
     m_skeletalAnimatedDataToUpdateBuffer->resize(skeletalAnimatedDataCount);
@@ -138,6 +157,7 @@ void RenderPipeLine::run(
 
     const auto clusterNodesCount = glm::compMul(m_clusterSize);
     m_clusterNodesBuffer->resize(clusterNodesCount);
+    m_visibleClusterNodesBuffer->resize(clusterNodesCount);
 
     const auto lightsCount = sceneData->lightsCount();
     m_clusterLocalLightsBuffer->resize(lightsCount);
@@ -374,6 +394,11 @@ ClusterNodesBuffer& RenderPipeLine::clusterNodesBuffer()
     return m_clusterNodesBuffer;
 }
 
+VisibleClusterNodesBuffer& RenderPipeLine::visibleClusterNodesBuffer()
+{
+    return m_visibleClusterNodesBuffer;
+}
+
 ClusterLocalLightsBuffer& RenderPipeLine::clusterLocalLightsBuffer()
 {
     return m_clusterLocalLightsBuffer;
@@ -414,9 +439,19 @@ ToneMappingBuffer& RenderPipeLine::toneMappingBuffer()
     return m_toneMappingBuffer;
 }
 
+DrawDataVisibilityBuffer& RenderPipeLine::drawDataVisibilityBuffer()
+{
+    return m_drawDataVisibilityBuffer;
+}
+
 graphics::PDispatchComputeIndirectCommandBuffer& RenderPipeLine::bonesTransformsDataCalculateCommandBuffer()
 {
     return m_bonesTransformsDataCalculateCommandBuffer;
+}
+
+graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::earlyDrawDataRenderCommandsBuffer()
+{
+    return m_earlyDrawDataRenderCommandsBuffer;
 }
 
 graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::opaqueDrawDataRenderCommandsBuffer()
@@ -427,6 +462,11 @@ graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::opaqueDrawDataRend
 graphics::PDrawElementsIndirectCommandBuffer& RenderPipeLine::transparentDrawDataRenderCommandsBuffer()
 {
     return m_transparentDrawDataRenderCommandsBuffer;
+}
+
+graphics::PBufferRange& RenderPipeLine::earlyDrawDataRenderParameterBuffer()
+{
+    return m_earlyDrawDataRenderParameterBuffer;
 }
 
 graphics::PBufferRange& RenderPipeLine::opaqueDrawDataRenderParameterBuffer()

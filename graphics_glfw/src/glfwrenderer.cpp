@@ -1213,25 +1213,85 @@ void TextureBase_4_5::setFilterMode(core::graphics::TextureFilterMode value)
     {
         case core::graphics::TextureFilterMode::Point:
         {
-            glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            setFilterMode(
+                core::graphics::TextureMagnificationFilter::Nearest, core::graphics::TextureMinificationFilter::Nearest);
             break;
         }
         case core::graphics::TextureFilterMode::Linear:
         {
-            glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            setFilterMode(core::graphics::TextureMagnificationFilter::Linear, core::graphics::TextureMinificationFilter::Linear);
             break;
         }
         case core::graphics::TextureFilterMode::Bilinear:
         {
-            glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+            setFilterMode(
+                core::graphics::TextureMagnificationFilter::Linear,
+                core::graphics::TextureMinificationFilter::LinearMipmapNearest);
             break;
         }
         case core::graphics::TextureFilterMode::Trilinear:
         {
+            setFilterMode(
+                core::graphics::TextureMagnificationFilter::Linear,
+                core::graphics::TextureMinificationFilter::LinearMipmapLinear);
+            break;
+        }
+        default:
+            break;
+    }
+}
+
+void TextureBase_4_5::setFilterMode(
+    core::graphics::TextureMagnificationFilter magValue,
+    core::graphics::TextureMinificationFilter minValue)
+{
+    CHECK_CURRENT_CONTEXT;
+
+    switch (magValue)
+    {
+        case core::graphics::TextureMagnificationFilter::Nearest:
+        {
+            glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            break;
+        }
+        case core::graphics::TextureMagnificationFilter::Linear:
+        {
             glTextureParameteri(m_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            break;
+        }
+        default:
+            break;
+    }
+
+    switch (minValue)
+    {
+        case core::graphics::TextureMinificationFilter::Nearest:
+        {
+            glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            break;
+        }
+        case core::graphics::TextureMinificationFilter::Linear:
+        {
+            glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            break;
+        }
+        case core::graphics::TextureMinificationFilter::NearestMipmapNearest:
+        {
+            glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+            break;
+        }
+        case core::graphics::TextureMinificationFilter::LinearMipmapNearest:
+        {
+            glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+            break;
+        }
+        case core::graphics::TextureMinificationFilter::NearestMipmapLinear:
+        {
+            glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+            break;
+        }
+        case core::graphics::TextureMinificationFilter::LinearMipmapLinear:
+        {
             glTextureParameteri(m_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
             break;
         }
@@ -3889,7 +3949,7 @@ std::shared_ptr<core::graphics::IComputeProgram> GLFWRenderer::createComputeProg
 }
 
 void GLFWRenderer::compute(
-    const glm::uvec3& numInvocations,
+    const glm::uvec3& invocationsCount,
     const std::shared_ptr<core::graphics::IComputeProgram>& computeProgram,
     const core::StateSetList& stateSetList)
 {
@@ -3898,9 +3958,15 @@ void GLFWRenderer::compute(
 
     setupCompute(computeProgram, stateSetList);
 
-    auto numWorkGroups =
-        glm::uvec3(glm::ceil(glm::vec3(numInvocations) / glm::vec3(computeProgram->workGroupSize())) + glm::vec3(.5f));
-    glDispatchCompute(numWorkGroups.x, numWorkGroups.y, numWorkGroups.z);
+    const auto workGroupSize = computeProgram->workGroupSize();
+    if (glm::any(glm::equal(workGroupSize, glm::uvec3(0u))))
+    {
+        LOG_CRITICAL << "Any dimension of work group size can't be zero";
+        return;
+    }
+
+    const auto workGroupsCount = (invocationsCount + workGroupSize - glm::uvec3(1u)) / workGroupSize;
+    glDispatchCompute(workGroupsCount.x, workGroupsCount.y, workGroupsCount.z);
 
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }

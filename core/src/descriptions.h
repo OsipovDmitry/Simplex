@@ -169,35 +169,39 @@ struct RenderInfoDescription
 
 struct CountersDescription
 {
+    uint32_t drawDataVisisbilityFrameIndex;
+    uint32_t visibleClusterNodesCount;
     uint32_t firstGlobalLightNodeID;
     uint32_t clusterLocalLightsCount;
     uint32_t lightNodesCount;
     uint32_t skeletalAnimatedDataToUpdateCount;
     uint32_t shadowsToUpdateCount;
+    uint32_t earlyDrawDataRenderCommandsCount;
     uint32_t opaqueDrawDataRenderCommandsCount;
     uint32_t transparentDrawDataRenderCommandsCount;
     uint32_t shadowDataCount;
     uint32_t opaqueShadowDataRenderCommandsCount;
     uint32_t transparentShadowDataRenderCommandsCount;
 
-    uint32_t padding[2u];
+    uint32_t padding[3u];
 };
 
 struct GBufferDescription
 {
     graphics::TextureHandle colorTextureHandle;
     graphics::TextureHandle depthTextureHandle;
-    graphics::ImageHandle OITIndicesImageeHandle;
+    graphics::ImageHandle OITNodeIDImageHandle;
     uint32_t OITNodesMaxCount;
     uint32_t OITNodesCount;
+    uint32_t generateDepthTextureLevelsPassIndex;
 
     // padding
-    // uint32_t padding[0u];
+    uint32_t padding[3u];
 
     static GBufferDescription make(
         graphics::TextureHandle colorTextureHandle,
         graphics::TextureHandle depthTextureHandle,
-        graphics::ImageHandle OITIndicesImageHandle,
+        graphics::ImageHandle OITNodeIDImageHandle,
         uint32_t OITNodesMaxCount);
 };
 

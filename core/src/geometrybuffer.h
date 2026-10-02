@@ -40,6 +40,10 @@ public:
 
     void clear(const std::shared_ptr<graphics::RendererBase>&, const std::shared_ptr<graphics::IFrameBuffer>&) const;
     void sortOITNodes(const std::shared_ptr<graphics::RendererBase>&) const;
+    void generateDepthTextureLevels(
+        const std::shared_ptr<graphics::RendererBase>&,
+        const std::shared_ptr<graphics::IFrameBuffer>&,
+        const std::shared_ptr<graphics::IVertexArray>&) const;
 
     PConstGBuffer GBuffer() const;
     PConstOITBuffer OITBuffer() const;
@@ -67,6 +71,7 @@ private:
 
     std::shared_ptr<graphics::IComputeProgram> m_clearOITNodeIDImageProgram;
     std::shared_ptr<graphics::IComputeProgram> m_sortOITNodesProgram;
+    std::shared_ptr<graphics::IRenderProgram> m_generateDepthTextureLevelsProgram;
 };
 
 } // namespace core
