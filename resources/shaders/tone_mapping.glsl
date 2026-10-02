@@ -50,7 +50,7 @@ void toneMappingCalculateExposure(in uint dt)
 	const float currentLuminance = exp2(currentLogLuminance / toneMapping.rangeInverseLogLuminance + toneMapping.minLogLuminance);
 	const float currentClampedLuminance = clamp(currentLuminance, toneMapping.minClampLuminance, toneMapping.maxClampLuminance);
 	
-	const float prevLuminance = (toneMapping.luminancePrevFrame > 0.0f) ? toneMapping.luminancePrevFrame : toneMapping.baseLuminance;
+	const float prevLuminance = (toneMapping.luminancePrevFrame > 0.0f) ? toneMapping.luminancePrevFrame : currentClampedLuminance;
 	const float tau = (currentClampedLuminance > prevLuminance) ? toneMapping.tauLight : toneMapping.tauDark;
 	const float adaptedLuminance = mix(prevLuminance, currentClampedLuminance, (1.0f - exp(-tau * float(dt) * 0.001f)));
 	
